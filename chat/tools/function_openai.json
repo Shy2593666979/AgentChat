@@ -1,0 +1,66 @@
+[
+    {
+        "name": "send_email",
+        "description": "发送邮箱",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "sender": {
+                    "type": "string",
+                    "description": "输入发件人的QQ邮箱，用户不提就置空"
+                },
+                "receiver": {
+                    "type": "string",
+                    "description": "输入您收件人的QQ邮箱，用户不提就置空"
+                },
+                "emailMessage": {
+                    "type": "string",
+                    "description": "输入您想要发送的信息，用户不提就置空"
+                },
+                "password": {
+                    "type": "string",
+                    "description": "输入发件人的授权码，用户不提就置空"
+                }
+            },
+            "required": ["sender", "receiver", "emailMessage", "password"]
+        }
+    },
+    {
+        "name": "get_datetime",
+        "description": "获得现在的时间",
+        "parameters": {
+            "type": "object",
+            "properties": {
+            },
+            "required": []
+        }
+    },
+    {
+        "name": "arxiv",
+        "description": "查找arxiv上的论文",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "information": {
+                    "type": "string",
+                    "description": "想要查询论文的信息"
+                }
+            },
+            "required": ["information"]
+        }
+    },
+    {
+        "name": "google_search",
+        "description": "在Google搜索一些信息",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "用户想要搜索的问题"
+                }
+            },
+            "required": ["query"]
+        }
+    }
+]
