@@ -27,4 +27,22 @@ async def get_agent():
         result.append({"id": item.id, "name": item.name, "description": item.description, "parameter": data.patameter, "type": data.type, "createTime": data.createTime})
     return resp_200(data = result)
 
+@router.delete("/agent")
+async def delete_agent(request: Request):
+    body = await request.json()
+    id = body.get('id')
+    Agent.delete_agent_by_id(id)
 
+    return resp_200()
+
+@router.put("/agent")
+async def update_agent(request: Request):
+    body = await request.json()
+    id = body.get('id')
+    name = body.get('name')
+    description = body.get('description')
+    parameter = body.get('parameter')
+    code = body.get('code')
+    Agent.update_agent_by_id(id=id, name=name, description=description, parameter=parameter, code=code)
+
+    return resp_200()
