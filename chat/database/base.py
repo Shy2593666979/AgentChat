@@ -1,6 +1,6 @@
 from typing import List
 
-from database.service import  HistoryService, DialogService, ToolService
+from database.service import  HistoryService, DialogService, AgentService
 from database.service import MessageDownService, MessageLikeService
 from type.message import  Message
 from loguru import  logger
@@ -49,7 +49,10 @@ class DialogChat:
     @classmethod
     def select_dialog(cls, dialogId: str):
         try:
-            result = DialogService.select_dialog(dialogId)
+            data = DialogService.select_dialog(dialogId)
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
             logger.error(f"select dialog is appear error: {err}")
@@ -57,52 +60,98 @@ class DialogChat:
     @classmethod
     def get_list_dialog(cls):
         try:
-            result = DialogService.get_list_dialog()
+            data = DialogService.get_list_dialog()
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
             logger.error(f"get list dialog is appear error: {err}")
 
-class Tool:
+class Agent:
 
     @classmethod
-    def create_tool(cls, name: str, description: str, parameter: str, type: str="openai"):
+    def create_agent(cls, name: str, description: str, parameter: str, type: str="openai", code: str="", isCustom: bool=True):
         try:
-            toolId = ToolService.create_tool(name=name, description=description, parameter=parameter, type=type)
-            return toolId
+            agentId = AgentService.create_agent(name=name, description=description, parameter=parameter, type=type, code=code, isCustom=isCustom)
+            return agentId
         except Exception as err:
-            logger.error(f"create tool is appear error: {err}")
+            logger.error(f"create agent is appear error: {err}")
 
     @classmethod
-    def get_tool(cls):
+    def get_agent(cls):
         try:
-            result = ToolService.get_tool()
+            data = AgentService.get_agent()
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
-            logger.error(f"get tool is appear error: {err}")
+            logger.error(f"get agent is appear error: {err}")
+
 
     @classmethod
-    def select_tool_by_type(cls, type: str):
+    def select_agent_by_type(cls, type: str):
         try:
-            result = ToolService.select_tool_by_type(type)
+            data = AgentService.select_agent_by_type(type)
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
-            logger.error(f"select tool by type is appear error: {err}")
+            logger.error(f"select agent by type is appear error: {err}")
 
     @classmethod
-    def select_tool_by_name(cls, name: str):
+    def select_agent_by_custom(cls, isCustom):
         try:
-            result = ToolService.select_tool_by_name(name)
+            data = AgentService.select_agent_by_custom(isCustom=isCustom)
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
-            logger.error(f"select tool by name is appear error: {err}")
+            logger.error(f"select agent by custom is appear error: {err}")
 
     @classmethod
-    def get_tool_by_name_type(cls, name: str, type: str="openai"):
+    def select_agent_by_name(cls, name: str):
         try:
-            result = ToolService.get_tool_by_name_type(name=name, type=type)
+            data = AgentService.select_agent_by_name(name)
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
-            logger.error(f"get tool by name and type appear error: {err}")
+            logger.error(f"select agent by name is appear error: {err}")
+
+    @classmethod
+    def get_agent_by_name_type(cls, name: str, type: str="openai"):
+        try:
+            data = AgentService.get_agent_by_name_type(name=name, type=type)
+            result = []
+            for item in data:
+                result.append(item[0])
+            return result
+        except Exception as err:
+            logger.error(f"get agent by name and type appear error: {err}")
+
+    @classmethod
+    def update_agent_by_id(cls, id: str, name: str, description: str, parameter: str, code: str):
+        try:
+            data = AgentService.update_agent_by_id(id=id, name=name, description=description, parameter=parameter, code=code)
+            result = []
+            for item in data:
+                result.append(item[0])
+            return result
+        except Exception as err:
+            logger.error(f"update agent by id appear error: {err}")
+
+    @classmethod
+    def delete_agent_by_id(cls, id: str):
+        try:
+            AgentService.delete_agent_by_id(id=id)
+        except Exception as err:
+            logger.error(f"delete agent by id appear: {err}")
+
 
 class MessageLike:
 
@@ -117,7 +166,10 @@ class MessageLike:
     @classmethod
     def get_message_like(cls):
         try:
-            result = MessageLikeService.get_message_like()
+            data = MessageLikeService.get_message_like()
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
             logger.error(f"get message like is appear error: {err}")
@@ -135,7 +187,10 @@ class MessageDown:
     @classmethod
     def get_message_down(cls):
         try:
-            result = MessageDownService.get_message_down()
+            data = MessageDownService.get_message_down()
+            result = []
+            for item in data:
+                result.append(item[0])
             return result
         except Exception as err:
             logger.error(f"get message down is appear error: {err}")

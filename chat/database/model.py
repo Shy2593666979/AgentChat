@@ -5,12 +5,14 @@ from uuid import uuid4, UUID
 from sqlalchemy import Text, Column
 
 # 每个函数 or 工具
-class ToolTable(SQLModel, table=True):
+class AgentTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str
     description: str
+    isCustom: bool = Field(default=True)
     parameter: str = Field(sa_column=Column(Text))
     type: str = Literal["openai", "qwen"]
+    code: str = Field(default="")
     createTime: datetime = Field(default_factory=datetime.utcnow)
 
 # 每条消息

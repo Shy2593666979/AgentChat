@@ -2,19 +2,19 @@ import json
 import sys
 sys.path.append("..")
 from langchain_openai import ChatOpenAI
-from langchain.tools import tool
+from langchain.agents import agent
 from config.llm_config import LLM_NAME, LLM_BASE_URL, LLM_API_KEY
 from langchain.schema import HumanMessage
-from tools import FUNCTION
+from agents import FUNCTION
 llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 
-# @tool
+# @agent
 # def sendEmail(sender: str, receiver: str, emailMessage: str):
 #     """需要参数收件人sender、发送人receiver、发送的信息emailMessage，你需要一直询问他"""
 #     return "发送人：{}, 收件人：{}， 信息：{}".format(sender, receiver, emailMessage)
 
-# tools = [sendEmail]
-# model.bind_tools(tools=tools)
+# agents = [sendEmail]
+# model.bind_agents(agents=agents)
 
 # functions = [
  

@@ -1,6 +1,6 @@
 import uvicorn
 from fastapi import FastAPI, Request
-from database import  init_database, init_default_tool
+from database import  init_database, init_default_agent
 from fastapi.middleware.cors import CORSMiddleware
 from config.service_config import SERVICE_HOST, SERVICE_PORT
 from routers import chat, dialog, message
@@ -22,5 +22,5 @@ app.include_router(message.router)
 
 if  __name__ == "__main__":
     init_database()
-    init_default_tool()
+    init_default_agent()
     uvicorn.run("main:app", host=SERVICE_HOST, port=SERVICE_PORT)

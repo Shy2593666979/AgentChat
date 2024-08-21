@@ -1,6 +1,6 @@
 import json
 import os
-from database.base import Tool
+from database.base import Agent
 from loguru import  logger
 
 # 打印当前工作目录
@@ -13,26 +13,26 @@ def get_function(type: str="openai"):
         return get_function_qwen()
 
 def get_function_openai():
-    parameter = Tool.select_tool_by_type(type="openai")
+    parameter = Agent.select_agent_by_type(type="openai")
     result = []
     for data in parameter:
 
-        para = json.loads(data[0].parameter)
+        para = json.loads(data.parameter)
         result.append(para)
     return result
 
 def get_function_qwen():
-    parameter = Tool.select_tool_by_type(type="qwen")
+    parameter = Agent.select_agent_by_type(type="qwen")
     result = []
     for data in parameter:
-        para = json.loads(data[0].parameter)
+        para = json.loads(data.parameter)
         result.append(para)
     return result
 
 def get_function_by_name_type(function_name: str, type: str="openai"):
-    parameter = Tool.get_tool_by_name_type(name=function_name, type=type)
+    parameter = Agent.get_agent_by_name_type(name=function_name, type=type)
 
     for data in parameter:
-        para = json.loads(data[0].parameter)
+        para = json.loads(data.parameter)
         return para
     logger.info(f"get function by name type appear no data")
