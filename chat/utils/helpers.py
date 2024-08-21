@@ -5,7 +5,6 @@ import os
 import re
 import requests
 from utils import logger
-from utils.environ import set_None_environ
 
 def filename_to_classname(filename):
     """
@@ -55,8 +54,6 @@ def send_message(prompt, user_input):
     """
     请求LLM函数
     """
-    # 取消代理
-    set_None_environ()
     
     # logger.logger_api.info('prompt输入:' + prompt)
     
