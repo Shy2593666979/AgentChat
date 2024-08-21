@@ -5,6 +5,7 @@ const input = ref('')
 </script>
 
 <template>
+  
   <div class="ai-dialog-body">
     <div class="ai-dialog-nav">
       <div class="user">
