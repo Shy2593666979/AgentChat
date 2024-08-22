@@ -1,6 +1,6 @@
 [
     {
-        "name": "send_email",
+        "name": "EmailAgent",
         "description": "发送邮箱",
         "parameters": {
             "type": "object",
@@ -24,9 +24,9 @@
             },
             "required": ["sender", "receiver", "emailMessage", "password"]
         }
-    },
+    }
     {
-        "name": "get_datetime",
+        "name": "DatetimeAgent",
         "description": "获得现在的时间",
         "parameters": {
             "type": "object",
@@ -36,7 +36,7 @@
         }
     },
     {
-        "name": "arxiv",
+        "name": "ArxivAgent",
         "description": "查找arxiv上的论文",
         "parameters": {
             "type": "object",
@@ -50,7 +50,7 @@
         }
     },
     {
-        "name": "google_search",
+        "name": "GoogleAgent",
         "description": "在Google搜索一些信息",
         "parameters": {
             "type": "object",
@@ -61,6 +61,20 @@
                 }
             },
             "required": ["query"]
+        }
+    },
+    {
+        "name": "WeatherAgent",
+        "description": "获得给定位置的实时天气以及预报天气信息",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "location": {
+                    "type": "string",
+                    "description": "用户提到的位置"
+                }
+            },
+            "required": ["location"]
         }
     }
 ]

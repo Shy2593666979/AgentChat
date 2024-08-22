@@ -1,5 +1,7 @@
 import uvicorn
 from fastapi import FastAPI, Request
+from fastapi.staticfiles import StaticFiles
+
 from database import  init_database, init_default_agent
 from fastapi.middleware.cors import CORSMiddleware
 from config.service_config import SERVICE_HOST, SERVICE_PORT
@@ -15,6 +17,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"]
 )
+
+app.mount("/img", StaticFiles(directory="img"), name="img")
 
 app.include_router(chat.router)
 app.include_router(dialog.router)

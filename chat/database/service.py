@@ -71,14 +71,14 @@ class DialogService:
 class AgentService:
 
     @classmethod
-    def _get_agent_sql(cls, name: str, description: str, parameter: str, type: str, code: str, isCustom: bool):
-        agent = AgentTable(name=name, description=description, parameter=parameter, type=type, code=code, isCustom=isCustom)
+    def _get_agent_sql(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, isCustom: bool):
+        agent = AgentTable(name=name, description=description, logo=logo, parameter=parameter, type=type, code=code, isCustom=isCustom)
         return agent
 
     @classmethod
-    def create_agent(cls, name: str, description: str, parameter: str, type: str, code: str, isCustom: bool):
+    def create_agent(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, isCustom: bool):
         with Session(engine) as session:
-            session.add(cls._get_agent_sql(name, description, parameter, type, code, isCustom))
+            session.add(cls._get_agent_sql(name, description, logo, parameter, type, code, isCustom))
             session.commit()
 
     @classmethod
@@ -126,7 +126,7 @@ class AgentService:
             session.commit()
 
     @classmethod
-    def update_agent_by_id(cls, id: str, name: str, description: str, parameter: str, type: str, code: str):
+    def update_agent_by_id(cls, id: str, name: str, description: str, logo: str, parameter: str, type: str, code: str):
         with Session(engine) as session:
             sql = select(AgentTable).where(AgentTable.id == id)
             agent = session.exec(sql).one()
@@ -141,6 +141,8 @@ class AgentService:
                 agent.type = type
             if code is not None:
                 agent.code = code
+            if logo is not None:
+                agent.logo = logo
 
             session.add(agent)
             session.commit()

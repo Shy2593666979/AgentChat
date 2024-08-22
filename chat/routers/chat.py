@@ -12,7 +12,8 @@ async def chat(request: Request):
     dialogId = body.get('dialogId')
     user_input = body.get('user_input')
 
-    #breakpoint()
+    # breakpoint()
+
     # 根据dialogId 去MySQL数据库查最近K条数据
     chat_bot = ChatbotModel()
     SQL_Message = HistoryMessage.select_history(dialogId)

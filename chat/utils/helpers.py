@@ -1,10 +1,19 @@
 # encoding=utf-8
-import glob
 import json
 import os
 import re
 import requests
-from utils import logger
+
+
+def check_input(userInput):
+    # 定义正则表达式，匹配大小写字母、数字
+    alphabet_pattern = re.compile(r'^[a-zA-Z0-9]+$')
+
+    # 检查输入是否只包含大小写字母、数字
+    if alphabet_pattern.match(userInput):
+        return True
+    else:
+        return False
 
 def filename_to_classname(filename):
     """

@@ -5,7 +5,6 @@ from langchain_openai import ChatOpenAI
 from langchain.agents import agent
 from config.llm_config import LLM_NAME, LLM_BASE_URL, LLM_API_KEY
 from langchain.schema import HumanMessage
-from agents import FUNCTION
 llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 
 # @agent
@@ -16,36 +15,36 @@ llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 # agents = [sendEmail]
 # model.bind_agents(agents=agents)
 
+functions = [
+        {
+            "name": "EmailAgent",
+            "description": "根据参数进行发送邮件",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                    "sender": {
+                        "type": "string",
+                        "description": "输入发件人的QQ邮箱，用户不提就置空",
+                    },
+                    "receiver": {
+                        "type": "string",
+                        "description": "输入您收件人的QQ邮箱，用户不提就置空"
+                    },
+                    "emailMessage": {
+                        "type": "string",
+                        "description":"输入您想要发送的信息，用户不提就置空"
+                    }
+                },
+                "required": ["sender", "receiver", "emailMessage"],
+            },
+        }
+    ]
+
+# functions = FUNCTION
 # functions = [
  
 #         {
-#             "name": "send_email",
-#             "description": "发送邮箱",
-#             "parameters": {
-#                 "type": "object",
-#                 "properties": {
-#                     "sender": {
-#                         "type": "string",
-#                         "description": "输入发件人的QQ邮箱，用户不提就置空",
-#                     },
-#                     "receiver": {
-#                         "type": "string",
-#                         "description": "输入您收件人的QQ邮箱，用户不提就置空"
-#                     },
-#                     "emailMessage": {
-#                         "type": "string",
-#                         "description":"输入您想要发送的信息，用户不提就置空"
-#                     }
-#                 },
-#                 "required": ["sender", "receiver", "emailMessage"],
-#             },
-#         }
-#     ]
-functions = FUNCTION
-# functions = [
- 
-#         {
-#             "name": "weather",
+#             "name": "",
 #             "description": "了解天气",
 #             "parameters": {
 #                 "type": "object",
@@ -67,10 +66,10 @@ messages=[HumanMessage(content=prompt + "用户没有提到的参数都置空，
 
 
 message = llm.invoke(
-    messages
+    messages, functions=functions
 )
 
-print(message.content)
+print(message)
 if message.additional_kwargs:
     function_name = message.additional_kwargs["function_call"]["name"]
     arguments = json.loads(message.additional_kwargs["function_call"]["arguments"])

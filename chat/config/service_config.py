@@ -8,3 +8,4 @@ SERVICE_PORT = 8880
 
 TOOL_OPENAI = "tools/function_openai.json"
 
+AGENT_DEFAULT_LOGO = "img/default.png"

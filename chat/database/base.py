@@ -71,9 +71,9 @@ class DialogChat:
 class Agent:
 
     @classmethod
-    def create_agent(cls, name: str, description: str, parameter: str, type: str="openai", code: str="", isCustom: bool=True):
+    def create_agent(cls, name: str, description: str, logo: str, parameter: str, type: str="openai", code: str="", isCustom: bool=True):
         try:
-            agentId = AgentService.create_agent(name=name, description=description, parameter=parameter, type=type, code=code, isCustom=isCustom)
+            agentId = AgentService.create_agent(name=name, description=description, logo=logo, parameter=parameter, type=type, code=code, isCustom=isCustom)
             return agentId
         except Exception as err:
             logger.error(f"create agent is appear error: {err}")
@@ -135,9 +135,9 @@ class Agent:
             logger.error(f"get agent by name and type appear error: {err}")
 
     @classmethod
-    def update_agent_by_id(cls, id: str, name: str, description: str, parameter: str, code: str):
+    def update_agent_by_id(cls, id: str, name: str, description: str, logo: str, parameter: str, code: str):
         try:
-            data = AgentService.update_agent_by_id(id=id, name=name, description=description, parameter=parameter, code=code)
+            data = AgentService.update_agent_by_id(id=id, name=name, logo=logo, description=description, parameter=parameter, code=code)
             result = []
             for item in data:
                 result.append(item[0])

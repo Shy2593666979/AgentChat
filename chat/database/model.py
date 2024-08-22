@@ -9,6 +9,7 @@ class AgentTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str
     description: str
+    logo: str
     isCustom: bool = Field(default=True)
     parameter: str = Field(sa_column=Column(Text))
     type: str = Literal["openai", "qwen"]
