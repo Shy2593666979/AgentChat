@@ -10,7 +10,7 @@ async def chat(request: Request):
     """需要dialogId"""
     body = await request.json()
     dialogId = body.get('dialogId')
-    user_input = body.get('user_input')
+    user_input = body.get('userInput')
 
     # breakpoint()
 

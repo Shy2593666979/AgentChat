@@ -11,7 +11,6 @@ class ChatbotModel:
     def __init__(self):
         self.historyMessage: List[Message] = []
 
-
     def include_history_message(self, message: Message):
         """try history message include this ChatbotModel class"""
         self.historyMessage.append(message)
@@ -19,7 +18,7 @@ class ChatbotModel:
     def get_history_message(self):
         return self.historyMessage
 
-    def run(self, user_input: str, historyMessage: List[Message]):
+    def run(self, user_input: str, historyMessage: List[Message], function: str):
         prompt_template = PromptTemplate.from_template(function_call_template)
         
         prompt_history = ""
@@ -28,9 +27,9 @@ class ChatbotModel:
             prompt_history = prompt_history + msg.to_str()
 
         final_prompt = prompt_template.format(user_input=user_input, history=prompt_history)
-        function_name, function_args = llm_function_call(final_prompt)
+        function_name, function_args = llm_function_call(final_prompt, function)
 
-        if function_name is None:
+        if function_name is None or function_name not in action_class:
             return llm_chat(final_prompt)
 
         if BotCheck.slot_is_full(function_args, function_name):

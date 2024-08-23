@@ -28,6 +28,7 @@ class HistoryTable(SQLModel, table=True):
 class DialogTable(SQLModel, table=True):
     dialogId: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str
+    agent: str
     createTime: datetime = Field(default_factory=datetime.utcnow)
 
 # 拉踩的信息

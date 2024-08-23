@@ -39,9 +39,9 @@ class HistoryMessage:
 class DialogChat:
 
     @classmethod
-    def create_dialog(cls, name: str):
+    def create_dialog(cls, name: str, agent: str):
         try:
-            dialogId = DialogService.create_dialog(name)
+            dialogId = DialogService.create_dialog(name, agent)
             return dialogId
         except Exception as err:
             logger.error(f"add dialog is appear error: {err}")

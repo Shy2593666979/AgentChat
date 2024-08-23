@@ -3,6 +3,7 @@ from database.model import MessageDownTable, MessageLikeTable, AgentTable
 from sqlmodel import SQLModel, create_engine, Session
 from sqlalchemy import select, and_
 from config.service_config import  MYSQL_URL
+from chat.utils.helpers import delete_img
 
 engine = create_engine(MYSQL_URL)
 
@@ -40,14 +41,14 @@ class HistoryService:
 class DialogService:
     
     @classmethod
-    def _get_dialog_sql(cls, name: str):
-        dialog = DialogTable(name=name)
+    def _get_dialog_sql(cls, name: str, agent: str):
+        dialog = DialogTable(name=name, agent=agent)
         return dialog
     
     @classmethod
-    def create_dialog(cls, name):
+    def create_dialog(cls, name, agent: str):
         with Session(engine) as session:
-            dialog = cls._get_dialog_sql(name)
+            dialog = cls._get_dialog_sql(name, agent)
             session.add(dialog)
             session.commit()
             return dialog.dialogId
@@ -122,6 +123,9 @@ class AgentService:
             sql = select(AgentTable).where(AgentTable.id == id)
             agent = session.exec(sql).one()
 
+            # 删除agent的logo地址
+            delete_img(logo=agent.logo)
+
             session.delete(agent)
             session.commit()
 
@@ -142,6 +146,8 @@ class AgentService:
             if code is not None:
                 agent.code = code
             if logo is not None:
+                # 删除agent的logo地址
+                delete_img(logo=logo)
                 agent.logo = logo
 
             session.add(agent)

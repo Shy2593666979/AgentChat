@@ -1,0 +1,126 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>对话框示例</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            background-color: #f0f0f0;
+        }
+        .container {
+            background-color: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+        }
+        .dialog-box {
+            width: 900px;
+            height: 600px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 10px;
+            overflow-y: auto;
+        }
+        .message {
+            margin-bottom: 10px;
+            padding: 5px;
+            border-radius: 5px;
+        }
+        .user-message {
+            background-color: #007BFF;
+            color: #fff;
+            text-align: right;
+            margin-left: 50%;
+        }
+        .server-message {
+            background-color: #ccc;
+            color: #000;
+            text-align: left;
+            margin-right: 50%;
+        }
+        .input-box {
+            display: flex;
+        }
+        .input-box input {
+            flex: 1;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+        }
+        .input-box button {
+            padding: 10px 20px;
+            border: none;
+            background-color: #007BFF;
+            color: #fff;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+        }
+        .input-box button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="dialog-box" id="dialogBox"></div>
+        <div class="input-box">
+            <input type="text" id="messageInput" placeholder="输入消息...">
+            <input type="hidden" id="conversationId" value="12345"> <!-- 假设对话ID为12345 -->
+            <button onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script>
+        async function sendMessage() {
+            const messageInput = document.getElementById('messageInput');
+            const dialogBox = document.getElementById('dialogBox');
+            const message = messageInput.value.trim();
+
+
+            if (message) {
+                const messageElement = document.createElement('div');
+                messageElement.className = 'message user-message';
+                messageElement.textContent = message;
+                dialogBox.appendChild(messageElement);
+                dialogBox.scrollTop = dialogBox.scrollHeight;
+
+                // 发送消息到服务器
+                try {
+                    const response = await fetch('http://127.0.0.1:8880/chat', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({"user_input":message, "dialogId":"b5cad725515644c885acd6af36a6344f" })
+                    });
+
+                    if (!response.ok) {
+                        throw new Error('网络响应失败');
+                    }
+
+                    const data = await response.json();
+                    console.log('服务器响应:', data);
+
+                    // 将服务器返回的消息添加到对话框中
+                    const responseMessageElement = document.createElement('div');
+                    responseMessageElement.className = 'message server-message';
+                    responseMessageElement.textContent = `Agent: ${data}`;
+                    dialogBox.appendChild(responseMessageElement);
+                    dialogBox.scrollTop = dialogBox.scrollHeight;
+                } catch (error) {
+                    console.error('发送消息时出错:', error);
+                }
+
+                messageInput.value = '';
+            }
+        }
+    </script>
+</body>
+</html>

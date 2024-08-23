@@ -3,6 +3,8 @@ import json
 import os
 import re
 import requests
+from loguru import logger
+from chat.config.service_config import AGENT_DEFAULT_LOGO
 
 
 def check_input(userInput):
@@ -14,6 +16,15 @@ def check_input(userInput):
         return True
     else:
         return False
+
+def delete_img(logo: str):
+    try:
+        if os.path.exists(logo) and logo != AGENT_DEFAULT_LOGO:
+            os.remove(logo)
+        else:
+            logger.info(f"The logo Path is no exist")
+    except Exception as err:
+        logger.error(f"delete img appear error: {err}")
 
 def filename_to_classname(filename):
     """
@@ -52,8 +63,6 @@ def load_all_scene_configs(chatId):
     current_config = load_scene_templates(file_path)
 
     for key, value in current_config.items():
-            # todo 可以有加载优先级
-            # 只有当键不存在时，才添加到all_scene_configs中
         if key not in all_scene_configs:
             all_scene_configs[key] = value
 

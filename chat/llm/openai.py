@@ -3,7 +3,6 @@ from loguru import logger
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from config.llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_NAME
-from tools import get_function
 from prompt.llm_prompt import function_call_prompt
 from langfuse.callback import CallbackHandler
 from langfuse import Langfuse
@@ -14,7 +13,7 @@ llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 
 
 # 目前只支持function的LLM调用，后续可能会加上React框架，支持全模型调用
-def llm_function_call(prompt):
+def llm_function_call(prompt, function: str):
 
     # 使用langfuse进行监控对话的流程
     function_call_handler = CallbackHandler(
@@ -29,7 +28,7 @@ def llm_function_call(prompt):
     messages = [HumanMessage(content=prompt)]
     message = llm.invoke(
         messages,
-        functions=get_function(),
+        functions=json.loads(function),
         config={"callbacks": [function_call_handler]}
     )
     

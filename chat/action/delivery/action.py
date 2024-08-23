@@ -1,0 +1,32 @@
+import urllib.request
+import urllib.parse
+import ssl
+import json
+from chat.config.tool_config import DELIVERY_HOST, DELIVERY_KEY
+from chat.prompt.tool_prompt import DELIVERY_PROMPT
+
+def delivery_action(number: str):
+    query = f'number={number}&mobile=mobile&type=type'
+
+    url = DELIVERY_HOST + '?' + query
+    headers = {
+        'Authorization': 'APPCODE ' + DELIVERY_KEY
+    }
+
+    request = urllib.request.Request(url, headers=headers)
+    ctx = ssl.create_default_context()
+    ctx.check_hostname = False
+    ctx.verify_mode = ssl.CERT_NONE
+
+    with urllib.request.urlopen(request, context=ctx) as response:
+        content = response.read().decode('utf-8')
+        content = json.loads(content)
+
+        company = content['data'].get('typename')
+        result = []
+        for data in content['data']['list']:
+            result.append(f"时间为{data.get('time')}, 快递信息是: {data.get('status')}")
+        result.reverse()
+        final_result = DELIVERY_PROMPT.format(company, number, result)
+
+        return final_result

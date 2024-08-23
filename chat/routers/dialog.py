@@ -9,13 +9,15 @@ async def get_dialog():
     data = DialogChat.get_list_dialog()
     result = []
     for msg in data:
-        result.append({"dialogId": msg.dialogId, "name": msg.name})
+        result.append({"dialogId": msg.dialogId, "name": msg.name, "agent": msg.agent})
     return resp_200(data=result)
 
 @router.post("/dialog", description="创建对话窗口")
 async def create_dialog(request: Request):
     body = await request.json()
     name = body.get('name')
-    dialogId = DialogChat.create_dialog(name)
+    agent = body.get('agent')
+
+    dialogId = DialogChat.create_dialog(name, agent)
 
     return resp_200(data={"dialogId": dialogId})

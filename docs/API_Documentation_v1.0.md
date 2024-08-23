@@ -28,6 +28,8 @@
 |message|请求信息|string|是||
 |data|返回的数据|string|是||
 
+# 对话窗口
+
 ## DialogCreate
 
 ### 主要功能
@@ -54,8 +56,6 @@
 |code|状态码|int|是||
 |message|请求信息|string|是||
 |data|返回的数据|dict|是|{"dialogId": "xx1s31sfsx00sfwq...."}|
-
-# 对话窗口
 
 ## DialogList
 
