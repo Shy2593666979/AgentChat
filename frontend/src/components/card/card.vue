@@ -9,7 +9,7 @@ const time = ref('20:45')
 <template>
 <div class="card">
    <div class="top">
-    <img src="../../assets/AI.svg" alt="" width="40px" height="40px">
+    <img src="../../../public/ai.svg" alt="" width="25px" height="25px">
     <span>{{ title }}</span>
    </div>
    <div class="middle">
@@ -24,10 +24,9 @@ const time = ref('20:45')
 
 <style lang="scss" scoped>
 .card{
-    background-color: #edeff6;
-    height: 100px;
+    background-color: #f9f9fc;
     border-radius: 4px;
-    padding: 20px;
+    padding: 10px;
     .top{
         display: flex;
         font-size: 15px;
