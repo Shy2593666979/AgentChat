@@ -1,6 +1,6 @@
 from typing import List
 from type.message import Message
-from llm.openai import llm_function_call, llm_chat
+from chat.llm.openai import LLMChat
 from prompt.template import function_call_template, ask_user_template, action_template
 from prompt.llm_prompt import fail_action_prompt
 from langchain.prompts import PromptTemplate
@@ -20,7 +20,7 @@ class ChatbotModel:
     def get_history_message(self):
         return self.historyMessage
 
-    def run(self, user_input: str, historyMessage: List[Message], agent: str):
+    async def run(self, user_input: str, historyMessage: List[Message], agent: str):
 
         breakpoint()
         function = Agent.get_parameter_by_name(agent)
@@ -32,11 +32,11 @@ class ChatbotModel:
             prompt_history = prompt_history + msg.to_str()
 
         final_prompt = prompt_template.format(user_input=user_input, history=prompt_history)
-        function_name, function_args = llm_function_call(final_prompt, function)
+        function_name, function_args = LLMChat.llm_function_call(final_prompt, function)
 
         # 直接与模型对话，不调用function
         if function_name is None or function_name not in action_class:
-            return llm_chat(final_prompt)
+            yield LLMChat.llm_chat(function_call_template, user_input=user_input, history=prompt_history)
 
         if BotCheck.slot_is_full(function_args, function_name):
             logger.info("parameters is full !")
@@ -46,18 +46,18 @@ class ChatbotModel:
             else:
                 action_result = self.action(function_name, function_args)
 
-            action_prompt_template = PromptTemplate.from_template(action_template)
-            action_prompt = action_prompt_template.format(user_input=user_input, scene=function_name, action_result=action_result)
+            # action_prompt_template = PromptTemplate.from_template(action_template)
+            # action_prompt = action_prompt_template.format(user_input=user_input, function_name=function_name, action_result=action_result)
             
-            return llm_chat(action_prompt)
+            yield LLMChat.llm_chat(action_template, user_input=user_input, function_name=function_name, action_result=action_result)
         else:
-            lack_parameter = BotCheck.lack_parameters(function_args, function_name)
-            have_parameter = BotCheck.have_parameters(function_args)
+            lack_parameters = BotCheck.lack_parameters(function_args, function_name)
+            have_parameters = BotCheck.have_parameters(function_args)
 
-            ask_user_prompt_template = PromptTemplate.from_template(ask_user_template)
-            ask_user_prompt = ask_user_prompt_template.format(user_input=user_input, scene=function_name, have_parameters=have_parameter, parameters=lack_parameter)
+            # ask_user_prompt_template = PromptTemplate.from_template(ask_user_template)
+            # ask_user_prompt = ask_user_prompt_template.format(user_input=user_input, function_name=function_name, have_parameters=have_parameters, parameters=lack_parameters)
 
-            return llm_chat(ask_user_prompt)
+            yield LLMChat.llm_chat(ask_user_template, user_input=user_input, function_name=function_name, have_parameters=have_parameters, parameters=lack_parameters)
     
     def action(self, function_name, function_args):
         try:

@@ -13,11 +13,11 @@ ask_user_template = """
 # 用户问题：
     user：{user_input}
 # 当前场景：
-    {scene}
+    {function_name}
 # 目前已有的参数：
     {have_parameters}
 # 缺少的参数
-    {parameters}
+    {lack_parameters}
 """
 
 action_template = """
@@ -26,7 +26,7 @@ action_template = """
 # 用户问题：
     user: {user_input}
 # 当前场景:
-    {scene}
+    {function_name}
 # action信息：
     {action_result}
 """
