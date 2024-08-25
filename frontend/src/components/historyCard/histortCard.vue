@@ -7,7 +7,7 @@ const time = ref('20:45')
 </script>
 
 <template>
-<div class="card">
+<div class="historyCard">
    <div class="top">
     <img src="../../../public/ai.svg" alt="" width="25px" height="25px">
     <span>{{ title }}</span>
@@ -23,7 +23,7 @@ const time = ref('20:45')
 </template>
 
 <style lang="scss" scoped>
-.card{
+.historyCard{
     background-color: #f9f9fc;
     border-radius: 4px;
     padding: 10px;
