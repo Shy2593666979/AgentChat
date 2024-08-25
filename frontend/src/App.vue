@@ -1,14 +1,14 @@
 <script setup lang="ts">
 import { ref } from 'vue';
-import Dialog from './pages/dialog/index'
+import Conversation from './pages/conversation/index'
 const userName = ref('666')
 const itemName = ref('智言平台')
 </script>
 
 <template>
 
-  <div class="ai-dialog-body">
-    <div class="ai-dialog-nav">
+  <div class="ai-body">
+    <div class="ai-nav">
       <div class="left">
         <div class="item-img">
           <img src="../public/ai.svg" alt="" style="width: 30px;height: 30px;">
@@ -22,7 +22,7 @@ const itemName = ref('智言平台')
         <div class="user-name">{{ userName }}</div>
       </div>
     </div>
-    <div class="ai-dialog-main">
+    <div class="ai-main">
       <el-tabs type="border-card" class="demo-tabs" tab-position="left">
         <el-tab-pane>
           <template #label>
@@ -33,7 +33,7 @@ const itemName = ref('智言平台')
               <span>会话</span>
             </span>
           </template>
-          <Dialog></Dialog>
+          <Conversation></Conversation>
         </el-tab-pane>
         <el-tab-pane>
           <template #label>
@@ -52,10 +52,10 @@ const itemName = ref('智言平台')
 </template>
 
 <style lang="scss" scoped>
-.ai-dialog-body {
+.ai-body {
   overflow: hidden;
 
-  .ai-dialog-nav {
+  .ai-nav {
     display: flex;
     justify-content: space-between;
     height: 60px;
@@ -82,7 +82,7 @@ const itemName = ref('智言平台')
       }
     }
   }
-  .ai-dialog-main {
+  .ai-main {
     display: flex;
     height: calc(100vh - 60px);
     :deep(.el-tabs){
