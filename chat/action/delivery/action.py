@@ -2,8 +2,9 @@ import urllib.request
 import urllib.parse
 import ssl
 import json
-from chat.config.tool_config import DELIVERY_HOST, DELIVERY_KEY
-from chat.prompt.tool_prompt import DELIVERY_PROMPT
+from config.tool_config import DELIVERY_HOST, DELIVERY_KEY
+from prompt.tool_prompt import DELIVERY_PROMPT
+from loguru import logger
 
 def delivery_action(number: str):
     query = f'number={number}&mobile=mobile&type=type'
@@ -28,5 +29,5 @@ def delivery_action(number: str):
             result.append(f"时间为{data.get('time')}, 快递信息是: {data.get('status')}")
         result.reverse()
         final_result = DELIVERY_PROMPT.format(company, number, result)
-
+        logger.info(f"------执行API------\n {final_result}")
         return final_result

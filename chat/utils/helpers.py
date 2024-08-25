@@ -4,7 +4,7 @@ import os
 import re
 import requests
 from loguru import logger
-from chat.config.service_config import AGENT_DEFAULT_LOGO
+from config.service_config import AGENT_DEFAULT_LOGO
 
 
 def check_input(userInput):

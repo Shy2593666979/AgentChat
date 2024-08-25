@@ -10,7 +10,8 @@ async def insert_message_like(request: Request):
 
     userInput = body.get('userInput')
     agentOutput = body.get('agentOutput')
-    MessageLike.create_message_like(userInput=userInput, agentOutput=agentOutput)
+    MessageLike.create_message_like(userInput=userInput,
+                                    agentOutput=agentOutput)
 
     return resp_200()
 
@@ -20,6 +21,7 @@ async def insert_message_down(request: Request):
 
     userInput = body.get('userInput')
     agentOutput = body.get('agentOutput')
-    MessageDown.create_message_down(userInput=userInput, agentOutput=agentOutput)
+    MessageDown.create_message_down(userInput=userInput,
+                                    agentOutput=agentOutput)
 
     return resp_200()

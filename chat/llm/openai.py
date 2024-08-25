@@ -28,7 +28,7 @@ def llm_function_call(prompt, function: str):
     messages = [HumanMessage(content=prompt)]
     message = llm.invoke(
         messages,
-        functions=json.loads(function),
+        functions=[json.loads(function)],
         config={"callbacks": [function_call_handler]}
     )
     

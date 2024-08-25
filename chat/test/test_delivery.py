@@ -1,7 +1,7 @@
 # import urllib.request
 # import urllib.parse
 # import ssl
-# from chat.config.tool_config import DELIVERY_HOST, DELIVERY_KEY
+# from  config.tool_config import DELIVERY_HOST, DELIVERY_KEY
 #
 # querys = 'number=434080499334709&mobile=mobile&type=type'
 # url = DELIVERY_HOST + '?' + querys

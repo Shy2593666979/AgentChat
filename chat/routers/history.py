@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Request, APIRouter
-from chat.database.base import HistoryMessage
-from chat.type.schemas import resp_200
+from database.base import HistoryMessage
+from type.schemas import resp_200
 
 router = APIRouter()
 
@@ -13,5 +13,7 @@ async def get_dialog_history(request: Request):
 
     result = []
     for item in data:
-        result.append({"role": item.role, "content": item.content})
+        result.append({"role": item.role,
+                       "content": item.content})
+
     return resp_200(data=result)

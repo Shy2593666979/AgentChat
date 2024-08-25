@@ -1,6 +1,6 @@
 import requests
 from config.tool_config import WEATHER_URL, WEATHER_API_KEY
-from chat.prompt.weather_prompt import WEATHER_PROMPT, MESSAGE_PROMPT
+from prompt.tool_prompt import WEATHER_PROMPT, MESSAGE_PROMPT
 
 def get_weather_action(location: str):
     params = {
@@ -16,7 +16,7 @@ def get_weather_action(location: str):
 
     city = result.get('forecasts')[0].get("city")  # 获取城市
     message_result = []
-    data = result.get('forecasts')[0].get("casts")[0]
+    data = result.get('forecasts')[0].get("casts")
     for item in data:
         date = item.get('date')  # 获取日期
         day_temp = item.get('daytemp')  # 白天温度

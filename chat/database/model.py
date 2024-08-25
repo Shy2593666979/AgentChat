@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import uuid4, UUID
 from sqlalchemy import Text, Column
 
-# 每个函数 or 工具
+# 每个Agent
 class AgentTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str

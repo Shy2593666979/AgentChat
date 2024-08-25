@@ -30,3 +30,10 @@ action_template = """
 # action信息：
     {action_result}
 """
+
+code_template = """
+def custom_function(text: str):
+    ""This is a default python function, Please do not change the function name""
+    
+    return text
+"""

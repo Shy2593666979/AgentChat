@@ -1,7 +1,8 @@
 [
     {
         "name": "EmailAgent",
-        "description": "发送邮箱",
+        "description": "根据用户提供的邮箱参数，帮助用户发送邮件",
+        "logo": "img/email.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -24,34 +25,11 @@
             },
             "required": ["sender", "receiver", "emailMessage", "password"]
         }
-    }
-    {
-        "name": "DatetimeAgent",
-        "description": "获得现在的时间",
-        "parameters": {
-            "type": "object",
-            "properties": {
-            },
-            "required": []
-        }
-    },
-    {
-        "name": "ArxivAgent",
-        "description": "查找arxiv上的论文",
-        "parameters": {
-            "type": "object",
-            "properties": {
-                "information": {
-                    "type": "string",
-                    "description": "想要查询论文的信息"
-                }
-            },
-            "required": ["information"]
-        }
     },
     {
         "name": "GoogleAgent",
         "description": "在Google搜索一些信息",
+        "logo": "img/google.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -65,7 +43,8 @@
     },
     {
         "name": "WeatherAgent",
-        "description": "获得给定位置的实时天气以及预报天气信息",
+        "description": "获得指定位置的实时天气以及预报天气信息",
+        "logo": "img/weather.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -76,5 +55,41 @@
             },
             "required": ["location"]
         }
+    },
+    {
+        "name": "ArxivAgent",
+        "description": "为用户提供Arxiv上的论文",
+        "logo": "img/arxiv.png",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "information": {
+                    "type": "string",
+                    "description": "想要查询论文的信息"
+                }
+            },
+            "required": ["information"]
+        }
+    },
+    {
+        "name": "DeliveryAgent",
+        "description": "根据用户提供的快递单号，可查看快递公司以及实时信息",
+        "logo": "img/delivery.png",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "number": {
+                    "type": "string",
+                    "description": "用户的快递单号"
+                }
+            },
+            "required": ["number"]
+        }
+    },
+    {
+        "name": "ChatAgent",
+        "description": "根据用户输入直接与LLM进行对话",
+        "logo": "img/default.png",
+        "parameters": {}
     }
 ]

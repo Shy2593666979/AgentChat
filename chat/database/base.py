@@ -68,6 +68,24 @@ class DialogChat:
         except Exception as err:
             logger.error(f"get list dialog is appear error: {err}")
 
+    @classmethod
+    def update_dialog_time(cls, dialogId: str):
+        try:
+            DialogService.update_dialog_time(dialogId=dialogId)
+        except Exception as err:
+            logger.error(f"update dialog create time appear error: {err}")
+
+    @classmethod
+    def check_dialog_iscustom(cls, dialogId: str):
+        try:
+            result = DialogService.check_dialog_iscustom(dialogId=dialogId)
+            for data in result:
+                if data[0].isCustom:
+                    return True
+            return False
+        except Exception as err:
+            logger.error(f"check dialog is Custom appear error: {err}")
+
 class Agent:
 
     @classmethod
@@ -124,6 +142,22 @@ class Agent:
             logger.error(f"select agent by name is appear error: {err}")
 
     @classmethod
+    def get_parameter_by_name(cls, name: str):
+        try:
+            data = AgentService.select_agent_by_name(name)
+            return data[0][0].parameter
+        except Exception as err:
+            logger.error(f"get parameter by name is appear error: {err}")
+
+    @classmethod
+    def get_code_by_name(cls, name: str):
+        try:
+            data = AgentService.select_agent_by_name(name)
+            return data[0][0].code
+        except Exception as err:
+            logger.error(f"get code by name is appear error: {err}")
+
+    @classmethod
     def get_agent_by_name_type(cls, name: str, type: str="openai"):
         try:
             data = AgentService.get_agent_by_name_type(name=name, type=type)
@@ -152,6 +186,35 @@ class Agent:
         except Exception as err:
             logger.error(f"delete agent by id appear: {err}")
 
+    @classmethod
+    def search_agent_name(cls, name: str):
+        try:
+            data = AgentService.search_agent_name(name=name)
+            result = []
+            for item in data:
+                result.append(item[0])
+            return result
+        except Exception as err:
+            logger.error(f"search agent name appear error: {err}")
+
+    @classmethod
+    def check_repeat_name(cls, name: str):
+        try:
+            result = AgentService.check_repeat_name(name=name)
+            if len(result) != 0:
+                return True
+            else:
+                return False
+        except Exception as err:
+            logger.error(f"check repeat agent name appear error: {err}")
+
+    @classmethod
+    def check_name_iscustom(cls, name: str):
+        try:
+            data = AgentService.select_agent_by_name(name)
+            return data[0][0].isCustom
+        except Exception as err:
+            logger.error(f"get code by name is appear error: {err}")
 
 class MessageLike:
 
