@@ -12,16 +12,16 @@ function sendMessage(data: Chat){
       body: JSON.stringify(data),
       signal: ctrl.signal,
       openWhenHidden: true,
-      async onopen(response) {
+      async onopen(response: any) {
         console.log('onopen',response);
       },
-      onmessage(msg) {
+      onmessage(msg: any) {
         console.log('fetchEventSource:', msg);
       },
       onclose() {
         console.log('onclose');
       },
-      onerror(err) {
+      onerror(err: any) {
         console.log('onerror', err);
         ctrl.abort();
         throw err;

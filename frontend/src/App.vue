@@ -91,7 +91,7 @@ const itemName = ref('智言平台')
     }
      :deep(.el-tabs__header){
       border: none;
-      width: 10%;
+      width: 150px;
      }
      :deep(.el-tabs__nav-wrap){
       width: 100%;

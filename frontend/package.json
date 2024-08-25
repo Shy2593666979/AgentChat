@@ -12,6 +12,7 @@
     "axios": "^1.7.4",
     "element-plus": "^2.8.0",
     "lodash": "^4.17.21",
+    "md-editor-v3": "^4.19.1",
     "sass-loader": "^16.0.1",
     "vue": "^3.4.37"
   },

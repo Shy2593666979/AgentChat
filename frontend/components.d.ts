@@ -9,7 +9,9 @@ declare module 'vue' {
   export interface GlobalComponents {
     Card: typeof import('./src/components/historyCard/card.vue')['default']
     CommonCard: typeof import('./src/components/commonCard/commonCard.vue')['default']
+    Drawer: typeof import('./src/components/drawer/drawer.vue')['default']
     ElButton: typeof import('element-plus/es')['ElButton']
+    ElDrawer: typeof import('element-plus/es')['ElDrawer']
     ElIcon: typeof import('element-plus/es')['ElIcon']
     ElInput: typeof import('element-plus/es')['ElInput']
     ElOption: typeof import('element-plus/es')['ElOption']
