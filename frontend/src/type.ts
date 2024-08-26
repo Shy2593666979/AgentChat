@@ -23,3 +23,15 @@ export  interface MsgLikeType {
     userInput:string,
     agentOutput:string,
 }
+
+export interface CardListType {
+  code: string
+  createTime: string
+  description: string
+  id: string
+  isCustom: boolean
+  logo: string
+  name: string
+  parameter: string
+  type: string
+}
