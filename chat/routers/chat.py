@@ -2,6 +2,7 @@ from fastapi import Request, APIRouter
 
 from database.base import HistoryMessage, DialogChat, Agent
 from processor.chat_bot import ChatbotModel
+from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
@@ -22,12 +23,16 @@ async def chat(request: Request):
     for msg in SQL_Message:
         chat_bot.include_history_message(msg)
 
-    response = chat_bot.run(user_input, chat_bot.get_history_message(), agent)
-
+    # response = chat_bot.run(user_input, chat_bot.get_history_message(), agent)
+    async def general_generate():
+        async for one_data in chat_bot.run(user_input, chat_bot.get_history_message(), agent):
+            yield f"data: {one_data} \n"
+        yield "data: [DONE]"
+        # LLM回答的信息存放到MySQL数据库
+        HistoryMessage.create_history(role="assistant", content=chat_bot.final_result, dialogId=dialogId)
+    
     # 将用户问的存放到MySQL数据库
     HistoryMessage.create_history(role="user", content=user_input, dialogId=dialogId)
-    # LLM回答的信息存放到MySQL数据库
-    HistoryMessage.create_history(role="assistant", content=response, dialogId=dialogId)
     # 更新对话窗口的最近使用时间
     DialogChat.update_dialog_time(dialogId=dialogId)
-    return response
+    return StreamingResponse(general_generate(), media_type="text/plain")
