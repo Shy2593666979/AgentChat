@@ -1,16 +1,20 @@
 <script setup lang="ts">
-import { nextTick, ref } from 'vue';
+import { nextTick, ref, onMounted } from 'vue';
 import { ElScrollbar } from 'element-plus';
 import { MdPreview } from 'md-editor-v3';
 import 'md-editor-v3/lib/style.css';
+import { CardListType } from '../../../type'
+import { sendMessage } from '../../../apis/chat'
 
 const props = defineProps<{
-    chatTitle: string
+    item : CardListType
 }>();
 
 const scrollbar = ref<InstanceType<typeof ElScrollbar>>();
 const searchInput = ref('')
 const id = 'preview-only';
+
+
 const chatArr = ref([
     {
         type: 'person',
@@ -48,11 +52,19 @@ const personQuestion = () => {
     }
 }
 
+onMounted(async()=>{
+  const data = {
+    dialogId: props.item.id,
+    agent:props.item.name,
+    userInput:'你好',
+  }
+  await sendMessage(data)
+})
 </script>
 
 <template>
     <div class="chat">
-        <div class="chat-title">{{ props.chatTitle }}</div>
+        <div class="chat-title">{{ props.item.name }}</div>
 
         <div class="chat-conversation">
             <el-scrollbar ref="scrollbar">
