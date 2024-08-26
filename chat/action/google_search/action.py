@@ -1,7 +1,8 @@
 import os
-from langchain.utilities import SerpAPIWrapper
+from langchain_community.utilities import SerpAPIWrapper
+from config.tool_config import SERPAPI_API_KEY
 
-os.environ["SERPAPI_API_KEY"] = "cdc3b207606843b4c883849c3a0f833c13057811bea964bef192707d8845f3d8"
+os.environ["SERPAPI_API_KEY"] = SERPAPI_API_KEY
 
 def google_search_action(query: str):
     search = SerpAPIWrapper()

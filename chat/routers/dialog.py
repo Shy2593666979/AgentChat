@@ -1,5 +1,5 @@
 from fastapi import  APIRouter, Request
-from database.base import DialogChat
+from chat.database.base import DialogChat, Agent
 from type.schemas import resp_200, resp_500
 
 router = APIRouter()
@@ -9,10 +9,13 @@ async def get_dialog():
     data = DialogChat.get_list_dialog()
     result = []
     for msg in data:
+        msg_agent = Agent.select_agent_by_name(name=msg.agent)
         result.append({"name": msg.name,
                        "agent": msg.agent,
                        "dialogId": msg.dialogId,
-                       "createTime": msg.createTime})
+                       "createTime": msg.createTime,
+                       "logo": msg_agent[0].logo})
+
     return resp_200(data=result)
 
 @router.post("/dialog", description="创建对话窗口")

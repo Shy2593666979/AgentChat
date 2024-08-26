@@ -1,4 +1,4 @@
-from langchain.utilities import  ArxivAPIWrapper
+from langchain_community.utilities import ArxivAPIWrapper
 
 arxiv_wrapper = ArxivAPIWrapper()
 

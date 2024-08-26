@@ -14,7 +14,7 @@ def init_database():
     try:
         engine = create_engine(MYSQL_URL)
         SQLModel.metadata.create_all(engine)
-        logger.info("create mysql table is successful")
+        logger.info("mysql table is successful")
     except Exception as err:
         logger.error(f"create mysql table appear error: {err}")
 

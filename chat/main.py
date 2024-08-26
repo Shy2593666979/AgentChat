@@ -20,11 +20,11 @@ app.add_middleware(
 
 app.mount("/img", StaticFiles(directory="img"), name="img")
 
-app.include_router(chat.router)
-app.include_router(dialog.router)
-app.include_router(message.router)
-app.include_router(agent.router)
-app.include_router(history.router)
+app.include_router(chat.router, prefix="/api")
+app.include_router(dialog.router, prefix="/api")
+app.include_router(message.router, prefix="/api")
+app.include_router(agent.router, prefix="/api")
+app.include_router(history.router, prefix="/api")
 
 if  __name__ == "__main__":
     init_database()
