@@ -10,4 +10,4 @@ TOOL_OPENAI = "tools/function_openai.json"
 
 AGENT_DEFAULT_LOGO = "img/default.png"
 
-LOGO_PREFIX = SERVICE_HOST + ":" + str(SERVICE_PORT) + "/"
+LOGO_PREFIX = "http://" + SERVICE_HOST + ":" + str(SERVICE_PORT) + "/"
