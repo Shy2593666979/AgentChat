@@ -1,0 +1,36 @@
+version: '3.8'
+
+services:
+  mysql:
+    container_name: agentchat-mysql
+    image: mysql:8.0
+    environment:
+      MYSQL_ROOT_PASSWORD: 123456
+      MYSQL_DATABASE: agentchat
+      MYSQL_USER: user
+      MYSQL_PASSWORD: 123456
+      TZ: Asia/Shanghai
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+
+  redis:
+    image: redis:7.0.4
+    container_name: agentchat-redis
+    ports:
+      - "6379:6379"
+    environment:
+      TZ: Asia/Shanghai
+
+  app:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: python_app
+    depends_on:
+      - redis
+      - mysql
+
+volumes:
+  mysql_data:
