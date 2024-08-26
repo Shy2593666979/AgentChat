@@ -11,7 +11,8 @@ async def get_dialog():
     for msg in data:
         result.append({"name": msg.name,
                        "agent": msg.agent,
-                       "dialogId": msg.dialogId})
+                       "dialogId": msg.dialogId,
+                       "createTime": msg.createTime})
     return resp_200(data=result)
 
 @router.post("/dialog", description="创建对话窗口")
