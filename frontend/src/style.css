@@ -1,0 +1,13 @@
+*{
+    margin: 0;
+    padding: 0;
+    font-family: "Microsoft YaHei";
+}
+
+.md-editor {
+    background-color:transparent !important;
+}
+
+.md-editor-preview-wrapper {
+    padding: 0 !important;
+}
