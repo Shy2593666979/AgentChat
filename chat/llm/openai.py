@@ -54,13 +54,11 @@ class LLMChat:
 
         prompt_template = PromptTemplate.from_template(template)
 
-        final_result = ''
+        # final_result = ''
         # message = llm.invoke(messages, config={"callbacks": [llm_chat_handler]})
         async for one_result in cls.astream_chat(prompt_template, **kwargs):
-            yield str({'type': 'data', 'message': one_result.content})
-            final_result += one_result.content
-        yield str({'type': 'end', 'message': ""})
-        yield str(final_result)
+            # final_result += one_result.content
+            yield one_result.content
 
     @classmethod
     async def astream_chat(cls, prompt, **kwargs):
