@@ -99,11 +99,11 @@ def search_agent(name: str = Form(...)):
         result.append({"id": item.id,
                        "name": item.name,
                        "description": item.description,
-                       "logo": item.logo,
-                       "parameter": data.patameter,
-                       "isCustom": data.isCustom,
-                       "code": data.code,
-                       "type": data.type,
+                       "logo": LOGO_PREFIX + item.logo,
+                       "parameter": item.parameter,
+                       "isCustom": item.isCustom,
+                       "code": item.code,
+                       "type": item.type,
                        "createTime": data.createTime})
 
     return resp_200(data = result)
