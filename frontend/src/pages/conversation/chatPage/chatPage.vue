@@ -52,9 +52,7 @@ const personQuestion = () => {
     sendMessage(
       data,
       (onmessage = (msg: any) => {
-        chatArr.value[chatArr.value.length - 1].aiMessage.content += JSON.parse(
-          JSON.stringify(msg.data)
-        )
+        chatArr.value[chatArr.value.length - 1].aiMessage.content += JSON.parse(msg.data).content
         scrollBottom()
       }),
       (onclose = () => {
