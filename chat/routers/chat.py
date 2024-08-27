@@ -27,7 +27,7 @@ async def chat(request: Request):
     # 流式输出LLM生成结果
     async def general_generate():
         async for one_data in chat_bot.run(user_input, chat_bot.get_history_message(), agent):
-            yield f"data: {one_data} \n"
+            yield f"data: {one_data}\n\n"
         yield "data: [DONE]"
         # LLM回答的信息存放到MySQL数据库
         HistoryMessage.create_history(role="assistant", content=chat_bot.final_result, dialogId=dialogId)
@@ -36,4 +36,4 @@ async def chat(request: Request):
     HistoryMessage.create_history(role="user", content=user_input, dialogId=dialogId)
     # 更新对话窗口的最近使用时间
     DialogChat.update_dialog_time(dialogId=dialogId)
-    return StreamingResponse(general_generate(), media_type="text/plain")
+    return StreamingResponse(general_generate(), media_type="text/event-stream")
