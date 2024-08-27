@@ -2,7 +2,7 @@ from datetime import  datetime
 from database.model import HistoryTable, DialogTable
 from database.model import MessageDownTable, MessageLikeTable, AgentTable
 from sqlmodel import SQLModel, create_engine, Session
-from sqlalchemy import select, and_, update
+from sqlalchemy import select, and_, update, desc
 from config.service_config import  MYSQL_URL
 from utils.helpers import delete_img
 
@@ -35,7 +35,7 @@ class HistoryService:
     @classmethod
     def get_dialog_history(cls, dialogId: str):
         with Session(engine) as session:
-            sql = select(HistoryTable).where(HistoryTable.dialogId == dialogId)
+            sql = select(HistoryTable).where(HistoryTable.dialogId == dialogId).order_by(HistoryTable.createTime)
             result = session.exec(sql).all()
             return result
 
@@ -65,7 +65,7 @@ class DialogService:
     @classmethod
     def get_list_dialog(cls):
         with Session(engine) as session:
-            sql = select(DialogTable)
+            sql = select(DialogTable).order_by(desc(DialogTable.createTime))
             result = session.exec(sql).all()
 
             return result
@@ -74,7 +74,7 @@ class DialogService:
     def update_dialog_time(cls, dialogId: str):
         with Session(engine) as session:
             sql = update(DialogTable).where(DialogTable.dialogId == dialogId).values(createTime=datetime.utcnow())
-            session.execute(sql)
+            session.exec(sql)
             session.commit()
             # dialog = session.exec(sql).one()
             #
@@ -189,7 +189,7 @@ class AgentService:
                 update_values['logo'] = logo
 
             sql = update(AgentTable).where(AgentTable.id == id).values(**update_values)
-            session.execute(sql)
+            session.exec(sql)
             session.commit()
             # sql = select(AgentTable).where(AgentTable.id == id)
             # agent = session.exec(sql).one()

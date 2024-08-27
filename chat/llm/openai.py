@@ -50,7 +50,7 @@ class LLMChat:
             logger.info(f"function call is not appear: {err}")
             return None, None
 
-    # 直接调用模型对话
+    # 调用模型对话
     @classmethod
     async def llm_chat(cls, template: str, **kwargs):
 
@@ -62,6 +62,7 @@ class LLMChat:
             # final_result += one_result.content
             yield one_result
 
+    # 流式输出
     @classmethod
     async def astream_chat(cls, prompt, **kwargs):
 
