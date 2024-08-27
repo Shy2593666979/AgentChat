@@ -1,7 +1,7 @@
 from typing import List
 from type.message import Message
 from llm.openai import LLMChat
-from prompt.template import function_call_template, ask_user_template, action_template
+from prompt.template import function_call_template, ask_user_template, action_template, llm_chat_template
 from prompt.llm_prompt import fail_action_prompt
 from langchain.prompts import PromptTemplate
 from database.base import Agent
@@ -22,21 +22,30 @@ class ChatbotModel:
         return self.historyMessage
 
     async def run(self, user_input: str, historyMessage: List[Message], agent: str):
+        
+        # 获取当前对话窗口的历史记录
+        prompt_history = ""
+        for msg in historyMessage:
+            prompt_history = prompt_history + msg.to_str()
 
-        # breakpoint()
+        # 不调用任何Function直接进行大模型对话
+        if agent not in action_class and not Agent.check_name_iscustom(agent):
+            async for one_result in LLMChat.llm_chat(llm_chat_template, user_input=user_input, history=prompt_history):
+                self.final_result += one_result
+                yield one_result
+            # 执行这个if 就结束
+            return 
+        
+        # 调用Function
         function = Agent.get_parameter_by_name(agent)
 
         prompt_template = PromptTemplate.from_template(function_call_template)
-        prompt_history = ""
-        
-        for msg in historyMessage:
-            prompt_history = prompt_history + msg.to_str()
 
         final_prompt = prompt_template.format(user_input=user_input, history=prompt_history)
         function_name, function_args = await LLMChat.llm_function_call(final_prompt, function)
 
         # 直接与模型对话，不调用function
-        if function_name is None or function_name not in action_class:
+        if function_name is None:
             async for one_result in LLMChat.llm_chat(function_call_template, user_input=user_input, history=prompt_history):
                 self.final_result += one_result
                 yield one_result
@@ -57,6 +66,7 @@ class ChatbotModel:
                     self.final_result += one_result
                     yield one_result
             else:
+                logger.info("parameters is lack !")
                 lack_parameters = BotCheck.lack_parameters(function_args, function_name)
                 have_parameters = BotCheck.have_parameters(function_args)
 
