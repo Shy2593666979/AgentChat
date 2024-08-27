@@ -10,6 +10,8 @@ from langchain.prompts import PromptTemplate
 from config.langfuse_config import LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_HOST
 from config.langfuse_config import FUNCTION_TRACE_NAME, CHAT_TRACE_NAME, USER_ID
 
+INCLUDE_MSG = {"content", "id"}
+
 llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 
 class LLMChat:
@@ -58,7 +60,7 @@ class LLMChat:
         # message = llm.invoke(messages, config={"callbacks": [llm_chat_handler]})
         async for one_result in cls.astream_chat(prompt_template, **kwargs):
             # final_result += one_result.content
-            yield one_result.content
+            yield one_result
 
     @classmethod
     async def astream_chat(cls, prompt, **kwargs):
@@ -73,5 +75,6 @@ class LLMChat:
         )
 
         chain = prompt | llm
-        async for one in chain.astream({**kwargs}, config={"callbacks": [llm_chat_handler]}):
-            yield one
+        async for chunk in chain.astream({**kwargs}, config={"callbacks": [llm_chat_handler]}):
+            # 数据按照json的格式转发，只包括content、id参数
+            yield chunk.json(ensure_ascii=False, include=INCLUDE_MSG)
