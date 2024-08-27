@@ -13,7 +13,7 @@ const props = defineProps<{
 const scrollbar = ref<InstanceType<typeof ElScrollbar>>();
 const searchInput = ref('')
 const id = 'preview-only';
-
+const res = ref('')
 
 const chatArr = ref([
     {
@@ -52,13 +52,46 @@ const personQuestion = () => {
     }
 }
 
+function sendMessage(data: Chat){
+    const ctrl = new AbortController();
+    fetchEventSource('/api/chat', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+      signal: ctrl.signal,
+      openWhenHidden: true,
+      async onopen(response: any) {
+        console.log('onopen',response);
+      },
+      onmessage(ev : any) {
+        console.log('fetchEventSource:', ev);
+        if(ev.data === '[DONE]'){
+          
+        }
+        res.value += ev.data
+      },
+      onclose() {
+        console.log('onclose');
+      },
+      onerror(err: any) {
+        console.log('onerror', err);
+        ctrl.abort();
+        throw err;
+      }
+    });
+}
+
+export interface Chat {
+    dialogId: string
+    userInput: string
+}
+
+const onmessage = (ev: any)=>{
+    res.value += ev.data
+}
 onMounted(async()=>{
-  const data = {
-    dialogId: props.item.id,
-    agent:props.item.name,
-    userInput:'你好',
-  }
-  await sendMessage(data)
 })
 </script>
 

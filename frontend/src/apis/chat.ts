@@ -2,9 +2,9 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 
-function sendMessage(data: Chat){
+export function sendMessage(data: Chat){
     const ctrl = new AbortController();
-    fetchEventSource('http://localhost:8880/chat', {
+    fetchEventSource('/api/chat', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -15,8 +15,11 @@ function sendMessage(data: Chat){
       async onopen(response: any) {
         console.log('onopen',response);
       },
-      onmessage(msg: any) {
-        console.log('fetchEventSource:', msg);
+      onmessage(ev : any) {
+        console.log('fetchEventSource:', ev);
+        if(ev.data === '[DONE]'){
+
+        }
       },
       onclose() {
         console.log('onclose');
