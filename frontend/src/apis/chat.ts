@@ -2,36 +2,47 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 
-function sendMessage(data: Chat){
-    const ctrl = new AbortController();
-    fetchEventSource('http://localhost:8880/chat', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify(data),
-      signal: ctrl.signal,
-      openWhenHidden: true,
-      async onopen(response: any) {
-        console.log('onopen',response);
-      },
-      onmessage(msg: any) {
-        console.log('fetchEventSource:', msg);
-      },
-      onclose() {
-        console.log('onclose');
-      },
-      onerror(err: any) {
-        console.log('onerror', err);
-        ctrl.abort();
-        throw err;
-      }
-    });
+export function sendMessage(data: Chat,onmessage:any,onclose:any) {
+  const ctrl = new AbortController();
+
+
+  fetchEventSource('/api/chat', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+
+
+    body: JSON.stringify({
+      ...data,
+      detail: true,
+      stream: true,
+    }),
+    signal: ctrl.signal,
+    openWhenHidden: true,
+    async onopen(response: any) {
+      console.log('onopen', response);
+    },
+    onmessage(msg: any) {
+        onmessage(msg)
+    },
+    onclose() {
+      onclose()
+    },
+    onerror(err: any) {
+      console.log('onerror', err);
+      ctrl.abort();
+      throw err;
+    }
+  });
 }
 
 
 
 export interface Chat {
-    dialogId: string
-    userInput: string
+  dialogId: string
+  userInput: string
 }
+
+
+
