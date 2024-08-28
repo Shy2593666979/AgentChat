@@ -27,3 +27,12 @@ async def create_dialog(request: Request):
     dialogId = DialogChat.create_dialog(name, agent)
 
     return resp_200(data={"dialogId": dialogId})
+
+@router.delete("/dialog", description="删除对话窗口")
+async def delete_dialog(request: Request):
+    body = await request.json()
+    dialogId = body.get('dialogId')
+
+    DialogChat.delete_dialog(dialogId=dialogId)
+
+    return resp_200()
