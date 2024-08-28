@@ -2,7 +2,7 @@ from datetime import  datetime
 from database.model import HistoryTable, DialogTable
 from database.model import MessageDownTable, MessageLikeTable, AgentTable
 from sqlmodel import SQLModel, create_engine, Session
-from sqlalchemy import select, and_, update, desc
+from sqlalchemy import select, and_, update, desc, delete
 from config.service_config import  MYSQL_URL
 from utils.helpers import delete_img
 
@@ -83,7 +83,14 @@ class DialogService:
             # session.add(dialog)
             # session.commit()
             # session.refresh()
-
+    
+    @classmethod
+    def delete_dialog_by_id(cls, dialogId: str):
+        with Session(engine) as session:
+            sql = delete(DialogTable).where(DialogTable.dialogId == dialogId)
+            session.exec(sql)
+            session.commit()
+    
     @classmethod
     def check_dialog_iscustom(cls, dialogId: str):
         with Session(engine) as session:
