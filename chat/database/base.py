@@ -67,7 +67,18 @@ class DialogChat:
             return result
         except Exception as err:
             logger.error(f"get list dialog is appear error: {err}")
-
+    
+    @classmethod
+    def get_agent_by_dialogId(cls, dialogId: str):
+        try:
+            data = DialogService.get_agent_by_dialogId(dialogId)
+            result = []
+            for item in data:
+                result.append(item[0])
+            return result
+        except Exception as err:
+            logger.error(f"select dialog is appear error: {err}")
+    
     @classmethod
     def update_dialog_time(cls, dialogId: str):
         try:
