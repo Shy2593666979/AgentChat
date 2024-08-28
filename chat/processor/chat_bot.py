@@ -46,7 +46,7 @@ class ChatbotModel:
 
         # 直接与模型对话，不调用function
         if function_name is None:
-            async for one_result in LLMChat.llm_chat(function_call_template, user_input=user_input, history=prompt_history):
+            async for one_result in LLMChat.llm_chat(llm_chat_template, user_input=user_input, history=prompt_history):
                 self.final_result += json.loads(one_result)['content']
                 yield one_result
         else:
