@@ -69,7 +69,14 @@ class DialogService:
             result = session.exec(sql).all()
 
             return result
-
+    
+    @classmethod
+    def get_agent_by_dialogId(cls, dialogId: str):
+        with Session(engine) as session:
+            sql = select(DialogTable).where(DialogTable.dialogId == dialogId)
+            result = session.exec(sql).all()
+            return result
+            
     @classmethod
     def update_dialog_time(cls, dialogId: str):
         with Session(engine) as session:
