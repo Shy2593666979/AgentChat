@@ -22,7 +22,8 @@ import json
 import urllib.request
 import urllib.parse
 import ssl
-
+from datetime import datetime
+import pytz
 
 DELIVERY_HOST = 'https://qyexpress.market.alicloudapi.com/composite/queryexpress'
 
@@ -30,7 +31,7 @@ DELIVERY_KEY = 'df695c94fc644d27b23c760bf425de21'
 
 DELIVERY_PROMPT = """
 您的{}单号为{}的信息如下:
-{} 
+{}
 """
 
 def delivery_action(number: str):
@@ -59,3 +60,6 @@ def delivery_action(number: str):
         return final_result
 
 print(delivery_action("434080499334709"))
+
+
+print(datetime.now(pytz.timezone('Asia/Shanghai')))

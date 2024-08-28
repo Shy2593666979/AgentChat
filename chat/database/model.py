@@ -3,6 +3,7 @@ from typing import Literal
 from datetime import datetime
 from uuid import uuid4, UUID
 from sqlalchemy import Text, Column
+import pytz
 
 # 每个Agent
 class AgentTable(SQLModel, table=True):
@@ -14,7 +15,7 @@ class AgentTable(SQLModel, table=True):
     parameter: str = Field(sa_column=Column(Text))
     type: str = Literal["openai", "qwen"]
     code: str = Field(default="")
-    createTime: datetime = Field(default_factory=datetime.utcnow)
+    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 每条消息
 class HistoryTable(SQLModel, table=True):
@@ -22,25 +23,25 @@ class HistoryTable(SQLModel, table=True):
     content: str = Field(sa_column=Column(Text))
     dialogId: str
     role: str = Literal["assistant", "system", "user"]
-    createTime: datetime = Field(default_factory=datetime.utcnow)
+    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 每个对话
 class DialogTable(SQLModel, table=True):
     dialogId: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str
     agent: str
-    createTime: datetime = Field(default_factory=datetime.utcnow)
+    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 拉踩的信息
 class MessageDownTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     userInput: str = Field(sa_column=Column(Text))
     agentOutput: str = Field(sa_column=Column(Text))
-    createTime: datetime = Field(default_factory=datetime.utcnow)
+    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 点赞的信息
 class MessageLikeTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     userInput: str = Field(sa_column=Column(Text))
     agentOutput: str = Field(sa_column=Column(Text))
-    createTime: datetime = Field(default_factory=datetime.utcnow)
+    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
