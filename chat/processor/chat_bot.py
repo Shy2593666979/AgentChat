@@ -31,7 +31,7 @@ class ChatbotModel:
         # 不调用任何Function直接进行大模型对话
         if agent not in action_class and not Agent.check_name_iscustom(agent):
             async for one_result in LLMChat.llm_chat(llm_chat_template, user_input=user_input, history=prompt_history):
-                self.final_result += one_result
+                self.final_result += json.loads(one_result)['content']
                 yield one_result
             # 执行这个if 就结束
             return 
@@ -47,7 +47,7 @@ class ChatbotModel:
         # 直接与模型对话，不调用function
         if function_name is None:
             async for one_result in LLMChat.llm_chat(function_call_template, user_input=user_input, history=prompt_history):
-                self.final_result += one_result
+                self.final_result += json.loads(one_result)['content']
                 yield one_result
         else:
 
@@ -63,7 +63,7 @@ class ChatbotModel:
                 # action_prompt = action_prompt_template.format(user_input=user_input, function_name=function_name, action_result=action_result)
                 
                 async for one_result in LLMChat.llm_chat(action_template, user_input=user_input, function_name=function_name, action_result=action_result):
-                    self.final_result += one_result
+                    self.final_result += json.loads(one_result)['content']
                     yield one_result
             else:
                 logger.info("parameters is lack !")
@@ -74,7 +74,7 @@ class ChatbotModel:
                 # ask_user_prompt = ask_user_prompt_template.format(user_input=user_input, function_name=function_name, have_parameters=have_parameters, parameters=lack_parameters)
                 
                 async for one_result in LLMChat.llm_chat(ask_user_template, user_input=user_input, function_name=function_name, have_parameters=have_parameters, parameters=lack_parameters):
-                    self.final_result += one_result
+                    self.final_result += json.loads(one_result)['content']
                     yield one_result
     
     def action(self, function_name, function_args):
