@@ -90,8 +90,9 @@ class DialogChat:
     def delete_dialog(cls, dialogId: str):
         try:
             DialogService.delete_dialog_by_id(dialogId=dialogId)
+            HistoryService.delete_history_by_dialogId(dialogId=dialogId)
         except Exception as err:
-            logger.error(f"delete dialog appear error :{err}")
+            logger.error(f"delete dialog appear error: {err}")
     
     @classmethod
     def check_dialog_iscustom(cls, dialogId: str):

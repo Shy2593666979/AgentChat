@@ -39,6 +39,13 @@ class HistoryService:
             result = session.exec(sql).all()
             return result
 
+    @classmethod
+    def delete_history_by_dialogId(cls, dialogId: str):
+        with Session(engine) as session:
+            sql = delete(HistoryTable).where(HistoryTable.dialogId == dialogId)
+            session.exec(sql)
+            session.commit()
+
 class DialogService:
     
     @classmethod

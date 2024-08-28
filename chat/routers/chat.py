@@ -12,7 +12,8 @@ async def chat(request: Request):
     body = await request.json()
     dialogId = body.get('dialogId')
     user_input = body.get('userInput')
-    agent = body.get('agent')
+    agent_data = DialogChat.get_agent_by_dialogId(dialogId)
+    agent = agent_data[0].agent
 
     # breakpoint()
 

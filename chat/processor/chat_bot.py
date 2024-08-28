@@ -1,3 +1,4 @@
+import json
 from typing import List
 from type.message import Message
 from llm.openai import LLMChat
