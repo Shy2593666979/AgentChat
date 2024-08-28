@@ -76,6 +76,13 @@ class DialogChat:
             logger.error(f"update dialog create time appear error: {err}")
 
     @classmethod
+    def delete_dialog(cls, dialogId: str):
+        try:
+            DialogService.delete_dialog_by_id(dialogId=dialogId)
+        except Exception as err:
+            logger.error(f"delete dialog appear error :{err}")
+    
+    @classmethod
     def check_dialog_iscustom(cls, dialogId: str):
         try:
             result = DialogService.check_dialog_iscustom(dialogId=dialogId)
