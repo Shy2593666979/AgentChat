@@ -1,0 +1,56 @@
+import yaml
+
+# 将用户配置的LLM进行设置全局变量
+LLM_OPENAI_BASE_URL = ""
+LLM_OPENAI_API_KEY = ""
+LLM_OPENAI_MODEL = ""
+
+# 将用户配置的langfuse进行设置全局变量
+LANGFUSE_HOST = ""
+LANGFUSE_USER_ID = ""
+LANGFUSE_CHAT_TRACE_NAME = ""
+LANGFUSE_FUNCTION_TRACE_NAME = ""
+LANGFUSE_SECRET_KEY = ""
+LANGFUSE_PUBLIC_KEY = ""
+
+# 将用户配置的tool进行设置全局变量
+TOOL_WEATHER_BASE_URL = ""
+TOOL_WEATHER_API_KEY = ""
+TOOL_DELIVERY_BASE_URL = ""
+TOOL_DELIVERY_API_KEY = ""
+TOOL_GOOGLE_API_KEY = ""
+
+# 将用户配置的embedding model进行设置全局变量
+RAG_EMBEDDING_CHOOSE = ""
+RAG_EMBEDDING_OPENAI_MODEL = ""
+RAG_EMBEDDING_OPENAI_BASE_URL = ""
+RAG_EMBEDDING_OPENAI_API_KEY = ""
+RAG_EMBEDDING_DEFAULT_MODEL = ""
+RAG_EMBEDDING_DEFAULT_CACHE_DIR = ""
+
+# 将用户配置的reranker进行设置全局变量
+RAG_RERANK_CHOOSE = ""
+RAG_RERANK_COHERE_API_KEY = ""
+RAG_RERANK_DEFAULT_MODEL = ""
+RAG_RERANK_DEFAULT_CACHE_DIR = ""
+
+def update_system_config():
+    with open("../config/system_config.yaml", 'r', encoding='utf-8') as file:
+        config = yaml.safe_load(file)
+
+    global LLM_OPENAI_API_KEY, LLM_OPENAI_BASE_URL, LLM_OPENAI_MODEL
+    global LANGFUSE_CHAT_TRACE_NAME, LANGFUSE_FUNCTION_TRACE_NAME, LANGFUSE_HOST, LANGFUSE_USER_ID, LANGFUSE_PUBLIC_KEY, LANGFUSE_SECRET_KEY
+    global TOOL_WEATHER_API_KEY, TOOL_DELIVERY_API_KEY, TOOL_WEATHER_BASE_URL, TOOL_DELIVERY_BASE_URL, TOOL_GOOGLE_API_KEY
+    global RAG_EMBEDDING_CHOOSE, RAG_EMBEDDING_OPENAI_MODEL, RAG_EMBEDDING_OPENAI_BASE_URL, RAG_EMBEDDING_OPENAI_API_KEY, RAG_EMBEDDING_DEFAULT_MODEL, RAG_EMBEDDING_DEFAULT_CACHE_DIR
+    global RAG_RERANK_CHOOSE, RAG_RERANK_DEFAULT_MODEL, RAG_RERANK_DEFAULT_CACHE_DIR, RAG_RERANK_COHERE_API_KEY
+
+    LLM_OPENAI_MODEL = config['llm']['openai']['model']
+    LLM_OPENAI_API_KEY = config['llm']['openai']['api_key']
+    LLM_OPENAI_BASE_URL = config['llm']['openai']['base_url']
+
+    LANGFUSE_USER_ID = config['langfuse']['user_id']
+    LANGFUSE_CHAT_TRACE_NAME = config['langfuse']['chat_trace_name']
+    LANGFUSE_FUNCTION_TRACE_NAME = config['langfuse']['function_trace_name']
+    LANGFUSE_SECRET_KEY = config['langfuse']['secret_key']
+    LANGFUSE_PUBLIC_KEY = config['langfuse']['public_key']
+    LANGFUSE_HOST = config['langfuse']['host']

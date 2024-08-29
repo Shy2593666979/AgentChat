@@ -7,6 +7,14 @@ from loguru import logger
 from config.service_config import AGENT_DEFAULT_LOGO
 
 
+def init_dir(path):
+    try:
+        if not os.path.exists(path):
+            os.makedirs(path)
+    except Exception as err:
+        logger.error(f"create dir appear: {err}")
+
+
 def check_input(userInput):
     # 定义正则表达式，匹配大小写字母、数字
     alphabet_pattern = re.compile(r'^[a-zA-Z0-9]+$')

@@ -164,13 +164,10 @@ class AgentService:
     @classmethod
     def delete_agent_by_id(cls, id: str):
         with Session(engine) as session:
-            sql = select(AgentTable).where(AgentTable.id == id)
-            agent = session.exec(sql).one()
-
+            sql = delete(AgentTable).where(AgentTable.id == id)
+            agent = session.exec(sql)
             # 删除agent的logo地址
             delete_img(logo=agent.logo)
-
-            session.delete(agent)
             session.commit()
 
     @classmethod
