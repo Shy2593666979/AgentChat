@@ -23,6 +23,7 @@ onMounted(async () => {
 const open = () => {
   drawer.value = true
 }
+  
 const close = () => {
   drawer.value = false
 }
