@@ -24,7 +24,7 @@ const deletCard = () =>{
 <template>
   <div class="historyCard">
     <div class="top">
-      <img :src=$props.item.logo  alt="" width="25px" height="25px" />
+      <img :src=props.item.logo  alt="" width="25px" height="25px" />
       <div>{{ props.item.name }}</div>
     </div>
 
