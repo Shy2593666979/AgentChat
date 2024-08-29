@@ -2,14 +2,45 @@
 import { Search } from "@element-plus/icons-vue"
 import CommonCard from "../../../components/commonCard"
 import { ref, onMounted } from "vue"
-import { getAgentListAPI } from "../../../apis/history"
+import { createDialogAPI, getAgentListAPI, searchAgentAPI } from "../../../apis/history"
+import { CardListType } from "../../../type";
+import { useHistoryChatStore } from "../../../store/history_chat_msg"
+import { useHistoryListStore } from "../../../store/history_list/index"
+import { useRouter } from "vue-router"
 
+const router = useRouter()
+const historyListStore = useHistoryListStore()
+const historyChatStore = useHistoryChatStore()
 const searchInput = ref("")
 const CardList = ref()
+
+
 onMounted(async () => {
   const list = await getAgentListAPI()
   CardList.value = list.data.data
 })
+
+const gochat = async(item: CardListType) => {
+  historyChatStore.name = item.name
+  historyChatStore.logo = item.logo
+  const list = await createDialogAPI({ agent: (item as CardListType).name })
+  historyChatStore.dialogId = list.data.data.dialogId
+  historyChatStore.clear()
+  historyListStore.getList()
+  router.push("/conversation/chatPage")
+}
+
+const searchAgent = async () => {
+  if (searchInput.value) {
+    const formData = new FormData()
+    formData.append("name", searchInput.value)
+    const list = await searchAgentAPI(formData)
+    CardList.value = list.data.data
+  } else {
+    const list = await getAgentListAPI()
+    CardList.value = list.data.data
+  }
+}
 </script>
 
 <template>
@@ -32,7 +63,7 @@ onMounted(async () => {
           class="input-with-select"
         >
           <template #prepend>
-            <el-button :icon="Search" />
+            <el-button :icon="Search" @click="searchAgent" />
           </template>
         </el-input>
       </div>
@@ -41,10 +72,12 @@ onMounted(async () => {
       <div class="item-card">
         <div v-for="item in CardList">
           <CommonCard
+            class="card"
             :key="item.id"
             :title="item.name"
             :detail="item.description"
             :imgUrl="item.logo"
+            @click="gochat(item)"
           ></CommonCard>
         </div>
       </div>
@@ -65,7 +98,7 @@ onMounted(async () => {
     font-size: 35px;
     font-weight: 600;
     align-items: center;
-    font-family:'Microsoft YaHei';
+    font-family: "Microsoft YaHei";
 
     .title-img {
       margin-right: 20px;
@@ -82,7 +115,11 @@ onMounted(async () => {
     gap: 10px;
     box-sizing: border-box;
     margin-top: 10px;
+    .card:hover{
+      background-color: #ecebeb;
+    }
   }
+  
 
   :deep(.el-input__wrapper) {
     width: 685px;
