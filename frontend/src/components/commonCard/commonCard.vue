@@ -8,8 +8,6 @@ const props = defineProps<{
   imgUrl: string
 }>()
 onMounted(()=>{
-
-   
 })
 </script>
 
