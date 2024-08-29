@@ -2,15 +2,15 @@ llm:
   openai:
     model: "gpt-3.5-turbo"
     base_url: "https://api.openai-proxy.org/v1"
-    api_key: "sk-qZPuQZwfPzKyFt4AH3ZVLIlf3NASofRDcNK2pkC82Y1q008Y"
+    api_key: ""
 
 langfuse:
   host: "https://cloud.langfuse.com"
   user_id: "tian_chat"
   function_trace_name: "LLMChat"
   chat_trace_name: "FunctionCallChat"
-  secret_key: "sk-lf-9c5b4119-3a2b-4554-91e6-f8fd1ea1cd72"
-  public_key: "pk-lf-5742f8fa-50aa-4ac8-bace-8d1a04e25257"
+  secret_key: ""
+  public_key: ""
 
 tool:
   weather:
@@ -19,10 +19,10 @@ tool:
   
   delivery:
     base_url: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
-    api_key: "df695c94fc644d27b23c760bf425de21"
+    api_key: ""
 
   google:
-    api_key: "cdc3b207606843b4c883849c3a0f833c13057811bea964bef192707d8845f3d8"
+    api_key: ""
 
 rag:
   embedding:
