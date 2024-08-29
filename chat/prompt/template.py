@@ -31,9 +31,24 @@ action_template = """
     {action_result}
 """
 
-code_template = """
-def custom_function(text: str):
+code_template = """def custom_function(text: str):
     ""This is a default python function, Please do not change the function name""
     
     return text
+"""
+
+parameter_template = """{
+    "name": "WeatherAgent",
+    "description": "获得指定位置的实时天气以及预报天气信息",
+    "parameters": {
+        "type": "object",
+        "properties": {
+            "location": {
+                "type": "string",
+                "description": "用户提到的位置"
+            }
+        },
+        "required": ["location"]
+    }
+}
 """
