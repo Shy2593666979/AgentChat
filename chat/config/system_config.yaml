@@ -1,0 +1,46 @@
+llm:
+  openai:
+    model: ""
+    base_url: ""
+    api_key: ""
+
+langfuse:
+  host: ""
+  user_id: "tian_chat"
+  trace_name: "LLMChat"
+  secret_key: ""
+  public_key: ""
+
+tool:
+  weather:
+    base_url: "https://restapi.amap.com/v3/weather/weatherInfo?parameters"
+    api_key: "fac0ad465078da96a3ec6ba1ccc6746f"
+  
+  delivery:
+    base_url: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
+    api_key: "df695c94fc644d27b23c760bf425de21"
+
+rag:
+  embedding:
+    # 选择以下方式进行embedding，如果有需要修改的请修改choose字段
+    choose: "default"
+    
+    openai:
+      model: ""
+      base_url: ""
+      api_key: ""
+    
+    default:
+      model: "BAAI/bge-large-zh-v1.5"
+      cache_dir: r"D:\"
+  
+  rerank:
+    # 选择以下方式进行rerank，如果有需要修改的请修改choose字段
+    choose: "default"
+    
+    cohere:
+      api_key: ""
+
+    default:
+      model: "BAAI/bge-reranker-large"
+      cache_dir: r"D:\"
