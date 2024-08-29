@@ -107,7 +107,7 @@ async def update_agent(id: str = Form(...),
         return resp_500(message=str(err))
 
 @router.post("/agent/search")
-def search_agent(name: str = Form(...)):
+async def search_agent(name: str = Form(...)):
     try:
         data = Agent.search_agent_name(name=name)
         result = []
@@ -126,3 +126,11 @@ def search_agent(name: str = Form(...)):
     except Exception as err:
         logger.error(f"search agent API error: {err}")
         return resp_500(message=str(err))
+
+@router.get("/default/code")
+async def get_default_code():
+    return resp_200(data = code_template)
+
+@router.get("/default/parameter")
+async def get_default_parameter():
+    return resp_200(data = parameter_template)
