@@ -1,58 +1,35 @@
 <script setup lang="ts">
-import { nextTick, ref, onMounted } from "vue"
-import { ElScrollbar } from "element-plus"
+import { ref, onMounted } from "vue"
 import { MdPreview } from "md-editor-v3"
 import "md-editor-v3/lib/style.css"
-import { CardListType } from "../../../type"
 import { sendMessage } from "../../../apis/chat"
+import { useHistoryChatStore } from "../../../store//history_chat_msg"
+import { scrollBottom } from "../../../utils/function"
 
-const props = defineProps<{
-  item: CardListType
-}>()
-
-const scrollbar = ref<InstanceType<typeof ElScrollbar>>()
 const searchInput = ref("")
 const id = "preview-only"
-const chatArr = ref<ChatMessage[]>([])
 const sendQuestion = ref(true)
+const historyChatStore = useHistoryChatStore()
 
-export interface MessageType {
-  content: string
-}
-export interface ChatMessage {
-  personMessage: MessageType
-  aiMessage: MessageType
-}
-
-function scrollBottom() {
-  // 在下次DOM更新循环结束后执行滚动到底部的操作
-  nextTick(() => {
-    // 确保scrollbar对象存在
-    if (scrollbar.value) {
-      const wrapEl = scrollbar.value.wrapRef // 获取滚动容器元素
-      ;(wrapEl as HTMLDivElement).scrollTop = (
-        wrapEl as HTMLDivElement
-      ).scrollHeight // 直接设置scrollTop滚动到底部
-    }
-  })
-}
 const personQuestion = () => {
   if (searchInput.value && sendQuestion) {
     sendQuestion.value = false
-    chatArr.value.push({
+    historyChatStore.chatArr.push({
       personMessage: { content: searchInput.value },
       aiMessage: { content: "" },
     })
     scrollBottom()
-    const data = {
-      dialogId: props.item.id,
-      agent: props.item.name,
-      userInput: searchInput.value,
-    }
+    const data = ref({
+        dialogId: historyChatStore.dialogId,
+        userInput: searchInput.value,
+      })
+
     sendMessage(
-      data,
+      data.value,
       (onmessage = (msg: any) => {
-        chatArr.value[chatArr.value.length - 1].aiMessage.content += JSON.parse(msg.data).content
+        historyChatStore.chatArr[historyChatStore.chatArr.length - 1].aiMessage.content += JSON.parse(
+          msg.data
+        ).content
         scrollBottom()
       }),
       (onclose = () => {
@@ -63,17 +40,20 @@ const personQuestion = () => {
     searchInput.value = ""
   }
 }
-onMounted(() => {
+onMounted(async()=>{
 })
+
 </script>
 
 <template>
   <div class="chat">
-    <div class="chat-title">{{ props.item.name }}</div>
+    <div class="chat-title" >
+      {{ historyChatStore.name }}
+    </div>
 
     <div class="chat-conversation">
       <el-scrollbar ref="scrollbar">
-        <div v-for="item in chatArr">
+        <div v-for="item in historyChatStore.chatArr">
           <div v-if="item.personMessage.content" class="person">
             <div class="content">
               <MdPreview
@@ -87,7 +67,7 @@ onMounted(() => {
           </div>
           <div v-if="item.aiMessage.content !== undefined" class="ai">
             <div class="img">
-              <img src="../../../../public/ai.svg" width="30px" height="30px" />
+              <img :src=historyChatStore.logo width="30px" height="30px" />
             </div>
             <div class="content" v-if="!item.aiMessage.content">
               大模型正在加载中请等待
@@ -105,7 +85,7 @@ onMounted(() => {
           v-model="searchInput"
           placeholder="请输入想要搜索的问题"
           @keydown.enter="personQuestion"
-          v-if="sendQuestion "
+          v-if="sendQuestion"
         >
           <template #append>
             <div @click="personQuestion" class="send">
@@ -113,7 +93,12 @@ onMounted(() => {
             </div>
           </template>
         </el-input>
-        <el-input v-model="searchInput" placeholder="正在输出请稍等..." v-else disabled>
+        <el-input
+          v-model="searchInput"
+          placeholder="正在输出请稍等..."
+          v-else
+          disabled
+        >
           <template #append>
             <div @click="personQuestion" class="send">
               <img src="../../../assets//send.svg" width="30px" height="30px" />
