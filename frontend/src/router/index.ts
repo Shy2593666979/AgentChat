@@ -6,7 +6,6 @@ import Index from '../pages/index.vue'
 import conversation from '../pages/conversation/conversation.vue';
 import DefaultPage from '../pages/conversation/defaultPage/defaultPage.vue';
 const routes  = [
-
   {
     path: '/',
     redirect:'/conversation/',
