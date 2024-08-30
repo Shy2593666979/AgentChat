@@ -1,19 +1,21 @@
 <script setup lang="ts">
 import HistortCard from "../../components/historyCard/index"
 import Drawer from "../../components/drawer"
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, nextTick } from 'vue';
 import { useRouter } from "vue-router"
 import { CardListType, HistoryListType } from "../../type"
 import { ElScrollbar } from "element-plus"
 import { useHistoryListStore } from "../../store/history_list/index"
 import { createDialogAPI, deleteDialogAPI } from "../../apis/history"
 import { useHistoryChatStore } from "../../store/history_chat_msg"
+import { useAgentCardStore } from '../../store/agent_card'
 
+const agentCardStore = useAgentCardStore()
 const router = useRouter()
 const drawerRef = ref()
 const historyListStore = useHistoryListStore()
 const historyChatStore = useHistoryChatStore()
-const current = ref()
+
 
 onMounted(async () => {
   historyListStore.getList()
@@ -28,14 +30,14 @@ const chat = async(item: CardListType) => {
   historyChatStore.logo = item.logo
   const list = await createDialogAPI({ agent: (item as CardListType).name })
   historyChatStore.dialogId = list.data.data.dialogId
-  current.value = list.data.data.dialogId
+  agentCardStore.currentId = list.data.data.dialogId
   historyChatStore.clear()
   historyListStore.getList()
   router.push("/conversation/chatPage")
 }
 
 const goHisChat = (item: HistoryListType) => {
-  current.value = item.dialogId
+  agentCardStore.currentId = item.dialogId
   historyChatStore.dialogId = item.dialogId
   historyChatStore.name = item.name
   historyChatStore.logo = item.logo
@@ -47,7 +49,6 @@ const deleteCard = async (item: HistoryListType) => {
   await deleteDialogAPI(item.dialogId)
   historyListStore.getList()
   router.push("/conversation/")
-  current.value = null
 }
 </script>
 
@@ -74,7 +75,7 @@ const deleteCard = async (item: HistoryListType) => {
             class="card"
             :key="item.dialogId"
             :item="item"
-            :class="current === item.dialogId ?'active':''"
+            :class="agentCardStore.currentId === item.dialogId ?'active':''"
             @click="goHisChat(item)"
             @delete="deleteCard(item)"
           ></HistortCard>
