@@ -2,8 +2,12 @@
 import { Search } from "@element-plus/icons-vue"
 import CommonCard from "../../../components/commonCard"
 import { ref, onMounted } from "vue"
-import { createDialogAPI, getAgentListAPI, searchAgentAPI } from "../../../apis/history"
-import { CardListType } from "../../../type";
+import {
+  createDialogAPI,
+  getAgentListAPI,
+  searchAgentAPI,
+} from "../../../apis/history"
+import { CardListType } from "../../../type"
 import { useHistoryChatStore } from "../../../store/history_chat_msg"
 import { useHistoryListStore } from "../../../store/history_list/index"
 import { useRouter } from "vue-router"
@@ -14,13 +18,12 @@ const historyChatStore = useHistoryChatStore()
 const searchInput = ref("")
 const CardList = ref()
 
-
 onMounted(async () => {
   const list = await getAgentListAPI()
   CardList.value = list.data.data
 })
 
-const gochat = async(item: CardListType) => {
+const gochat = async (item: CardListType) => {
   historyChatStore.name = item.name
   historyChatStore.logo = item.logo
   const list = await createDialogAPI({ agent: (item as CardListType).name })
@@ -69,8 +72,8 @@ const searchAgent = async () => {
       </div>
     </div>
     <el-scrollbar>
-      <div class="item-card">
-        <div v-for="item in CardList">
+    <div class="item-card">
+        <div v-for="item in CardList" >
           <CommonCard
             class="card"
             :key="item.id"
@@ -80,8 +83,8 @@ const searchAgent = async () => {
             @click="gochat(item)"
           ></CommonCard>
         </div>
-      </div>
-    </el-scrollbar>
+    </div>
+  </el-scrollbar>
   </div>
 </template>
 
@@ -106,20 +109,20 @@ const searchAgent = async () => {
   }
 
   .search {
-    margin: 10px auto;
+    display: flex;
+    margin: 0px auto;
   }
 
   .item-card {
     display: grid;
     grid-template-columns: 33% 33% 33%;
-    gap: 10px;
+
     box-sizing: border-box;
     margin-top: 10px;
-    .card:hover{
+    .card:hover {
       background-color: #ecebeb;
     }
   }
-  
 
   :deep(.el-input__wrapper) {
     width: 685px;
