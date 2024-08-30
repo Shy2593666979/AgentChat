@@ -36,7 +36,6 @@ const  deleteAgent = async() => {
 }
 
 
-
 </script>
 
 <template>
