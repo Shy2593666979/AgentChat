@@ -9,4 +9,4 @@ LLM_API_KEY = "sk-qZPuQZwfPzKyFt4AH3ZVLIlf3NASofRDcNK2pkC82Y1q008Y"
 
 LLM_BASE_URL = "https://api.openai-proxy.org/v1"
 
-LLM_NAME = "gpt-3.5-turbo"
+LLM_NAME = "gpt-4o"

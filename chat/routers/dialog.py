@@ -31,7 +31,7 @@ async def create_dialog(request: Request):
         name = body.get('name')
         agent = body.get('agent')
 
-        dialogId = DialogChat.create_dialog(name, agent)
+        dialogId = DialogChat.create_dialog(name if name is not None else agent, agent)
 
         return resp_200(data={"dialogId": dialogId})
     except Exception as err:

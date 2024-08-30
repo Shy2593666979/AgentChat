@@ -3,6 +3,7 @@ from database.base import Agent
 from type.schemas import resp_200, resp_500
 from utils.helpers import check_input
 from config.service_config import AGENT_DEFAULT_LOGO, LOGO_PREFIX
+from prompt.template import code_template, parameter_template
 from loguru import logger
 from uuid import uuid4
 

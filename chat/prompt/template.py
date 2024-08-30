@@ -31,6 +31,15 @@ action_template = """
     {action_result}
 """
 
+llm_chat_template = """
+请根据用户问题以及聊天记录回答用户：
+# 用户问题
+    {user_input}
+# 聊天记录
+    {history}
+"""
+
+
 code_template = """def custom_function(text: str):
     ""This is a default python function, Please do not change the function name""
     

@@ -165,16 +165,24 @@ class AgentService:
     def delete_agent_by_id(cls, id: str):
         with Session(engine) as session:
             sql = delete(AgentTable).where(AgentTable.id == id)
-            agent = session.exec(sql)
+            session.exec(sql)
             # 删除agent的logo地址
-            delete_img(logo=agent.logo)
+            agent_logo = cls._get_logo_by_id(id)
+            delete_img(logo=agent_logo)
             session.commit()
+
+    @classmethod
+    def _get_logo_by_id(cls, id: str):
+        with Session(engine) as session:
+            sql = select(AgentTable).where(AgentTable.id == id)
+            result = session.exec(sql).all()
+            return result[0][0].logo
 
     @classmethod
     def check_repeat_name(cls, name: str):
         with Session(engine) as session:
             sql = select(AgentTable).where(AgentTable.name == name)
-            result = session.exec(sql)
+            result = session.exec(sql).all()
             return result
 
     @classmethod

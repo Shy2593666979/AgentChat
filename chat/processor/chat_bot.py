@@ -25,6 +25,7 @@ class ChatbotModel:
     async def run(self, user_input: str, historyMessage: List[Message], agent: str):
         
         # 获取当前对话窗口的历史记录
+        # breakpoint()
         prompt_history = ""
         for msg in historyMessage:
             prompt_history = prompt_history + msg.to_str()
