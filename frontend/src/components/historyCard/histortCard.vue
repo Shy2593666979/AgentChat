@@ -12,7 +12,6 @@ const props = defineProps<{
 
 
 onMounted(()=>{
-
   
 })
 
