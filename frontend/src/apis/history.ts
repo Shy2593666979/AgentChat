@@ -27,7 +27,7 @@ export function getDialogListAPI() {
   })
 }
 // 用户可自定义创建Agent，需要将所需的参数返回给后端保存到数据库当中  xxx
-export function createAgentAPI(data: AgentCreateType) {
+export function createAgentAPI(data:FormData) {
   return request({
     url: '/api/agent',
     method: 'POST',
@@ -43,7 +43,7 @@ export function getAgentListAPI() {
 }
 
 // 删除Agent  xxx
-export function deleteAgentAPI(id: string) {
+export function deleteAgentAPI(id: FormData) {
   return request({
     url: '/api/agent',
     method: 'DELETE',
@@ -51,7 +51,7 @@ export function deleteAgentAPI(id: string) {
   })
 }
 // 修改Agent 的信息 xxx
-export function updateAgentAPI(data: AgentUpdateType) {
+export function updateAgentAPI(data: FormData) {
   return request({
     url: '/api/agent',
     method: 'PUT',
