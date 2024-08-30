@@ -38,7 +38,7 @@ def agent_insert_mysql(type: str="openai"):
     for data in result:
         name = data.get('name')
         description = data.get('description')
-        logo = LOGO_PREFIX + data.get('logo')
+        logo = data.get('logo')
         parameter = data
 
         Agent.create_agent(name=name,
