@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { ref, onMounted } from "vue"
+import { ref, onMounted} from "vue"
 import { MdPreview } from "md-editor-v3"
 import "md-editor-v3/lib/style.css"
 import { sendMessage } from "../../../apis/chat"
 import { useHistoryChatStore } from "../../../store//history_chat_msg"
-import { scrollBottom } from "../../../utils/function"
+import {scrollBottom } from '../../../utils/function'
 
 const searchInput = ref("")
 const id = "preview-only"
 const sendQuestion = ref(true)
 const historyChatStore = useHistoryChatStore()
+
+
 
 const personQuestion = () => {
   if (searchInput.value && sendQuestion) {
