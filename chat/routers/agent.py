@@ -115,7 +115,7 @@ async def search_agent(name: str = Form(...)):
             result.append({"id": item.id,
                            "name": item.name,
                            "description": item.description,
-                           "logo": item.logo,
+                           "logo": LOGO_PREFIX + item.logo,
                            "parameter": item.parameter,
                            "isCustom": item.isCustom,
                            "code": item.code,
