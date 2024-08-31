@@ -6,7 +6,7 @@ from sqlalchemy import select, and_, update, desc, delete
 from config.service_config import  MYSQL_URL
 from utils.helpers import delete_img
 
-engine = create_engine(MYSQL_URL)
+engine = create_engine(MYSQL_URL, connect_args={"charset": "utf8mb4"})
 
 class HistoryService:
     

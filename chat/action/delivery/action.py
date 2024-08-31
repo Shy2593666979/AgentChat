@@ -8,6 +8,7 @@ from loguru import logger
 
 def delivery_action(number: str):
     try:
+        # breakpoint()
         query = f'number={number}&mobile=mobile&type=type'
 
         url = DELIVERY_HOST + '?' + query

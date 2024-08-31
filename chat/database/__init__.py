@@ -12,7 +12,7 @@ from database.base import Agent
 # 创建MySQL数据表
 def init_database():
     try:
-        engine = create_engine(MYSQL_URL)
+        engine = create_engine(MYSQL_URL, connect_args={"charset": "utf8mb4"})
         SQLModel.metadata.create_all(engine)
         logger.info("mysql table is successful")
     except Exception as err:
@@ -21,13 +21,13 @@ def init_database():
 # 初始化默认工具
 def init_default_agent():
     try:
-        if redis_client.setNx('init_default_agent', '1'):
-            result = Agent.get_agent()
-            if len(result) == 0:
-                logger.info("begin init agent in mysql")
-                agent_insert_mysql()
-            else:
-                logger.info("init agent already")
+        # if redis_client.setNx('init_default_agent', '1'):
+        result = Agent.get_agent()
+        if len(result) == 0:
+            logger.info("begin init agent in mysql")
+            agent_insert_mysql()
+        else:
+            logger.info("init agent already")
     except Exception as err:
         logger.error(f"init default agent appear error: {err}")
 
