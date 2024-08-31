@@ -1,6 +1,6 @@
 <script lang="ts" setup>
 import { ref, onMounted, watch } from "vue"
-import { defaultParameterAPI, defaultCodeAPI } from "../../../apis/agent"
+import { defaultParameterAPI, defaultCodeAPI} from "../../../apis/agent"
 import { createAgentAPI, updateAgentAPI } from "../../../apis/history"
 import { Plus } from "@element-plus/icons-vue"
 import type { UploadProps, UploadUserFile } from "element-plus"
@@ -11,8 +11,9 @@ const emits = defineEmits<(event: "update") => void>()
 const visible = ref<boolean>(false)
 const formRef = ref()
 const eventType = ref("")
+const id = ref('')
 const form = ref({
-  avatar: File || null,
+  avatar: '' ,
   title: "",
   descripte: "",
   parameter: "",
@@ -20,45 +21,42 @@ const form = ref({
 })
 
 const rules = ref({
-  avatar: [{ required: true, message: "应用图标不能为空", trigger: "blur" }],
+  avatar: [{ required: true, message: "头像不能为空", trigger: "blur" }],
   title: [{ required: true, message: "标题不能为空", trigger: "blur" }],
-  descripte: [{ required: true, message: "标题不能为空", trigger: "blur" }],
+  descripte: [{ required: true, message: "描述不能为空", trigger: "blur" }],
 })
 
-onMounted(async () => {})
+onMounted(async () => { })
 
-const open =async (event: string, item?: CardListType) => {
+const open = async (event: string, item?: CardListType) => {
   visible.value = true
   eventType.value = event
+  fileList.value = []
+
   if (event === "create") {
-    fileList.value = []
     const parameter = await defaultParameterAPI()
     const code = await defaultCodeAPI()
     form.value.parameter = parameter.data.data
     form.value.code = code.data.data
     form.value = {
-      avatar: File || null,
+      avatar: '',
       title: "",
       descripte: "",
-      parameter:parameter.data.data,
-      code:code.data.data,
+      parameter: parameter.data.data,
+      code: code.data.data,
     }
   } else {
-    console.log(item)
     if (item) {
-      fileList.value = []
       fileList.value.push({
         url: item?.logo,
         name: "default",
       })
-      console.log(fileList.value[0])
-
-      form.value.avatar = fileList.value[0].raw
+      form.value.avatar = item?.logo
+      id.value = item.id
       form.value.title = item?.name
       form.value.descripte = item?.description
       form.value.parameter = item?.parameter
       form.value.code = item?.code
-      console.log(form)
     }
   }
 }
@@ -66,21 +64,18 @@ const open =async (event: string, item?: CardListType) => {
 const close = () => {
   visible.value = false
 }
-
 const handleRemove: UploadProps["onRemove"] = (uploadFile, uploadFiles) => {
-  ;(form.value.avatar as unknown as null) = null
+  (form.value.avatar as unknown as null) = null
 }
 
 watch(
   fileList,
   async () => {
-    if (fileList.value.length > 1) {
-      console.log(fileList)
-
-      ;(form.value.avatar as unknown) = fileList.value[0].raw
-      fileList.value.splice(0, 1)
+    if (fileList.value.length > 1) {   
+      form.value.avatar =  fileList.value[0].raw.name
+      fileList.value.splice(0, 1);  
     }
-    ;(form.value.avatar as unknown) = fileList.value[0].raw
+    form.value.avatar =  fileList.value[0].raw.name
   },
   { deep: true }
 )
@@ -88,15 +83,15 @@ watch(
 const handleConfirm = async () => {
   await formRef.value.validate()
   const formData = new FormData()
-
   formData.append("name", form.value.title)
   formData.append("description", form.value.descripte)
   formData.append("parameter", form.value.parameter)
   formData.append("code", form.value.code)
-  formData.append("logoFile", form.value.avatar)
   if (eventType.value === "create") {
+    formData.append("logoFile", fileList.value[0].raw)
     await createAgentAPI(formData)
   } else {
+    formData.append("id", id.value)
     await updateAgentAPI(formData)
   }
   emits("update")
@@ -119,14 +114,11 @@ defineExpose({ open, close })
       <el-form ref="formRef" :model="form" :rules="rules">
         <el-form-item>
           <el-form-item label="头像" prop="avatar">
-            <el-upload
-              v-model:file-list="fileList"
-              action="#"
-              list-type="picture-card"
-              :auto-upload="false"
-              :on-remove="handleRemove"
-            >
-              <el-icon><Plus /></el-icon>
+            <el-upload v-model:file-list="fileList" action="#" list-type="picture-card" :auto-upload="false"
+              :on-remove="handleRemove">
+              <el-icon>
+                <Plus />
+              </el-icon>
             </el-upload>
           </el-form-item>
           <el-form-item label="标题" prop="title" style="margin-left: 20px">
@@ -134,28 +126,14 @@ defineExpose({ open, close })
           </el-form-item>
         </el-form-item>
         <el-form-item label="描述" prop="descripte">
-          <el-input
-            v-model="form.descripte"
-            :autosize="{ minRows: 4, maxRows: 4 }"
-            type="textarea"
-            placeholder="请输入"
-          />
+          <el-input v-model="form.descripte" :autosize="{ minRows: 4, maxRows: 4 }" type="textarea" placeholder="请输入" />
         </el-form-item>
         <el-form-item label="参数" prop="parameter">
-          <el-input
-            v-model="form.parameter"
-            :autosize="{ minRows: 12, maxRows: 12 }"
-            type="textarea"
-            placeholder="请输入"
-          />
+          <el-input v-model="form.parameter" :autosize="{ minRows: 12, maxRows: 12 }" type="textarea"
+            placeholder="请输入" />
         </el-form-item>
         <el-form-item label="代码" prop="code">
-          <el-input
-            v-model="form.code"
-            :autosize="{ minRows: 12, maxRows: 12 }"
-            type="textarea"
-            placeholder="请输入"
-          />
+          <el-input v-model="form.code" :autosize="{ minRows: 12, maxRows: 12 }" type="textarea" placeholder="请输入" />
         </el-form-item>
       </el-form>
     </div>
@@ -172,6 +150,7 @@ defineExpose({ open, close })
     width: 24px;
     height: 24px;
   }
+
   .inner {
     :deep(.el-form) {
       padding: 10px;
@@ -179,10 +158,12 @@ defineExpose({ open, close })
       grid-template-columns: 50% 50%;
       gap: 10px;
     }
+
     :deep(.el-form-item) {
       display: block;
       margin-bottom: 15px !important;
     }
+
     :deep(.el-textarea__inner) {
       border-radius: 10px;
       resize: none;
@@ -227,24 +208,25 @@ defineExpose({ open, close })
   height: 60px;
   text-align: center;
 }
+
 :deep(.el-upload-list--picture-card .el-upload-list__item) {
   width: 60px;
   height: 60px;
 }
+
 :deep(.el-upload--picture-card) {
   width: 60px;
   height: 60px;
 }
-:deep(
-    .el-upload-list--picture-card
-      .el-upload-list__item-actions
-      span.el-upload-list__item-preview
-  ) {
+
+:deep(.el-upload-list--picture-card .el-upload-list__item-actions span.el-upload-list__item-preview) {
   display: none;
 }
+
 :deep(.el-icon) {
   margin: 0 !important;
 }
+
 :deep(.el-upload-list--picture-card .el-upload-list__item-actions span + span) {
   margin: 0 !important;
 }
