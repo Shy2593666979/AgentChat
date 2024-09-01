@@ -25,6 +25,8 @@ tool:
     api_key: "cdc3b207606843b4c883849c3a0f833c13057811bea964bef192707d8845f3d8"
 
 rag:
+  input_dir: "../docs"
+  
   embedding:
     # 选择以下方式进行embedding，如果有需要修改的请修改choose字段
     choose: "default"
@@ -43,6 +45,7 @@ rag:
     choose: "default"
     
     cohere:
+      model: ""
       api_key: ""
 
     default:

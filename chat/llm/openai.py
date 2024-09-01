@@ -9,24 +9,28 @@ from langfuse import Langfuse
 from langchain.prompts import PromptTemplate
 from config.langfuse_config import LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_HOST
 from config.langfuse_config import FUNCTION_TRACE_NAME, CHAT_TRACE_NAME, USER_ID
+from config import user_config
 
 INCLUDE_MSG = {"content", "id"}
 
-llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
+
 
 class LLMChat:
 
     # 目前只支持function的LLM调用，后续可能会加上React框架，支持全模型调用
     @classmethod
     async def llm_function_call(cls, prompt, function: str):
+        llm = ChatOpenAI(model=user_config.LLM_OPENAI_MODEL,
+                         base_url=user_config.LLM_OPENAI_BASE_URL,
+                         api_key=user_config.LLM_OPENAI_API_KEY)
 
         # 使用langfuse进行监控对话的流程
         function_call_handler = CallbackHandler(
-            trace_name=FUNCTION_TRACE_NAME,
-            user_id=USER_ID,
-            host=LANGFUSE_HOST,
-            secret_key=LANGFUSE_SECRET_KEY,
-            public_key=LANGFUSE_PUBLIC_KEY
+            trace_name=user_config.LANGFUSE_FUNCTION_TRACE_NAME,
+            user_id=user_config.LANGFUSE_USER_ID,
+            host=user_config.LANGFUSE_HOST,
+            secret_key=user_config.LANGFUSE_SECRET_KEY,
+            public_key=user_config.LANGFUSE_PUBLIC_KEY
         )
         prompt = prompt + function_call_prompt
 
@@ -65,6 +69,9 @@ class LLMChat:
     # 流式输出
     @classmethod
     async def astream_chat(cls, prompt, **kwargs):
+        llm = ChatOpenAI(model=user_config.LLM_OPENAI_MODEL,
+                         base_url=user_config.LLM_OPENAI_BASE_URL,
+                         api_key=user_config.LLM_OPENAI_API_KEY)
 
         # 使用langfuse 监控对话的流程
         llm_chat_handler = CallbackHandler(

@@ -54,11 +54,11 @@ async def get_agent():
                            "name": item.name,
                            "description": item.description,
                            "logo": LOGO_PREFIX + item.logo,
-                           "parameter": data.patameter,
-                           "isCustom": data.isCustom,
-                           "code": data.code,
-                           "type": data.type,
-                           "createTime": data.createTime})
+                           "parameter": item.parameter,
+                           "isCustom": item.isCustom,
+                           "code": item.code,
+                           "type": item.type,
+                           "createTime": item.createTime})
 
         return resp_200(data = result)
     except Exception as err:
@@ -77,10 +77,10 @@ async def delete_agent(id: str = Form(...)):
 
 @router.put("/agent")
 async def update_agent(id: str = Form(...),
-                       name: str = Form(...),
-                       description: str = Form(...),
-                       parameter: str = Form(...),
-                       code: str = Form(...),
+                       name: str = Form(None),
+                       description: str = Form(None),
+                       parameter: str = Form(None),
+                       code: str = Form(None),
                        logoFile: UploadFile = File(None)):
     try:
         uid = uuid4().hex

@@ -7,6 +7,12 @@ from loguru import logger
 from config.service_config import AGENT_DEFAULT_LOGO
 
 
+def check_or_create(path):
+    if os.path.exists(path):
+        pass
+    else:
+        os.makedirs(path)
+
 def init_dir(path):
     try:
         if not os.path.exists(path):

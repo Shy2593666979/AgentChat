@@ -117,7 +117,13 @@ class AgentService:
 
     @classmethod
     def _get_agent_sql(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, isCustom: bool):
-        agent = AgentTable(name=name, description=description, logo=logo, parameter=parameter, type=type, code=code, isCustom=isCustom)
+        agent = AgentTable(name=name,
+                           description=description,
+                           logo=logo,
+                           parameter=parameter,
+                           type=type,
+                           code=code,
+                           isCustom=isCustom)
         return agent
 
     @classmethod
@@ -129,7 +135,7 @@ class AgentService:
     @classmethod
     def get_agent(cls):
         with Session(engine) as session:
-            sql = select(AgentTable)
+            sql = select(AgentTable).order_by(desc(AgentTable.createTime))
             result = session.exec(sql).all()
             return result
 
@@ -211,7 +217,8 @@ class AgentService:
                 update_values['code'] = code
             if logo is not None:
                 # 删除agent的logo地址
-                delete_img(logo=logo)
+                agent_logo = cls._get_logo_by_id(id)
+                delete_img(logo=agent_logo)
                 update_values['logo'] = logo
 
             sql = update(AgentTable).where(AgentTable.id == id).values(**update_values)

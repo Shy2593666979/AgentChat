@@ -87,6 +87,21 @@
         }
     },
     {
+        "name": "RagAgent",
+        "description": "根据用户问题在知识库进行检索，支持.pdf .txt .md .docx .xlsx加载知识库",
+        "logo": "img/default.png",
+        "parameters": {
+            "type": "object",
+            "properties": {
+                "query": {
+                    "type": "string",
+                    "description": "用户想要搜索的问题"
+                }
+            },
+            "required": ["query"]
+        }
+    },
+    {
         "name": "ChatAgent",
         "description": "根据用户输入直接与LLM进行对话",
         "logo": "img/default.png",
