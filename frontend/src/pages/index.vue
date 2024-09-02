@@ -194,7 +194,6 @@ onMounted(async () => {
     }
     :deep(.el-tabs__header) {
       border: none;
-      width: 150px;
     }
     :deep(.el-tabs__nav-wrap) {
       width: 100%;
