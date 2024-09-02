@@ -5,7 +5,11 @@ import NotFound from '../pages/notFound/index';
 import Index from '../pages/index.vue'
 import conversation from '../pages/conversation/conversation.vue';
 import DefaultPage from '../pages/conversation/defaultPage/defaultPage.vue';
+import Construct from '../pages/construct';
+
+
 const routes  = [
+
   {
     path: '/',
     redirect:'/conversation/',
@@ -13,7 +17,6 @@ const routes  = [
     component: Index,    
     children:[
       {
-
         path: '/conversation',
         name: 'conversation',
         component: conversation,
@@ -30,6 +33,11 @@ const routes  = [
           }
         ]
       },
+      {
+        path: '/construct',
+        name: 'construct',
+        component: Construct,
+      }
     ]
   },
   {
