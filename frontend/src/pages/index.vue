@@ -2,32 +2,21 @@
 import { onMounted, ref } from "vue"
 import { useRouter } from "vue-router"
 import { useAgentCardStore } from "../store/agent_card"
-import AgentCard from "../components/agentCard/index"
 import { getAgentListAPI } from "../apis/history"
 import { CardListType } from "../type"
-import CreateAgent from "../components/dialog/create_agent/index"
 
 const agentCardStore = useAgentCardStore()
 const router = useRouter()
 const userName = ref("666")
 const itemName = ref("智言平台")
+const current = ref("conversation")
 const cardList = ref<CardListType[]>([])
-const createAgentRef = ref()
-
 const godefault = () => {
   agentCardStore.clear()
   router.push("/")
 }
 
-const openDialog = (event:string,item?:CardListType) => {
-  if(event === 'create'){
-    createAgentRef.value.open(event)
-  }else{
-    createAgentRef.value.open(event,item)
-  }
-}
-
-const updateList = async()=>{
+const updateList = async () => {
   const list = await getAgentListAPI()
   cardList.value = list.data.data
 }
@@ -35,6 +24,14 @@ const updateList = async()=>{
 onMounted(async () => {
   updateList()
 })
+
+const goCurrent = (item: string) => {
+  if (item === "conversation") {
+    router.push("/")
+  } else {
+    router.push("/construct")
+  }
+}
 </script>
 
 <template>
@@ -62,55 +59,63 @@ onMounted(async () => {
       </div>
     </div>
     <div class="ai-main">
-      <el-tabs type="border-card" class="demo-tabs" tab-position="left">
-        <el-tab-pane>
-          <template #label>
-            <span class="custom-tabs-label">
+      <el-col :span="2">
+        <el-menu
+          active-text-color="#6b9eff"
+          background-color="#f4f5f8"
+          class="el-menu-vertical-demo"
+          :default-active="current"
+          text-color="#909399"
+        >
+          <el-menu-item index="conversation" @click="goCurrent('conversation')">
+            <template #title>
               <el-icon>
                 <img src="../assets/dialog.svg" width="20px" height="20px" />
               </el-icon>
               <span>会话</span>
-            </span>
-          </template>
-          <router-view></router-view>
-        </el-tab-pane>
-        <el-scrollbar>
-          <el-tab-pane>
-            <template #label>
-              <span class="custom-tabs-label">
-                <el-icon>
-                  <img src="../assets/robot.svg" width="20px" height="20px" />
-                </el-icon>
-                <span>构建</span>
-              </span>
             </template>
-            <div class="agent-card">
-              <div class="create" @click="openDialog('create')">
-                <div class="content">
-                  <div class="top">
-                    <img
-                      src="../assets/add.svg"
-                      alt=""
-                      width="40px"
-                      height="40px"
-                    />
-                    <span>新建助手</span>
-                  </div>
-                  <div class="middle">
-                    通过描述角色和任务来创建你的助手<br />
-                    助手可以调用多个技能和工具
-                  </div>
-                </div>
-              </div>
-              <div v-for="item in cardList">
-                <AgentCard :key="item.id" :item="item" @delete="updateList" @click="openDialog('update',item)"></AgentCard>
-              </div>
+          </el-menu-item>
+          <el-menu-item index="construct" @click="goCurrent('construct')">
+            <template #title>
+              <el-icon>
+                <img src="../assets/robot.svg" width="20px" height="20px" />
+              </el-icon>
+              <span>构建</span>
+            </template>
+          </el-menu-item>
+        </el-menu>
+        <div class="custom-tabs-label">
+          <div class="absolute right-16 bottom-16 flex">
+            <div class="help flex">
+              <a
+                href="https://github.com/Shy2593666979/AgentChat"
+                target="_blank"
+              >
+                <img
+                  src="../assets/github.png"
+                  class="block h-40 w-40 border p-10 rounded-8 mx-8 hover:bg-gray-800 hover:text-white hover:cursor-pointer"
+                  style="width: 35px; height: 35px; margin-right: 20px"
+                  alt="GitHub Icon"
+                />
+              </a>
+              <a
+                href="https://uawlh9wstr9.feishu.cn/docx/U3l4dvtC6oPrVwx61zIcrmD0nvf"
+                target="_blank"
+              >
+                <img
+                  src="../assets/help.png"
+                  class="block h-40 w-40 border p-10 rounded-8 hover:bg-blue-600 hover:text-white hover:cursor-pointer"
+                  alt="Book Open Icon"
+                  style="width: 35px; height: 35px"
+                />
+              </a>
             </div>
-          </el-tab-pane>
-        </el-scrollbar>
-        <CreateAgent ref="createAgentRef" @update="updateList"></CreateAgent>
-      </el-tabs>
-
+          </div>
+        </div>
+      </el-col>
+      <div class="content">
+        <router-view></router-view>
+      </div>
     </div>
   </div>
 </template>
@@ -124,7 +129,6 @@ onMounted(async () => {
     height: 60px;
     background-color: #f4f5f8;
     padding: 0 20px;
-
     .left {
       display: flex;
       align-items: center;
@@ -139,7 +143,6 @@ onMounted(async () => {
     .right {
       display: flex;
       align-items: center;
-
       .user-img {
         margin-right: 10px;
       }
@@ -148,73 +151,28 @@ onMounted(async () => {
   .ai-main {
     display: flex;
     height: calc(100vh - 60px);
-    .agent-card {
-      padding: 20px;
-      display: grid;
-      grid-template-columns: 20% 20% 20% 20% 20%;
-      .create {
-        margin-top: 10px;
-        margin-right: 10px;
-        padding: 10px;
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        height: 150px;
-        background-color: #f9f9fc;
-        border-radius: 10px;
-
-        .content {
-          margin: 5px 0px 0px 10px;
-
-          .top {
-            display: flex;
-            font-size: 18px;
-            align-items: center;
-            font-weight: 600;
-            margin-bottom: 15px;
-            img {
-              margin-right: 10px;
-            }
-          }
-
-          .middle {
-            font-size: 14px;
-            font-weight: 300;
-          }
-        }
-      }
-      .create:hover {
-        background-color: #f4f2f2;
-        cursor: pointer;
-      }
+    background-color: #f5f7fa;
+    .custom-tabs-label {
+     margin: 20px auto;
     }
-    :deep(.el-tabs) {
-      border: none;
-      width: 100%;
+    .content {
+      background-color: #fff;
+      width: calc(100vw - 120px);
     }
-    :deep(.el-tabs__header) {
+    :deep(.el-col-2) {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      max-width: 120px;
+    }
+    :deep(.el-menu) {
       border: none;
     }
-    :deep(.el-tabs__nav-wrap) {
-      width: 100%;
-    }
-    :deep(.el-tabs__nav) {
-      width: 100%;
-    }
-    :deep(.el-tabs__item) {
-      width: 100%;
-      height: 50px;
-      justify-content: start;
+    :deep(.el-menu):hover {
+      background-color: #fff;
     }
     :deep(.is-active) {
-      border: none;
-      border-radius: 4px;
-    }
-    :deep(.el-icon) {
-      margin: 0 15px 0 8px;
-    }
-    :deep(.el-tabs__content) {
-      padding: 0px;
+      background-color: #fff;
     }
   }
 }
