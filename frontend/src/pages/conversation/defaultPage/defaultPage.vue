@@ -93,8 +93,7 @@ const searchAgent = async () => {
 .default-page {
   display: flex;
   flex-direction: column;
-  margin: 0 auto;
-  width: 80%;
+  width: 100%;
   height: 100%;
   .title {
     display: flex;
@@ -103,7 +102,7 @@ const searchAgent = async () => {
     font-weight: 600;
     align-items: center;
     font-family: "Microsoft YaHei";
-
+    justify-content: center;
     .title-img {
       margin-right: 20px;
     }
@@ -113,12 +112,11 @@ const searchAgent = async () => {
     display: flex;
     margin: 0px auto;
   }
-
   .item-card {
+    width: 80%;
+    margin: 0 auto;
     display: grid;
     grid-template-columns: 33% 33% 33%;
-
-    box-sizing: border-box;
     margin-top: 10px;
     .card:hover {
       background-color: #ecebeb;
