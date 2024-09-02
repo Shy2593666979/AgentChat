@@ -64,6 +64,7 @@ const searchAgent = async () => {
           style="max-width: 600px"
           placeholder="请搜索功能"
           class="input-with-select"
+          @keydown.enter="searchAgent"
         >
           <template #prepend>
             <el-button :icon="Search" @click="searchAgent" />
