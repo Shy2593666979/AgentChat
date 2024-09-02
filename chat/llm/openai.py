@@ -2,13 +2,10 @@ import json
 from loguru import logger
 from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
-from config.llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_NAME
 from prompt.llm_prompt import function_call_prompt
 from langfuse.callback import CallbackHandler
 from langfuse import Langfuse
 from langchain.prompts import PromptTemplate
-from config.langfuse_config import LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_HOST
-from config.langfuse_config import FUNCTION_TRACE_NAME, CHAT_TRACE_NAME, USER_ID
 from config.user_config import userConfig
 
 INCLUDE_MSG = {"content", "id"}
@@ -20,17 +17,17 @@ class LLMChat:
     # 目前只支持function的LLM调用，后续可能会加上React框架，支持全模型调用
     @classmethod
     async def llm_function_call(cls, prompt, function: str):
-        llm = ChatOpenAI(model=user_config.LLM_OPENAI_MODEL,
-                         base_url=user_config.LLM_OPENAI_BASE_URL,
-                         api_key=user_config.LLM_OPENAI_API_KEY)
+        llm = ChatOpenAI(model=userConfig.LLM_OPENAI_MODEL,
+                         base_url=userConfig.LLM_OPENAI_BASE_URL,
+                         api_key=userConfig.LLM_OPENAI_API_KEY)
 
         # 使用langfuse进行监控对话的流程
         function_call_handler = CallbackHandler(
-            trace_name=user_config.LANGFUSE_FUNCTION_TRACE_NAME,
-            user_id=user_config.LANGFUSE_USER_ID,
-            host=user_config.LANGFUSE_HOST,
-            secret_key=user_config.LANGFUSE_SECRET_KEY,
-            public_key=user_config.LANGFUSE_PUBLIC_KEY
+            trace_name=userConfig.LANGFUSE_FUNCTION_TRACE_NAME,
+            user_id=userConfig.LANGFUSE_USER_ID,
+            host=userConfig.LANGFUSE_HOST,
+            secret_key=userConfig.LANGFUSE_SECRET_KEY,
+            public_key=userConfig.LANGFUSE_PUBLIC_KEY
         )
         prompt = prompt + function_call_prompt
 
@@ -69,17 +66,17 @@ class LLMChat:
     # 流式输出
     @classmethod
     async def astream_chat(cls, prompt, **kwargs):
-        llm = ChatOpenAI(model=user_config.LLM_OPENAI_MODEL,
-                         base_url=user_config.LLM_OPENAI_BASE_URL,
-                         api_key=user_config.LLM_OPENAI_API_KEY)
+        llm = ChatOpenAI(model=userConfig.LLM_OPENAI_MODEL,
+                         base_url=userConfig.LLM_OPENAI_BASE_URL,
+                         api_key=userConfig.LLM_OPENAI_API_KEY)
 
         # 使用langfuse 监控对话的流程
         llm_chat_handler = CallbackHandler(
-            trace_name=CHAT_TRACE_NAME,
-            user_id=USER_ID,
-            host=LANGFUSE_HOST,
-            secret_key=LANGFUSE_SECRET_KEY,
-            public_key=LANGFUSE_PUBLIC_KEY
+            trace_name=userConfig.LANGFUSE_CHAT_TRACE_NAME,
+            user_id=userConfig.LANGFUSE_USER_ID,
+            host=userConfig.LANGFUSE_HOST,
+            secret_key=userConfig.LANGFUSE_SECRET_KEY,
+            public_key=userConfig.LANGFUSE_PUBLIC_KEY
         )
 
         chain = prompt | llm

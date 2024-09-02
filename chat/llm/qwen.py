@@ -2,7 +2,6 @@ import random
 from http import HTTPStatus
 from dashscope import Generation
 from langchain.schema import HumanMessage
-from config.llm_config import QWEN_API_KEY, QWEN_NAME
 from loguru import logger
 
 def call_with_messages():
@@ -30,10 +29,10 @@ def call_with_messages():
 # 直接调用模型对话
 def llm_chat(prompt):
     messages = [HumanMessage(content=prompt)]
-    response = Generation.call(model=QWEN_NAME,
+    response = Generation.call(model="QWEN_NAME",
                                messages=messages,
                                temperature=0.8,
-                               api_key=QWEN_API_KEY,
+                               api_key="QWEN_API_KEY",
                                # 将输出设置为"message"格式
                                result_format='message')
     try:
