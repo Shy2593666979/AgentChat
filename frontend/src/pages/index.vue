@@ -70,7 +70,7 @@ const goCurrent = (item: string) => {
           <el-menu-item index="conversation" @click="goCurrent('conversation')">
             <template #title>
               <el-icon>
-                <img src="../assets/dialog.svg" width="20px" height="20px" />
+                <img src="../assets/dialog.svg" width="25px" height="25px" />
               </el-icon>
               <span>会话</span>
             </template>
@@ -78,7 +78,7 @@ const goCurrent = (item: string) => {
           <el-menu-item index="construct" @click="goCurrent('construct')">
             <template #title>
               <el-icon>
-                <img src="../assets/robot.svg" width="20px" height="20px" />
+                <img src="../assets/robot.svg" width="25px" height="25px" />
               </el-icon>
               <span>构建</span>
             </template>
@@ -167,6 +167,9 @@ const goCurrent = (item: string) => {
     }
     :deep(.el-menu) {
       border: none;
+    }
+    :deep(.el-menu-item){
+      font-size: 16px;
     }
     :deep(.el-menu):hover {
       background-color: #fff;
