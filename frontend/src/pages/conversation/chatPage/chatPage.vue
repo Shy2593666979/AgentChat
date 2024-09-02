@@ -93,7 +93,7 @@ watch(historyChatStore.chatArr,()=>{
               <img :src=historyChatStore.logo width="30px" height="30px" />
             </div>
             <div class="content" v-if="!item.aiMessage.content">
-              大模型正在加载中请等待
+              <img src="../../../assets/loading.gif" width="30px">
             </div>
             <div class="content">
               <MdPreview :editorId="id" :modelValue="item.aiMessage.content" />
