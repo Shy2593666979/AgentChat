@@ -8,10 +8,10 @@ def get_embeddings() -> Embeddings:
     
     if user_config.RAG_EMBEDDING_CHOOSE == "default":
         # 确保输入的地址有效
-        check_or_create(user_config.RAG_RERANK_DEFAULT_CACHE_DIR)
+        check_or_create(user_config.RAG_EMBEDDING_DEFAULT_CACHE_DIR)
         
         embeddings = HuggingFaceEmbeddings(model_name=user_config.RAG_EMBEDDING_DEFAULT_MODEL,
-                                           cache_folder=user_config.RAG_RERANK_DEFAULT_CACHE_DIR)
+                                           cache_folder=user_config.RAG_EMBEDDING_DEFAULT_CACHE_DIR)
         
     else:
         embeddings = OpenAIEmbeddings(model=user_config.RAG_EMBEDDING_OPENAI_MODEL,
