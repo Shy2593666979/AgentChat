@@ -3,7 +3,8 @@ import AgentCard from "../../components/agentCard/index"
 import { onMounted, ref } from "vue"
 import { CardListType } from "../../type"
 import { getAgentListAPI } from "../../apis/history"
-
+import  CreateAgent  from '../../components/dialog/create_agent/index'
+  
 const cardList = ref<CardListType[]>([])
 const createAgentRef = ref()
 
