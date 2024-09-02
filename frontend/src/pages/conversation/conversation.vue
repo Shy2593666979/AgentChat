@@ -95,7 +95,6 @@ const deleteCard = async (item: HistoryListType) => {
   height: calc(100vh - 60px);
 
   .aside {
-    width: 180px;
     height: 100%;
     border-right: 2px solid #f0f3f5;
     padding: 10px 10px 10px 0px;
