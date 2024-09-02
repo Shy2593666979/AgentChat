@@ -2,6 +2,7 @@ from loguru import logger
 from fastapi import  APIRouter, Request
 from database.base import DialogChat, Agent
 from type.schemas import resp_200, resp_500
+from config.service_config import LOGO_PREFIX
 
 router = APIRouter()
 
@@ -16,7 +17,7 @@ async def get_dialog():
                            "agent": msg.agent,
                            "dialogId": msg.dialogId,
                            "createTime": msg.createTime,
-                           "logo": msg_agent[0].logo})
+                           "logo": LOGO_PREFIX + msg_agent[0].logo})
 
         return resp_200(data=result)
     except Exception as err:

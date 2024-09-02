@@ -44,5 +44,5 @@ def load_folder_all_file(folder_path: str):
         # 只允许加载五种文本类型的数据，其他跳过
         if class_file in class_document:
             document_function = class_document[class_file]
-            data = document_function(path=os.path.join(folder_path, file_name), text_splitter=text_loader)
+            data = document_function(path=os.path.join(folder_path, file_name), text_splitter=text_splitter)
             vector_store.add_documents(data)
