@@ -35,7 +35,7 @@
 
 在`chat/config/service_config.py`中修改成自己的MySQL地址和Redis的地址
 
-## 启动项目
+### 启动后端
 
 **安装依赖**
 
@@ -46,3 +46,30 @@
 ```
 python main.py
 ```
+
+### 启动前端
+
+进入到前端的文件夹下
+
+下载依赖文件
+```shell
+npm i
+```
+启动前端服务
+```
+npm run dev
+```
+
+## 使用Docker 快速启动
+
+使用Docker的话就少了配置MySQL数据库步骤
+
+1.进入docker文件
+
+2.执行Docker命令
+
+`docker-compose up --build `
+
+3. 用上述启动后端、前端的方式进行启动整体项目
+4. 更新配置文件后重新启动
+
