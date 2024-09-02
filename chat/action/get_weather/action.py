@@ -1,15 +1,15 @@
 import requests
-from config import user_config
+from config.user_config import userConfig
 from prompt.tool_prompt import WEATHER_PROMPT, MESSAGE_PROMPT
 
 def get_weather_action(location: str):
     params = {
-        'key': user_config.TOOL_WEATHER_API_KEY,
+        'key': userConfig.TOOL_WEATHER_API_KEY,
         'city': location,
         'extensions': 'all'
     }
 
-    res = requests.get(url=user_config.TOOL_WEATHER_BASE_URL, params=params) # 预报天气
+    res = requests.get(url=userConfig.TOOL_WEATHER_BASE_URL, params=params) # 预报天气
 
     result = res.json()
 

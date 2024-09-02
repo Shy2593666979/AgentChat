@@ -1,5 +1,4 @@
 from rag.load_document import vector_store
-from config import user_config
 from rag.rerank import document_reranker
 
 def exec_rag(query: str, top_k: int = 6):

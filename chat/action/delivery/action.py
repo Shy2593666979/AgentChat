@@ -2,7 +2,7 @@ import urllib.request
 import urllib.parse
 import ssl
 import json
-from config import user_config
+from config.user_config import userConfig
 from prompt.tool_prompt import DELIVERY_PROMPT
 from loguru import logger
 
@@ -11,9 +11,9 @@ def delivery_action(number: str):
         # breakpoint()
         query = f'number={number}&mobile=mobile&type=type'
 
-        url = user_config.TOOL_DELIVERY_BASE_URL + '?' + query
+        url = userConfig.TOOL_DELIVERY_BASE_URL + '?' + query
         headers = {
-            'Authorization': 'APPCODE ' + user_config.TOOL_DELIVERY_API_KEY
+            'Authorization': 'APPCODE ' + userConfig.TOOL_DELIVERY_API_KEY
         }
 
         request = urllib.request.Request(url, headers=headers)

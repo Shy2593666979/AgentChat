@@ -10,7 +10,7 @@ def excel_loader(path: str, text_splitter: TextSplitter):
     df = pd.read_excel(path)
     df.to_csv(csv_path)
 
-    loader = CSVLoader(csv_path)
+    loader = CSVLoader(csv_path, encoding='utf-8')
 
     # 删除CSV的缓存文件
     delete_cache_file(csv_path)

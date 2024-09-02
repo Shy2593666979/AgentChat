@@ -9,7 +9,7 @@ from langfuse import Langfuse
 from langchain.prompts import PromptTemplate
 from config.langfuse_config import LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_HOST
 from config.langfuse_config import FUNCTION_TRACE_NAME, CHAT_TRACE_NAME, USER_ID
-from config import user_config
+from config.user_config import userConfig
 
 INCLUDE_MSG = {"content", "id"}
 
