@@ -38,7 +38,7 @@ rag:
     
     default:
       model: "BAAI/bge-large-zh-v1.5"
-      cache_dir: r"D:\llm"
+      cache_dir: "D:\\llm"
   
   rerank:
     # 选择以下方式进行rerank，如果有需要修改的请修改choose字段
@@ -50,4 +50,4 @@ rag:
 
     default:
       model: "BAAI/bge-reranker-large"
-      cache_dir: r"D:\llm"
+      cache_dir: "D:\\llm"
