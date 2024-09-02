@@ -92,8 +92,8 @@ watch(historyChatStore.chatArr,()=>{
             <div class="img">
               <img :src=historyChatStore.logo width="30px" height="30px" />
             </div>
-            <div class="content" v-if="!item.aiMessage.content">
-              <img src="../../../assets/loading.gif" width="30px">
+            <div  v-if="!item.aiMessage.content">
+              <img src="../../../assets/kunkun.gif" width="30px">
             </div>
             <div class="content">
               <MdPreview :editorId="id" :modelValue="item.aiMessage.content" />
