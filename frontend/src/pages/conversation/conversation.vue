@@ -1,42 +1,55 @@
 <script setup lang="ts">
 import HistortCard from "../../components/historyCard/index"
 import Drawer from "../../components/drawer"
-import { ref, onMounted } from "vue"
-import DefaultPage from "./defaultPage/defaultPage.vue"
-import ChatPage from "./chatPage/index"
-import moment from "moment"
-import { getDialogListAPI } from "../../apis/history"
-import { CardListType } from '../../type'
+import { ref, onMounted } from 'vue';
+import { useRouter } from "vue-router"
+import { CardListType, HistoryListType } from "../../type"
+import { ElScrollbar } from "element-plus"
+import { useHistoryListStore } from "../../store/history_list/index"
+import { createDialogAPI, deleteDialogAPI } from "../../apis/history"
+import { useHistoryChatStore } from "../../store/history_chat_msg"
+import { useAgentCardStore } from '../../store/agent_card'
 
-interface HistoryListType {
-  agent: string
-  dialogId: string
-  name: string
-  createTime: string
-}
-
+const agentCardStore = useAgentCardStore()
+const router = useRouter()
 const drawerRef = ref()
-const defaultPage = ref(true)
-const chatItem = ref<CardListType>()
-const historyList = ref<HistoryListType[]>([])
+const historyListStore = useHistoryListStore()
+const historyChatStore = useHistoryChatStore()
+
 
 onMounted(async () => {
-  const list = await getDialogListAPI()
-  historyList.value = list.data.data
-  historyList.value.map((item) => {
-    {
-      item.createTime = moment(item.createTime).format("YYYY-MM-DD HH:mm")
-    }
-  })
+  historyListStore.getList()
 })
 
 const open = () => {
   drawerRef.value.open()
 }
 
-const chat = (item: CardListType) => {
-  defaultPage.value = false
-  chatItem.value = item
+const chat = async(item: CardListType) => {
+  historyChatStore.name = item.name
+  historyChatStore.logo = item.logo
+  const list = await createDialogAPI({ agent: (item as CardListType).name })
+  historyChatStore.dialogId = list.data.data.dialogId
+  agentCardStore.currentId = list.data.data.dialogId
+  historyChatStore.clear()
+  historyListStore.getList()
+  router.push("/conversation/chatPage")
+}
+
+const goHisChat = async(item: HistoryListType) => {
+  agentCardStore.currentId = item.dialogId
+  historyChatStore.dialogId = item.dialogId
+  historyChatStore.name = item.name
+  historyChatStore.logo = item.logo
+  historyChatStore.clear()
+  historyChatStore.HistoryChat(historyChatStore.dialogId)
+  router.push("/conversation/chatPage")
+}
+
+const deleteCard = async (item: HistoryListType) => {
+  await deleteDialogAPI(item.dialogId)
+  historyListStore.getList()
+  router.push("/conversation/")
 }
 </script>
 
@@ -56,25 +69,22 @@ const chat = (item: CardListType) => {
           <div clasrews="text">新建会话</div>
         </el-button>
       </div>
-      <el-scrollbar>
+      <el-scrollbar >
         <div class="history-card-list">
-
           <HistortCard
-            v-for="item in historyList"
+            v-for="item in historyListStore.historyList"
             class="card"
             :key="item.dialogId"
-            :title="item.name"
-            :detail="item.agent"
-            :time="item.createTime"
+            :item="item"
+            :class="agentCardStore.currentId === item.dialogId ?'active':''"
+            @click="goHisChat(item)"
+            @delete="deleteCard(item)"
           ></HistortCard>
         </div>
       </el-scrollbar>
     </div>
-    <div class="content" v-if="defaultPage">
-      <DefaultPage></DefaultPage>
-    </div>
-    <div class="content" v-else>
-      <ChatPage :item="chatItem as CardListType"></ChatPage>
+    <div class="content">
+      <router-view></router-view>
     </div>
     <Drawer ref="drawerRef" @goChat="chat"></Drawer>
   </div>
@@ -86,11 +96,11 @@ const chat = (item: CardListType) => {
   height: calc(100vh - 60px);
 
   .aside {
-    width: 180px;
     height: 100%;
+    width: 150px;
     border-right: 2px solid #f0f3f5;
-    padding: 10px 10px 10px 0px;
-
+    padding: 0px 10px 10px 0px;
+    margin-left: 10px;
     .create {
       display: flex;
       height: 50px;
@@ -100,6 +110,7 @@ const chat = (item: CardListType) => {
         border: none;
       }
       :deep(.el-button):hover {
+        border: none;
         background-color: #fff;
       }
       .img {
@@ -117,8 +128,11 @@ const chat = (item: CardListType) => {
       }
     }
   }
-  .content {
-    width: calc(100vw - 330px);
+  .content{
+    width: calc(100vw - 282px);
+  }
+  .active{
+    background-color: rgb(236, 236, 236);
   }
 }
 </style>

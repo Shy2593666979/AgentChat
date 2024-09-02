@@ -24,10 +24,7 @@ onMounted(()=>{
         {{ props.detail }}
       </div>
     </div>
-    <div class="bottom">
-      <div class="agent" v-if="props.type === 'agent'">助手</div>
-      <div class="skill" v-else>技能</div>
-    </div>
+
   </div>
 </template>
 
@@ -39,7 +36,9 @@ onMounted(()=>{
   height: 150px;
   background-color: #f9f9fc;
   border-radius: 10px;
-
+  padding: 5px 10px;
+  margin-right: 15px;
+  margin-top: 15px;
   .content {
     margin: 5px 0px 0px 10px;
 
@@ -49,8 +48,6 @@ onMounted(()=>{
       align-items: center;
       font-weight: 600;
       margin-bottom: 15px;
-      // overflow: hidden;
-
       img {
         margin-right: 10px;
       }
@@ -59,6 +56,9 @@ onMounted(()=>{
     .middle {
       font-size: 16px;
       font-weight: 500;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
     }
   }
 

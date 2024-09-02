@@ -21,7 +21,7 @@ export function sendMessage(data: Chat,onmessage:any,onclose:any) {
     signal: ctrl.signal,
     openWhenHidden: true,
     async onopen(response: any) {
-      console.log('onopen', response);
+      // console.log('onopen', response);
     },
     onmessage(msg: any) {
         onmessage(msg)
@@ -30,7 +30,7 @@ export function sendMessage(data: Chat,onmessage:any,onclose:any) {
       onclose()
     },
     onerror(err: any) {
-      console.log('onerror', err);
+      // console.log('onerror', err);
       ctrl.abort();
       throw err;
     }

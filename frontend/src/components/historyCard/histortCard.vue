@@ -1,34 +1,45 @@
 <script lang="ts" setup>
 import {onMounted } from "vue"
-const props = defineProps<{
-  title: string
-  detail: string
-  time: string
+import { HistoryListType } from "../../type"
+
+const emits = defineEmits<{
+    (event:'delete'):void
 }>();
+
+const props = defineProps<{
+    item:HistoryListType
+}>();
+
+
 onMounted(()=>{
 
   
 })
+
+const deletCard = () =>{
+    emits('delete')
+}
 </script>
 
 <template>
   <div class="historyCard">
     <div class="top">
-      <img src="../../../public/ai.svg" alt="" width="25px" height="25px" />
-      <div>{{ props.title }}</div>
+      <img :src=props.item.logo  alt="" width="25px" height="25px" />
+      <div>{{ props.item.name }}</div>
     </div>
-    <div class="middle">
-      {{ props.detail }}
-    </div>
+
     <div class="bottom">
-      {{ props.time }}
+      <div>{{ props.item.createTime }}</div>
+      <div class="delete" @click.stop="deletCard">
+        <img src='../../assets/delete.svg' width="25px">
+      </div>
     </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .historyCard {
-  background-color: #f9f9fc;
+  background-color: #f7f7f9;
   border-radius: 4px;
   padding: 10px;
   .top {
@@ -54,6 +65,19 @@ onMounted(()=>{
     margin-top: 15px;
     font-size: 13px;
     font-weight: 300;
+    height: 25px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    .delete{
+      display: none;
+    }
+  }
+}
+.historyCard:hover{
+  background-color: white;
+  .delete{
+    display: flex;
   }
 }
 </style>

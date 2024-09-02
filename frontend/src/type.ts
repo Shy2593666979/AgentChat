@@ -1,8 +1,10 @@
 export  interface DialogCreateType {
-    name:string,
     agent:string,
 }
-
+// searchType
+export  interface searchType {
+  name:string,
+}
 export  interface AgentCreateType {
     name:string,
     description:string,
@@ -34,4 +36,20 @@ export interface CardListType {
   name: string
   parameter: string
   type: string
+}
+
+export interface HistoryListType {
+  agent: string
+  dialogId: string
+  name: string
+  createTime: string
+  logo:string
+}
+
+export interface MessageType {
+  content: string
+}
+export interface ChatMessage {
+  personMessage: MessageType
+  aiMessage: MessageType
 }
