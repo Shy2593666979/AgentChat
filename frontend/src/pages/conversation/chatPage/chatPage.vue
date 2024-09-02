@@ -1,16 +1,29 @@
 <script setup lang="ts">
-import { ref, onMounted} from "vue"
+import { ref, onMounted, nextTick,watch} from "vue"
 import { MdPreview } from "md-editor-v3"
 import "md-editor-v3/lib/style.css"
 import { sendMessage } from "../../../apis/chat"
 import { useHistoryChatStore } from "../../../store//history_chat_msg"
-import {scrollBottom } from '../../../utils/function'
+import { ElScrollbar } from "element-plus"
 
 const searchInput = ref("")
 const id = "preview-only"
 const sendQuestion = ref(true)
 const historyChatStore = useHistoryChatStore()
+const scrollbar = ref<InstanceType<typeof ElScrollbar>>()
 
+function scrollBottom() {
+  // 在下次DOM更新循环结束后执行滚动到底部的操作
+  nextTick(() => {
+    // 确保scrollbar对象存在
+    if (scrollbar.value) {
+      const wrapEl = scrollbar.value.wrapRef // 获取滚动容器元素
+        ; (wrapEl as HTMLDivElement).scrollTop = (
+          wrapEl as HTMLDivElement
+        ).scrollHeight // 直接设置scrollTop滚动到底部
+    }
+  })
+}
 
 
 const personQuestion = () => {
@@ -43,7 +56,15 @@ const personQuestion = () => {
   }
 }
 onMounted(async()=>{
+  if(historyChatStore.clicked){
+    scrollBottom()
+  }
 })
+watch(historyChatStore.chatArr,()=>{
+  scrollBottom()
+})
+
+
 
 </script>
 
