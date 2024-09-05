@@ -1,3 +1,21 @@
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [欢迎来到 智言平台](#%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0-%E6%99%BA%E8%A8%80%E5%B9%B3%E5%8F%B0)
+  - [成果图](#%E6%88%90%E6%9E%9C%E5%9B%BE)
+    - [智言平台首页](#%E6%99%BA%E8%A8%80%E5%B9%B3%E5%8F%B0%E9%A6%96%E9%A1%B5)
+    - [使用GoogleAgent、WeatherAgent、DeliveryAgent、ArxivAgent](#%E4%BD%BF%E7%94%A8googleagentweatheragentdeliveryagentarxivagent)
+    - [支持用户自定义工具](#%E6%94%AF%E6%8C%81%E7%94%A8%E6%88%B7%E8%87%AA%E5%AE%9A%E4%B9%89%E5%B7%A5%E5%85%B7)
+    - [小彩蛋(先明说我是IKUN) 🤔🤔🤔](#%E5%B0%8F%E5%BD%A9%E8%9B%8B%E5%85%88%E6%98%8E%E8%AF%B4%E6%88%91%E6%98%AFikun-)
+- [项目应用](#%E9%A1%B9%E7%9B%AE%E5%BA%94%E7%94%A8)
+- [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
+    - [一、配置文件](#%E4%B8%80%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)
+    - [二、启动后端](#%E4%BA%8C%E5%90%AF%E5%8A%A8%E5%90%8E%E7%AB%AF)
+    - [三、启动前端](#%E4%B8%89%E5%90%AF%E5%8A%A8%E5%89%8D%E7%AB%AF)
+  - [使用Docker 快速启动](#%E4%BD%BF%E7%94%A8docker-%E5%BF%AB%E9%80%9F%E5%90%AF%E5%8A%A8)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 # 欢迎来到 智言平台
 
 智言平台 是一个开源的智能体交流与开发平台，让更多的AIGC爱好者更好的了解Agent
@@ -36,7 +54,7 @@
 ![kunkun](https://github.com/user-attachments/assets/16e8a37b-32c2-4124-b6cf-151335482937)
 
 
-## 项目应用
+# 项目应用
 
 使用 智言应用平台，可以构建各类更丰富的Agents供我们使用
 
@@ -49,7 +67,7 @@
 - 📦 根据快递公司和单号查找快递的信息
 - 📂 根据用户提供的文档路径进行加载到知识库进行检索，支持.pdf .docx .xlsx .md .txt文档加载
 
-## 快速开始
+# 快速开始
 
 ### 一、配置文件
 
