@@ -1,8 +1,8 @@
 llm:
   openai:
-    model: "gpt-3.5-turbo"
-    base_url: "https://api.openai-proxy.org/v1"
-    api_key: "sk-qZPuQZwfPzKyFt4AH3ZVLIlf3NASofRDcNK2pkC82Y1q008Y"
+    model: "qwen-plus"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    api_key: "sk-fc40dd0604f04142a0730793ec74585f"
 
 langfuse:
   host: "https://cloud.langfuse.com"

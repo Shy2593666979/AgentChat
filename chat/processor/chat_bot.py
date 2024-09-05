@@ -75,7 +75,7 @@ class ChatbotModel:
                 # ask_user_prompt_template = PromptTemplate.from_template(ask_user_template)
                 # ask_user_prompt = ask_user_prompt_template.format(user_input=user_input, function_name=function_name, have_parameters=have_parameters, parameters=lack_parameters)
                 
-                async for one_result in LLMChat.llm_chat(ask_user_template, user_input=user_input, function_name=function_name, have_parameters=have_parameters, parameters=lack_parameters):
+                async for one_result in LLMChat.llm_chat(ask_user_template, user_input=user_input, function_name=function_name, have_parameters=have_parameters, lack_parameters=lack_parameters):
                     self.final_result += json.loads(one_result)['content']
                     yield one_result
     
