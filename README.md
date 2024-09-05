@@ -6,20 +6,39 @@
 ### 智言平台首页
 ![1725542910516](https://github.com/user-attachments/assets/9036192a-8d19-4c3f-86d9-98f2b057b6b3)
 
-### 使用GoogleAgent
-![1725542852386](https://github.com/user-attachments/assets/932a0263-6949-413c-ae06-2afd92b92eef)
+### 使用GoogleAgent、WeatherAgent、DeliveryAgent、ArxivAgent
 
-### 使用WeatherAgent
-![1725543024536](https://github.com/user-attachments/assets/263870c0-f6a9-437c-a289-13763804b3ee)
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/932a0263-6949-413c-ae06-2afd92b92eef" alt="Image 1" width="1000"></td>
+    <td><img src="https://github.com/user-attachments/assets/263870c0-f6a9-437c-a289-13763804b3ee" alt="Image 2" width="1000"></td>
+  </tr>
+</table>
+
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/1b295f35-f122-400c-8351-e5b3e3f65663" alt="Image 1" width="1000"></td>
+    <td><img src="https://github.com/user-attachments/assets/059d4711-10af-40ea-8707-fd9967aa26a9" alt="Image 3" width="1000"></td>
+  </tr>
+</table>
+
+
 
 ### 支持用户自定义工具
 用户需要输入openai 的参数格式，以及自定义代码（显得比较不是那么智能，后续会更改😔）
 ![1725543216627](https://github.com/user-attachments/assets/beb54a14-521a-41fd-9941-ad82262276ff)
 
+### 小彩蛋(先明说我是IKUN) 🤔🤔🤔
+加载图标：
+
+![image](https://github.com/user-attachments/assets/3e4201c2-0f2b-4f9f-906c-a09e49aea9b8)
+
+![kunkun](https://github.com/user-attachments/assets/16e8a37b-32c2-4124-b6cf-151335482937)
+
 
 ## 项目应用
 
-使用 智言应用平台，可以构建各类更富的Agents供我们使用
+使用 智言应用平台，可以构建各类更丰富的Agents供我们使用
 
 默认提供的Agent
 
