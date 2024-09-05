@@ -7,7 +7,7 @@ import { CardListType } from "../type"
 
 const agentCardStore = useAgentCardStore()
 const router = useRouter()
-const userName = ref("666")
+const userName = ref("")
 const itemName = ref("智言平台")
 const current = ref("conversation")
 const cardList = ref<CardListType[]>([])
