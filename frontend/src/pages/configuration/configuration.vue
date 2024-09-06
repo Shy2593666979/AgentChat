@@ -6,30 +6,10 @@
 
 <script setup lang="ts">
 import * as monaco from 'monaco-editor';
-import { ref, watchEffect, onMounted, defineProps, defineEmits } from 'vue';
-import { getConfigAPI } from '../../apis/configuration'
-interface Props {
-  modelValue: string;
-  language: string;
-  options: monaco.editor.IStandaloneEditorConstructionOptions;
-}
+import { ref, onMounted} from 'vue';
+import { getConfigAPI ,updateConfigAPI} from '../../apis/configuration'
 
-const props = defineProps({
-  modelValue: {
-    type: String,
-    default: ''
-  },
-  language: {
-    type: String,
-    default: 'javascript'
-  },
-  options: {
-    type: Object,
-    default: () => ({})
-  }
-});
 
-const emit = defineEmits(['update:modelValue']);
 
 const editorContainer = ref<HTMLElement | null>(null);
 let editorInstance: monaco.editor.IStandaloneCodeEditor | null = null;
@@ -39,29 +19,19 @@ onMounted(async() => {
   if (editorContainer.value) {
     editorInstance = monaco.editor.create(editorContainer.value, {
       value: data.data.data,
-      language: props.language,
-      ...props.options
+      language: 'python',
     });
 
-    editorInstance.onDidChangeModelContent(() => {
+    editorInstance.onDidChangeModelContent(async() => {
       const value = editorInstance?.getValue();
-      emit('update:modelValue', value);
+      const formData = new FormData()
+      formData.append("data",String(value))
+      await updateConfigAPI(formData)
     });
   }
 });
 
-watchEffect(() => {
-  if (editorInstance) {
-    const model = editorInstance.getModel();
-    if (model) {
-      if (props.modelValue !== model.getValue()) {
-        console.log(111)
-        model.setValue(props.modelValue);
-        console.log(props.modelValue);
-      }
-    }
-  }
-});
+
 </script>
 
 <style lang="scss" scoped>
