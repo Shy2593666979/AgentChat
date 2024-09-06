@@ -1,15 +1,17 @@
 <script setup lang="ts">
-import { onMounted, ref } from "vue"
+import { onMounted, ref, watch } from "vue"
 import { useRouter } from "vue-router"
+import { useRoute } from "vue-router"
 import { useAgentCardStore } from "../store/agent_card"
 import { getAgentListAPI } from "../apis/history"
 import { CardListType } from "../type"
 
 const agentCardStore = useAgentCardStore()
+const route = useRoute()
 const router = useRouter()
 const userName = ref("666")
 const itemName = ref("智言平台")
-const current = ref("conversation")
+const current = ref(route.meta.current)
 const cardList = ref<CardListType[]>([])
 const godefault = () => {
   agentCardStore.clear()
@@ -28,12 +30,23 @@ onMounted(async () => {
 const goCurrent = (item: string) => {
   if (item === "conversation") {
     router.push("/")
-  } else if (item === "construct"){
+  } else if (item === "construct") {
     router.push("/construct")
-  }else{
+  } else {
     router.push("/configuration")
   }
 }
+
+watch(
+  route,
+  (val) => {
+    console.log(111, route.meta.current)
+    current.value = route.meta.current
+  },
+  {
+    immediate: true,
+  }
+)
 </script>
 
 <template>
@@ -72,7 +85,7 @@ const goCurrent = (item: string) => {
           <el-menu-item index="conversation" @click="goCurrent('conversation')">
             <template #title>
               <el-icon>
-                <img src="../assets/dialog.svg" width="25px" height="25px" />
+                <img src="../assets/dialog.svg" width="22px" height="22px" />
               </el-icon>
               <span>会话</span>
             </template>
@@ -80,15 +93,18 @@ const goCurrent = (item: string) => {
           <el-menu-item index="construct" @click="goCurrent('construct')">
             <template #title>
               <el-icon>
-                <img src="../assets/robot.svg" width="25px" height="25px" />
+                <img src="../assets/robot.svg" width="22px" height="22px" />
               </el-icon>
               <span>构建</span>
             </template>
           </el-menu-item>
-          <el-menu-item index="configuration" @click="goCurrent('configuration')">
+          <el-menu-item
+            index="configuration"
+            @click="goCurrent('configuration')"
+          >
             <template #title>
               <el-icon>
-                <img src="../assets/robot.svg" width="25px" height="25px" />
+                <img src="../assets/set.svg" width="22px" height="22px" />
               </el-icon>
               <span>配置</span>
             </template>
@@ -163,7 +179,7 @@ const goCurrent = (item: string) => {
     height: calc(100vh - 60px);
     background-color: #f5f7fa;
     .custom-tabs-label {
-     margin: 20px auto;
+      margin: 20px auto;
     }
     .content {
       background-color: #fff;
@@ -178,7 +194,7 @@ const goCurrent = (item: string) => {
     :deep(.el-menu) {
       border: none;
     }
-    :deep(.el-menu-item){
+    :deep(.el-menu-item) {
       font-size: 16px;
     }
     :deep(.el-menu):hover {
