@@ -7,7 +7,7 @@ import { CardListType } from "../type"
 
 const agentCardStore = useAgentCardStore()
 const router = useRouter()
-const userName = ref("")
+const userName = ref("666")
 const itemName = ref("智言平台")
 const current = ref("conversation")
 const cardList = ref<CardListType[]>([])
@@ -28,8 +28,10 @@ onMounted(async () => {
 const goCurrent = (item: string) => {
   if (item === "conversation") {
     router.push("/")
-  } else {
+  } else if (item === "construct"){
     router.push("/construct")
+  }else{
+    router.push("/configuration")
   }
 }
 </script>
@@ -81,6 +83,14 @@ const goCurrent = (item: string) => {
                 <img src="../assets/robot.svg" width="25px" height="25px" />
               </el-icon>
               <span>构建</span>
+            </template>
+          </el-menu-item>
+          <el-menu-item index="configuration" @click="goCurrent('configuration')">
+            <template #title>
+              <el-icon>
+                <img src="../assets/robot.svg" width="25px" height="25px" />
+              </el-icon>
+              <span>配置</span>
             </template>
           </el-menu-item>
         </el-menu>
