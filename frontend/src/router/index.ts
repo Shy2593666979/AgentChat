@@ -6,7 +6,7 @@ import Index from '../pages/index.vue'
 import conversation from '../pages/conversation/conversation.vue';
 import DefaultPage from '../pages/conversation/defaultPage/defaultPage.vue';
 import Construct from '../pages/construct';
-
+import Configuration from '../pages/configuration'
 
 const routes  = [
 
@@ -37,6 +37,11 @@ const routes  = [
         path: '/construct',
         name: 'construct',
         component: Construct,
+      },
+      {
+        path: '/configuration',
+        name: 'configuration',
+        component: Configuration,
       }
     ]
   },
