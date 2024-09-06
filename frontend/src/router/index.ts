@@ -8,19 +8,23 @@ import DefaultPage from '../pages/conversation/defaultPage/defaultPage.vue';
 import Construct from '../pages/construct';
 import Configuration from '../pages/configuration'
 
-const routes  = [
+const routes = [
 
   {
     path: '/',
-    redirect:'/conversation/',
+    redirect: '/conversation/',
     name: 'index',
-    component: Index,    
-    children:[
+    component: Index,
+
+    children: [
       {
         path: '/conversation',
         name: 'conversation',
         component: conversation,
-        children:[
+        meta: {
+          current: 'conversation'
+        },
+        children: [
           {
             path: '/conversation/',
             name: 'defaultPage',
@@ -36,11 +40,17 @@ const routes  = [
       {
         path: '/construct',
         name: 'construct',
+        meta: {
+          current: 'construct'
+        },
         component: Construct,
       },
       {
         path: '/configuration',
         name: 'configuration',
+        meta: {
+          current: 'configuration'
+        },
         component: Configuration,
       }
     ]
