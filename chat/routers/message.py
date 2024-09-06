@@ -40,7 +40,7 @@ async def get_user_config():
 @router.post("/config", description="修改用户配置")
 async def update_user_config(data: str = Form(...)):
     try:
-        userConfig.update_yaml_file()
+        userConfig.update_yaml_file(data)
         userConfig.reload_config()
     except Exception as err:
         logger.error(f"update user config API error: {err}")
