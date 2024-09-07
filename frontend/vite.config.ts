@@ -6,7 +6,7 @@ import { ElementPlusResolver } from 'unplugin-vue-components/resolvers'
 
 export default defineConfig({
   server: {
-    host: '192.168.3.220',
+    host: '127.0.0.1',
     port: 8991,
     // 是否开启 https
     https: false,

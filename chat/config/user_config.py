@@ -56,7 +56,7 @@ class UserConfig:
     def get_user_config(self):
         with open(self.config_file, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
-        return yaml.dump(config, default_flow_style=False)
+        return yaml.dump(config, default_flow_style=False, default_style='"')
 
 
 userConfig = UserConfig(config_file="config/user_config.yaml")
