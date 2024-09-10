@@ -40,7 +40,6 @@ const goCurrent = (item: string) => {
 watch(
   route,
   (val) => {
-    console.log(111, route.meta.current)
     current.value = route.meta.current
   },
   {
