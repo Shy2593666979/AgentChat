@@ -73,8 +73,11 @@ const searchAgent = async () => {
       </div>
     </div>
     <el-scrollbar>
-    <div class="item-card">
-        <div v-for="item in CardList" >
+      <div
+        class="item-card"
+        v-if="Array.isArray(CardList) && CardList.length > 0"
+      >
+        <div v-for="item in CardList">
           <CommonCard
             class="card"
             :key="item.id"
@@ -84,8 +87,13 @@ const searchAgent = async () => {
             @click="gochat(item)"
           ></CommonCard>
         </div>
-    </div>
-  </el-scrollbar>
+      </div>
+      <div v-else > 
+        <div class="item-img">
+          <img src="../../../assets/notFound.png" width="1000px" >
+        </div>
+      </div>
+    </el-scrollbar>
   </div>
 </template>
 
@@ -121,6 +129,10 @@ const searchAgent = async () => {
     .card:hover {
       background-color: #ecebeb;
     }
+  }
+  .item-img{
+    margin: 0 auto;
+    width: 1000px;
   }
 
   :deep(.el-input__wrapper) {
