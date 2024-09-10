@@ -4,7 +4,7 @@ import { onMounted, ref } from "vue"
 import { CardListType } from "../../type"
 import { getAgentListAPI } from "../../apis/history"
 import  CreateAgent  from '../../components/dialog/create_agent/index'
-  
+
 const cardList = ref<CardListType[]>([])
 const createAgentRef = ref()
 
@@ -24,6 +24,7 @@ const updateList = async () => {
 onMounted(async () => {
   updateList()
 })
+
 </script>
 
 <template>
@@ -31,7 +32,7 @@ onMounted(async () => {
     <div class="create" @click="openDialog('create')">
       <div class="content">
         <div class="top">
-          <img src="../assets/add.svg" alt="" width="40px" height="40px" />
+          <img src="../../assets/add.svg" alt="" width="40px" height="40px" />
           <span>新建助手</span>
         </div>
         <div class="middle">
