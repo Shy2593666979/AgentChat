@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick,watch} from "vue"
+import { ref, onMounted, nextTick, watch, watchEffect } from "vue"
 import { MdPreview } from "md-editor-v3"
 import "md-editor-v3/lib/style.css"
 import { sendMessage } from "../../../apis/chat"
@@ -18,13 +18,10 @@ function scrollBottom() {
     // 确保scrollbar对象存在
     if (scrollbar.value) {
       const wrapEl = scrollbar.value.wrapRef // 获取滚动容器元素
-        ; (wrapEl as HTMLDivElement).scrollTop = (
-          wrapEl as HTMLDivElement
-        ).scrollHeight // 直接设置scrollTop滚动到底部
+      ;(wrapEl as HTMLDivElement).scrollTop =(wrapEl as HTMLDivElement).scrollHeight // 直接设置scrollTop滚动到底部
     }
   })
 }
-
 
 const personQuestion = () => {
   if (searchInput.value && sendQuestion) {
@@ -35,16 +32,16 @@ const personQuestion = () => {
     })
     scrollBottom()
     const data = ref({
-        dialogId: historyChatStore.dialogId,
-        userInput: searchInput.value,
-      })
+      dialogId: historyChatStore.dialogId,
+      userInput: searchInput.value,
+    })
 
     sendMessage(
       data.value,
       (onmessage = (msg: any) => {
-        historyChatStore.chatArr[historyChatStore.chatArr.length - 1].aiMessage.content += JSON.parse(
-          msg.data
-        ).content
+        historyChatStore.chatArr[
+          historyChatStore.chatArr.length - 1
+        ].aiMessage.content += JSON.parse(msg.data).content
         scrollBottom()
       }),
       (onclose = () => {
@@ -55,22 +52,28 @@ const personQuestion = () => {
     searchInput.value = ""
   }
 }
-onMounted(async()=>{
-  if(historyChatStore.clicked){
+onMounted(async () => {
+  scrollBottom()
+  watch(
+    historyChatStore.chatArr,
+    () => {
+      scrollBottom()
+    },
+    { deep: true }
+  )
+})
+watchEffect(() => {
+  if (historyChatStore.chatArr.length >= 0) {
     scrollBottom()
   }
 })
-watch(historyChatStore.chatArr,()=>{
-  scrollBottom()
-})
-
 
 
 </script>
 
 <template>
   <div class="chat">
-    <div class="chat-title" >
+    <div class="chat-title">
       {{ historyChatStore.name }}
     </div>
 
@@ -90,10 +93,10 @@ watch(historyChatStore.chatArr,()=>{
           </div>
           <div v-if="item.aiMessage.content !== undefined" class="ai">
             <div class="img">
-              <img :src=historyChatStore.logo width="30px" height="30px" />
+              <img :src="historyChatStore.logo" width="30px" height="30px" />
             </div>
-            <div  v-if="!item.aiMessage.content">
-              <img src="../../../assets/kunkun.gif" width="30px">
+            <div v-if="!item.aiMessage.content">
+              <img src="../../../assets/loading.gif" width="30px" />
             </div>
             <div class="content">
               <MdPreview :editorId="id" :modelValue="item.aiMessage.content" />
@@ -148,7 +151,6 @@ watch(historyChatStore.chatArr,()=>{
     height: 75%;
     width: 100%;
     font-size: 16px;
-
     .person {
       display: flex;
       justify-content: end;
