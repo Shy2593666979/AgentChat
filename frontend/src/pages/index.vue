@@ -16,7 +16,7 @@ const godefault = () => {
   agentCardStore.clear()
   router.push("/")
 }
-
+  
 const updateList = async () => {
   const list = await getAgentListAPI()
   cardList.value = list.data.data
