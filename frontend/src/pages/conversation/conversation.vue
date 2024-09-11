@@ -1,14 +1,15 @@
 <script setup lang="ts">
 import HistortCard from "../../components/historyCard/index"
 import Drawer from "../../components/drawer"
-import { ref, onMounted } from 'vue';
+import { ref, onMounted } from "vue"
 import { useRouter } from "vue-router"
 import { CardListType, HistoryListType } from "../../type"
 import { ElScrollbar } from "element-plus"
 import { useHistoryListStore } from "../../store/history_list/index"
 import { createDialogAPI, deleteDialogAPI } from "../../apis/history"
 import { useHistoryChatStore } from "../../store/history_chat_msg"
-import { useAgentCardStore } from '../../store/agent_card'
+import { useAgentCardStore } from "../../store/agent_card"
+
 
 const agentCardStore = useAgentCardStore()
 const router = useRouter()
@@ -25,7 +26,7 @@ const open = () => {
   drawerRef.value.open()
 }
 
-const chat = async(item: CardListType) => {
+const chat = async (item: CardListType) => {
   historyChatStore.name = item.name
   historyChatStore.logo = item.logo
   const list = await createDialogAPI({ agent: (item as CardListType).name })
@@ -36,7 +37,7 @@ const chat = async(item: CardListType) => {
   router.push("/conversation/chatPage")
 }
 
-const goHisChat = async(item: HistoryListType) => {
+const goHisChat = async (item: HistoryListType) => {
   agentCardStore.currentId = item.dialogId
   historyChatStore.dialogId = item.dialogId
   historyChatStore.name = item.name
@@ -45,6 +46,7 @@ const goHisChat = async(item: HistoryListType) => {
   historyChatStore.HistoryChat(historyChatStore.dialogId)
   router.push("/conversation/chatPage")
 }
+
 
 const deleteCard = async (item: HistoryListType) => {
   await deleteDialogAPI(item.dialogId)
@@ -69,14 +71,14 @@ const deleteCard = async (item: HistoryListType) => {
           <div clasrews="text">新建会话</div>
         </el-button>
       </div>
-      <el-scrollbar >
+      <el-scrollbar>
         <div class="history-card-list">
           <HistortCard
             v-for="item in historyListStore.historyList"
             class="card"
             :key="item.dialogId"
             :item="item"
-            :class="agentCardStore.currentId === item.dialogId ?'active':''"
+            :class="agentCardStore.currentId === item.dialogId ? 'active' : ''"
             @click="goHisChat(item)"
             @delete="deleteCard(item)"
           ></HistortCard>
@@ -84,7 +86,7 @@ const deleteCard = async (item: HistoryListType) => {
       </el-scrollbar>
     </div>
     <div class="content">
-      <router-view></router-view>
+      <router-view ></router-view>
     </div>
     <Drawer ref="drawerRef" @goChat="chat"></Drawer>
   </div>
@@ -128,10 +130,10 @@ const deleteCard = async (item: HistoryListType) => {
       }
     }
   }
-  .content{
+  .content {
     width: calc(100vw - 282px);
   }
-  .active{
+  .active {
     background-color: rgb(236, 236, 236);
   }
 }
