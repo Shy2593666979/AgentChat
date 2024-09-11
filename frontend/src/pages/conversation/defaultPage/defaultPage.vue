@@ -16,7 +16,19 @@ const router = useRouter()
 const historyListStore = useHistoryListStore()
 const historyChatStore = useHistoryChatStore()
 const searchInput = ref("")
-const CardList = ref()
+const CardList = ref<CardListType[]>([
+  {
+    id: "",
+    name: "",
+    description: "",
+    logo: "",
+    code: "",
+    createTime: "",
+    isCustom: false,
+    parameter: "",
+    type: "",
+  },
+])
 
 onMounted(async () => {
   const list = await getAgentListAPI()
@@ -88,9 +100,9 @@ const searchAgent = async () => {
           ></CommonCard>
         </div>
       </div>
-      <div v-else > 
+      <div v-else>
         <div class="item-img">
-          <img src="../../../assets/notFound.png" width="1000px" >
+          <img src="../../../assets/notFound.png" width="1000px" />
         </div>
       </div>
     </el-scrollbar>
@@ -130,7 +142,7 @@ const searchAgent = async () => {
       background-color: #ecebeb;
     }
   }
-  .item-img{
+  .item-img {
     margin: 0 auto;
     width: 1000px;
   }
