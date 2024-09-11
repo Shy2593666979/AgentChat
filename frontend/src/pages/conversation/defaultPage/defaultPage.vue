@@ -102,7 +102,7 @@ const searchAgent = async () => {
       </div>
       <div v-else>
         <div class="item-img">
-          <img src="../../../assets/notFound.png" width="1000px" />
+          <img src="../../../assets/404.gif" width="600px" />
         </div>
       </div>
     </el-scrollbar>
@@ -144,7 +144,7 @@ const searchAgent = async () => {
   }
   .item-img {
     margin: 0 auto;
-    width: 1000px;
+    width: 600px;
   }
 
   :deep(.el-input__wrapper) {
