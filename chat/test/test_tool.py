@@ -13,7 +13,7 @@ llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 #     return "发送人：{}, 收件人：{}， 信息：{}".format(sender, receiver, emailMessage)
 
 # agents = [sendEmail]
-# model.bind_agents(agents=agents)
+# models.bind_agents(agents=agents)
 
 functions = [
         {

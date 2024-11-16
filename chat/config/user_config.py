@@ -9,8 +9,9 @@ class UserConfig:
     def load_config(self):
         with open(self.config_file, 'r', encoding='utf-8') as file:
             config = yaml.safe_load(file)
-        
-        self.LLM_OPENAI_MODEL = config['llm']['openai']['model']
+
+        self.USE_CAPTCHA = config['use_captcha']
+        self.LLM_OPENAI_MODEL = config['llm']['openai']['models']
         self.LLM_OPENAI_API_KEY = config['llm']['openai']['api_key']
         self.LLM_OPENAI_BASE_URL = config['llm']['openai']['base_url']
 
@@ -31,15 +32,15 @@ class UserConfig:
         
         self.RAG_EMBEDDING_CHOOSE = config['rag']['embedding']['choose']
         self.RAG_EMBEDDING_OPENAI_API_KEY = config['rag']['embedding']['openai']['api_key']
-        self.RAG_EMBEDDING_OPENAI_MODEL = config['rag']['embedding']['openai']['model']
+        self.RAG_EMBEDDING_OPENAI_MODEL = config['rag']['embedding']['openai']['models']
         self.RAG_EMBEDDING_OPENAI_BASE_URL = config['rag']['embedding']['openai']['base_url']
         self.RAG_EMBEDDING_DEFAULT_CACHE_DIR = config['rag']['embedding']['default']['cache_dir']
-        self.RAG_EMBEDDING_DEFAULT_MODEL = config['rag']['embedding']['default']['model']
+        self.RAG_EMBEDDING_DEFAULT_MODEL = config['rag']['embedding']['default']['models']
 
         self.RAG_RERANK_CHOOSE = config['rag']['rerank']['choose']
-        self.RAG_RERANK_COHERE_MODEL = config['rag']['rerank']['cohere']['model']
+        self.RAG_RERANK_COHERE_MODEL = config['rag']['rerank']['cohere']['models']
         self.RAG_RERANK_COHERE_API_KEY = config['rag']['rerank']['cohere']['api_key']
-        self.RAG_RERANK_DEFAULT_MODEL = config['rag']['rerank']['default']['model']
+        self.RAG_RERANK_DEFAULT_MODEL = config['rag']['rerank']['default']['models']
         self.RAG_RERANK_DEFAULT_CACHE_DIR = config['rag']['rerank']['default']['cache_dir']
 
     def reload_config(self):
@@ -126,7 +127,7 @@ userConfig = UserConfig(config_file="config/user_config.yaml")
 #     global RAG_RERANK_CHOOSE, RAG_RERANK_DEFAULT_MODEL, RAG_RERANK_DEFAULT_CACHE_DIR, RAG_RERANK_COHERE_API_KEY, RAG_RERANK_COHERE_MODEL
 #     global RAG_INPUT_DIR
     
-#     LLM_OPENAI_MODEL = config['llm']['openai']['model']
+#     LLM_OPENAI_MODEL = config['llm']['openai']['models']
 #     LLM_OPENAI_API_KEY = config['llm']['openai']['api_key']
 #     LLM_OPENAI_BASE_URL = config['llm']['openai']['base_url']
 
@@ -147,15 +148,15 @@ userConfig = UserConfig(config_file="config/user_config.yaml")
     
 #     RAG_EMBEDDING_CHOOSE = config['rag']['embedding']['choose']
 #     RAG_EMBEDDING_OPENAI_API_KEY = config['rag']['embedding']['openai']['api_key']
-#     RAG_EMBEDDING_OPENAI_MODEL = config['rag']['embedding']['openai']['model']
+#     RAG_EMBEDDING_OPENAI_MODEL = config['rag']['embedding']['openai']['models']
 #     RAG_EMBEDDING_OPENAI_BASE_URL = config['rag']['embedding']['openai']['base_url']
 #     RAG_EMBEDDING_DEFAULT_CACHE_DIR = config['rag']['embedding']['default']['cache_dir']
-#     RAG_EMBEDDING_DEFAULT_MODEL = config['rag']['embedding']['default']['model']
+#     RAG_EMBEDDING_DEFAULT_MODEL = config['rag']['embedding']['default']['models']
 
 #     RAG_RERANK_CHOOSE = config['rag']['rerank']['choose']
-#     RAG_RERANK_COHERE_MODEL = config['rag']['rerank']['cohere']['model']
+#     RAG_RERANK_COHERE_MODEL = config['rag']['rerank']['cohere']['models']
 #     RAG_RERANK_COHERE_API_KEY = config['rag']['rerank']['cohere']['api_key']
-#     RAG_RERANK_DEFAULT_MODEL = config['rag']['rerank']['default']['model']
+#     RAG_RERANK_DEFAULT_MODEL = config['rag']['rerank']['default']['models']
 #     RAG_RERANK_DEFAULT_CACHE_DIR = config['rag']['rerank']['default']['cache_dir']
 
 

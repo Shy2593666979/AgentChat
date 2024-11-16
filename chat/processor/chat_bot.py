@@ -5,10 +5,10 @@ from llm.openai import LLMChat
 from prompt.template import function_call_template, ask_user_template, action_template, llm_chat_template
 from prompt.llm_prompt import fail_action_prompt
 from langchain.prompts import PromptTemplate
-from database.base import Agent
+from service.agent import AgentService
 from processor.impl import BotCheck
 from action import action_class
-from loguru import  logger
+from loguru import logger
 
 class ChatbotModel:
     def __init__(self):
@@ -31,7 +31,7 @@ class ChatbotModel:
             prompt_history = prompt_history + msg.to_str()
 
         # 不调用任何Function直接进行大模型对话
-        if agent not in action_class and not Agent.check_name_iscustom(agent):
+        if agent not in action_class and not AgentService.check_name_iscustom(agent):
             async for one_result in LLMChat.llm_chat(llm_chat_template, user_input=user_input, history=prompt_history):
                 self.final_result += json.loads(one_result)['content']
                 yield one_result
@@ -39,7 +39,7 @@ class ChatbotModel:
             return 
         
         # 调用Function
-        function = Agent.get_parameter_by_name(agent)
+        function = AgentService.get_parameter_by_name(agent)
 
         prompt_template = PromptTemplate.from_template(function_call_template)
 
@@ -56,7 +56,7 @@ class ChatbotModel:
             if BotCheck.slot_is_full(function_args, function_name):
                 logger.info("parameters is full !")
                 # 判断是否是自定义Agent
-                if Agent.check_name_iscustom(function_name):
+                if AgentService.check_name_iscustom(function_name):
                     action_result = self.custom_action(function_name, function_args)
                 else:
                     action_result = self.action(function_name, function_args)
@@ -90,7 +90,7 @@ class ChatbotModel:
 
     def custom_action(self, function_name, function_args):
         try:
-            function_code = Agent.get_code_by_name(name=function_name)
+            function_code = AgentService.get_code_by_name(name=function_name)
 
             # 编译字符串为代码对象
             compiled_code = compile(function_code, '<string>', 'exec')

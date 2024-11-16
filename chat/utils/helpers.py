@@ -96,11 +96,11 @@ def send_message(prompt, user_input):
         "Authorization": "-------------"
     }
     data = {
-        "model": "Qwen1.5-72b-chat",
+        "models": "Qwen1.5-72b-chat",
         "messages": [{"role": "user", "content": prompt}]
     }
 
-    response = requests.post("model.url", data=json.dumps(data),
+    response = requests.post("models.url", data=json.dumps(data),
                              headers=headers).content
     print(response)
 

@@ -1,5 +1,5 @@
-from fastapi import FastAPI, Request, APIRouter, Form, UploadFile, File
-from database.base import Agent
+from fastapi import APIRouter, Form, UploadFile, File
+from service.agent import AgentService
 from type.schemas import resp_200, resp_500
 from utils.helpers import check_input
 from config.service_config import AGENT_DEFAULT_LOGO, LOGO_PREFIX
@@ -8,6 +8,7 @@ from loguru import logger
 from uuid import uuid4
 
 router = APIRouter()
+
 
 @router.post("/agent")
 async def create_agent(name: str = Form(...),
@@ -18,7 +19,7 @@ async def create_agent(name: str = Form(...),
                        logoFile: UploadFile = File(...)):
     try:
         # 判断Agent名字是否重复
-        if Agent.check_repeat_name(name=name):
+        if AgentService.check_repeat_name(name=name):
             return resp_500(message="The Agent name is repeated, please change it")
 
         uid = uuid4().hex
@@ -33,21 +34,22 @@ async def create_agent(name: str = Form(...),
         if not check_input(userInput=name):
             return resp_500(message="The name parameter can only contain uppercase and lowercase letters and numbers.")
 
-        Agent.create_agent(name=name,
-                           description=description,
-                           logo=logo,
-                           parameter=parameter,
-                           code=code,
-                           type=type if type is not None else "openai")
+        AgentService.create_agent(name=name,
+                                  description=description,
+                                  logo=logo,
+                                  parameter=parameter,
+                                  code=code,
+                                  type=type if type is not None else "openai")
         return resp_200()
     except Exception as err:
         logger.error(f"create agent API error: {err}")
         return resp_500(message=str(err))
 
+
 @router.get("/agent")
 async def get_agent():
     try:
-        data = Agent.get_agent()
+        data = AgentService.get_agent()
         result = []
         for item in data:
             result.append({"id": item.id,
@@ -60,7 +62,7 @@ async def get_agent():
                            "type": item.type,
                            "createTime": item.createTime})
 
-        return resp_200(data = result)
+        return resp_200(data=result)
     except Exception as err:
         logger.error(f"get agent API error: {err}")
         return resp_500(message=str(err))
@@ -69,11 +71,12 @@ async def get_agent():
 @router.delete("/agent")
 async def delete_agent(id: str = Form(...)):
     try:
-        Agent.delete_agent_by_id(id)
+        AgentService.delete_agent_by_id(id)
         return resp_200()
     except Exception as err:
         logger.error(f"delete agent API error: {err}")
         return resp_500(message=str(err))
+
 
 @router.put("/agent")
 async def update_agent(id: str = Form(...),
@@ -95,22 +98,23 @@ async def update_agent(id: str = Form(...),
         if not check_input(userInput=name):
             return resp_500(message="The name parameter can only contain uppercase and lowercase letters and numbers.")
 
-        Agent.update_agent_by_id(id=id,
-                                 name=name,
-                                 description=description,
-                                 logo=logo,
-                                 parameter=parameter,
-                                 code=code)
+        AgentService.update_agent_by_id(id=id,
+                                        name=name,
+                                        description=description,
+                                        logo=logo,
+                                        parameter=parameter,
+                                        code=code)
 
         return resp_200()
     except Exception as err:
         logger.error(f"update agent API error: {err}")
         return resp_500(message=str(err))
 
+
 @router.post("/agent/search")
 async def search_agent(name: str = Form(...)):
     try:
-        data = Agent.search_agent_name(name=name)
+        data = AgentService.search_agent_name(name=name)
         result = []
         for item in data:
             result.append({"id": item.id,
@@ -123,15 +127,17 @@ async def search_agent(name: str = Form(...)):
                            "type": item.type,
                            "createTime": item.createTime})
 
-        return resp_200(data = result)
+        return resp_200(data=result)
     except Exception as err:
         logger.error(f"search agent API error: {err}")
         return resp_500(message=str(err))
 
+
 @router.get("/default/code")
 async def get_default_code():
-    return resp_200(data = code_template)
+    return resp_200(data=code_template)
+
 
 @router.get("/default/parameter")
 async def get_default_parameter():
-    return resp_200(data = parameter_template)
+    return resp_200(data=parameter_template)

@@ -1,6 +1,7 @@
 from fastapi import Request, APIRouter
 
-from database.base import HistoryMessage, DialogChat, Agent
+from service.history import HistoryService
+from service.dialog import DialogService
 from processor.chat_bot import ChatbotModel
 from fastapi.responses import StreamingResponse
 
@@ -12,14 +13,14 @@ async def chat(request: Request):
     body = await request.json()
     dialogId = body.get('dialogId')
     user_input = body.get('userInput')
-    agent_data = DialogChat.get_agent_by_dialogId(dialogId)
+    agent_data = DialogService.get_agent_by_dialogId(dialogId)
     agent = agent_data[0].agent
 
     # breakpoint()
 
     # 根据dialogId 去MySQL数据库查最近K条数据
     chat_bot = ChatbotModel()
-    SQL_Message = HistoryMessage.select_history(dialogId)
+    SQL_Message = HistoryService.select_history(dialogId)
 
     for msg in SQL_Message:
         chat_bot.include_history_message(msg)
@@ -31,10 +32,10 @@ async def chat(request: Request):
             yield f"data: {one_data}\n\n"
         yield "data: [DONE]"
         # LLM回答的信息存放到MySQL数据库
-        HistoryMessage.create_history(role="assistant", content=chat_bot.final_result, dialogId=dialogId)
+        HistoryService.create_history(role="assistant", content=chat_bot.final_result, dialogId=dialogId)
     
     # 将用户问的存放到MySQL数据库
-    HistoryMessage.create_history(role="user", content=user_input, dialogId=dialogId)
+    HistoryService.create_history(role="user", content=user_input, dialogId=dialogId)
     # 更新对话窗口的最近使用时间
-    DialogChat.update_dialog_time(dialogId=dialogId)
+    DialogService.update_dialog_time(dialogId=dialogId)
     return StreamingResponse(general_generate(), media_type="text/event-stream")
