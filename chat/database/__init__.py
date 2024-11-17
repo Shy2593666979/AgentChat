@@ -47,7 +47,7 @@ def agent_insert_mysql(type: str = "openai"):
                                   logo=logo,
                                   parameter=json.dumps(parameter, ensure_ascii=False),
                                   type=type,
-                                  isCustom=False)
+                                  is_custom=False)
 
 
 # 去Agent的json文件加载

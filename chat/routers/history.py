@@ -1,17 +1,19 @@
-from fastapi import Request, APIRouter
+from fastapi import Request, APIRouter, Depends
 from service.history import HistoryService
-from type.schemas import resp_200, resp_500
+from fastapi_jwt_auth import AuthJWT
+from service.user import get_login_user, UserPayload
+from type.schemas import resp_200, resp_500, UnifiedResponseModel
 from loguru import logger
 
 router = APIRouter()
 
-
-@router.post("/history")
-async def get_dialog_history(request: Request):
+@router.post("/history", response_model=UnifiedResponseModel)
+async def get_dialog_history(request: Request,
+                             login_user: UserPayload = Depends(get_login_user)):
     try:
         body = await request.json()
-        dialogId = body.get('dialogId')
-        data = HistoryService.get_dialog_history(dialogId=dialogId)
+        dialog_id = body.get('dialog_id')
+        data = HistoryService.get_dialog_history(dialog_id=dialog_id)
 
         result = []
         for item in data:

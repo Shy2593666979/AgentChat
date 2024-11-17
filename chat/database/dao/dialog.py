@@ -17,12 +17,12 @@ class DialogDao:
             dialog = cls._get_dialog_sql(name, agent)
             session.add(dialog)
             session.commit()
-            return dialog.dialogId
+            return dialog.dialog_id
 
     @classmethod
-    def select_dialog(cls, dialogId: str):
+    def select_dialog(cls, dialog_id: str):
         with Session(engine) as session:
-            sql = select(DialogTable).where(DialogTable.dialogId == dialogId)
+            sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
             result = session.exec(sql).all()
 
             return result
@@ -30,43 +30,43 @@ class DialogDao:
     @classmethod
     def get_list_dialog(cls):
         with Session(engine) as session:
-            sql = select(DialogTable).order_by(desc(DialogTable.createTime))
+            sql = select(DialogTable).order_by(desc(DialogTable.create_time))
             result = session.exec(sql).all()
 
             return result
 
     @classmethod
-    def get_agent_by_dialogId(cls, dialogId: str):
+    def get_agent_by_dialog_id(cls, dialog_id: str):
         with Session(engine) as session:
-            sql = select(DialogTable).where(DialogTable.dialogId == dialogId)
+            sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
             result = session.exec(sql).all()
             return result
 
     @classmethod
-    def update_dialog_time(cls, dialogId: str):
+    def update_dialog_time(cls, dialog_id: str):
         with Session(engine) as session:
-            sql = update(DialogTable).where(DialogTable.dialogId == dialogId).values(createTime=datetime.utcnow())
+            sql = update(DialogTable).where(DialogTable.dialog_id == dialog_id).values(create_time=datetime.utcnow())
             session.exec(sql)
             session.commit()
             # dialog = session.exec(sql).one()
             #
-            # dialog.createTime = datetime.utcnow()
+            # dialog.create_time = datetime.utcnow()
             #
             # session.add(dialog)
             # session.commit()
             # session.refresh()
 
     @classmethod
-    def delete_dialog_by_id(cls, dialogId: str):
+    def delete_dialog_by_id(cls, dialog_id: str):
         with Session(engine) as session:
-            sql = delete(DialogTable).where(DialogTable.dialogId == dialogId)
+            sql = delete(DialogTable).where(DialogTable.dialog_id == dialog_id)
             session.exec(sql)
             session.commit()
 
     @classmethod
-    def check_dialog_iscustom(cls, dialogId: str):
+    def check_dialog_iscustom(cls, dialog_id: str):
         with Session(engine) as session:
-            sql = select(DialogTable).where(DialogTable.dialogId == dialogId)
+            sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
             result = session.exec(sql).all()
 
             return result

@@ -11,20 +11,20 @@
 # class HistoryService:
 #
 #     @classmethod
-#     def _get_history_sql(cls, role: str, content: str, dialogId: str):
-#         history = HistoryTable(content=content, role=role, dialogId=dialogId)
+#     def _get_history_sql(cls, role: str, content: str, dialog_id: str):
+#         history = HistoryTable(content=content, role=role, dialog_id=dialog_id)
 #         return history
 #
 #     @classmethod
-#     def create_history(cls, role: str, content: str, dialogId: str):
+#     def create_history(cls, role: str, content: str, dialog_id: str):
 #         with Session(engine) as session:
-#             session.add(cls._get_history_sql(role, content, dialogId))
+#             session.add(cls._get_history_sql(role, content, dialog_id))
 #             session.commit()
 #
 #     @classmethod
-#     def select_history(cls, dialogId: str, k: int):
+#     def select_history(cls, dialog_id: str, k: int):
 #         with Session(engine) as session:
-#             sql = select(HistoryTable).where(HistoryTable.dialogId == dialogId)
+#             sql = select(HistoryTable).where(HistoryTable.dialog_id == dialog_id)
 #             result = session.exec(sql).all()
 #
 #             # 每次最多取当前会话的k条历史记录
@@ -33,16 +33,16 @@
 #             return result
 #
 #     @classmethod
-#     def get_dialog_history(cls, dialogId: str):
+#     def get_dialog_history(cls, dialog_id: str):
 #         with Session(engine) as session:
-#             sql = select(HistoryTable).where(HistoryTable.dialogId == dialogId).order_by(HistoryTable.createTime)
+#             sql = select(HistoryTable).where(HistoryTable.dialog_id == dialog_id).order_by(HistoryTable.create_time)
 #             result = session.exec(sql).all()
 #             return result
 #
 #     @classmethod
-#     def delete_history_by_dialogId(cls, dialogId: str):
+#     def delete_history_by_dialog_id(cls, dialog_id: str):
 #         with Session(engine) as session:
-#             sql = delete(HistoryTable).where(HistoryTable.dialogId == dialogId)
+#             sql = delete(HistoryTable).where(HistoryTable.dialog_id == dialog_id)
 #             session.exec(sql)
 #             session.commit()
 #
@@ -59,12 +59,12 @@
 #             dialog = cls._get_dialog_sql(name, agent)
 #             session.add(dialog)
 #             session.commit()
-#             return dialog.dialogId
+#             return dialog.dialog_id
 #
 #     @classmethod
-#     def select_dialog(cls, dialogId: str):
+#     def select_dialog(cls, dialog_id: str):
 #         with Session(engine) as session:
-#             sql = select(DialogTable).where(DialogTable.dialogId == dialogId)
+#             sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
 #             result = session.exec(sql).all()
 #
 #             return result
@@ -72,43 +72,43 @@
 #     @classmethod
 #     def get_list_dialog(cls):
 #         with Session(engine) as session:
-#             sql = select(DialogTable).order_by(desc(DialogTable.createTime))
+#             sql = select(DialogTable).order_by(desc(DialogTable.create_time))
 #             result = session.exec(sql).all()
 #
 #             return result
 #
 #     @classmethod
-#     def get_agent_by_dialogId(cls, dialogId: str):
+#     def get_agent_by_dialog_id(cls, dialog_id: str):
 #         with Session(engine) as session:
-#             sql = select(DialogTable).where(DialogTable.dialogId == dialogId)
+#             sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
 #             result = session.exec(sql).all()
 #             return result
 #
 #     @classmethod
-#     def update_dialog_time(cls, dialogId: str):
+#     def update_dialog_time(cls, dialog_id: str):
 #         with Session(engine) as session:
-#             sql = update(DialogTable).where(DialogTable.dialogId == dialogId).values(createTime=datetime.utcnow())
+#             sql = update(DialogTable).where(DialogTable.dialog_id == dialog_id).values(create_time=datetime.utcnow())
 #             session.exec(sql)
 #             session.commit()
 #             # dialog = session.exec(sql).one()
 #             #
-#             # dialog.createTime = datetime.utcnow()
+#             # dialog.create_time = datetime.utcnow()
 #             #
 #             # session.add(dialog)
 #             # session.commit()
 #             # session.refresh()
 #
 #     @classmethod
-#     def delete_dialog_by_id(cls, dialogId: str):
+#     def delete_dialog_by_id(cls, dialog_id: str):
 #         with Session(engine) as session:
-#             sql = delete(DialogTable).where(DialogTable.dialogId == dialogId)
+#             sql = delete(DialogTable).where(DialogTable.dialog_id == dialog_id)
 #             session.exec(sql)
 #             session.commit()
 #
 #     @classmethod
-#     def check_dialog_iscustom(cls, dialogId: str):
+#     def check_dialog_iscustom(cls, dialog_id: str):
 #         with Session(engine) as session:
-#             sql = select(DialogTable).where(DialogTable.dialogId == dialogId)
+#             sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
 #             result = session.exec(sql).all()
 #
 #             return result
@@ -116,26 +116,26 @@
 # class AgentService:
 #
 #     @classmethod
-#     def _get_agent_sql(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, isCustom: bool):
+#     def _get_agent_sql(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, is_custom: bool):
 #         agent = AgentTable(name=name,
 #                            description=description,
 #                            logo=logo,
 #                            parameter=parameter,
 #                            type=type,
 #                            code=code,
-#                            isCustom=isCustom)
+#                            is_custom=is_custom)
 #         return agent
 #
 #     @classmethod
-#     def create_agent(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, isCustom: bool):
+#     def create_agent(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, is_custom: bool):
 #         with Session(engine) as session:
-#             session.add(cls._get_agent_sql(name, description, logo, parameter, type, code, isCustom))
+#             session.add(cls._get_agent_sql(name, description, logo, parameter, type, code, is_custom))
 #             session.commit()
 #
 #     @classmethod
 #     def get_agent(cls):
 #         with Session(engine) as session:
-#             sql = select(AgentTable).order_by(desc(AgentTable.createTime))
+#             sql = select(AgentTable).order_by(desc(AgentTable.create_time))
 #             result = session.exec(sql).all()
 #             return result
 #
@@ -154,9 +154,9 @@
 #             return result
 #
 #     @classmethod
-#     def select_agent_by_custom(cls, isCustom: bool):
+#     def select_agent_by_custom(cls, is_custom: bool):
 #         with Session(engine) as session:
-#             sql = select(AgentTable).where(AgentTable.isCustom == isCustom)
+#             sql = select(AgentTable).where(AgentTable.is_custom == is_custom)
 #             result = session.exec(sql).all()
 #             return result
 #
@@ -203,7 +203,7 @@
 #         with Session(engine) as session:
 #             # 构建 update 语句
 #             update_values = {
-#                 'createTime': datetime.utcnow()
+#                 'create_time': datetime.utcnow()
 #             }
 #             if name is not None:
 #                 update_values['name'] = name
@@ -241,7 +241,7 @@
 #             #     # 删除agent的logo地址
 #             #     delete_img(logo=logo)
 #             #     agent.logo = logo
-#             # agent.createTime = datetime.utcnow()
+#             # agent.create_time = datetime.utcnow()
 #             #
 #             # session.add(agent)
 #             # session.commit()
@@ -250,14 +250,14 @@
 # class MessageLikeService:
 #
 #     @classmethod
-#     def _get_message_like_sql(cls, userInput: str, agentOutput: str):
-#         like = MessageLikeTable(userInput=userInput, agentOutput=agentOutput)
+#     def _get_message_like_sql(cls, user_input: str, agent_output: str):
+#         like = MessageLikeTable(user_input=user_input, agent_output=agent_output)
 #         return like
 #
 #     @classmethod
-#     def create_message_like(cls, userInput: str, agentOutput: str):
+#     def create_message_like(cls, user_input: str, agent_output: str):
 #         with Session(engine) as session:
-#             session.add(cls._get_message_like_sql(userInput, agentOutput))
+#             session.add(cls._get_message_like_sql(user_input, agent_output))
 #             session.commit()
 #
 #     @classmethod
@@ -271,14 +271,14 @@
 # class MessageDownService:
 #
 #     @classmethod
-#     def _get_message_down_sql(cls, userInput: str, agentOutput: str):
-#         down = MessageDownTable(userInput=userInput, agentOutput=agentOutput)
+#     def _get_message_down_sql(cls, user_input: str, agent_output: str):
+#         down = MessageDownTable(user_input=user_input, agent_output=agent_output)
 #         return down
 #
 #     @classmethod
-#     def create_message_down(cls, userInput: str, agentOutput: str):
+#     def create_message_down(cls, user_input: str, agent_output: str):
 #         with Session(engine) as session:
-#             session.add(cls._get_message_down_sql(userInput, agentOutput))
+#             session.add(cls._get_message_down_sql(user_input, agent_output))
 #             session.commit()
 #
 #     @classmethod

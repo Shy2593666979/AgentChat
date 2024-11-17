@@ -6,14 +6,14 @@ from database import engine
 class MessageLikeDao:
 
     @classmethod
-    def _get_message_like_sql(cls, userInput: str, agentOutput: str):
-        like = MessageLikeTable(userInput=userInput, agentOutput=agentOutput)
+    def _get_message_like_sql(cls, user_input: str, agent_output: str):
+        like = MessageLikeTable(user_input=user_input, agent_output=agent_output)
         return like
 
     @classmethod
-    def create_message_like(cls, userInput: str, agentOutput: str):
+    def create_message_like(cls, user_input: str, agent_output: str):
         with Session(engine) as session:
-            session.add(cls._get_message_like_sql(userInput, agentOutput))
+            session.add(cls._get_message_like_sql(user_input, agent_output))
             session.commit()
 
     @classmethod
@@ -27,14 +27,14 @@ class MessageLikeDao:
 class MessageDownDao:
 
     @classmethod
-    def _get_message_down_sql(cls, userInput: str, agentOutput: str):
-        down = MessageDownTable(userInput=userInput, agentOutput=agentOutput)
+    def _get_message_down_sql(cls, user_input: str, agent_output: str):
+        down = MessageDownTable(user_input=user_input, agent_output=agent_output)
         return down
 
     @classmethod
-    def create_message_down(cls, userInput: str, agentOutput: str):
+    def create_message_down(cls, user_input: str, agent_output: str):
         with Session(engine) as session:
-            session.add(cls._get_message_down_sql(userInput, agentOutput))
+            session.add(cls._get_message_down_sql(user_input, agent_output))
             session.commit()
 
     @classmethod

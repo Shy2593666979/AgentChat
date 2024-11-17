@@ -16,8 +16,8 @@ async def get_dialog():
             msg_agent = AgentService.select_agent_by_name(name=msg.agent)
             result.append({"name": msg.name,
                            "agent": msg.agent,
-                           "dialogId": msg.dialogId,
-                           "createTime": msg.createTime,
+                           "dialog_id": msg.dialog_id,
+                           "create_time": msg.create_time,
                            "logo": LOGO_PREFIX + msg_agent[0].logo})
 
         return resp_200(data=result)
@@ -33,9 +33,9 @@ async def create_dialog(request: Request):
         name = body.get('name')
         agent = body.get('agent')
 
-        dialogId = DialogService.create_dialog(name if name is not None else agent, agent)
+        dialog_id = DialogService.create_dialog(name if name is not None else agent, agent)
 
-        return resp_200(data={"dialogId": dialogId})
+        return resp_200(data={"dialog_id": dialog_id})
     except Exception as err:
         logger.error(f"create dialog API error: {err}")
         return resp_500(message=str(err))
@@ -44,9 +44,9 @@ async def create_dialog(request: Request):
 async def delete_dialog(request: Request):
     try:
         body = await request.json()
-        dialogId = body.get('dialogId')
+        dialog_id = body.get('dialog_id')
 
-        DialogService.delete_dialog(dialogId=dialogId)
+        DialogService.delete_dialog(dialog_id=dialog_id)
 
         return resp_200()
     except Exception as err:

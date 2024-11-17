@@ -11,37 +11,37 @@ class AgentTable(SQLModel, table=True):
     name: str
     description: str
     logo: str
-    isCustom: bool = Field(default=True)
+    is_custom: bool = Field(default=True)
     parameter: str = Field(sa_column=Column(Text))
     type: str = Literal["openai", "qwen"]
     code: str = Field(default="")
-    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 每条消息
 class HistoryTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     content: str = Field(sa_column=Column(Text))
-    dialogId: str
+    dialog_id: str
     role: str = Literal["assistant", "system", "user"]
-    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 每个对话
 class DialogTable(SQLModel, table=True):
-    dialogId: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
+    dialog_id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str
     agent: str
-    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 拉踩的信息
 class MessageDownTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
-    userInput: str = Field(sa_column=Column(Text))
-    agentOutput: str = Field(sa_column=Column(Text))
-    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    user_input: str = Field(sa_column=Column(Text))
+    agent_output: str = Field(sa_column=Column(Text))
+    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 
 # 点赞的信息
 class MessageLikeTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
-    userInput: str = Field(sa_column=Column(Text))
-    agentOutput: str = Field(sa_column=Column(Text))
-    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    user_input: str = Field(sa_column=Column(Text))
+    agent_output: str = Field(sa_column=Column(Text))
+    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))

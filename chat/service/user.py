@@ -37,6 +37,7 @@ class UserPayload:
 
 class UserService:
 
+    # MD5算法加密
     @classmethod
     def decrypt_md5_password(cls, password: str):
         if value := redis_client.get(RSA_KEY):
@@ -48,7 +49,7 @@ class UserService:
 
     # 使用SHA-256算法进行加密
     @classmethod
-    def encrypt_password(cls, password: str):
+    def encrypt_sha256_password(cls, password: str):
         sha256 = hashlib.sha256()
         sha256.update(password.encode('utf-8'))
         encrypted_password = sha256.hexdigest()
@@ -57,7 +58,7 @@ class UserService:
     # 验证密码是否匹配
     @classmethod
     def verify_password(cls, password: str, encrypted_password):
-        return cls.encrypt_password(password) == encrypted_password
+        return cls.encrypt_sha256_password(password) == encrypted_password
 
     @classmethod
     def create_user(cls, request: Request, login_user: UserPayload, req_data: CreateUserReq):

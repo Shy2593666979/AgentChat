@@ -17,8 +17,8 @@
 
 |参数名|中文|数据类型|是否必须|备注|
 |---|---|---|---|---|
-|dialogId|对话ID|string|是||
-|userInput|用户输入|string|是||
+|dialog_id|对话ID|string|是||
+|user_input|用户输入|string|是||
 
 ### 返回参数
 
@@ -55,7 +55,7 @@
 |---|---|---|---|---|
 |code|状态码|int|是||
 |message|请求信息|string|是||
-|data|返回的数据|dict|是|{"dialogId": "xx1s31sfsx00sfwq...."}|
+|data|返回的数据|dict|是|{"dialog_id": "xx1s31sfsx00sfwq...."}|
 
 ## DialogList
 
@@ -75,7 +75,7 @@
 |---|---|---|---|---|
 |code|状态码|int|是||
 |message|请求信息|string|是||
-|data|返回的数据|List[dict]|是|{"dialogId": "xx1ss131xxxsswq....", "name": "你好xxxx", "agent": "Google搜索"}|
+|data|返回的数据|List[dict]|是|{"dialog_id": "xx1ss131xxxsswq....", "name": "你好xxxx", "agent": "Google搜索"}|
 
 # Agent管理
 
@@ -131,7 +131,7 @@ ps: Agent 这些增删改查都是 使用**FormData**  ----因为都跟上传文
 |---|---|---|---|---|
 |code|状态码|int|是||
 |message|请求信息|string|是||
-|data|返回的数据|List[Dict]|是|{id: "xxsswq", name: "WeatherAgent", description: "获取当地的预报天气", parameter: ".....", isCustom: True, createTime: "2024-8-23-16-43"}   isCustom表示是否是自定义|
+|data|返回的数据|List[Dict]|是|{id: "xxsswq", name: "WeatherAgent", description: "获取当地的预报天气", parameter: ".....", is_custom: True, create_time: "2024-8-23-16-43"}   is_custom表示是否是自定义|
 
 ## AgentDelete
 
@@ -197,7 +197,7 @@ ps: Agent 这些增删改查都是 使用**FormData**  ----因为都跟上传文
 ## MessageLikeCreate
 
 ### 主要功能
-用户点击点赞功能，需要前端将userInput和agentOutput 返回给后端进行存入数据库
+用户点击点赞功能，需要前端将user_input和agent_output 返回给后端进行存入数据库
 
 ### 请求方式
 - POST
@@ -208,8 +208,8 @@ ps: Agent 这些增删改查都是 使用**FormData**  ----因为都跟上传文
 
 |参数名|中文|数据类型|是否必须|备注|
 |---|---|---|---|---|
-|userInput|用户输入|string|是||
-|agentOutput|agent回复的消息|string|是||
+|user_input|用户输入|string|是||
+|agent_output|agent回复的消息|string|是||
 
 ### 返回参数
 
@@ -222,7 +222,7 @@ ps: Agent 这些增删改查都是 使用**FormData**  ----因为都跟上传文
 ## MessageLikeCreate
 
 ### 主要功能
-用户点击拉踩功能，需要前端将userInput和agentOutput 返回给后端进行存入数据库
+用户点击拉踩功能，需要前端将user_input和agent_output 返回给后端进行存入数据库
 
 ### 请求方式
 - POST
@@ -233,8 +233,8 @@ ps: Agent 这些增删改查都是 使用**FormData**  ----因为都跟上传文
 
 |参数名|中文|数据类型|是否必须|备注|
 |---|---|---|---|---|
-|userInput|用户输入|string|是||
-|agentOutput|agent回复的消息|string|是||
+|user_input|用户输入|string|是||
+|agent_output|agent回复的消息|string|是||
 
 ### 返回参数
 

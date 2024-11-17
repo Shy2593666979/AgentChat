@@ -9,7 +9,7 @@ import pytz
 class HistoryTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     content: str = Field(sa_column=Column(Text))
-    dialogId: str
+    dialog_id: str
     role: str = Literal["assistant", "system", "user"]
-    createTime: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 

@@ -21,12 +21,12 @@ def init_dir(path):
         logger.error(f"create dir appear: {err}")
 
 
-def check_input(userInput):
+def check_input(user_input):
     # 定义正则表达式，匹配大小写字母、数字
     alphabet_pattern = re.compile(r'^[a-zA-Z0-9]+$')
 
     # 检查输入是否只包含大小写字母、数字
-    if alphabet_pattern.match(userInput):
+    if alphabet_pattern.match(user_input):
         return True
     else:
         return False

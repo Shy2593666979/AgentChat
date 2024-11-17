@@ -1,4 +1,6 @@
 from datetime import datetime
+
+from config.user_config import userConfig
 from database.models.agent import AgentTable
 from sqlmodel import Session
 from sqlalchemy import select, and_, update, desc, delete
@@ -8,26 +10,27 @@ from database import engine
 class AgentDao:
 
     @classmethod
-    def _get_agent_sql(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, isCustom: bool):
+    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: int, parameter: str, type: str, code: str, is_custom: bool):
         agent = AgentTable(name=name,
-                           description=description,
                            logo=logo,
-                           parameter=parameter,
                            type=type,
                            code=code,
-                           isCustom=isCustom)
+                           user_id=user_id,
+                           parameter=parameter,
+                           description=description,
+                           is_custom=is_custom)
         return agent
 
     @classmethod
-    def create_agent(cls, name: str, description: str, logo: str, parameter: str, type: str, code: str, isCustom: bool):
+    def create_agent(cls, name: str, description: str, logo: str, user_id: int, parameter: str, type: str, code: str, is_custom: bool):
         with Session(engine) as session:
-            session.add(cls._get_agent_sql(name, description, logo, parameter, type, code, isCustom))
+            session.add(cls._get_agent_sql(name, description, logo, user_id, parameter, type, code, is_custom))
             session.commit()
 
     @classmethod
     def get_agent(cls):
         with Session(engine) as session:
-            sql = select(AgentTable).order_by(desc(AgentTable.createTime))
+            sql = select(AgentTable).order_by(desc(AgentTable.create_time))
             result = session.exec(sql).all()
             return result
 
@@ -39,6 +42,13 @@ class AgentDao:
             return result
 
     @classmethod
+    def get_agent_user_id(cls, agent_id: str):
+        with Session(engine) as session:
+            sql = select(AgentTable).where(AgentTable.id==agent_id)
+            agent = session.exec(sql).first()
+            return agent
+
+    @classmethod
     def select_agent_by_type(cls, type: str):
         with Session(engine) as session:
             sql = select(AgentTable).where(AgentTable.type == type)
@@ -46,9 +56,9 @@ class AgentDao:
             return result
 
     @classmethod
-    def select_agent_by_custom(cls, isCustom: bool):
+    def select_agent_by_custom(cls, is_custom: bool):
         with Session(engine) as session:
-            sql = select(AgentTable).where(AgentTable.isCustom == isCustom)
+            sql = select(AgentTable).where(AgentTable.is_custom == is_custom)
             result = session.exec(sql).all()
             return result
 
@@ -84,9 +94,17 @@ class AgentDao:
             return result
 
     @classmethod
-    def search_agent_name(cls, name: str):
+    def search_agent_name(cls, name: str, user_id: int):
         with Session(engine) as session:
-            sql = select(AgentTable).where(AgentTable.name.like(f'%{name}%'))
+            sql = select(AgentTable).where(and_(AgentTable.name.like(f'%{name}%'),
+                                                AgentTable.user_id == user_id))
+            result = session.exec(sql).all()
+            return result
+
+    @classmethod
+    def get_agent_by_user_id(cls, user_id: int):
+        with Session(engine) as session:
+            sql = select(AgentTable).where(AgentTable.user_id == user_id)
             result = session.exec(sql).all()
             return result
 
@@ -95,7 +113,7 @@ class AgentDao:
         with Session(engine) as session:
             # 构建 update 语句
             update_values = {
-                'createTime': datetime.utcnow()
+                'create_time': datetime.utcnow()
             }
             if name is not None:
                 update_values['name'] = name
@@ -133,7 +151,7 @@ class AgentDao:
             #     # 删除agent的logo地址
             #     delete_img(logo=logo)
             #     agent.logo = logo
-            # agent.createTime = datetime.utcnow()
+            # agent.create_time = datetime.utcnow()
             #
             # session.add(agent)
             # session.commit()

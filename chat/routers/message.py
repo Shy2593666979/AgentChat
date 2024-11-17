@@ -12,10 +12,10 @@ router = APIRouter()
 async def insert_message_like(request: Request):
     body = await request.json()
 
-    userInput = body.get('userInput')
-    agentOutput = body.get('agentOutput')
-    MessageLikeService.create_message_like(userInput=userInput,
-                                           agentOutput=agentOutput)
+    user_input = body.get('user_input')
+    agent_output = body.get('agent_output')
+    MessageLikeService.create_message_like(user_input=user_input,
+                                           agent_output=agent_output)
 
     return resp_200()
 
@@ -24,10 +24,10 @@ async def insert_message_like(request: Request):
 async def insert_message_down(request: Request):
     body = await request.json()
 
-    userInput = body.get('userInput')
-    agentOutput = body.get('agentOutput')
-    MessageDownService.create_message_down(userInput=userInput,
-                                           agentOutput=agentOutput)
+    user_input = body.get('user_input')
+    agent_output = body.get('agent_output')
+    MessageDownService.create_message_down(user_input=user_input,
+                                           agent_output=agent_output)
 
     return resp_200()
 

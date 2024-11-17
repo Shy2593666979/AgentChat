@@ -5,9 +5,9 @@ from loguru import logger
 class MessageLikeService:
 
     @classmethod
-    def create_message_like(cls, userInput: str, agentOutput: str):
+    def create_message_like(cls, user_input: str, agent_output: str):
         try:
-            MessageLikeDao.create_message_like(userInput=userInput, agentOutput=agentOutput)
+            MessageLikeDao.create_message_like(user_input=user_input, agent_output=agent_output)
 
         except Exception as err:
             logger.error(f"create message like is appear error: {err}")
@@ -26,9 +26,9 @@ class MessageLikeService:
 class MessageDownService:
 
     @classmethod
-    def create_message_down(cls, userInput: str, agentOutput: str):
+    def create_message_down(cls, user_input: str, agent_output: str):
         try:
-            MessageDownDao.create_message_down(userInput=userInput, agentOutput=agentOutput)
+            MessageDownDao.create_message_down(user_input=user_input, agent_output=agent_output)
 
         except Exception as err:
             logger.error(f"create message down is appear error: {err}")

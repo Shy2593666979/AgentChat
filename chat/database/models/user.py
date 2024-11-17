@@ -5,6 +5,12 @@ from pydantic import validator, BaseModel
 from sqlalchemy import Column, DateTime, text
 from sqlmodel import Field
 
+# 系统用户
+SystemUser = 0
+# 管理员
+AdminUser = 1
+
+
 class UserBase(BaseModel):
     user_name: str = Field(index=True, unique=True)
     email: Optional[str] = Field(index=True)
@@ -39,7 +45,6 @@ class UserRead(UserBase):
     user_id: Optional[int]
     role: Optional[str]
     access_token: Optional[str]
-    web_menu: Optional[List[str]]
     admin_groups: Optional[List[int]]  # 所管理的用户组ID列表
 
 

@@ -8,16 +8,16 @@
 # class HistoryMessage:
 #
 #     @classmethod
-#     def create_history(cls, role: str, content: str, dialogId: str):
+#     def create_history(cls, role: str, content: str, dialog_id: str):
 #         try:
-#             HistoryService.create_history(role, content, dialogId)
+#             HistoryService.create_history(role, content, dialog_id)
 #         except Exception as err:
 #             logger.error(f"add history data appear error: {err}")
 #
 #     @classmethod
-#     def select_history(cls, dialogId: str, k: int = 6):
+#     def select_history(cls, dialog_id: str, k: int = 6):
 #         try:
-#             result = HistoryService.select_history(dialogId, k)
+#             result = HistoryService.select_history(dialog_id, k)
 #             message_sql: List[Message] = []
 #             for data in result:
 #                 message_sql.append(Message(content=data[0].content, role=data[0].role))
@@ -26,9 +26,9 @@
 #             logger.error(f"select history is appear error: {err}")
 #
 #     @classmethod
-#     def get_dialog_history(cls, dialogId: str):
+#     def get_dialog_history(cls, dialog_id: str):
 #         try:
-#             result = HistoryService.get_dialog_history(dialogId)
+#             result = HistoryService.get_dialog_history(dialog_id)
 #             message_sql: List[Message] = []
 #             for data in result:
 #                 message_sql.append(Message(content=data[0].content, role=data[0].role))
@@ -41,15 +41,15 @@
 #     @classmethod
 #     def create_dialog(cls, name: str, agent: str):
 #         try:
-#             dialogId = DialogService.create_dialog(name, agent)
-#             return dialogId
+#             dialog_id = DialogService.create_dialog(name, agent)
+#             return dialog_id
 #         except Exception as err:
 #             logger.error(f"add dialog is appear error: {err}")
 #
 #     @classmethod
-#     def select_dialog(cls, dialogId: str):
+#     def select_dialog(cls, dialog_id: str):
 #         try:
-#             data = DialogService.select_dialog(dialogId)
+#             data = DialogService.select_dialog(dialog_id)
 #             result = []
 #             for item in data:
 #                 result.append(item[0])
@@ -69,9 +69,9 @@
 #             logger.error(f"get list dialog is appear error: {err}")
 #
 #     @classmethod
-#     def get_agent_by_dialogId(cls, dialogId: str):
+#     def get_agent_by_dialog_id(cls, dialog_id: str):
 #         try:
-#             data = DialogService.get_agent_by_dialogId(dialogId)
+#             data = DialogService.get_agent_by_dialog_id(dialog_id)
 #             result = []
 #             for item in data:
 #                 result.append(item[0])
@@ -80,26 +80,26 @@
 #             logger.error(f"select dialog is appear error: {err}")
 #
 #     @classmethod
-#     def update_dialog_time(cls, dialogId: str):
+#     def update_dialog_time(cls, dialog_id: str):
 #         try:
-#             DialogService.update_dialog_time(dialogId=dialogId)
+#             DialogService.update_dialog_time(dialog_id=dialog_id)
 #         except Exception as err:
 #             logger.error(f"update dialog create time appear error: {err}")
 #
 #     @classmethod
-#     def delete_dialog(cls, dialogId: str):
+#     def delete_dialog(cls, dialog_id: str):
 #         try:
-#             DialogService.delete_dialog_by_id(dialogId=dialogId)
-#             HistoryService.delete_history_by_dialogId(dialogId=dialogId)
+#             DialogService.delete_dialog_by_id(dialog_id=dialog_id)
+#             HistoryService.delete_history_by_dialog_id(dialog_id=dialog_id)
 #         except Exception as err:
 #             logger.error(f"delete dialog appear error: {err}")
 #
 #     @classmethod
-#     def check_dialog_iscustom(cls, dialogId: str):
+#     def check_dialog_iscustom(cls, dialog_id: str):
 #         try:
-#             result = DialogService.check_dialog_iscustom(dialogId=dialogId)
+#             result = DialogService.check_dialog_iscustom(dialog_id=dialog_id)
 #             for data in result:
-#                 if data[0].isCustom:
+#                 if data[0].is_custom:
 #                     return True
 #             return False
 #         except Exception as err:
@@ -108,7 +108,7 @@
 # class Agent:
 #
 #     @classmethod
-#     def create_agent(cls, name: str, description: str, logo: str, parameter: str, type: str="openai", code: str="", isCustom: bool=True):
+#     def create_agent(cls, name: str, description: str, logo: str, parameter: str, type: str="openai", code: str="", is_custom: bool=True):
 #         try:
 #             agentId = AgentService.create_agent(name=name,
 #                                                 description=description,
@@ -116,7 +116,7 @@
 #                                                 parameter=parameter,
 #                                                 type=type,
 #                                                 code=code,
-#                                                 isCustom=isCustom)
+#                                                 is_custom=is_custom)
 #             return agentId
 #         except Exception as err:
 #             logger.error(f"create agent is appear error: {err}")
@@ -145,9 +145,9 @@
 #             logger.error(f"select agent by type is appear error: {err}")
 #
 #     @classmethod
-#     def select_agent_by_custom(cls, isCustom):
+#     def select_agent_by_custom(cls, is_custom):
 #         try:
-#             data = AgentService.select_agent_by_custom(isCustom=isCustom)
+#             data = AgentService.select_agent_by_custom(is_custom=is_custom)
 #             result = []
 #             for item in data:
 #                 result.append(item[0])
@@ -238,16 +238,16 @@
 #     def check_name_iscustom(cls, name: str):
 #         try:
 #             data = AgentService.select_agent_by_name(name)
-#             return data[0][0].isCustom
+#             return data[0][0].is_custom
 #         except Exception as err:
 #             logger.error(f"get code by name is appear error: {err}")
 #
 # class MessageLike:
 #
 #     @classmethod
-#     def create_message_like(cls, userInput: str, agentOutput: str):
+#     def create_message_like(cls, user_input: str, agent_output: str):
 #         try:
-#             MessageLikeService.create_message_like(userInput=userInput, agentOutput=agentOutput)
+#             MessageLikeService.create_message_like(user_input=user_input, agent_output=agent_output)
 #
 #         except Exception as err:
 #             logger.error(f"create message like is appear error: {err}")
@@ -266,9 +266,9 @@
 # class MessageDown:
 #
 #     @classmethod
-#     def create_message_down(cls, userInput: str, agentOutput: str):
+#     def create_message_down(cls, user_input: str, agent_output: str):
 #         try:
-#             MessageDownService.create_message_down(userInput=userInput, agentOutput=agentOutput)
+#             MessageDownService.create_message_down(user_input=user_input, agent_output=agent_output)
 #
 #         except Exception as err:
 #             logger.error(f"create message down is appear error: {err}")
