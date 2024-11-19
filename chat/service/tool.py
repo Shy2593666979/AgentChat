@@ -84,10 +84,13 @@ class ToolService:
     def get_tool_name_by_id(cls, tool_id: Union[List[str], str]):
         try:
             if isinstance(tool_id, str):
-                result = ToolDao.get_tool_name_by_id(tool_id=[tool_id])
+                tools = ToolDao.get_tool_name_by_id(tool_id=[tool_id])
             else:
-                result = ToolDao.get_tool_name_by_id(tool_id=tool_id)
-            return resp_200(data=result)
+                tools = ToolDao.get_tool_name_by_id(tool_id=tool_id)
+            result = []
+            for tool in tools:
+                result.append(tool[0].en_name)
+            return result
         except Exception as err:
             logger.error(f'get tool name by id appear Err: {err}')
             return resp_500(message=str(err))
