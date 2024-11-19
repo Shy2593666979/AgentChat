@@ -1,15 +1,23 @@
-from action.send_email.action import send_email_action
-from action.google_search.action import google_search_action
-from action.arxiv.action import arxiv_action
-from action.get_weather.action import get_weather_action
-from action.delivery.action import delivery_action
-from action.rag_data.action import exec_rag
+from send_email.action import send_email, SendEmailTool
+from google_search.action import google_search, GoogleSearchTool
+from arxiv.action import get_arxiv, ArxivTool
+from get_weather.action import get_weather, WeatherTool
+from delivery.action import get_delivery, DeliveryTool
+from rag_data.action import exec_rag
 
-action_class = {
-    "EmailAgent": send_email_action,
-    "GoogleAgent": google_search_action,
-    "ArxivAgent": arxiv_action,
-    "WeatherAgent": get_weather_action,
-    "DeliveryAgent": delivery_action,
+action_Function_call = {
+    "send_email": send_email,
+    "google_search": google_search,
+    "get_arxiv": get_arxiv,
+    "get_weather": get_weather,
+    "get_delivery": get_delivery,
     "RagAgent": exec_rag
+}
+
+action_React = {
+    "send_email": SendEmailTool,
+    "search": GoogleSearchTool,
+    "weather": WeatherTool,
+    "delivery": DeliveryTool,
+    "arxiv": ArxivTool
 }
