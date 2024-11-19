@@ -4,23 +4,21 @@ from database import AgentTable
 from database.dao.agent import AgentDao
 from database.models.user import AdminUser, SystemUser
 from loguru import logger
-
-from test.test_tool import message
+from typing import List
 from type.schemas import resp_200, resp_500
 
 
 class AgentService:
 
     @classmethod
-    def create_agent(cls, name: str, description: str, logo: str, user_id: int,
-                     parameter: str, type: str = "openai", code: str = "", is_custom: bool = True):
+    def create_agent(cls, name: str, description: str, logo: str, user_id: str,
+                     llm_id: str, tool_id: List[str], is_custom: bool = True):
         try:
             agent_id = AgentDao.create_agent(name=name,
                                             description=description,
                                             logo=logo,
-                                            parameter=parameter,
-                                            type=type,
-                                            code=code,
+                                            llm_id=llm_id,
+                                            tool_id=tool_id,
                                             user_id=user_id,
                                             is_custom=is_custom)
             return agent_id
@@ -39,77 +37,17 @@ class AgentService:
             logger.error(f"get agent is appear error: {err}")
 
     @classmethod
-    def select_agent_by_type(cls, type: str):
-        try:
-            data = AgentDao.select_agent_by_type(type)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
-        except Exception as err:
-            logger.error(f"select agent by type is appear error: {err}")
-
-    @classmethod
-    def select_agent_by_custom(cls, is_custom):
-        try:
-            data = AgentDao.select_agent_by_custom(is_custom=is_custom)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
-        except Exception as err:
-            logger.error(f"select agent by custom is appear error: {err}")
-
-    @classmethod
-    def select_agent_by_name(cls, name: str):
-        try:
-            data = AgentDao.select_agent_by_name(name)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
-        except Exception as err:
-            logger.error(f"select agent by name is appear error: {err}")
-
-    @classmethod
-    def get_parameter_by_name(cls, name: str):
-        try:
-            data = AgentDao.select_agent_by_name(name)
-            return data[0][0].parameter
-        except Exception as err:
-            logger.error(f"get parameter by name is appear error: {err}")
-
-    @classmethod
-    def get_code_by_name(cls, name: str):
-        try:
-            data = AgentDao.select_agent_by_name(name)
-            return data[0][0].code
-        except Exception as err:
-            logger.error(f"get code by name is appear error: {err}")
-
-    @classmethod
-    def get_agent_by_name_type(cls, name: str, type: str = "openai"):
-        try:
-            data = AgentDao.get_agent_by_name_type(name=name, type=type)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
-        except Exception as err:
-            logger.error(f"get agent by name and type appear error: {err}")
-
-    @classmethod
-    def update_agent_by_id(cls, id: str, name: str, description: str, user_id: int, logo: str, parameter: str, code: str, type: str=None):
+    def update_agent_by_id(cls, id: str, name: str, description: str, user_id: str,
+                           logo: str, tool_id: List[str], llm_id: str):
         try:
             # 需要判断是否有权限，管理员随意
             if user_id == AdminUser or user_id == cls.get_agent_user_id(agent_id=id):
                 AgentDao.update_agent_by_id(id=id,
                                             name=name,
                                             logo=logo,
-                                            type=type,
                                             description=description,
-                                            parameter=parameter,
-                                            code=code)
+                                            tool_id=tool_id,
+                                            llm_id=llm_id)
                 return resp_200(message='update agent success')
             else:
                 return resp_500(message='no permission exec')
@@ -137,7 +75,7 @@ class AgentService:
             logger.error(f"delete agent by id appear: {err}")
 
     @classmethod
-    def search_agent_name(cls, name: str, user_id: int):
+    def search_agent_name(cls, name: str, user_id: str):
         try:
             data = AgentDao.search_agent_name(name=name, user_id=user_id)
             result = []
@@ -188,3 +126,63 @@ class AgentService:
             return result
         except Exception as err:
             logger.error(f'get all agent by user id Err: {err}')
+
+    @classmethod
+    def select_agent_by_custom(cls, is_custom):
+        try:
+            data = AgentDao.select_agent_by_custom(is_custom=is_custom)
+            result = []
+            for item in data:
+                result.append(item[0])
+            return result
+        except Exception as err:
+            logger.error(f"select agent by custom is appear error: {err}")
+
+    @classmethod
+    def select_agent_by_name(cls, name: str):
+        try:
+            data = AgentDao.select_agent_by_name(name)
+            result = []
+            for item in data:
+                result.append(item[0])
+            return result
+        except Exception as err:
+            logger.error(f"select agent by name is appear error: {err}")
+
+    # @classmethod
+    # def get_parameter_by_name(cls, name: str):
+    #     try:
+    #         data = AgentDao.select_agent_by_name(name)
+    #         return data[0][0].parameter
+    #     except Exception as err:
+    #         logger.error(f"get parameter by name is appear error: {err}")
+
+    # @classmethod
+    # def get_code_by_name(cls, name: str):
+    #     try:
+    #         data = AgentDao.select_agent_by_name(name)
+    #         return data[0][0].code
+    #     except Exception as err:
+    #         logger.error(f"get code by name is appear error: {err}")
+
+    # @classmethod
+    # def get_agent_by_name_type(cls, name: str, type: str = "openai"):
+    #     try:
+    #         data = AgentDao.get_agent_by_name_type(name=name, type=type)
+    #         result = []
+    #         for item in data:
+    #             result.append(item[0])
+    #         return result
+    #     except Exception as err:
+    #         logger.error(f"get agent by name and type appear error: {err}")
+
+    # @classmethod
+    # def select_agent_by_type(cls, type: str):
+    #     try:
+    #         data = AgentDao.select_agent_by_type(type)
+    #         result = []
+    #         for item in data:
+    #             result.append(item[0])
+    #         return result
+    #     except Exception as err:
+    #         logger.error(f"select agent by type is appear error: {err}")

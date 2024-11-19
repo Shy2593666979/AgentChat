@@ -7,8 +7,8 @@ from sqlmodel import Field
 
 
 class UserRoleBase(BaseModel):
-    user_id: int = Field(index=True)
-    role_id: int = Field(index=True)
+    user_id: str = Field(index=True)
+    role_id: str = Field(index=True)
     create_time: Optional[datetime] = Field(
         sa_column=Column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP')))
     update_time: Optional[datetime] = Field(
@@ -20,14 +20,14 @@ class UserRoleBase(BaseModel):
 
 
 class UserRole(UserRoleBase, table=True):
-    id: Optional[int] = Field(default=None, primary_key=True)
+    id: Optional[str] = Field(default=None, primary_key=True)
 
 
 class UserRoleRead(UserRoleBase):
-    id: Optional[int]
+    id: Optional[str]
 
 
 class UserRoleCreate(BaseModel):
-    user_id: int
-    role_id: list[int]
+    user_id: str
+    role_id: list[str]
 

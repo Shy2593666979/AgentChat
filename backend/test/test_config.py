@@ -2,7 +2,7 @@ import sys
 
 sys.path.append("..")
 from config import update_system_config
-from chat import config
+from backend import config
 
 update_system_config()
 

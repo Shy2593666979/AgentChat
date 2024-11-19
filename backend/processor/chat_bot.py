@@ -1,13 +1,13 @@
 import json
 from typing import List
 from type.message import Message
-from llm.openai import LLMChat
+from chat.openai import LLMChat
 from prompt.template import function_call_template, ask_user_template, action_template, llm_chat_template
 from prompt.llm_prompt import fail_action_prompt
 from langchain.prompts import PromptTemplate
 from service.agent import AgentService
 from processor.impl import BotCheck
-from action import action_class
+from tools import action_class
 from loguru import logger
 
 class ChatbotModel:

@@ -5,7 +5,7 @@ from fastapi.staticfiles import StaticFiles
 from database import  init_database, init_default_agent
 from fastapi.middleware.cors import CORSMiddleware
 from config.service_config import SERVICE_HOST, SERVICE_PORT
-from routers import chat, dialog, message, agent, history
+from routers import chat, dialog, message, agent, history, tool, user
 from config.user_config import userConfig
 from rag import init_rag_data
 
@@ -27,6 +27,8 @@ app.include_router(dialog.router, prefix="/api")
 app.include_router(message.router, prefix="/api")
 app.include_router(agent.router, prefix="/api")
 app.include_router(history.router, prefix="/api")
+app.include_router(user.router, prefix="/api")
+app.include_router(tool.router, prefix="/api")
 
 if  __name__ == "__main__":
     init_database()

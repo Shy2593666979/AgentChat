@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from config.user_config import userConfig
+from typing import List
 from database.models.agent import AgentTable
 from sqlmodel import Session
 from sqlalchemy import select, and_, update, desc, delete
@@ -10,21 +10,20 @@ from database import engine
 class AgentDao:
 
     @classmethod
-    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: int, parameter: str, type: str, code: str, is_custom: bool):
+    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: str, llm_id: str, tool_id: List[str], is_custom: bool):
         agent = AgentTable(name=name,
                            logo=logo,
-                           type=type,
-                           code=code,
                            user_id=user_id,
-                           parameter=parameter,
+                           llm_id=llm_id,
+                           tool_id=tool_id,
                            description=description,
                            is_custom=is_custom)
         return agent
 
     @classmethod
-    def create_agent(cls, name: str, description: str, logo: str, user_id: int, parameter: str, type: str, code: str, is_custom: bool):
+    def create_agent(cls, name: str, description: str, logo: str, user_id: str, llm_id: str, tool_id: List[str], is_custom: bool):
         with Session(engine) as session:
-            session.add(cls._get_agent_sql(name, description, logo, user_id, parameter, type, code, is_custom))
+            session.add(cls._get_agent_sql(name, description, logo, user_id, llm_id, tool_id, is_custom))
             session.commit()
 
     @classmethod
@@ -48,12 +47,12 @@ class AgentDao:
             agent = session.exec(sql).first()
             return agent
 
-    @classmethod
-    def select_agent_by_type(cls, type: str):
-        with Session(engine) as session:
-            sql = select(AgentTable).where(AgentTable.type == type)
-            result = session.exec(sql).all()
-            return result
+    # @classmethod
+    # def select_agent_by_type(cls, type: str):
+    #     with Session(engine) as session:
+    #         sql = select(AgentTable).where(AgentTable.type == type)
+    #         result = session.exec(sql).all()
+    #         return result
 
     @classmethod
     def select_agent_by_custom(cls, is_custom: bool):
@@ -62,12 +61,12 @@ class AgentDao:
             result = session.exec(sql).all()
             return result
 
-    @classmethod
-    def get_agent_by_name_type(cls, name: str, type: str):
-        with Session(engine) as session:
-            sql = select(AgentTable).where(and_(AgentTable.name == name, AgentTable.type == type))
-            result = session.exec(sql).all()
-            return result
+    # @classmethod
+    # def get_agent_by_name_type(cls, name: str, type: str):
+    #     with Session(engine) as session:
+    #         sql = select(AgentTable).where(and_(AgentTable.name == name, AgentTable.type == type))
+    #         result = session.exec(sql).all()
+    #         return result
 
     @classmethod
     def delete_agent_by_id(cls, id: str):
@@ -94,7 +93,7 @@ class AgentDao:
             return result
 
     @classmethod
-    def search_agent_name(cls, name: str, user_id: int):
+    def search_agent_name(cls, name: str, user_id: str):
         with Session(engine) as session:
             sql = select(AgentTable).where(and_(AgentTable.name.like(f'%{name}%'),
                                                 AgentTable.user_id == user_id))
@@ -109,7 +108,8 @@ class AgentDao:
             return result
 
     @classmethod
-    def update_agent_by_id(cls, id: str, name: str, description: str, logo: str, parameter: str, type: str, code: str):
+    def update_agent_by_id(cls, id: str, name: str, description: str,
+                           logo: str, llm_id: str, tool_id: List[str]):
         with Session(engine) as session:
             # 构建 update 语句
             update_values = {
@@ -119,12 +119,11 @@ class AgentDao:
                 update_values['name'] = name
             if description is not None:
                 update_values['description'] = description
-            if parameter is not None:
-                update_values['parameter'] = parameter
-            if type is not None:
-                update_values['type'] = type
-            if code is not None:
-                update_values['code'] = code
+            if llm_id is not None:
+                update_values['llm_id'] = llm_id
+            if tool_id is not None:
+                update_values['tool_id'] = tool_id
+
             if logo is not None:
                 # 删除agent的logo地址
                 agent_logo = cls._get_logo_by_id(id)

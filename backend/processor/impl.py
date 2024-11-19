@@ -1,4 +1,4 @@
-from tools import get_function_by_name_type
+from data import get_function_by_name_type
 
 
 class BotCheck:

@@ -7,6 +7,7 @@ from utils.helpers import check_input
 from config.service_config import AGENT_DEFAULT_LOGO, LOGO_PREFIX
 from prompt.template import code_template, parameter_template
 from service.user import UserPayload, get_login_user
+from typing import List
 from loguru import logger
 from uuid import uuid4
 
@@ -15,9 +16,8 @@ router = APIRouter()
 @router.post("/agent", response_model=UnifiedResponseModel)
 async def create_agent(name: str = Form(...),
                        description: str = Form(...),
-                       parameter: str = Form(...),
-                       code: str = Form(...),
-                       type: str = Form(None),
+                       tool_id: List[str] = Form(None),
+                       llm_id: str = Form(None),
                        logoFile: UploadFile = File(...),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
@@ -40,10 +40,9 @@ async def create_agent(name: str = Form(...),
         AgentService.create_agent(name=name,
                                   description=description,
                                   logo=logo,
-                                  parameter=parameter,
-                                  code=code,
-                                  user_id=login_user.user_id,
-                                  type=type if type is not None else "openai")
+                                  tool_id=tool_id,
+                                  llm_id=llm_id,
+                                  user_id=login_user.user_id)
         return resp_200()
     except Exception as err:
         logger.error(f"create agent API error: {err}")
@@ -60,10 +59,9 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
                            "name": item.name,
                            "description": item.description,
                            "logo": LOGO_PREFIX + item.logo,
-                           "parameter": item.parameter,
+                           "tool_id": item.tool_id,
+                           "llm_id": item.llm_id,
                            "is_custom": item.is_custom,
-                           "code": item.code,
-                           "type": item.type,
                            "create_time": item.create_time})
 
         return resp_200(data=result)
@@ -86,8 +84,8 @@ async def delete_agent(agent_id: str = Form(..., alias="id"),
 async def update_agent(agent_id: str = Form(..., alias='id'),
                        name: str = Form(None),
                        description: str = Form(None),
-                       parameter: str = Form(None),
-                       code: str = Form(None),
+                       tool_id: List[str] = Form(None),
+                       llm_id: str = Form(None),
                        logoFile: UploadFile = File(None),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
@@ -108,8 +106,8 @@ async def update_agent(agent_id: str = Form(..., alias='id'),
                                         description=description,
                                         logo=logo,
                                         user_id=login_user.user_id,
-                                        parameter=parameter,
-                                        code=code)
+                                        tool_id=tool_id,
+                                        llm_id=llm_id)
 
     except Exception as err:
         logger.error(f"update agent API error: {err}")
@@ -127,10 +125,9 @@ async def search_agent(name: str = Form(...),
                            "name": item.name,
                            "description": item.description,
                            "logo": LOGO_PREFIX + item.logo,
-                           "parameter": item.parameter,
+                           "tool_id": item.tool_id,
+                           "llm_id": item.llm_id,
                            "is_custom": item.is_custom,
-                           "code": item.code,
-                           "type": item.type,
                            "create_time": item.create_time})
 
         return resp_200(data=result)

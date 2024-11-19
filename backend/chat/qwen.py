@@ -4,11 +4,11 @@ from langchain.agents import create_structured_chat_agent, AgentExecutor
 from langchain_openai import ChatOpenAI
 from service.tool import ToolService
 from prompt.llm_prompt import react_prompt_zh
-from action import action_React
+from tools import action_React
 
 llm = ChatOpenAI()
 
-def react_chat(query: str, tool_id: List[str] = None):
+async def react_chat(query: str, tool_id: List[str] = None):
     tools = []
     tools_name = ToolService.get_tool_name_by_id(tool_id=tool_id)
     for name in tools_name:

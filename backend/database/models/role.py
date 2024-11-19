@@ -5,9 +5,9 @@ from sqlalchemy import Column, DateTime, text, UniqueConstraint
 from sqlmodel import Field
 
 # 默认普通用户角色的ID
-DefaultRole = 2
+DefaultRole = '2'
 # 超级管理员角色ID
-AdminRole = 1
+AdminRole = '1'
 
 
 class RoleBase(BaseModel):
