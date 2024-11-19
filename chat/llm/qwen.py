@@ -1,42 +1,24 @@
-import random
-from http import HTTPStatus
-from dashscope import Generation
-from langchain.schema import HumanMessage
-from loguru import logger
+from typing import List
 
-def call_with_messages():
-    messages = [{'role': 'system', 'content': 'You are a helpful assistant.'},
-                {'role': 'user', 'content': '你是谁？'}]
-    response = Generation.call(model="qwen-plus",
-                               messages=messages,
-                               # 设置随机数种子seed，如果没有设置，则随机数种子默认为1234
-                               seed=random.randint(1, 10000),
-                               temperature=0.8,
-                               api_key="",
-                               top_p=0.8,
-                               top_k=50,
-                               # 将输出设置为"message"格式
-                               result_format='message')
-    if response.status_code == HTTPStatus.OK:
-        print(response)
-    else:
-        print('Request id: %s, Status code: %s, error code: %s, error message: %s' % (
-            response.request_id, response.status_code,
-            response.code, response.message
-        ))
+from langchain.agents import create_structured_chat_agent, AgentExecutor
+from langchain_openai import ChatOpenAI
+from service.tool import ToolService
+from prompt.llm_prompt import react_prompt_zh
+from action import action_React
 
+llm = ChatOpenAI()
 
-# 直接调用模型对话
-def llm_chat(prompt):
-    messages = [HumanMessage(content=prompt)]
-    response = Generation.call(model="QWEN_NAME",
-                               messages=messages,
-                               temperature=0.8,
-                               api_key="QWEN_API_KEY",
-                               # 将输出设置为"message"格式
-                               result_format='message')
-    try:
-        logger.info(f"llm chat return message: {response.output.choices[0]['message']['content']} HTTPStatus: {response.status_code}")
-        return response.output.choices[0]['message']['content']
-    except Exception as err:
-        logger.error(f"llm chat error: {err}")
+def react_chat(query: str, tool_id: List[str] = None):
+    tools = []
+    tools_name = ToolService.get_tool_name_by_id(tool_id=tool_id)
+    for name in tools_name:
+        tools.append(action_React[name])
+    # for key, tool_model in action_React:
+    #     if key in tools_name:
+    #         tools.append(tool_model())
+
+    agent = create_structured_chat_agent(llm, tools, react_prompt_zh)
+    agent_executor = AgentExecutor(agent=agent, tools=tools, verbose=True, handle_parsing_errors=True)
+
+    async for chunk in agent_executor.astream({'input': query}):
+        yield chunk.json(ensure_ascii=False)
