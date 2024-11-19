@@ -2,14 +2,30 @@ import urllib.request
 import urllib.parse
 import ssl
 import json
+from typing import Type
+from langchain.tools import BaseTool
+from pydantic import Field, BaseModel
 from config.user_config import userConfig
 from prompt.tool_prompt import DELIVERY_PROMPT
 from loguru import logger
 
-def delivery_action(number: str):
+class DeliveryInput(BaseModel):
+    delivery_number: str = Field(description='用户输入的快递单号')
+
+class DeliveryTool(BaseTool):
+    name = 'delivery'
+    description = '用来查询用户的快递物流信息'
+    args_schema: Type[BaseModel] = DeliveryInput
+
+    def _run(self, delivery_number: str):
+        return get_delivery(delivery_number)
+
+
+# 支持function call的模型
+def get_delivery(delivery_number: str):
+    """用来查询用户的快递物流信息"""
     try:
-        # breakpoint()
-        query = f'number={number}&mobile=mobile&type=type'
+        query = f'number={delivery_number}&mobile=mobile&type=type'
 
         url = userConfig.TOOL_DELIVERY_BASE_URL + '?' + query
         headers = {
@@ -30,7 +46,7 @@ def delivery_action(number: str):
             for data in content['data']['list']:
                 result.append(f"时间为{data.get('time')}, 快递信息是: {data.get('status')}")
             result.reverse()
-            final_result = DELIVERY_PROMPT.format(company, number, result)
+            final_result = DELIVERY_PROMPT.format(company, delivery_number, result)
             logger.info(f"------执行API------\n {final_result}")
             return final_result
     except Exception as err:
