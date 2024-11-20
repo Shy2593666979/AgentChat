@@ -2,7 +2,7 @@ from fastapi import Request, APIRouter
 
 from service.history import HistoryService
 from service.dialog import DialogService
-from processor.chat_bot import ChatbotModel
+from chat.chat_bot import ChatbotModel
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
@@ -26,7 +26,7 @@ async def chat(request: Request):
         chat_bot.include_history_message(msg)
 
     # response = chat_bot.run(user_input, chat_bot.get_history_message(), agent)
-    # 流式输出LLM生成结果
+    # 流式输出LLM生成结果`
     async def general_generate():
         async for one_data in chat_bot.run(user_input, chat_bot.get_history_message(), agent):
             yield f"data: {one_data}\n\n"

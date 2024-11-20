@@ -13,8 +13,9 @@ from loguru import logger
 import inspect
 import json
 
+INCLUDE_MSG = {"content", "id"}
 
-class ChatClient:
+class ChatService:
     def __init__(self, **kwargs):
         self.llm_id = kwargs.get('llm_id')
         self.tools_id = kwargs.get('tool_id')
@@ -42,20 +43,20 @@ class ChatClient:
              for name in tools_name:
                 self.tools.append(action_Function_call[name])
 
-    def run(self, user_input):
+    async def run(self, user_input: str, history_message: str):
         if self.llm_call == 'React':
-            return self._run_react(user_input)
+            return self._run_react(user_input, history_message)
         else:
             return self._run_function_call(user_input)
 
-    def _run_react(self, user_input):
+    async def _run_react(self, user_input: str, history_message: str):
         agent = create_structured_chat_agent(llm=self.llm, tools=self.tools, prompt=react_prompt_en)
         agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
 
-        async for chunk in agent_executor.astream({'input': {}}):
-            yield chunk.json()
+        async for chunk in agent_executor.astream({'input': user_input}):
+            yield chunk.json(ensure_ascii=False, include=INCLUDE_MSG)
 
-    def _run_function_call(self, user_input: str):
+    async def _run_function_call(self, user_input: str, history_message: str):
 
         fun_name, args = self._function_call(user_input=user_input)
 
@@ -63,8 +64,8 @@ class ChatClient:
         prompt_template = PromptTemplate.from_template(function_call_template)
 
         chain = prompt_template | self.llm
-        async for chunk in chain.astream({'input': {}, 'history': {}, 'tools': tools_result}):
-            yield chunk.json()
+        async for chunk in chain.astream({'input': user_input, 'history': history_message, 'tools': tools_result}):
+            yield chunk.json(ensure_ascii=False, include=INCLUDE_MSG)
 
     def _function_call(self, user_input: str):
         messages = [HumanMessage(content=user_input)]

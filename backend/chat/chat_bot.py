@@ -6,8 +6,8 @@ from prompt.template import function_call_template, ask_user_template, action_te
 from prompt.llm_prompt import fail_action_prompt
 from langchain.prompts import PromptTemplate
 from service.agent import AgentService
-from processor.impl import BotCheck
-from tools import action_class
+from chat.impl import BotCheck
+from tools import action_Function_call
 from loguru import logger
 
 class ChatbotModel:
@@ -31,7 +31,7 @@ class ChatbotModel:
             prompt_history = prompt_history + msg.to_str()
 
         # 不调用任何Function直接进行大模型对话
-        if agent not in action_class and not AgentService.check_name_iscustom(agent):
+        if agent not in action_Function_call and not AgentService.check_name_iscustom(agent):
             async for one_result in LLMChat.llm_chat(llm_chat_template, user_input=user_input, history=prompt_history):
                 self.final_result += json.loads(one_result)['content']
                 yield one_result
@@ -81,7 +81,7 @@ class ChatbotModel:
     
     def action(self, function_name, function_args):
         try:
-            action = action_class[function_name]
+            action = action_Function_call[function_name]
             result = action(**function_args)
             return result
         except Exception as err:

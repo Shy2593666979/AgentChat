@@ -2,7 +2,7 @@
 function_call_template = """
 请你根据user input 和 history 来进行本次的function call
 # 用户问题：
-    user: {user_input}
+    user: {input}
 # 历史记录：
     history: {history}
 """
