@@ -1,3 +1,6 @@
+# -------------------------------
+# 该文件目前版本已弃用
+# -------------------------------
 import json
 from loguru import logger
 from langchain_openai import ChatOpenAI

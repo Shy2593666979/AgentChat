@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request, Form
 from service.message import MessageLikeService, MessageDownService
 from config.user_config import userConfig
 from type.schemas import resp_200, resp_500
-from prompt.resp_template import update_user_config_error, get_user_config_error
+from prompt.template import update_user_config_error, get_user_config_error
 from loguru import logger
 
 router = APIRouter()

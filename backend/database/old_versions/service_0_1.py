@@ -1,3 +1,7 @@
+# -------------------------------
+# 该文件目前版本已弃用
+# -------------------------------
+
 # from datetime import  datetime
 # from database.models import HistoryTable, DialogTable
 # from database.models import MessageDownTable, MessageLikeTable, AgentTable

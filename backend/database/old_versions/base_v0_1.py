@@ -1,3 +1,8 @@
+# -------------------------------
+# 该文件目前版本已弃用
+# -------------------------------
+
+
 # from typing import List
 #
 # from database.service import  HistoryService, DialogService, AgentService

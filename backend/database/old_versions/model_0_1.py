@@ -1,3 +1,7 @@
+# -------------------------------
+# 该文件目前版本已弃用
+# -------------------------------
+
 from sqlmodel import Field, SQLModel, create_engine, Session
 from typing import Literal
 from datetime import datetime

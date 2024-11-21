@@ -103,3 +103,14 @@ class ToolService:
         except Exception as err:
             logger.error(f'get user by tool id appear Err: {err}')
             raise ValueError(str(err))
+
+    @classmethod
+    def get_tools_data(cls):
+        try:
+            tools = ToolDao.get_all_tools()
+            result = []
+            for tool in tools:
+                result.append(tool[0])
+            return result
+        except Exception as err:
+            logger.error(f'get tools data appear Err: {err}')

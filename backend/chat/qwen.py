@@ -1,3 +1,6 @@
+# -------------------------------
+# 该文件目前版本已弃用
+# -------------------------------
 from typing import List
 
 from langchain.agents import create_structured_chat_agent, AgentExecutor

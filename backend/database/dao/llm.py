@@ -9,17 +9,17 @@ from datetime import datetime
 class LLMDao:
 
     @classmethod
-    def _create_llm(cls, model: str, base_url: str,
+    def _create_llm(cls, model: str, base_url: str, llm_type: str,
                     api_key: str, provider: str, user_id: str):
         llm = LLMTable(model=model, base_url=base_url,
-                       api_key=api_key, provider=provider)
+                       api_key=api_key, provider=provider, user_id=user_id)
         return llm
 
     @classmethod
-    def create_llm(cls, model: str, base_url: str,
+    def create_llm(cls, model: str, base_url: str, llm_type: str,
                    api_key: str, provider: str, user_id: str):
         with Session(engine) as session:
-            llm = cls._create_llm(model=model, base_url=base_url,
+            llm = cls._create_llm(model=model, base_url=base_url, llm_type=llm_type,
                                   api_key=api_key, provider=provider, user_id=user_id)
             session.add(llm)
             session.commit()
@@ -32,7 +32,7 @@ class LLMDao:
             session.commit()
 
     @classmethod
-    def update_llm(cls, llm_id: str, base_url: str,
+    def update_llm(cls, llm_id: str, base_url: str, llm_type: str,
                    model: str, api_key: str, provider: str):
         with Session(engine) as session:
             update_values = {
@@ -46,6 +46,8 @@ class LLMDao:
                 update_values['api_key'] = api_key
             if provider:
                 update_values['provider'] = provider
+            if llm_type:
+                update_values['llm_type'] = llm_type
 
             sql = update(LLMTable).where(LLMTable.llm_id == llm_id).values(**update_values)
             session.exec(sql)
@@ -75,6 +77,13 @@ class LLMDao:
     @classmethod
     def get_user_id_by_llm(cls, llm_id: str):
         with Session(engine) as session:
-            sql = select(LLMTable)
+            sql = select(LLMTable).where(LLMTable.llm_id == llm_id)
             llm = session.exec(sql).first()
             return llm
+
+    @classmethod
+    def get_llm_by_type(cls, llm_type: str):
+        with Session(engine) as session:
+            sql = select(LLMTable).where(LLMTable.llm_type == llm_type)
+            result = session.exec(sql).all()
+            return result

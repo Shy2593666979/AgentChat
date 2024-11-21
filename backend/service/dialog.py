@@ -6,9 +6,9 @@ from loguru import logger
 class DialogService:
 
     @classmethod
-    def create_dialog(cls, name: str, agent: str):
+    def create_dialog(cls, name: str, agent_id: str):
         try:
-            dialog_id = DialogDao.create_dialog(name, agent)
+            dialog_id = DialogDao.create_dialog(name, agent_id)
             return dialog_id
         except Exception as err:
             logger.error(f"add dialog is appear error: {err}")

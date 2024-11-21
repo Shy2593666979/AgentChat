@@ -1,9 +1,9 @@
-# encoding=utf-8
 import json
 import os
 import re
 import requests
-from loguru import logger
+from service.agent import AgentService
+from loguru import  logger
 from config.service_config import AGENT_DEFAULT_LOGO
 
 
@@ -271,3 +271,37 @@ def fix_json(bad_json):
         # 如果解析失败，打印错误信息，但不会崩溃
         print("给定的字符串不是有效的 JSON 格式。")
 
+
+# 打印当前工作目录
+# print("Current working directory:", os.getcwd())
+
+def get_function(type: str="openai"):
+    if type == "openai":
+        return get_function_openai()
+    else:
+        return get_function_qwen()
+
+def get_function_openai():
+    parameter = AgentService.select_agent_by_type(type="openai")
+    result = []
+    for data in parameter:
+
+        para = json.loads(data.parameter)
+        result.append(para)
+    return result
+
+def get_function_qwen():
+    parameter = AgentService.select_agent_by_type(type="qwen")
+    result = []
+    for data in parameter:
+        para = json.loads(data.parameter)
+        result.append(para)
+    return result
+
+def get_function_by_name_type(function_name: str, type: str="openai"):
+    parameter = AgentService.get_agent_by_name_type(name=function_name, type=type)
+
+    for data in parameter:
+        para = json.loads(data.parameter)
+        return para
+    logger.info(f"get function by name type appear no data")

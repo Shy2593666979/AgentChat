@@ -39,6 +39,9 @@ llm_chat_template = """
     {history}
 """
 
+update_user_config_error = "请检查您输入的信息或者格式是否正确"
+
+get_user_config_error = "获取用户配置信息有误"
 
 code_template = """def custom_function(text: str):
     ""This is a default python function, Please do not change the function name""

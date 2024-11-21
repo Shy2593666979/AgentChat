@@ -10,20 +10,23 @@ from database import engine
 class AgentDao:
 
     @classmethod
-    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: str, llm_id: str, tool_id: List[str], is_custom: bool):
+    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: str,
+                       llm_id: str, tool_id: List[str], is_custom: bool, embedding_id: str):
         agent = AgentTable(name=name,
                            logo=logo,
                            user_id=user_id,
                            llm_id=llm_id,
                            tool_id=tool_id,
                            description=description,
-                           is_custom=is_custom)
+                           is_custom=is_custom,
+                           embedding_id=embedding_id)
         return agent
 
     @classmethod
-    def create_agent(cls, name: str, description: str, logo: str, user_id: str, llm_id: str, tool_id: List[str], is_custom: bool):
+    def create_agent(cls, name: str, description: str, logo: str, user_id: str,
+                     llm_id: str, tool_id: List[str], is_custom: bool, embedding_id: str):
         with Session(engine) as session:
-            session.add(cls._get_agent_sql(name, description, logo, user_id, llm_id, tool_id, is_custom))
+            session.add(cls._get_agent_sql(name, description, logo, user_id, llm_id, tool_id, is_custom, embedding_id))
             session.commit()
 
     @classmethod
@@ -108,8 +111,15 @@ class AgentDao:
             return result
 
     @classmethod
+    def select_agent_by_id(cls, agent_id):
+        with Session(engine) as session:
+            sql = select(AgentTable).where(AgentTable.id == agent_id)
+            result = session.exec(sql).first()
+            return result
+
+    @classmethod
     def update_agent_by_id(cls, id: str, name: str, description: str,
-                           logo: str, llm_id: str, tool_id: List[str]):
+                           logo: str, llm_id: str, tool_id: List[str], embedding_id: str):
         with Session(engine) as session:
             # 构建 update 语句
             update_values = {
@@ -155,3 +165,5 @@ class AgentDao:
             # session.add(agent)
             # session.commit()
             # session.refresh()
+
+

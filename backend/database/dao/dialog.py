@@ -7,14 +7,14 @@ from datetime import datetime
 class DialogDao:
 
     @classmethod
-    def _get_dialog_sql(cls, name: str, agent: str):
-        dialog = DialogTable(name=name, agent=agent)
+    def _get_dialog_sql(cls, name: str, agent_id: str):
+        dialog = DialogTable(name=name, agent_id=agent_id)
         return dialog
 
     @classmethod
-    def create_dialog(cls, name, agent: str):
+    def create_dialog(cls, name, agent_id: str):
         with Session(engine) as session:
-            dialog = cls._get_dialog_sql(name, agent)
+            dialog = cls._get_dialog_sql(name, agent_id)
             session.add(dialog)
             session.commit()
             return dialog.dialog_id

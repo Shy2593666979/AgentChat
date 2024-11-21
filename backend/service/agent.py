@@ -12,7 +12,7 @@ class AgentService:
 
     @classmethod
     def create_agent(cls, name: str, description: str, logo: str, user_id: str,
-                     llm_id: str, tool_id: List[str], is_custom: bool = True):
+                     llm_id: str, tool_id: List[str], embedding_id: str = None, is_custom: bool = True):
         try:
             agent_id = AgentDao.create_agent(name=name,
                                             description=description,
@@ -20,7 +20,8 @@ class AgentService:
                                             llm_id=llm_id,
                                             tool_id=tool_id,
                                             user_id=user_id,
-                                            is_custom=is_custom)
+                                            is_custom=is_custom,
+                                            embedding_id=embedding_id)
             return agent_id
         except Exception as err:
             logger.error(f"create agent is appear error: {err}")
@@ -38,7 +39,7 @@ class AgentService:
 
     @classmethod
     def update_agent_by_id(cls, id: str, name: str, description: str, user_id: str,
-                           logo: str, tool_id: List[str], llm_id: str):
+                           logo: str, tool_id: List[str], llm_id: str, embedding_id: str):
         try:
             # 需要判断是否有权限，管理员随意
             if user_id == AdminUser or user_id == cls.get_agent_user_id(agent_id=id):
@@ -47,7 +48,8 @@ class AgentService:
                                             logo=logo,
                                             description=description,
                                             tool_id=tool_id,
-                                            llm_id=llm_id)
+                                            llm_id=llm_id,
+                                            embedding_id=embedding_id)
                 return resp_200(message='update agent success')
             else:
                 return resp_500(message='no permission exec')
@@ -148,6 +150,16 @@ class AgentService:
             return result
         except Exception as err:
             logger.error(f"select agent by name is appear error: {err}")
+
+    @classmethod
+    def select_agent_by_id(cls, agent_id: str):
+        try:
+            data = AgentDao.select_agent_by_id(agent_id)
+            return data
+
+        except Exception as err:
+            logger.error(f"select agent by id is appear error: {err}")
+
 
     # @classmethod
     # def get_parameter_by_name(cls, name: str):

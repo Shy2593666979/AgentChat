@@ -4,10 +4,9 @@ from langchain.agents import create_structured_chat_agent, AgentExecutor
 from langchain_core.messages import HumanMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
-from openai import base_url
 
-from data.llm import Function_Call_provider, React_provider
-from prompt.llm_prompt import react_prompt_en, fail_action_prompt
+from service.llm import React_provider, Function_Call_provider
+from prompt.llm_prompt import react_prompt_en, fail_action_prompt, function_call_prompt
 from prompt.template import function_call_template
 from service.history import HistoryService
 from service.tool import ToolService
@@ -26,7 +25,7 @@ class ChatService:
         self.llm_id = kwargs.get('llm_id')
         self.tools_id = kwargs.get('tool_id')
         self.dialog_id = kwargs.get('dialog_id')
-        self.embedding_id =kwargs.get('embedding_id')
+        self.embedding_id = kwargs.get('embedding_id')
         self.llm_call = None
         self.llm = None
         self.embedding = None
@@ -42,7 +41,9 @@ class ChatService:
                               base_url=llm_config.base_url, api_key=llm_config.api_key)
 
         self.llm_call = 'Function Call' if llm_config.model in Function_Call_provider else 'React'
-        self.init_embedding()
+        # Agent支持Embedding后初始化
+        if self.embedding_id:
+            self.init_embedding()
 
     def init_embedding(self):
 
@@ -77,13 +78,14 @@ class ChatService:
 
     async def _run_function_call(self, user_input: str, history_message: str):
 
-        fun_name, args = self._function_call(user_input=user_input)
+        func_prompt = function_call_template.format(input=user_input, history=history_message)
+        fun_name, args = self._function_call(user_input=func_prompt)
 
         tools_result = ChatService._exec_tools(fun_name, args)
-        prompt_template = PromptTemplate.from_template(function_call_template)
+        prompt_template = PromptTemplate.from_template(function_call_prompt)
 
         chain = prompt_template | self.llm
-        async for chunk in chain.astream({'input': user_input, 'history': history_message, 'tools': tools_result}):
+        async for chunk in chain.astream({'input': user_input, 'history': history_message, 'tools_result': tools_result}):
             yield chunk.json(ensure_ascii=False, include=INCLUDE_MSG)
 
     def _function_call(self, user_input: str):
@@ -98,7 +100,6 @@ class ChatService:
                 arguments = json.loads(message.additional_kwargs["function_call"]["arguments"])
 
                 logger.info(f"function call result: \n function_name: {function_name} \n arguments: {arguments}")
-
                 return function_name, arguments
         except Exception as err:
             logger.info(f"function call is not appear: {err}")
@@ -147,9 +148,6 @@ class ChatService:
         results = self.collection.query(query_texts=[user_input], n_results=top_k)
         history = ''.join(results['documents'][0])
         return history
-        # for i, result in enumerate(results['documents'][0]):
-        #     history += result
-        # return history
 
     @staticmethod
     def function_to_json(func) -> dict:

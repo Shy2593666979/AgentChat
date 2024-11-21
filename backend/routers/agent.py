@@ -1,6 +1,5 @@
 from fastapi import APIRouter, Form, UploadFile, File, Depends
 
-from routers.user import login
 from service.agent import AgentService
 from type.schemas import resp_200, resp_500, UnifiedResponseModel
 from utils.helpers import check_input
@@ -18,6 +17,7 @@ async def create_agent(name: str = Form(...),
                        description: str = Form(...),
                        tool_id: List[str] = Form(None),
                        llm_id: str = Form(None),
+                       embedding_id: str = Form(None),
                        logoFile: UploadFile = File(...),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
@@ -42,7 +42,8 @@ async def create_agent(name: str = Form(...),
                                   logo=logo,
                                   tool_id=tool_id,
                                   llm_id=llm_id,
-                                  user_id=login_user.user_id)
+                                  user_id=login_user.user_id,
+                                  embedding_id=embedding_id)
         return resp_200()
     except Exception as err:
         logger.error(f"create agent API error: {err}")
@@ -62,6 +63,7 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
                            "tool_id": item.tool_id,
                            "llm_id": item.llm_id,
                            "is_custom": item.is_custom,
+                           "embedding_id": item.embedding_id,
                            "create_time": item.create_time})
 
         return resp_200(data=result)
@@ -86,6 +88,7 @@ async def update_agent(agent_id: str = Form(..., alias='id'),
                        description: str = Form(None),
                        tool_id: List[str] = Form(None),
                        llm_id: str = Form(None),
+                       embedding_id: str = Form(None),
                        logoFile: UploadFile = File(None),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
@@ -107,7 +110,8 @@ async def update_agent(agent_id: str = Form(..., alias='id'),
                                         logo=logo,
                                         user_id=login_user.user_id,
                                         tool_id=tool_id,
-                                        llm_id=llm_id)
+                                        llm_id=llm_id,
+                                        embedding_id=embedding_id)
 
     except Exception as err:
         logger.error(f"update agent API error: {err}")
@@ -127,6 +131,7 @@ async def search_agent(name: str = Form(...),
                            "logo": LOGO_PREFIX + item.logo,
                            "tool_id": item.tool_id,
                            "llm_id": item.llm_id,
+                           "embedding_id": item.embedding_id,
                            "is_custom": item.is_custom,
                            "create_time": item.create_time})
 

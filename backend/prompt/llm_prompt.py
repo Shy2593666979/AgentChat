@@ -1,8 +1,11 @@
-
 function_call_prompt = """
-请你判断user_input 是否应该需要function call
-# 要求
-用户和历史记录没提到的参数全部置空，但是一定返回
+基于用户输入 [user_input]，结合工具结果 [tools_result] 和历史记录 [history]，请生成一个综合性的响应或建议。
+
+1. **用户输入**: {input}
+2. **历史记录**: {history}
+3. **工具结果**: {tools_result}
+
+请根据以上信息，生成一个全面且有针对性的响应或建议。
 """
 
 fail_action_prompt = """
@@ -29,7 +32,7 @@ react_prompt_zh = """
 开始！
 
 问题：{input}
-{历史}：{history}
+历史：{history}
 想法：{agent_scratchpad}
 """
 
