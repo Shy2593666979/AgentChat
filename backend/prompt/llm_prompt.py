@@ -29,6 +29,7 @@ react_prompt_zh = """
 开始！
 
 问题：{input}
+{历史}：{history}
 想法：{agent_scratchpad}
 """
 
@@ -51,5 +52,6 @@ Final Answer: the final answer to the original input question
 Begin!
 
 Question: {input}
+History: {history}
 Thought:{agent_scratchpad}
 """
