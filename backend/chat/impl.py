@@ -1,5 +1,7 @@
+# -------------------------------
+# 目前版本该文件已启动
+# -------------------------------
 from data import get_function_by_name_type
-
 
 class BotCheck:
     
