@@ -13,6 +13,7 @@ class AgentTable(SQLModel, table=True):
     logo: str = Field(default='img/default.png')
     user_id: Optional[int] = Field(index=True)
     is_custom: bool = Field(default=True)
-    llm_id: str = Field(description='Agent绑定的模型')
+    llm_id: str = Field(default=None, description='Agent绑定的LLM模型')
+    embedding_id: str = Field(default=None, description='Agent绑定的Embedding模型')
     tool_id: List[str] = Field(default=[], description='Agent绑定的工具列表')
     create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
