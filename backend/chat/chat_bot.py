@@ -1,3 +1,6 @@
+# -------------------------------
+# 目前版本该文件已启动
+# -------------------------------
 import json
 from typing import List
 from type.message import Message
