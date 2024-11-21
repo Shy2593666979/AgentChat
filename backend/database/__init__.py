@@ -48,7 +48,7 @@ def insert_agent_to_mysql():
                                   user_id=SystemUser,
                                   llm_id=llm.llm_id,
                                   tool_id=[tool.tool_id],
-                                  logo='img/agent/default.png',
+                                  logo='img/agent/assistant.png',
                                   is_custom=False)
 
 
