@@ -1,40 +1,32 @@
 from fastapi import Request, APIRouter
-
+import json
 from service.history import HistoryService
 from service.dialog import DialogService
-from chat.chat_bot import ChatbotModel
+from chat.client import ChatClient
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
 @router.post("/chat", description="对话接口")
 async def chat(request: Request):
-    """需要dialog_id"""
+    """与助手进行对话"""
     body = await request.json()
     dialog_id = body.get('dialog_id')
     user_input = body.get('user_input')
-    agent_data = DialogService.get_agent_by_dialog_id(dialog_id)
-    agent = agent_data[0].agent
 
-    # breakpoint()
+    chat_client = ChatClient(dialog_id=dialog_id)
 
-    # 根据dialog_id 去MySQL数据库查最近K条数据
-    chat_bot = ChatbotModel()
-    SQL_Message = HistoryService.select_history(dialog_id)
-
-    for msg in SQL_Message:
-        chat_bot.include_history_message(msg)
-
-    # response = chat_bot.run(user_input, chat_bot.get_history_message(), agent)
-    # 流式输出LLM生成结果`
+    # 流式输出LLM生成结果
     async def general_generate():
-        async for one_data in chat_bot.run(user_input, chat_bot.get_history_message(), agent):
+        final_result = ''
+        async for one_data in chat_client.send_response(user_input=user_input):
+            final_result += json.loads(one_data)['content']
             yield f"data: {one_data}\n\n"
         yield "data: [DONE]"
         # LLM回答的信息存放到MySQL数据库
-        HistoryService.create_history(role="assistant", content=chat_bot.final_result, dialog_id=dialog_id)
+        HistoryService.create_history(role="assistant", content=final_result, dialog_id=dialog_id)
     
-    # 将用户问的存放到MySQL数据库
+    # 将用户问题存放到MySQL数据库
     HistoryService.create_history(role="user", content=user_input, dialog_id=dialog_id)
     # 更新对话窗口的最近使用时间
     DialogService.update_dialog_time(dialog_id=dialog_id)
