@@ -80,9 +80,11 @@ def load_default_tool():
         result = json.load(f)
     return result
 
+'''
 --------------------------------------
 下面是0.1版本，不做修改
 --------------------------------------
+'''
 
 # 去Agent的json文件加载
 def load_agent_openai():
