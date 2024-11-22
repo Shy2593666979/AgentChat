@@ -6,9 +6,9 @@ from loguru import logger
 class DialogService:
 
     @classmethod
-    def create_dialog(cls, name: str, agent_id: str):
+    def create_dialog(cls, name: str, agent_id: str, user_id: str):
         try:
-            dialog_id = DialogDao.create_dialog(name, agent_id)
+            dialog_id = DialogDao.create_dialog(name, agent_id, user_id)
             return dialog_id
         except Exception as err:
             logger.error(f"add dialog is appear error: {err}")
@@ -25,9 +25,9 @@ class DialogService:
             logger.error(f"select dialog is appear error: {err}")
 
     @classmethod
-    def get_list_dialog(cls):
+    def get_list_dialog(cls, user_id: str):
         try:
-            data = DialogDao.get_list_dialog()
+            data = DialogDao.get_dialog_by_user(user_id=user_id)
             result = []
             for item in data:
                 result.append(item[0])
