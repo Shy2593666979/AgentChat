@@ -10,6 +10,10 @@ from config.service_config import MYSQL_URL, TOOL_OPENAI, LOGO_PREFIX
 from cache.redis import redis_client
 from service.llm import LLMService
 from service.tool import ToolService
+from dotenv import load_dotenv
+
+# 加载本地的env
+load_dotenv(override=True)
 
 engine = create_engine(MYSQL_URL, connect_args={"charset": "utf8mb4"})
 
@@ -54,13 +58,15 @@ def insert_agent_to_mysql():
 
 # 认定OS下有一个默认LLM API KEY
 def insert_llm_to_mysql():
-    model = os.getenv('model')
     api_key = os.getenv('api_key')
     base_url = os.getenv('base_url')
-    provider = os.getenv('provider')
+    model = os.getenv('model') or 'GPT-4'
+    llm_type = os.getenv('type') or 'LLM'
+    provider = os.getenv('provider') or 'OpenAI'
+
 
     if model and api_key and base_url and provider:
-        LLMService.create_llm(user_id=SystemUser, model=model,
+        LLMService.create_llm(user_id=SystemUser, model=model, llm_type=llm_type,
                               api_key=api_key, base_url=base_url, provider=provider)
 
 # 初始化默认的Tool
@@ -84,7 +90,7 @@ def load_default_tool():
 # 下面是0.1版本，不做修改
 # --------------------------------------
 
-# 去Agent的json文件加载
+# Agent的json文件加载
 def load_agent_openai():
     with open(TOOL_OPENAI, 'r', encoding='utf-8') as f:
         result = json.load(f)
