@@ -10,7 +10,7 @@ from errcode.user import UserNameAlreadyExistError, UserLoginOfflineError
 from utils.hash import md5_hash
 from base64 import b64decode
 from fastapi import Request, HTTPException, Depends
-from database.models.user import User
+from database.models.user import UserTable
 from database.dao.user import UserDao
 from utils.constants import RSA_KEY, USER_CURRENT_SESSION
 from type.schemas import CreateUserReq
@@ -57,7 +57,7 @@ class UserService:
 
     # 验证密码是否匹配
     @classmethod
-    def verify_password(cls, password: str, encrypted_password):
+    def verify_password(cls, password: str, encrypted_password: str):
         return cls.encrypt_sha256_password(password) == encrypted_password
 
     @classmethod
@@ -69,11 +69,12 @@ class UserService:
         if exists_user:
             # 抛出异常
             raise UserNameAlreadyExistError.http_exception()
-        user = User(
+        user = UserTable(
             user_name=req_data.user_name,
-            password=cls.decrypt_md5_password(req_data.password),
+            user_password=cls.decrypt_md5_password(req_data.password),
         )
-        user = UserDao.add_user_and_default_role(user)
+        user = UserDao.add_user_and_default_role(user_name=user.user_name,
+                                                 user_password=user.user_password)
         return user
 
 async def get_login_user(authorize: AuthJWT = Depends()) -> UserPayload:
@@ -88,7 +89,7 @@ async def get_login_user(authorize: AuthJWT = Depends()) -> UserPayload:
 
     return user
 
-def get_user_role(db_user: User):
+def get_user_role(db_user: UserTable):
     # 查询用户的角色列表
     db_user_role = UserRoleDao.get_user_roles(db_user.user_id)
     role = ""
@@ -104,7 +105,7 @@ def get_user_role(db_user: User):
 
     return role
 
-def get_user_jwt(db_user: User):
+def get_user_jwt(db_user: UserTable):
     # 查询角色
     role = get_user_role(db_user)
     # 生成JWT令牌

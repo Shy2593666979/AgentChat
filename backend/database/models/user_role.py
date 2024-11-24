@@ -5,10 +5,9 @@ from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, text
 from sqlmodel import Field, SQLModel
 
-from database.models.user import SQLModelSerializable
 
 
-class UserRoleBase(SQLModelSerializable):
+class UserRoleBase(SQLModel):
     user_id: str = Field(index=True)
     role_id: str = Field(index=True)
     create_time: Optional[datetime] = Field(

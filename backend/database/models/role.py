@@ -7,7 +7,8 @@ from sqlmodel import Field, SQLModel
 DefaultRole = '2'
 # 超级管理员角色ID
 AdminRole = '1'
-
+# 系统管理员角色
+SystemRole = '0'
 
 class RoleBase(SQLModel):
     role_name: str = Field(index=False, description='前端展示名称')

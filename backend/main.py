@@ -1,6 +1,12 @@
+from typing import List
+
 import uvicorn
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
+from fastapi_jwt_auth import AuthJWT
+from fastapi_jwt_auth.exceptions import AuthJWTException
+from fastapi.responses import JSONResponse
+from pydantic import BaseSettings
 
 from database.init_data import  init_database, init_default_agent
 from fastapi.middleware.cors import CORSMiddleware
@@ -30,8 +36,28 @@ app.include_router(user.router, prefix="/api")
 app.include_router(tool.router, prefix="/api")
 app.include_router(llm.router, prefix="/api")
 
+# 定义 Pydantic 的 BaseSettings 类
+class Settings(BaseSettings):
+    authjwt_secret_key: str = 'secret'
+    authjwt_token_location: list = ['cookies', 'headers']
+    authjwt_cookie_csrf_protect: bool = False
+
+# 配置 AuthJWT
+@AuthJWT.load_config
+def get_config():
+    return Settings()
+
+# 处理 AuthJWT 异常
+@app.exception_handler(AuthJWTException)
+def authjwt_exception_handler(request, exc):
+    return JSONResponse(
+        status_code=exc.status_code,
+        content={"detail": exc.message}
+    )
+
+
 if  __name__ == "__main__":
     init_database()
     init_default_agent()
-    # init_rag_data()
+
     uvicorn.run("main:app", host=SERVICE_HOST, port=SERVICE_PORT)
