@@ -67,7 +67,7 @@ class ToolDao:
     def get_all_tools(cls):
         with Session(engine) as session:
             sql = select(ToolTable)
-            result = session.exec(sql)
+            result = session.exec(sql).all()
             return result
 
     @classmethod

@@ -1,5 +1,5 @@
-from fastapi import Request, APIRouter
 import json
+from fastapi import Request, APIRouter, Body
 from service.history import HistoryService
 from service.dialog import DialogService
 from chat.client import ChatClient
@@ -8,11 +8,9 @@ from fastapi.responses import StreamingResponse
 router = APIRouter()
 
 @router.post("/chat", description="对话接口")
-async def chat(request: Request):
+async def chat(user_input: str = Body(description='用户问题'),
+               dialog_id: str = Body(description='对话的ID')):
     """与助手进行对话"""
-    body = await request.json()
-    dialog_id = body.get('dialog_id')
-    user_input = body.get('user_input')
 
     chat_client = ChatClient(dialog_id=dialog_id)
 

@@ -1,11 +1,10 @@
-from sqlmodel import SQLModel
-from pydantic import Field
+from sqlmodel import SQLModel, Field
 from datetime import datetime
 from uuid import uuid4
 import pytz
 
 class LLMTable(SQLModel, table=True):
-    llm_id: str = Field(default_factory=lambda :uuid4().hex, description='大模型的ID')
+    llm_id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     llm_type: str = Field(default='LLM', description='大模型的类型, 分LLM、Embedding、Rerank')
     model: str = Field(description='大模型的名称')
     base_url: str = Field(description='大模型的base url')

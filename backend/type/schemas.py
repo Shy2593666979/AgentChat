@@ -10,7 +10,7 @@ class CreateUserReq(BaseModel):
     user_name: str = Field(max_length=20, description='创建用户时的名称')
     password: str = Field(description='创建用户时的密码')
 
-class UnifiedResponseModel(Generic[DataT], BaseModel):
+class UnifiedResponseModel(BaseModel, Generic[DataT]):
     """统一响应模型"""
     status_code: int
     status_message: str

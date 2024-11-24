@@ -1,6 +1,3 @@
-from aiohttp.test_utils import REUSE_ADDRESS
-
-from database import AgentTable
 from database.dao.agent import AgentDao
 from database.models.user import AdminUser, SystemUser
 from loguru import logger

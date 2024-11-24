@@ -94,7 +94,7 @@ def get_user_role(db_user: User):
     role = ""
     role_ids = []
     for user_role in db_user_role:
-        if user_role.role_id == 1:
+        if user_role.role_id == '1':
             # 是管理员，忽略其他的角色
             role = 'admin'
         else:

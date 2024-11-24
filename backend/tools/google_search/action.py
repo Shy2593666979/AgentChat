@@ -5,7 +5,6 @@ from pydantic import BaseModel, Field
 from langchain_community.utilities import SerpAPIWrapper
 from config.user_config import userConfig
 
-os.environ["SERPAPI_API_KEY"] = userConfig.TOOL_GOOGLE_API_KEY
 search = SerpAPIWrapper()
 
 class GoogleSearchInput(BaseModel):

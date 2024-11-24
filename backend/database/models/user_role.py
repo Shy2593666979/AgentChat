@@ -3,10 +3,12 @@ from typing import List, Optional
 
 from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, text
-from sqlmodel import Field
+from sqlmodel import Field, SQLModel
+
+from database.models.user import SQLModelSerializable
 
 
-class UserRoleBase(BaseModel):
+class UserRoleBase(SQLModelSerializable):
     user_id: str = Field(index=True)
     role_id: str = Field(index=True)
     create_time: Optional[datetime] = Field(

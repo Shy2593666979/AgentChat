@@ -9,13 +9,13 @@ from database import engine
 class UserDao(UserBase):
 
     @classmethod
-    def get_user(cls, user_id: int) -> User | None:
+    def get_user(cls, user_id: str) -> User | None:
         with Session(engine) as session:
             statement = select(User).where(User.user_id == user_id)
             return session.exec(statement).first()
 
     @classmethod
-    def get_user_by_ids(cls, user_ids: List[int]) -> List[User] | None:
+    def get_user_by_ids(cls, user_ids: List[str]) -> List[User] | None:
         with Session(engine) as session:
             statement = select(User).where(User.user_id.in_(user_ids))
             return session.exec(statement).all()
@@ -35,7 +35,7 @@ class UserDao(UserBase):
             return user
 
     @classmethod
-    def filter_users(cls, user_ids: List[int], keyword: str = None, page: int = 0, limit: int = 0) -> (List[User], int):
+    def filter_users(cls, user_ids: List[str], keyword: str = None, page: int = 0, limit: int = 0) -> (List[User], int):
         statement = select(User)
         count_statement = select(func.count(User.user_id))
         if user_ids:

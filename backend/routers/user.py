@@ -35,12 +35,13 @@ async def regist(*, user: UserCreate):
     if len(db_user.user_name) > 20:
         raise HTTPException(status_code=500, detail='用户名长度不应该超过20')
     try:
+        # breakpoint()
         db_user.password = UserService.encrypt_sha256_password(user.password)
-        admin = UserDao.get_user(1)
+        admin = UserDao.get_user('1')
         if admin:
             UserDao.add_user_and_default_role(db_user)
         else:
-            db_user.user_id = 1
+            db_user.user_id = '1'
             UserDao.add_user_and_admin_role(db_user)
     except Exception as e:
         logger.error(f'register user is appear error: {e}')

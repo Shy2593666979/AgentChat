@@ -1,9 +1,11 @@
-from datetime import datetime
+import orjson
 from typing import List, Optional
+from datetime import datetime
+from uuid import UUID
 
 from pydantic import validator, BaseModel
 from sqlalchemy import Column, DateTime, text
-from sqlmodel import Field
+from sqlmodel import Field, SQLModel
 
 # 系统用户
 SystemUser = '0'
@@ -11,7 +13,44 @@ SystemUser = '0'
 AdminUser = '1'
 
 
-class UserBase(BaseModel):
+def orjson_dumps(v, *, default=None, sort_keys=False, indent_2=True):
+    option = orjson.OPT_SORT_KEYS if sort_keys else None
+    if indent_2:
+        # orjson.dumps returns bytes, to match standard json.dumps we need to decode
+        # option
+        # To modify how data is serialized, specify option. Each option is an integer constant in orjson.
+        # To specify multiple options, mask them together, e.g., option=orjson.OPT_STRICT_INTEGER | orjson.OPT_NAIVE_UTC
+        if option is None:
+            option = orjson.OPT_INDENT_2
+        else:
+            option |= orjson.OPT_INDENT_2
+    if default is None:
+        return orjson.dumps(v, option=option).decode()
+    return orjson.dumps(v, default=default, option=option).decode()
+
+
+class SQLModelSerializable(SQLModel):
+
+    class Config:
+        orm_mode = True
+        json_loads = orjson.loads
+        json_dumps = orjson_dumps
+
+    def to_dict(self):
+        result = self.model_dump()
+        for column in result:
+            value = getattr(self, column)
+            if isinstance(value, datetime):
+                # 将datetime对象转换为字符串
+                value = value.isoformat()
+            elif isinstance(value, UUID):
+                # 将UUID对象转换为字符串
+                value = value.hex
+            result[column] = value
+        return result
+
+
+class UserBase(SQLModelSerializable):
     user_name: str = Field(index=True, unique=True)
     email: Optional[str] = Field(index=True)
     dept_id: Optional[str] = Field(index=True)

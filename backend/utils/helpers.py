@@ -2,7 +2,7 @@ import json
 import os
 import re
 import requests
-from service.agent import AgentService
+# from service.agent import AgentService
 from loguru import  logger
 from config.service_config import AGENT_DEFAULT_LOGO
 

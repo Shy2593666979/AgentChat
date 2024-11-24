@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
-from pydantic import BaseModel
 from sqlalchemy import Column, DateTime, text, UniqueConstraint
-from sqlmodel import Field
+from sqlmodel import Field, SQLModel
 
 # 默认普通用户角色的ID
 DefaultRole = '2'
@@ -10,7 +9,7 @@ DefaultRole = '2'
 AdminRole = '1'
 
 
-class RoleBase(BaseModel):
+class RoleBase(SQLModel):
     role_name: str = Field(index=False, description='前端展示名称')
     remark: Optional[str] = Field(index=False)
     create_time: Optional[datetime] = Field(sa_column=Column(

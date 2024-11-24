@@ -11,12 +11,12 @@ from database.models.user_role import UserRoleBase, UserRole
 class UserRoleDao(UserRoleBase):
 
     @classmethod
-    def get_user_roles(cls, user_id: int) -> List[UserRole]:
+    def get_user_roles(cls, user_id: str) -> List[UserRole]:
         with Session(engine) as session:
             return session.exec(select(UserRole).where(UserRole.user_id == user_id)).all()
 
     @classmethod
-    def get_roles_user(cls, role_ids: List[int], page: int = 0, limit: int = 0) -> List[UserRole]:
+    def get_roles_user(cls, role_ids: List[str], page: int = 0, limit: int = 0) -> List[UserRole]:
         """
         获取角色对应的用户
         """
@@ -36,7 +36,7 @@ class UserRoleDao(UserRoleBase):
             return session.exec(statement).all()
 
     @classmethod
-    def set_admin_user(cls, user_id: int) -> UserRole:
+    def set_admin_user(cls, user_id: str) -> UserRole:
         """
         设置用户为超级管理员
         """
@@ -48,7 +48,7 @@ class UserRoleDao(UserRoleBase):
             return user_role
 
     @classmethod
-    def add_user_roles(cls, user_id: int, role_ids: List[int]) -> List[UserRole]:
+    def add_user_roles(cls, user_id: str, role_ids: List[str]) -> List[UserRole]:
         """
         给用户批量添加角色
         """
@@ -59,7 +59,7 @@ class UserRoleDao(UserRoleBase):
             return user_roles
 
     @classmethod
-    def delete_user_roles(cls, user_id: int, role_ids: List[int]) -> None:
+    def delete_user_roles(cls, user_id: str, role_ids: List[str]) -> None:
         """
         将用户从某些角色中移除
         """

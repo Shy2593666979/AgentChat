@@ -8,6 +8,8 @@ Function_Call_provider = ['OpenAI', 'Anthropic', 'Gemini', 'Mistral', '智谱AI'
 
 React_provider = ['百度智能', '通义千问', '腾讯混元', '百川智能', '豆包', '零一万物', '科大讯飞']
 
+LLM_Types = ['LLM', 'Embedding', 'Reranker']
+
 class LLMService:
 
     @classmethod
@@ -66,7 +68,14 @@ class LLMService:
             result = []
             for data in llm_data:
                 result.append(data[0])
-            return resp_200(data=result)
+            # 按照LLM的种类进行单独返回数据
+            resp_llm = {}
+            for llm_type in LLM_Types:
+                resp_llm[llm_type] = []
+            for res in result:
+                resp_llm[res.llm_type].append(res)
+
+            return resp_200(data=resp_llm)
         except Exception as err:
             logger.error(f'get personal llm appear Err: {err}')
             return resp_500()
@@ -79,7 +88,14 @@ class LLMService:
             result = []
             for data in set(user_data + system_data):
                 result.append(data[0])
-            return resp_200(data=result)
+            # 按照LLM的种类进行单独返回数据
+            resp_llm = {}
+            for llm_type in LLM_Types:
+                resp_llm[llm_type] = []
+            for res in result:
+                resp_llm[res.llm_type].append(res)
+
+            return resp_200(data=resp_llm)
         except Exception as err:
             logger.error(f'get visible llm appear Err: {err}')
             return resp_500()
@@ -91,7 +107,14 @@ class LLMService:
             result = []
             for data in llm_data:
                 result.append(data[0])
-            return resp_200(data=result)
+            # 按照LLM的种类进行单独返回数据
+            resp_llm = {}
+            for llm_type in LLM_Types:
+                resp_llm[llm_type] = []
+            for res in result:
+                resp_llm[res.llm_type].append(res)
+
+            return resp_200(data=resp_llm)
         except Exception as err:
             logger.error(f'get all llm appear Err: {err}')
             return resp_500()
@@ -108,7 +131,7 @@ class LLMService:
     def get_one_llm(cls):
         try:
             llm = LLMDao.get_all_llm()
-            return llm[0]
+            return llm[0][0]
         except Exception as err:
             logger.error(f'get one llm appear Err: {err}')
 
