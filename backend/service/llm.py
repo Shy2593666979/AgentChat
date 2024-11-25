@@ -41,7 +41,7 @@ class LLMService:
     def get_user_id_by_llm(cls, llm_id: str):
         try:
             llm = LLMDao.get_user_id_by_llm(llm_id)
-            return llm.user_id
+            return llm[0].user_id
         except Exception as err:
             logger.error(f'get user id by llm appear Err: {err}')
             return str(err)
@@ -86,7 +86,7 @@ class LLMService:
             user_data = LLMDao.get_llm_by_user(user_id)
             system_data = LLMDao.get_llm_by_user(SystemUser)
             result = []
-            for data in set(user_data + system_data):
+            for data in (user_data + system_data):
                 result.append(data[0])
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}

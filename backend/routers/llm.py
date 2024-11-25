@@ -20,9 +20,8 @@ async def create_llm(model: str = Body(description='大模型的名称'),
                                  user_id=login_user.user_id, provider=provider, llm_type=llm_type)
 
 @router.delete('/llm/delete', response_model=UnifiedResponseModel)
-async def delete_llm(llm_id: str = Body(description='大模型的ID'),
+async def delete_llm(llm_id: str = Body(embed=True, description='大模型的ID'),
                      login_user: UserPayload = Depends(get_login_user)):
-
     return LLMService.delete_llm(llm_id=llm_id, user_id=login_user.user_id)
 
 @router.put('/llm/update', response_model=UnifiedResponseModel)

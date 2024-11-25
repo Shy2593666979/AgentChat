@@ -61,7 +61,7 @@ class ToolService:
             personal_data = ToolDao.get_tool_by_user_id(user_id=user_id)
             system_data = ToolDao.get_tool_by_user_id(user_id=AdminUser)
             result = []
-            for data in set(personal_data + system_data):
+            for data in (personal_data + system_data):
                 result.append(data[0])
             return resp_200(data=result)
         except Exception as err:
@@ -99,7 +99,7 @@ class ToolService:
     def _get_user_by_tool_id(cls, tool_id: str):
         try:
             tool = ToolDao.get_tool_by_id(tool_id=tool_id)
-            return tool.tool_id
+            return tool[0].tool_id
         except Exception as err:
             logger.error(f'get user by tool id appear Err: {err}')
             raise ValueError(str(err))
