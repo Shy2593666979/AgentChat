@@ -120,7 +120,7 @@ class AgentService:
             system_data = AgentDao.get_agent_by_user_id(user_id=SystemUser)
             user_data = AgentDao.get_agent_by_user_id(user_id=user_id)
             result = []
-            for item in set(system_data + user_data):
+            for item in (system_data + user_data):
                 result.append(item[0])
             return result
         except Exception as err:
