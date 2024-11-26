@@ -1,0 +1,37 @@
+import json
+from typing import Optional
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, Query, HTTPException, WebSocket, WebSocketException
+from fastapi import status as http_status
+from fastapi.responses import StreamingResponse
+from fastapi_jwt_auth import AuthJWT
+from loguru import logger
+
+from service.user import UserPayload
+
+router = APIRouter()
+
+
+@router.websocket('/build/auto')
+async def chat(websocket: WebSocket,
+               chat_id: Optional[str] = None,
+               Authorize: AuthJWT = Depends()):
+    try:
+        Authorize.jwt_required(auth_from='websocket', websocket=websocket)
+
+        payload = Authorize.get_jwt_subject()
+        payload = json.loads(payload)
+
+        login_user = UserPayload(**payload)
+
+    except WebSocketException as exc:
+        logger.exception(f'Websocket exception: {str(exc)}')
+        await websocket.close(code=http_status.WS_1011_INTERNAL_ERROR, reason=str(exc))
+    except Exception as exc:
+        logger.exception(f'Error in chat websocket: {str(exc)}')
+        message = exc.detail if isinstance(exc, HTTPException) else str(exc)
+        if 'Could not validate credentials' in str(exc):
+            await websocket.close(code=http_status.WS_1008_POLICY_VIOLATION, reason='Unauthorized')
+        else:
+            await websocket.close(code=http_status.WS_1011_INTERNAL_ERROR, reason=message)
