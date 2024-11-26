@@ -8,6 +8,7 @@ from langgraph.graph import StateGraph, START, END
 from loguru import logger
 
 from prompt.llm_prompt import agent_guide_word
+from service.agent import AgentService
 from service.user import UserPayload
 from service.llm import LLMService
 
@@ -61,7 +62,7 @@ class AutoBuildClient:
         async def send_guide_word(state):
             """自动发送开场白"""
             await self.send_guide_word()
-            return resp_state(name=state['name'], description=state['description'], user_input=['user_input'])
+            return resp_state(name=state['name'], description=state['description'], user_input=state['user_input'])
 
         async def receive_input_name(state):
             while True:
@@ -118,19 +119,15 @@ class AutoBuildClient:
             try:
                 data = json.loads(resp)
                 description = data.get('description')
-                # 将数据存到数据库
-                await self.add_assistant_message(message=description)
                 return resp_state(name=state['name'], description=description, user_input=state['user_input'])
             except Exception as err:
                 logger.error(f'abstract llm response description: {err}')
-                # 将数据存到数据库
-                await self.add_assistant_message(message=state['user_input'])
                 return resp_state(name=state['name'], description=state['user_input'], user_input=state['user_input'])
 
         # LangGraph循环图中的判断条件
         async def check_repeat_name(state):
             """pass"""
-            if AssistantService.judge_name_repeat(name=state['user_input'], user_id=self.login_user.user_id):
+            if AgentService.check_repeat_name(name=state['user_input'], user_id=self.login_user.user_id):
                 await self.send_message(message='应用名称已经存在，请更换一个应用名称')
                 return 'receive_input_name'
             else:

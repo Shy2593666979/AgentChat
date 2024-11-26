@@ -85,9 +85,9 @@ class AgentService:
             logger.error(f"search agent name appear error: {err}")
 
     @classmethod
-    def check_repeat_name(cls, name: str):
+    def check_repeat_name(cls, name: str, user_id: str):
         try:
-            result = AgentDao.check_repeat_name(name=name)
+            result = AgentDao.check_repeat_name(name=name, user_id=user_id)
             if len(result) != 0:
                 return True
             else:
@@ -195,3 +195,4 @@ class AgentService:
     #         return result
     #     except Exception as err:
     #         logger.error(f"select agent by type is appear error: {err}")
+

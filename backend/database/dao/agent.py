@@ -89,9 +89,9 @@ class AgentDao:
             return result[0][0].logo
 
     @classmethod
-    def check_repeat_name(cls, name: str):
+    def check_repeat_name(cls, name: str, user_id: str):
         with Session(engine) as session:
-            sql = select(AgentTable).where(AgentTable.name == name)
+            sql = select(AgentTable).where(and_(AgentTable.name == name, AgentTable.user_id == user_id))
             result = session.exec(sql).all()
             return result
 

@@ -2,9 +2,9 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, Body
 from service.user import get_login_user, UserPayload
-from type.schemas import UnifiedResponseModel
+from type.schemas import UnifiedResponseModel, resp_200
 
-from service.llm import LLMService
+from service.llm import LLMService, Function_Call_provider, React_provider, LLM_Types
 
 router = APIRouter()
 
@@ -48,3 +48,10 @@ async def get_personal_llm(login_user: UserPayload = Depends(get_login_user)):
 async def get_visible_llm(login_user: UserPayload = Depends(get_login_user)):
     return LLMService.get_visible_llm(user_id=login_user.user_id)
 
+@router.get('/llm/provider', response_model=UnifiedResponseModel)
+async def get_provider(login_user: UserPayload = Depends(get_login_user)):
+    return resp_200(data=(Function_Call_provider + React_provider))
+
+@router.get('llm/type', response_model=UnifiedResponseModel)
+async def get_llm_type(login_user: UserPayload = Depends(get_login_user)):
+    return resp_200(data=LLM_Types)

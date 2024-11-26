@@ -22,7 +22,7 @@ async def create_agent(name: str = Form(...),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         # 判断Agent名字是否重复
-        if AgentService.check_repeat_name(name=name):
+        if AgentService.check_repeat_name(name=name, user_id=login_user.user_id):
             return resp_500(message="The Agent name is repeated, please change it")
 
         uid = uuid4().hex
@@ -32,10 +32,6 @@ async def create_agent(name: str = Form(...),
                 file.write(await logoFile.read())
         else:
             logo = AGENT_DEFAULT_LOGO
-
-        # 保证所有Agents的name都是英文
-        if not check_input(user_input=name):
-            return resp_500(message="The name parameter can only contain uppercase and lowercase letters and numbers.")
 
         AgentService.create_agent(name=name,
                                   description=description,
@@ -73,7 +69,7 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
 
 
 @router.delete("/agent", response_model=UnifiedResponseModel)
-async def delete_agent(agent_id: str = Form(..., alias="id"),
+async def delete_agent(agent_id: str = Form(...),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         return AgentService.delete_agent_by_id(id=agent_id, user_id=login_user.user_id)
@@ -83,7 +79,7 @@ async def delete_agent(agent_id: str = Form(..., alias="id"),
 
 
 @router.put("/agent", response_model=UnifiedResponseModel)
-async def update_agent(agent_id: str = Form(..., alias='id'),
+async def update_agent(agent_id: str = Form(...),
                        name: str = Form(None),
                        description: str = Form(None),
                        tool_id: List[str] = Form(None),
@@ -92,17 +88,16 @@ async def update_agent(agent_id: str = Form(..., alias='id'),
                        logoFile: UploadFile = File(None),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
+        if name and AgentService.check_repeat_name(name, login_user.user_id):
+            return resp_500(message='agent name repeated')
+
         uid = uuid4().hex
         if logoFile is not None:
-            logo = f"img/{uid}.{logoFile.content_type.split('/')[-1]}"
+            logo = f"img/agent/{uid}.{logoFile.content_type.split('/')[-1]}"
             with open(logo, 'wb') as file:
                 file.write(await logoFile.read())
         else:
             logo = None
-
-        # 保证所有Agents的name都是英文
-        if not check_input(user_input=name):
-            return resp_500(message="The name parameter can only contain uppercase and lowercase letters and numbers.")
 
         return AgentService.update_agent_by_id(id=agent_id,
                                         name=name,

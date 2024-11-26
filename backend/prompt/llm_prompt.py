@@ -58,3 +58,4 @@ Question: {input}
 History: {history}
 Thought:{agent_scratchpad}
 """
+agent_guide_word = "我现在知道你想要创建一个Agent帮你解决一些事情，那么我们开始吧"

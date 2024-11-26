@@ -4,7 +4,7 @@ from type.schemas import UnifiedResponseModel, resp_500, resp_200
 from database.dao.llm import LLMDao
 from loguru import logger
 
-Function_Call_provider = ['OpenAI', 'Anthropic', 'Gemini', 'Mistral', '智谱AI']
+Function_Call_provider = ['OpenAI', 'Anthropic', 'Gemini', 'Mistral', 'DeepSeek', '智谱AI']
 
 React_provider = ['百度智能', '通义千问', '腾讯混元', '百川智能', '豆包', '零一万物', '科大讯飞']
 
@@ -145,3 +145,5 @@ class LLMService:
             return result
         except Exception as err:
             logger.error(f'get llm type appear Err: {err}')
+
+
