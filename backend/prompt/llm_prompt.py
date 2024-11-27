@@ -69,9 +69,20 @@ auto_build_ask_prompt = """
 """
 
 auto_build_abstract_prompt = """
-请根据用户输入的问题和聊天记录来提取用户参数：
-user input: {input}
-history: {history}
+请根据用户输入的问题和聊天记录来提取用户参数。请确保提取的参数符合指定的输出格式。
 
-output schemas: {format_instructions}
+用户输入：{input}
+聊天记录：{history}
+
+输出格式说明：{format_instructions}
+
+请根据上述信息提取相关参数，并确保输出格式符合 `format_instructions` 中的要求。
+"""
+
+create_agent_prompt = """
+请根据以下描述信息，帮助我选择需要绑定的工具。请确保描述信息尽可能详细，以便我能够准确地推荐适合的工具。
+
+描述信息：{description}
+
+请描述你希望Agent完成的任务、目标以及任何特定的需求或限制。这将有助于我为你推荐最合适的工具。
 """
