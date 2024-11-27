@@ -58,4 +58,20 @@ Question: {input}
 History: {history}
 Thought:{agent_scratchpad}
 """
+
 agent_guide_word = "我现在知道你想要创建一个Agent帮你解决一些事情，那么我们开始吧"
+
+auto_build_ask_prompt = """
+目前缺少的参数是：{para_type}
+用户输入：{user_input}
+
+请你使用温柔的语气去诱导用户补充这个参数
+"""
+
+auto_build_abstract_prompt = """
+请根据用户输入的问题和聊天记录来提取用户参数：
+user input: {input}
+history: {history}
+
+output schemas: {format_instructions}
+"""
