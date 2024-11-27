@@ -9,7 +9,8 @@ from loguru import logger
 from cache.redis import redis_client
 from service.llm import LLMService
 from service.tool import ToolService
-from config.service_config import MYSQL_URL, TOOL_OPENAI, LOGO_PREFIX
+from config.service_config import MYSQL_URL, TOOL_OPENAI, LOGO_PREFIX, AGENT_DEFAULT_LOGO
+
 
 # 创建MySQL数据表
 def init_database():
@@ -46,7 +47,7 @@ def insert_agent_to_mysql():
                                   user_id=SystemUser,
                                   llm_id=llm.llm_id,
                                   tool_id=[tool.tool_id],
-                                  logo='img/agent/assistant.png',
+                                  logo=AGENT_DEFAULT_LOGO,
                                   is_custom=False)
 
 

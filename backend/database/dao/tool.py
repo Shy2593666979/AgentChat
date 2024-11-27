@@ -2,7 +2,7 @@ from datetime import datetime
 
 from database.models.tool import ToolTable
 from sqlmodel import Session
-from sqlalchemy import select, and_, update, desc, delete
+from sqlalchemy import select, and_, update, desc, delete, or_
 from typing import List
 from database import engine
 
@@ -74,5 +74,14 @@ class ToolDao:
     def get_tool_by_id(cls, tool_id: str):
         with Session(engine) as session:
             sql = select(ToolTable).where(ToolTable.tool_id==tool_id)
+            tool = session.exec(sql).first()
+            return tool
+
+    @classmethod
+    def get_id_by_tool_name(cls, tool_name, user_id):
+        with Session(engine) as session:
+            sql = select(ToolTable).where(and_(ToolTable.en_name == tool_name,
+                                               or_(ToolTable.user_id == user_id,
+                                                   ToolTable.user_id == '0')))
             tool = session.exec(sql).first()
             return tool

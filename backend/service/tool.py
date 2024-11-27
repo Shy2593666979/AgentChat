@@ -114,3 +114,11 @@ class ToolService:
             return result
         except Exception as err:
             logger.error(f'get tools data appear Err: {err}')
+
+    @classmethod
+    def get_id_by_tool_name(cls, tool_name: str, user_id: str):
+        try:
+            tool = ToolDao.get_id_by_tool_name(tool_name, user_id)
+            return tool[0][0].tool_id
+        except Exception as err:
+            logger.error(f'get id by tool name appear Err: {err}')

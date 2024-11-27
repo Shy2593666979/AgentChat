@@ -13,6 +13,7 @@ from langgraph.graph import StateGraph, START, END
 from loguru import logger
 from pydantic import BaseModel, Field
 
+from config.service_config import AGENT_DEFAULT_LOGO
 from prompt.llm_prompt import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt
 from service.agent import AgentService
 from service.chat import ChatService
@@ -122,13 +123,14 @@ class AutoBuildClient:
         tools_id = []
         for func in funcs:
             # 根据工具名称去查ID
-            tool_id = ToolService.get_id_by_tool_name()
+            tool_id = ToolService.get_id_by_tool_name(tool_name=func,
+                                                      user_id=self.login_user.user_id)
             tools_id.append(tool_id)
             
         
         AgentService.create_agent(
             name=name,
-            logo='img/agent/assistant.png',
+            logo=AGENT_DEFAULT_LOGO,
             description=description,
             llm_id=llm.llm_id,
             tool_id=tools_id,
@@ -234,6 +236,9 @@ class AutoBuildClient:
 
             # 这里是通过Function Call的方式给Agent绑定LLM、Tool
             await self.send_message('正在为您创建Agent中...............')
+
+            await self.create_agent(name, description)
+            await self.send_message('Agent创建成功！！！')
 
         # 添加LangGraph的节点
         self.builder_graph.add_node('send_guide_word', send_guide_word)
