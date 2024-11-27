@@ -4,10 +4,15 @@ import json
 from fastapi import WebSocket, status, Request
 from typing import TypedDict
 
+from langchain_core.language_models import BaseChatModel
+from langchain_core.output_parsers import JsonOutputParser
+from langchain_core.prompts import PromptTemplate
+from langchain_openai import ChatOpenAI
 from langgraph.graph import StateGraph, START, END
 from loguru import logger
+from pydantic import BaseModel, Field
 
-from prompt.llm_prompt import agent_guide_word
+from prompt.llm_prompt import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt
 from service.agent import AgentService
 from service.user import UserPayload
 from service.llm import LLMService
@@ -17,6 +22,9 @@ class State(TypedDict):
     description: str
     user_input: str
 
+class AgentBaseModel(BaseModel):
+    name: str = Field(description='想要创建Agent的名称')
+    description: str = Field(description='想要创建Agent的描述信息')
 
 def resp_state(name: str = '', description: str = '', user_input: str = ''):
     return {"name": name, "description": description, "user_input": user_input}
@@ -30,8 +38,32 @@ class AutoBuildClient:
         self.user_id = user_id
         self.login_user = login_user
         self.websocket = websocket
-        self.builder = StateGraph(State)
+        self.builder_graph = StateGraph(State)
+        self.builder_agent = None
+        self.parser = None
+        self.abstract_prompt = None
+        self.abstract_chain = None
 
+        asyncio.run(self._run_start())
+
+    async def _run_start(self):
+        # 检查是否有可用模型
+        await self.check_model_exist()
+
+        # 初始化提取参数Agent
+        await self.init_abstract_chain()
+
+        # 初始化Multi-Agents流程图
+        await self.init_graph()
+
+    async def init_abstract_chain(self):
+        self.parser = JsonOutputParser(pydantic_object=AgentBaseModel)
+        self.abstract_prompt = PromptTemplate(
+            template=auto_build_abstract_prompt,
+            input_variables=["input", "history"],
+            partial_variables={"format_instructions": self.parser.get_format_instructions()},
+        )
+        self.abstract_chain = self.abstract_prompt | self.builder_agent | self.parser
 
     async def send_message(self, message: str):
         return self.websocket.send_text(message)
@@ -45,19 +77,35 @@ class AutoBuildClient:
     async def send_guide_word(self):
         return await self.send_message(agent_guide_word)
 
+    async def check_model_exist(self):
+        # 获得可用的模型
+        llm = LLMService.get_one_llm()
+        if llm is None:
+            await self.send_message(message='没找到可用的大模型')
+            raise ValueError(f'No large models available')
+        else:
+            model = llm.model
+            base_url = llm.base_url
+            api_key = llm.api_key
+            # 创建Agent的构建方式
+            await self.create_build_agent(model=model, api_key=api_key, base_url=base_url)
+
+    async def ask_user_message(self, user_input, para_type):
+        prompt = auto_build_ask_prompt.format(user_input=user_input, para_type=para_type)
+
+        resp = self.builder_agent.ainvoke(input=prompt).content
+        return resp
+
+    async def create_build_agent(self, **kwargs):
+        self.builder_agent = ChatOpenAI(**kwargs)
+
+    async def abstract_parameter(self, user_input):
+        resp = await self.abstract_chain.ainvoke({"input": user_input, "history": ""})
+
+        return resp.content
+
+
     async def init_graph(self):
-        async def check_model_exist():
-            # 获得可用的模型
-            llm = LLMService.get_one_llm()
-            if llm is None:
-                await self.send_message(message='没找到可用的大模型')
-                raise ValueError(f'No large models available')
-            else:
-                model = llm.model
-                base_url = llm.base_url
-                api_key = llm.api_key
-                # 创建Agent的构建方式
-                await self.create_build_agent(model=model, api_key=api_key, base_url=base_url)
 
         async def send_guide_word(state):
             """自动发送开场白"""
@@ -104,7 +152,7 @@ class AutoBuildClient:
             await self.send_message(message=response)
 
         async def abstract_name(state):
-            resp = await self.abstract_name(user_input=state['user_input'])
+            resp = await self.abstract_parameter(user_input=state['user_input'])
             try:
                 data = json.loads(resp)
                 name = data.get('name')
@@ -115,7 +163,7 @@ class AutoBuildClient:
                                   user_input=state['user_input'])
 
         async def abstract_description(state):
-            resp = await self.abstract_description(user_input=state['user_input'])
+            resp = await self.abstract_parameter(user_input=state['user_input'])
             try:
                 data = json.loads(resp)
                 description = data.get('description')
@@ -133,38 +181,39 @@ class AutoBuildClient:
             else:
                 return 'ask_user_description'
 
-        async def auto_create_assistant(state):
+        async def auto_create_agent(state):
             name = state['name']
             description = state['description']
 
             # 这里是通过Function Call的方式给Agent绑定LLM、Tool
             await self.send_message('正在为您创建Agent中...............')
 
-        # 首先判断是否有可使用的大模型
-        await check_model_exist()
-
         # 添加LangGraph的节点
-        self.builder.add_node('send_guide_word', send_guide_word)
-        self.builder.add_node('receive_input_name', receive_input_name)
-        self.builder.add_node('receive_input_description', receive_input_description)
-        # self.builder.add_node('ask_user_name', ask_user_name)
-        self.builder.add_node('ask_user_description', ask_user_description)
-        self.builder.add_node('abstract_name', abstract_name)
-        self.builder.add_node('abstract_description', abstract_description)
-        # self.builder.add_node('check_repeat_name', check_repeat_name)
-        self.builder.add_node('auto_create_assistant', auto_create_assistant)
+        self.builder_graph.add_node('send_guide_word', send_guide_word)
+        self.builder_graph.add_node('receive_input_name', receive_input_name)
+        self.builder_graph.add_node('receive_input_description', receive_input_description)
+        # self.builder_graph.add_node('ask_user_name', ask_user_name)
+        self.builder_graph.add_node('ask_user_description', ask_user_description)
+        self.builder_graph.add_node('abstract_name', abstract_name)
+        self.builder_graph.add_node('abstract_description', abstract_description)
+        # self.builder_graph.add_node('check_repeat_name', check_repeat_name)
+        self.builder_graph.add_node('auto_create_agent', auto_create_agent)
 
         # 增加LangGraph的边
-        self.builder.add_edge(START, 'send_guide_word')
-        self.builder.add_edge('send_guide_word', 'receive_input_name')
-        self.builder.add_edge('receive_input_name', 'abstract_name')
-        self.builder.add_conditional_edges('abstract_name', check_repeat_name)
-        self.builder.add_edge('ask_user_description', 'receive_input_description')
-        self.builder.add_edge('receive_input_description', 'abstract_description')
-        self.builder.add_edge('abstract_description', 'auto_create_assistant')
-        self.builder.add_edge('auto_create_assistant', END)
+        self.builder_graph.add_edge(START, 'send_guide_word')
+        self.builder_graph.add_edge('send_guide_word', 'receive_input_name')
+        self.builder_graph.add_edge('receive_input_name', 'abstract_name')
+        self.builder_graph.add_conditional_edges('abstract_name', check_repeat_name)
+        self.builder_graph.add_edge('ask_user_description', 'receive_input_description')
+        self.builder_graph.add_edge('receive_input_description', 'abstract_description')
+        self.builder_graph.add_edge('abstract_description', 'auto_create_agent')
+        self.builder_graph.add_edge('auto_create_assistant', END)
 
-        auto_workflow = self.builder.compile()
+        auto_workflow = self.builder_graph.compile()
         await auto_workflow.ainvoke(input=resp_state())
+
+
+
+
 
 
