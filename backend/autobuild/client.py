@@ -2,9 +2,10 @@ import asyncio
 import json
 
 from fastapi import WebSocket, status, Request
-from typing import TypedDict
+from typing import TypedDict, List, Dict
 
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
@@ -12,10 +13,14 @@ from langgraph.graph import StateGraph, START, END
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from prompt.llm_prompt import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt
+from prompt.llm_prompt import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt
 from service.agent import AgentService
+from service.chat import ChatService
+from service.tool import ToolService
 from service.user import UserPayload
 from service.llm import LLMService
+from tools import action_Function_call
+
 
 class State(TypedDict):
     name: str
@@ -39,10 +44,10 @@ class AutoBuildClient:
         self.login_user = login_user
         self.websocket = websocket
         self.builder_graph = StateGraph(State)
-        self.builder_agent = None
+        self.base_agent = None
         self.parser = None
         self.abstract_prompt = None
-        self.abstract_chain = None
+        self.abstract_agent = None
 
         asyncio.run(self._run_start())
 
@@ -51,19 +56,19 @@ class AutoBuildClient:
         await self.check_model_exist()
 
         # 初始化提取参数Agent
-        await self.init_abstract_chain()
+        await self.init_abstract_agent()
 
         # 初始化Multi-Agents流程图
         await self.init_graph()
 
-    async def init_abstract_chain(self):
+    async def init_abstract_agent(self):
         self.parser = JsonOutputParser(pydantic_object=AgentBaseModel)
         self.abstract_prompt = PromptTemplate(
             template=auto_build_abstract_prompt,
             input_variables=["input", "history"],
             partial_variables={"format_instructions": self.parser.get_format_instructions()},
         )
-        self.abstract_chain = self.abstract_prompt | self.builder_agent | self.parser
+        self.abstract_agent = self.abstract_prompt | self.base_agent | self.parser
 
     async def send_message(self, message: str):
         return self.websocket.send_text(message)
@@ -93,18 +98,60 @@ class AutoBuildClient:
     async def ask_user_message(self, user_input, para_type):
         prompt = auto_build_ask_prompt.format(user_input=user_input, para_type=para_type)
 
-        resp = self.builder_agent.ainvoke(input=prompt).content
+        resp = self.base_agent.ainvoke(input=prompt).content
         return resp
 
     async def create_build_agent(self, **kwargs):
-        self.builder_agent = ChatOpenAI(**kwargs)
+        self.base_agent = ChatOpenAI(**kwargs)
 
     async def abstract_parameter(self, user_input):
-        resp = await self.abstract_chain.ainvoke({"input": user_input, "history": ""})
+        resp = await self.abstract_agent.ainvoke({"input": user_input, "history": ""})
 
         return resp.content
 
+    async def create_agent(self, name: str, description: str):
+        tools = []
+        for key, func in action_Function_call:
+            tools.append(ChatService.function_to_json(func))
+        # 这里可以优化的是将Tools Parameter中的required 字段给去掉
+        prompt = create_agent_prompt.format(description=description)
+        funcs, _ = await self._function_call(user_input=prompt, tools=tools)
+        funcs = json.loads(funcs)
 
+        llm = LLMService.get_one_llm()
+        tools_id = []
+        for func in funcs:
+            # 根据工具名称去查ID
+            tool_id = ToolService.get_id_by_tool_name()
+            tools_id.append(tool_id)
+            
+        
+        AgentService.create_agent(
+            name=name,
+            logo='img/agent/assistant.png',
+            description=description,
+            llm_id=llm.llm_id,
+            tool_id=tools_id,
+            user_id=self.login_user.user_id,
+        )
+    
+    async def _function_call(self, user_input: str, tools: List[Dict]):
+        messages = [HumanMessage(content=user_input)]
+        message = self.base_agent.ainvoke(
+            messages,
+            functions=tools,
+        )
+        try:
+            if message.additional_kwargs:
+                function_name = message.additional_kwargs["function_call"]["name"]
+                arguments = json.loads(message.additional_kwargs["function_call"]["arguments"])
+    
+                logger.info(f"function call result: \n function_name: {function_name} \n arguments: {arguments}")
+                return function_name, arguments
+        except Exception as err:
+            logger.info(f"function call is not appear: {err}")
+            return None, None
+    
     async def init_graph(self):
 
         async def send_guide_word(state):
