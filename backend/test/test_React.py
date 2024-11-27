@@ -1,9 +1,12 @@
 import json
 
+from langchain_core.output_parsers import JsonOutputParser
 from openai import OpenAI
+from langchain_openai import ChatOpenAI
 
-client = OpenAI(api_key="sk-3e4b76be9af842ab81ca2a4ca1c16bdd", base_url="https://api.deepseek.com")
+# client = ChatOpenAI(api_key="sk-ChtJNYJD1sm5FqwA7bE8EfFa3eE847Fa9758E5626d64Cc9a", base_url="http://70.182.56.16:11000/v1/", model="Qwen2-72B-Instruct")
 
+client = OpenAI(base_url='http://70.182.56.16:11000/v1/', api_key='sk-ChtJNYJD1sm5FqwA7bE8EfFa3eE847Fa9758E5626d64Cc9a')
 tools = [
     {
         "type": "function",
@@ -25,23 +28,71 @@ tools = [
 ]
 
 def send_messages(messages):
+    # client = OpenAI()
     response = client.chat.completions.create(
-        model="deepseek-chat",
+        model="Qwen2-72B-Instruct",
         messages=messages,
-        tools=tools
+        tools=tools,
     )
     return response.choices[0].message
-
+#
 messages = [{"role": "user", "content": "How's the weather in Hangzhou?"}]
-message = send_messages(messages)
-print(f"User>\t {messages[0]['content']}")
+# message = send_messages(messages)
+# print(f"User>\t {messages[0]['content']}")
+#
+# tool = message.tool_calls[0]
+# for tool in message.tool_calls:
+#     print(tool.function.name)
+# messages.append(message)
 
-tool = message.tool_calls[0]
-for tool in message.tool_calls:
-    print(tool.function.name)
-messages.append(message)
+PROMPT_REACT = """Answer the following questions as best you can. You have access to the following APIs:
+
+{tools_text}
+
+Use the following format:
+
+Question: the input question you must answer
+Thought: you should always think about what to do
+Action: the action to take, should be one of [{tools_name_text}]
+Action Input: the input to the action
+Observation: the result of the action
+... (this Thought/Action/Action Input/Observation can be repeated zero or more times)
+Thought: I now know the final answer
+Final Answer: the final answer to the original input question
+
+Begin!
+
+Question: {query}"""
 
 
+prompt = PROMPT_REACT.format(tools_text=tools, tools_name_text='get_weather', query='北京的天气如何啊？')
+
+def parse_latest_plugin_call(text):
+    plugin_name, plugin_args = '', ''
+    i = text.rfind('\nAction:')
+    j = text.rfind('\nAction Input:')
+    k = text.rfind('\nObservation:')
+    if 0 <= i < j:  # If the text has `Action` and `Action input`,
+        if k < j:  # but does not contain `Observation`,
+            # then it is likely that `Observation` is ommited by the LLM,
+            # because the output text may have discarded the stop word.
+            text = text.rstrip() + '\nObservation:'  # Add it back.
+        k = text.rfind('\nObservation:')
+        plugin_name = text[i + len('\nAction:') : j].strip()
+        plugin_args = text[j + len('\nAction Input:') : k].strip()
+        text = text[:k]
+    return plugin_name, plugin_args, text
+
+
+res = send_messages(messages)
+
+
+
+# res = client.invoke(input=prompt).content
+#
+# resp = parse_latest_plugin_call(res)
+#
+# print(resp)
 # def get_current_weather(location, unit='fahrenheit'):
 #     """Get the current weather in a given location"""
 #     if 'tokyo' in location.lower():
