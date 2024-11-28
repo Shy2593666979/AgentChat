@@ -6,6 +6,8 @@ import requests
 from loguru import  logger
 from config.service_config import AGENT_DEFAULT_LOGO
 
+def get_cache_key(client_id, chat_id):
+    return f'{client_id}_{chat_id}'
 
 def check_or_create(path):
     if os.path.exists(path):
