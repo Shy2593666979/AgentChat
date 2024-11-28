@@ -8,6 +8,7 @@ from fastapi.responses import StreamingResponse
 from fastapi_jwt_auth import AuthJWT
 from loguru import logger
 
+from autobuild.manager import AutoBuildManager
 from service.user import UserPayload
 
 router = APIRouter()
@@ -24,6 +25,8 @@ async def chat(websocket: WebSocket,
         payload = json.loads(payload)
 
         login_user = UserPayload(**payload)
+        chat_manager = AutoBuildManager()
+        await chat_manager.control_auto_client(login_user=login_user, websocket=websocket, chat_id=chat_id)
 
     except WebSocketException as exc:
         logger.exception(f'Websocket exception: {str(exc)}')
