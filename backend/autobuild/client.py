@@ -13,13 +13,13 @@ from langgraph.graph import StateGraph, START, END
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from config.service_config import AGENT_DEFAULT_LOGO
-from prompt.llm_prompt import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt
+from prompt.llm_prompt import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt, \
+    PROMPT_REACT_BASE
 from service.agent import AgentService
 from service.chat import ChatService
 from service.tool import ToolService
 from service.user import UserPayload
-from service.llm import LLMService
+from service.llm import LLMService, React_provider
 from tools import action_Function_call
 
 
@@ -37,11 +37,10 @@ def resp_state(name: str = '', description: str = '', user_input: str = ''):
 
 
 class AutoBuildClient:
-    def __init__(self, chat_id: str, user_id: str, client_key: str,
+    def __init__(self, chat_id: str, client_key: str,
                  login_user: UserPayload, websocket: WebSocket, **kwargs):
         self.client_key = client_key
         self.chat_id = chat_id
-        self.user_id = user_id
         self.login_user = login_user
         self.websocket = websocket
         self.builder_graph = StateGraph(State)
@@ -77,8 +76,9 @@ class AutoBuildClient:
     async def send_json(self, message: dict):
         return self.websocket.send_json(message)
 
-    async def auto_chat(self):
-        pass
+    async def run_chat(self):
+        auto_workflow = self.builder_graph.compile()
+        await auto_workflow.ainvoke(input=resp_state())
 
     async def send_guide_word(self):
         return await self.send_message(agent_guide_word)
@@ -111,26 +111,33 @@ class AutoBuildClient:
         return resp.content
 
     async def create_agent(self, name: str, description: str):
-        tools = []
-        for key, func in action_Function_call:
-            tools.append(ChatService.function_to_json(func))
-        # 这里可以优化的是将Tools Parameter中的required 字段给去掉
-        prompt = create_agent_prompt.format(description=description)
-        funcs, _ = await self._function_call(user_input=prompt, tools=tools)
-        funcs = json.loads(funcs)
-
         llm = LLMService.get_one_llm()
+
+        tools = []
+        tools_name = []
+        for key, func in action_Function_call:
+            tools_name.append(key)
+            tools.append(ChatService.function_to_json(func))
+
+        # 检查是否走React 还是 Fun call
+        if llm.model in React_provider:
+            funcs = await self._func_react(user_input=description, tools=tools, tools_name=tools_name)
+        else:
+            # 这里可以优化的是将Tools Parameter中的required 字段给去掉
+            prompt = create_agent_prompt.format(description=description)
+            funcs, _ = await self._function_call(user_input=prompt, tools=tools)
+            funcs = json.loads(funcs)
+
         tools_id = []
         for func in funcs:
             # 根据工具名称去查ID
-            tool_id = ToolService.get_id_by_tool_name(tool_name=func,
-                                                      user_id=self.login_user.user_id)
+            tool_id = ToolService.get_id_by_tool_name(func, self.login_user.user_id)
             tools_id.append(tool_id)
             
         
         AgentService.create_agent(
             name=name,
-            logo=AGENT_DEFAULT_LOGO,
+            logo='img/agent/assistant.png',
             description=description,
             llm_id=llm.llm_id,
             tool_id=tools_id,
@@ -153,7 +160,33 @@ class AutoBuildClient:
         except Exception as err:
             logger.info(f"function call is not appear: {err}")
             return None, None
-    
+
+    async def _func_react(self, user_input: str, tools: List[Dict], tools_name: List[str]):
+        def parse_tools_call(text):
+            tool_name, tool_args = '', ''
+            i = text.rfind('\nAction:')
+            j = text.rfind('\nAction Input:')
+            k = text.rfind('\nObservation:')
+            if 0 <= i < j:  # If the text has `Action` and `Action input`,
+                if k < j:  # but does not contain `Observation`,
+                    # then it is likely that `Observation` is ommited by the LLM,
+                    # because the output text may have discarded the stop word.
+                    text = text.rstrip() + '\nObservation:'  # Add it back.
+                k = text.rfind('\nObservation:')
+                tool_name = text[i + len('\nAction:'): j].strip()
+                tool_args = text[j + len('\nAction Input:'): k].strip()
+                text = text[:k]
+            return tool_name, tool_args, text
+
+        prompt = PROMPT_REACT_BASE.format(tools_text=tools, tools_name_text=tools_name, query=user_input)
+        resp = self.base_agent.invoke(input=prompt).content
+
+        tools_name, _, _ = parse_tools_call(resp)
+
+        return tools_name
+
+
+
     async def init_graph(self):
 
         async def send_guide_word(state):
@@ -261,8 +294,6 @@ class AutoBuildClient:
         self.builder_graph.add_edge('abstract_description', 'auto_create_agent')
         self.builder_graph.add_edge('auto_create_assistant', END)
 
-        auto_workflow = self.builder_graph.compile()
-        await auto_workflow.ainvoke(input=resp_state())
 
 
 
