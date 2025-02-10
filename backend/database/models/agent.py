@@ -11,7 +11,7 @@ class AgentTable(SQLModel, table=True):
     name: str = Field(default='')
     description: str = Field(default='')
     logo: str = Field(default='img/default.png')
-    user_id: Optional[int] = Field(index=True)
+    user_id: Optional[str] = Field(index=True)
     is_custom: bool = Field(default=True)
     llm_id: str = Field(default=None, description='Agent绑定的LLM模型')
     embedding_id: str = Field(default=None, description='Agent绑定的Embedding模型')

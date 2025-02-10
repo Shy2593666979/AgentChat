@@ -13,3 +13,7 @@ AGENT_DEFAULT_LOGO = "img/agent/assistant.png"
 TOOL_DEFAULT_LOGO = "img/tool/tool.png"
 
 LOGO_PREFIX = "http://" + SERVICE_HOST + ":" + str(SERVICE_PORT) + "/"
+
+SUCCESS_RESP = True
+
+FAIL_RESP = False
