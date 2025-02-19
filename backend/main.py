@@ -3,13 +3,14 @@ from fastapi.staticfiles import StaticFiles
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from fastapi.responses import JSONResponse
-from pydantic.v1 import BaseSettings
 
 from database.init_data import  init_database, init_default_agent
 from fastapi.middleware.cors import CORSMiddleware
-from config.service_config import SERVICE_HOST, SERVICE_PORT
 from routers import chat, dialog, message, agent, history, tool, user, llm
-from config.user_config import userConfig
+from api.JWT import Settings
+from settings import initialize_app_settings
+from settings import app_settings
+
 
 def register_router(app: FastAPI):
     app.mount("/img", StaticFiles(directory="img"), name="img")
@@ -38,12 +39,13 @@ def register_middleware(app: FastAPI):
     return app
 
 def init_config():
+    initialize_app_settings()
     init_database()
     init_default_agent()
 
 def create_app():
-    app = FastAPI(title="project_name",
-                  version="version")
+    app = FastAPI(title=app_settings.server.get('project_name'),
+                  version=app_settings.server.get('version'))
 
     init_config()
     register_router(app)
@@ -66,15 +68,11 @@ def create_app():
 
 app = create_app()
 
-# 定义 Pydantic 的 BaseSettings 类
-class Settings(BaseSettings):
-    authjwt_secret_key: str = 'secret'
-    authjwt_token_location: list = ['cookies', 'headers']
-    authjwt_cookie_csrf_protect: bool = False
-
-
-
+def main():
+    import uvicorn
+    uvicorn.run("main:app",
+                host=app_settings.server.get('host'),
+                port=app_settings.server.get('port'))
 
 if  __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("main:app", host=SERVICE_HOST, port=SERVICE_PORT)
+    main()

@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Request, Form
 from service.message import MessageLikeService, MessageDownService
-from config.user_config import userConfig
+from settings import app_settings
 from type.schemas import resp_200, resp_500
 from prompt.template import update_user_config_error, get_user_config_error
 from loguru import logger
@@ -32,20 +32,20 @@ async def insert_message_down(request: Request):
     return resp_200()
 
 
-@router.get("/config", description="获取用户配置")
-async def get_user_config():
-    try:
-        return resp_200(data=userConfig.get_user_config())
-    except Exception as err:
-        logger.error(f"get user config API error: {err}")
-        return resp_500(data=get_user_config_error)
-
-
-@router.post("/config", description="修改用户配置")
-async def update_user_config(data: str = Form(...)):
-    try:
-        userConfig.update_yaml_file(data)
-        userConfig.reload_config()
-    except Exception as err:
-        logger.error(f"update user config API error: {err}")
-        return resp_500(data=update_user_config_error)
+# @router.get("/config", description="获取用户配置")
+# async def get_user_config():
+#     try:
+#         return resp_200(data=userConfig.get_user_config())
+#     except Exception as err:
+#         logger.error(f"get user config API error: {err}")
+#         return resp_500(data=get_user_config_error)
+#
+#
+# @router.post("/config", description="修改用户配置")
+# async def update_user_config(data: str = Form(...)):
+#     try:
+#         userConfig.update_yaml_file(data)
+#         userConfig.reload_config()
+#     except Exception as err:
+#         logger.error(f"update user config API error: {err}")
+#         return resp_500(data=update_user_config_error)

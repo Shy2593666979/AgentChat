@@ -3,7 +3,6 @@ import sys
 sys.path.append("..")
 from langchain_openai import ChatOpenAI
 from langchain.agents import agent
-from config.llm_config import LLM_NAME, LLM_BASE_URL, LLM_API_KEY
 from langchain.schema import HumanMessage
 llm = ChatOpenAI(model=LLM_NAME, base_url=LLM_BASE_URL, api_key=LLM_API_KEY)
 

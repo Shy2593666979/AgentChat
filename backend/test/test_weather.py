@@ -1,7 +1,6 @@
 import requests
 import sys
 sys.path.append("..")
-from config.tool_config import WEATHER_URL, WEATHER_API_KEY
 
 
 params = {

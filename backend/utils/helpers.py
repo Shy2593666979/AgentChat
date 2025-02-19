@@ -4,7 +4,7 @@ import re
 import requests
 # from service.agent import AgentService
 from loguru import  logger
-from config.service_config import AGENT_DEFAULT_LOGO
+from settings import app_settings
 
 def get_cache_key(client_id, chat_id):
     return f'{client_id}_{chat_id}'
@@ -35,7 +35,7 @@ def check_input(user_input):
 
 def delete_img(logo: str):
     try:
-        if os.path.exists(logo) and logo != AGENT_DEFAULT_LOGO:
+        if os.path.exists(logo) and logo != app_settings.logo.get('agent'):
             os.remove(logo)
         else:
             logger.info(f"The logo Path is no exist")

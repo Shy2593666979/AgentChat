@@ -3,7 +3,6 @@ from typing import Type
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 from langchain_community.utilities import SerpAPIWrapper
-from config.user_config import userConfig
 
 search = SerpAPIWrapper()
 

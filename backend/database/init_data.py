@@ -9,7 +9,7 @@ from loguru import logger
 from cache.redis import redis_client
 from service.llm import LLMService
 from service.tool import ToolService
-from config.service_config import MYSQL_URL, TOOL_OPENAI, LOGO_PREFIX, AGENT_DEFAULT_LOGO
+from settings import app_settings
 
 
 # 创建MySQL数据表
@@ -47,7 +47,7 @@ def insert_agent_to_mysql():
                                   user_id=SystemUser,
                                   llm_id=llm.llm_id,
                                   tool_id=[tool.tool_id],
-                                  logo=AGENT_DEFAULT_LOGO,
+                                  logo=app_settings.logo.get('agent'),
                                   is_custom=False)
 
 
@@ -87,7 +87,7 @@ def load_default_tool():
 
 # Agent的json文件加载
 def load_agent_openai():
-    with open(TOOL_OPENAI, 'r', encoding='utf-8') as f:
+    with open("TOOL_OPENAI", 'r', encoding='utf-8') as f:
         result = json.load(f)
 
     return result

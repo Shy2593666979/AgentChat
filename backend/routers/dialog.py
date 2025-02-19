@@ -4,7 +4,7 @@ from service.agent import AgentService
 from service.dialog import DialogService
 from service.user import UserPayload, get_login_user
 from type.schemas import resp_200, resp_500, UnifiedResponseModel
-from config.service_config import LOGO_PREFIX
+from settings import app_settings
 
 router = APIRouter()
 
@@ -20,7 +20,7 @@ async def get_dialog(login_user: UserPayload = Depends(get_login_user)):
                            "agent_id": msg.agent_id,
                            "dialog_id": msg.dialog_id,
                            "create_time": msg.create_time,
-                           "logo": LOGO_PREFIX + msg_agent[0].logo})
+                           "logo": app_settings.logo.get('prefix') + msg_agent[0].logo})
 
         return resp_200(data=result)
     except Exception as err:

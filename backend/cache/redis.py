@@ -2,7 +2,7 @@ import pickle
 import redis
 from loguru import logger
 from typing import Optional
-from config.service_config import REDIS_URL
+from settings import app_settings
 from redis import ConnectionPool, RedisCluster
 from redis.backoff import ExponentialBackoff
 from redis.cluster import ClusterNode
@@ -112,4 +112,4 @@ class RedisClient:
         self.connection.close()
 
 # 实例化对象
-redis_client = RedisClient(REDIS_URL)
+redis_client = RedisClient(app_settings.redis.get('endpoint'))

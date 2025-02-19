@@ -3,7 +3,7 @@ from fastapi import APIRouter, Form, UploadFile, File, Depends
 from service.agent import AgentService
 from type.schemas import resp_200, resp_500, UnifiedResponseModel
 from utils.helpers import check_input
-from config.service_config import AGENT_DEFAULT_LOGO, LOGO_PREFIX
+from settings import app_settings
 from prompt.template import code_template, parameter_template
 from service.user import UserPayload, get_login_user
 from typing import List
@@ -31,7 +31,7 @@ async def create_agent(name: str = Form(...),
             with open(logo, 'wb') as file:
                 file.write(await logoFile.read())
         else:
-            logo = AGENT_DEFAULT_LOGO
+            logo = app_settings.logo.get('agent')
 
         AgentService.create_agent(name=name,
                                   description=description,
@@ -55,7 +55,7 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
             result.append({"id": item.id,
                            "name": item.name,
                            "description": item.description,
-                           "logo": LOGO_PREFIX + item.logo,
+                           "logo": app_settings.logo.get('prefix') + item.logo,
                            "tool_id": item.tool_id,
                            "llm_id": item.llm_id,
                            "is_custom": item.is_custom,
@@ -123,7 +123,7 @@ async def search_agent(name: str = Form(...),
             result.append({"id": item.id,
                            "name": item.name,
                            "description": item.description,
-                           "logo": LOGO_PREFIX + item.logo,
+                           "logo": app_settings.logo.get('prefix') + item.logo,
                            "tool_id": item.tool_id,
                            "llm_id": item.llm_id,
                            "embedding_id": item.embedding_id,

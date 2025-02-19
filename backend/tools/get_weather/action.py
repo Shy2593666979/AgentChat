@@ -1,10 +1,10 @@
-from venv import logger
+from loguru import logger
 
 import requests
 from typing import Type
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
-from config.user_config import userConfig
+from settings import app_settings
 from prompt.tool_prompt import WEATHER_PROMPT, MESSAGE_PROMPT
 
 
@@ -24,13 +24,13 @@ class WeatherTool(BaseTool):
 def get_weather(location: str):
     """帮助用户想要查询的天气"""
     params = {
-        'key': userConfig.TOOL_WEATHER_API_KEY,
+        'key': app_settings.tool_weather.get('api_key'),
         'city': location,
         'extensions': 'all'
     }
 
     try:
-        res = requests.get(url=userConfig.TOOL_WEATHER_BASE_URL, params=params, timeout=5)  # 预报天气
+        res = requests.get(url=app_settings.tool_weather.get('endpoint'), params=params, timeout=5)  # 预报天气
         result = res.json()
         city = result.get('forecasts')[0].get("city")  # 获取城市
         message_result = []

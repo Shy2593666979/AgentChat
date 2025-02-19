@@ -5,7 +5,7 @@ import json
 from typing import Type
 from langchain.tools import BaseTool
 from pydantic import Field, BaseModel
-from config.user_config import userConfig
+from settings import app_settings
 from prompt.tool_prompt import DELIVERY_PROMPT
 from loguru import logger
 
@@ -27,9 +27,9 @@ def get_delivery(delivery_number: str):
     try:
         query = f'number={delivery_number}&mobile=mobile&type=type'
 
-        url = userConfig.TOOL_DELIVERY_BASE_URL + '?' + query
+        url = app_settings.tool_delivery.get('endpoint') + '?' + query
         headers = {
-            'Authorization': 'APPCODE ' + userConfig.TOOL_DELIVERY_API_KEY
+            'Authorization': 'APPCODE ' + app_settings.tool_delivery.get('api_key')
         }
 
         request = urllib.request.Request(url, headers=headers)

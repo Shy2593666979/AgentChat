@@ -1,4 +1,3 @@
-from config.user_config import userConfig
 from langchain_openai import OpenAIEmbeddings
 from langchain_huggingface import HuggingFaceEmbeddings
 from langchain_core.embeddings import Embeddings
