@@ -17,3 +17,13 @@ LOGO_PREFIX = "http://" + SERVICE_HOST + ":" + str(SERVICE_PORT) + "/"
 SUCCESS_RESP = True
 
 FAIL_RESP = False
+
+OSS_ACCESS_KEY_ID = ""
+
+OSS_ACCESS_KEY_SECRET = ""
+
+OSS_ENDPOINT = "oss-cn-beijing.aliyuncs.com"
+
+OSS_BUCKET_NAME = "agentchat"
+
+OSS_BASE_URL = f"https://{OSS_BUCKET_NAME}.{OSS_ENDPOINT}"
