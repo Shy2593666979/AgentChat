@@ -3,7 +3,7 @@
 # import ssl
 # from  config.tool_config import DELIVERY_HOST, DELIVERY_KEY
 #
-# querys = 'number=434080499334709&mobile=mobile&type=type'
+# querys = 'number=434080499334709&mobile=mobile&schema=schema'
 # url = DELIVERY_HOST + '?' + querys
 #
 # headers = {

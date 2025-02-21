@@ -1,4 +1,4 @@
-from cache.redis import redis_client
+from services.redis import redis_client
 
 
 async def verify_captcha(captcha: str, captcha_key: str):

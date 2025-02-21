@@ -1,5 +1,5 @@
-from rag.load_document import vector_store
-from rag.rerank import document_reranker
+from services.rag import vector_store
+from services.rag import document_reranker
 
 def exec_rag(query: str, top_k: int = 6):
     retriever = vector_store.as_retriever(search_type="similarity", search_kwargs={"k": top_k})

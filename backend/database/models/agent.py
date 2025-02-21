@@ -10,7 +10,7 @@ class AgentTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str = Field(default='')
     description: str = Field(default='')
-    logo: str = Field(default='img/default.png')
+    logo: str = Field(default='img/agent/agent.png')
     user_id: Optional[str] = Field(index=True)
     is_custom: bool = Field(default=True)
     llm_id: str = Field(default=None, description='Agent绑定的LLM模型')

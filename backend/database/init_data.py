@@ -4,11 +4,10 @@ import json
 from sqlmodel import SQLModel
 
 from database import engine, SystemUser
-from service.agent import AgentService
+from api.services.agent import AgentService
 from loguru import logger
-from cache.redis import redis_client
-from service.llm import LLMService
-from service.tool import ToolService
+from api.services.llm import LLMService
+from api.services.tool import ToolService
 from settings import app_settings
 
 

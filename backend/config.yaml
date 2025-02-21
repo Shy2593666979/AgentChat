@@ -43,6 +43,13 @@ redis:
 mysql:
   endpoint: "mysql+pymysql://root:mingguang0703@localhost:3306/agentchat"
 
+milvus:
+
+elasticsearch:
+  hosts:
+  index_config_path:
+  index_search_path:
+
 logo:
   tool: "img/tool/tool.png"
   agent: "img/agent/assistant.png"

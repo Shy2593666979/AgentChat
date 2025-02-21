@@ -9,15 +9,15 @@ from langchain_openai import ChatOpenAI
 client = OpenAI(base_url='http://70.182.56.16:11000/v1/', api_key='sk-ChtJNYJD1sm5FqwA7bE8EfFa3eE847Fa9758E5626d64Cc9a')
 tools = [
     {
-        "type": "function",
+        "schema": "function",
         "function": {
             "name": "get_weather",
             "description": "Get weather of an location, the user shoud supply a location first",
             "parameters": {
-                "type": "object",
+                "schema": "object",
                 "properties": {
                     "location": {
-                        "type": "string",
+                        "schema": "string",
                         "description": "The city and state, e.g. San Francisco, CA",
                     }
                 },
@@ -88,7 +88,7 @@ res = send_messages(messages)
 
 
 
-# res = client.invoke(input=prompt).content
+# res = client.invoke(input=prompts).content
 #
 # resp = parse_latest_plugin_call(res)
 #
@@ -109,14 +109,14 @@ res = send_messages(messages)
 #         'name': 'get_current_weather',
 #         'description': 'Get the current weather in a given location',
 #         'parameters': {
-#             'type': 'object',
+#             'schema': 'object',
 #             'properties': {
 #                 'location': {
-#                     'type': 'string',
+#                     'schema': 'string',
 #                     'description': 'The city and state, e.g. San Francisco, CA',
 #                 },
 #                 'unit': {
-#                     'type': 'string',
+#                     'schema': 'string',
 #                     'enum': ['celsius', 'fahrenheit']
 #                 },
 #             },

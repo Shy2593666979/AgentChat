@@ -2,7 +2,7 @@ import json
 import os
 import re
 import requests
-# from service.agent import AgentService
+# from services.agent import AgentService
 from loguru import  logger
 from settings import app_settings
 
@@ -89,7 +89,7 @@ def send_message(prompt, user_input):
     请求LLM函数
     """
     
-    # logger.logger_api.info('prompt输入:' + prompt)
+    # logger.logger_api.info('prompt输入:' + prompts)
     
     # logger.logger_api.info('用户输入:' + user_input)
 
@@ -130,7 +130,7 @@ def get_raw_slot(parameters):
     # 创建新的JSON对象
     output_data = []
     for item in parameters:
-        new_item = {"name": item["name"], "desc": item["desc"], "type": item["type"], "value": ""}
+        new_item = {"name": item["name"], "desc": item["desc"], "schema": item["schema"], "value": ""}
         output_data.append(new_item)
     return output_data
 
@@ -306,4 +306,4 @@ def get_function_by_name_type(function_name: str, type: str="openai"):
     for data in parameter:
         para = json.loads(data.parameter)
         return para
-    logger.info(f"get function by name type appear no data")
+    logger.info(f"get function by name schema appear no data")

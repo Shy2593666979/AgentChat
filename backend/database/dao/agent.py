@@ -51,9 +51,9 @@ class AgentDao:
             return agent
 
     # @classmethod
-    # def select_agent_by_type(cls, type: str):
+    # def select_agent_by_type(cls, schema: str):
     #     with Session(engine) as session:
-    #         sql = select(AgentTable).where(AgentTable.type == type)
+    #         sql = select(AgentTable).where(AgentTable.schema == schema)
     #         result = session.exec(sql).all()
     #         return result
 
@@ -65,9 +65,9 @@ class AgentDao:
             return result
 
     # @classmethod
-    # def get_agent_by_name_type(cls, name: str, type: str):
+    # def get_agent_by_name_type(cls, name: str, schema: str):
     #     with Session(engine) as session:
-    #         sql = select(AgentTable).where(and_(AgentTable.name == name, AgentTable.type == type))
+    #         sql = select(AgentTable).where(and_(AgentTable.name == name, AgentTable.schema == schema))
     #         result = session.exec(sql).all()
     #         return result
 
@@ -152,8 +152,8 @@ class AgentDao:
             #     agent.description = description
             # if parameter is not None:
             #     agent.parameter = parameter
-            # if type is not None:
-            #     agent.type = type
+            # if schema is not None:
+            #     agent.schema = schema
             # if code is not None:
             #     agent.code = code
             # if logo is not None:

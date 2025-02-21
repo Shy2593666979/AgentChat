@@ -8,10 +8,12 @@ class Settings(BaseSettings):
     logo: dict = {}
     redis: dict = {}
     mysql: dict = {}
+    milvus: dict = {}
     rerank: dict = {}
     server: dict = {}
     embedding: dict = {}
     langfuse: dict = {}
+    elasticsearch: dict = {}
     tool_delivery: dict = {}
     tool_google: dict = {}
     tool_weather: dict = {}

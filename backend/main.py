@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Request
+from fastapi import FastAPI
 from fastapi.staticfiles import StaticFiles
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
@@ -6,23 +6,16 @@ from fastapi.responses import JSONResponse
 
 from database.init_data import  init_database, init_default_agent
 from fastapi.middleware.cors import CORSMiddleware
-from routers import chat, dialog, message, agent, history, tool, user, llm
+from api.router import router
 from api.JWT import Settings
 from settings import initialize_app_settings
 from settings import app_settings
 
 
 def register_router(app: FastAPI):
-    app.mount("/img", StaticFiles(directory="img"), name="img")
+    app.mount("/img", StaticFiles(directory="data/img"), name="img")
+    app.include_router(router)
 
-    app.include_router(chat.router, prefix="/api")
-    app.include_router(dialog.router, prefix="/api")
-    app.include_router(message.router, prefix="/api")
-    app.include_router(agent.router, prefix="/api")
-    app.include_router(history.router, prefix="/api")
-    app.include_router(user.router, prefix="/api")
-    app.include_router(tool.router, prefix="/api")
-    app.include_router(llm.router, prefix="/api")
 
 def register_middleware(app: FastAPI):
     origins = [

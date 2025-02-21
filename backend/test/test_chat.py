@@ -10,7 +10,7 @@ from langchain_openai import ChatOpenAI
 from langchain.schema import HumanMessage
 from config.llm_config import LLM_API_KEY, LLM_BASE_URL, LLM_NAME
 from orjson import orjson
-from prompt.llm_prompt import function_call_prompt
+from prompts.llm_prompt import function_call_prompt
 from langfuse.callback import CallbackHandler
 from langfuse import Langfuse
 from config.langfuse_config import LANGFUSE_SECRET_KEY, LANGFUSE_PUBLIC_KEY, LANGFUSE_HOST
@@ -61,7 +61,7 @@ def llm_function_call(prompt, function: str):
         return None, None
 
 # # 直接调用模型对话
-# async def llm_chat(prompt):
+# async def llm_chat(prompts):
 #     # # 使用langfuse 监控对话的流程
 #     # llm_chat_handler = CallbackHandler(
 #     #     trace_name=CHAT_TRACE_NAME,
@@ -71,28 +71,28 @@ def llm_function_call(prompt, function: str):
 #     #     public_key=LANGFUSE_PUBLIC_KEY
 #     # )
 #
-#     # messages = [HumanMessage(content=prompt)]
+#     # messages = [HumanMessage(content=prompts)]
 #     # message = llm.invoke(messages, config={"callbacks": [llm_chat_handler]})
 #
 #     # 流式生成提示词
 #     print("qqqq")
 #     final_prompt = ''
-#     async for one_prompt in chat_llm(prompt):
+#     async for one_prompt in chat_llm(prompts):
 #         print(final_prompt)
-#         yield str(StreamData(event='message', data={'type': 'prompt', 'message': one_prompt.content}))
+#         yield str(StreamData(event='message', data={'schema': 'prompts', 'message': one_prompt.content}))
 #         final_prompt += one_prompt.content
 #
-#     yield str(StreamData(event='message', data={'type': 'end', 'message': ""}))
+#     yield str(StreamData(event='message', data={'schema': 'end', 'message': ""}))
 #
 #
 #
-# async def chat_llm(prompt):
+# async def chat_llm(prompts):
 #     chain = llm
-#     async for one in chain.astream(prompt):
+#     async for one in chain.astream(prompts):
 #         yield one
 #
 # print("121")
-# asyncio.run(llm_chat(prompt="你好啊"))
+# asyncio.run(llm_chat(prompts="你好啊"))
 
 
 
@@ -109,9 +109,9 @@ async def llm_chat(prompt):
     # 流式生成提示词
     final_prompt = ''
     async for one_prompt in chat_llm(prompt, user="你好啊"):
-        yield str({'type': 'prompt', 'message': one_prompt.content})
+        yield str({'schema': 'prompts', 'message': one_prompt.content})
         final_prompt += one_prompt.content
-    yield str({'type': 'end', 'message': ""})
+    yield str({'schema': 'end', 'message': ""})
     yield str(final_prompt)
 
 async def chat_llm(prompt, **kwargs):

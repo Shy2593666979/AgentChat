@@ -5,7 +5,7 @@ from typing import Type
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 from settings import app_settings
-from prompt.tool_prompt import WEATHER_PROMPT, MESSAGE_PROMPT
+from prompts.tool_prompt import WEATHER_PROMPT, MESSAGE_PROMPT
 
 
 class WeatherInput(BaseModel):
