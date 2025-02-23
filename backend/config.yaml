@@ -43,12 +43,22 @@ redis:
 mysql:
   endpoint: "mysql+pymysql://root:mingguang0703@localhost:3306/agentchat"
 
+split:
+  chunk_size:
+  overlap_size:
+
 milvus:
+  host:
+  port:
 
 elasticsearch:
   hosts:
   index_config_path:
   index_search_path:
+
+rag:
+  top_k:
+  min_score:
 
 logo:
   tool: "img/tool/tool.png"

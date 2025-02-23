@@ -56,6 +56,7 @@ Begin!
 
 Question: {input}
 History: {history}
+Recall_text: {recall_knowledge_data}
 Thought:{agent_scratchpad}
 """
 

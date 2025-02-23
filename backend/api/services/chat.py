@@ -10,6 +10,7 @@ from prompts.llm_prompt import react_prompt_en, fail_action_prompt, function_cal
 from prompts.template import function_call_template
 from api.services.history import HistoryService
 from api.services.tool import ToolService
+from services.rag_handler import RagHandler
 from tools import action_Function_call, action_React
 from api.services.llm import LLMService
 from loguru import logger
@@ -25,6 +26,7 @@ class ChatService:
         self.tools_id = kwargs.get('tool_id')
         self.dialog_id = kwargs.get('dialog_id')
         self.embedding_id = kwargs.get('embedding_id')
+        self.knowledges_id = kwargs.get('knowledge_id')
         self.llm_call = None
         self.llm = None
         self.embedding = None
@@ -60,24 +62,27 @@ class ChatService:
              for name in tools_name:
                 self.tools.append(action_Function_call[name])
 
+
     async def run(self, user_input: str):
         history_message = self.get_history_message(user_input=user_input, dialog_id=self.dialog_id)
 
-        if self.llm_call == 'React':
-            return self._run_react(user_input, history_message)
-        else:
-            return self._run_function_call(user_input, history_message)
+        recall_knowledge_data = await RagHandler.rag_query(user_input, self.knowledges_id)
 
-    async def _run_react(self, user_input: str, history_message: str):
+        if self.llm_call == 'React':
+            return self._run_react(user_input, history_message, recall_knowledge_data)
+        else:
+            return self._run_function_call(user_input, history_message, recall_knowledge_data)
+
+    async def _run_react(self, user_input: str, history_message: str, recall_knowledge_data: str):
         agent = create_structured_chat_agent(llm=self.llm, tools=self.tools, prompt=react_prompt_en)
         agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
 
-        async for chunk in agent_executor.astream({'input': user_input, 'history': history_message}):
+        async for chunk in agent_executor.astream({'input': user_input, 'history': history_message, 'recall_knowledge_data': recall_knowledge_data}):
             yield chunk.json(ensure_ascii=False, include=INCLUDE_MSG)
 
-    async def _run_function_call(self, user_input: str, history_message: str):
+    async def _run_function_call(self, user_input: str, history_message: str, recall_knowledge_text: str):
 
-        func_prompt = function_call_template.format(input=user_input, history=history_message)
+        func_prompt = function_call_template.format(input=user_input, history=history_message, recall_knowledge_text=recall_knowledge_text)
         fun_name, args = self._function_call(user_input=func_prompt)
 
         tools_result = ChatService._exec_tools(fun_name, args)

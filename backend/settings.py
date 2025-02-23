@@ -5,12 +5,14 @@ from pydantic.v1 import BaseSettings
 class Settings(BaseSettings):
     llm: dict = {}
     oss: dict = {}
+    rag: dict = {}
     logo: dict = {}
     redis: dict = {}
     mysql: dict = {}
     milvus: dict = {}
     rerank: dict = {}
     server: dict = {}
+    split: dict = {}
     embedding: dict = {}
     langfuse: dict = {}
     elasticsearch: dict = {}
