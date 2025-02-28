@@ -7,16 +7,23 @@ from sqlmodel import Session, select, delete, update
 class KnowledgeDao:
 
     @classmethod
-    def create_knowledge(cls, knowledge_name, knowledge_desc, user_id, oss_object_name):
+    def create_knowledge(cls, knowledge_name, knowledge_desc, user_id):
         with Session(engine) as session:
             session.add(KnowledgeTable(name=knowledge_name, description=knowledge_desc,
-                                       user_id=user_id, oss_object_name=oss_object_name))
+                                       user_id=user_id))
             session.commit()
 
     @classmethod
     def get_knowledge_by_user(cls, user_id):
         with Session(engine) as session:
             sql = select(KnowledgeTable).where(KnowledgeTable.user_id == user_id)
+            result = session.exec(sql).all()
+            return result
+
+    @classmethod
+    def get_all_knowledge(cls):
+        with Session(engine) as session:
+            sql = select(KnowledgeTable)
             result = session.exec(sql).all()
             return result
 
@@ -39,3 +46,10 @@ class KnowledgeDao:
             sql = update(KnowledgeTable).where(KnowledgeTable.id == knowledge_id).values(**update_values)
             session.exec(sql)
             session.commit()
+
+    @classmethod
+    def select_user_by_id(cls, knowledge_id):
+        with Session(engine) as session:
+            sql = select(KnowledgeTable).where(KnowledgeTable.id == knowledge_id)
+            result = session.exec(sql).first()
+            return result

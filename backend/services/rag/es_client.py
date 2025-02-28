@@ -68,9 +68,9 @@ class AsyncESClient:
                 delete_query = json.loads(content)
 
             await self.client.delete_by_query(index=index_name, body=delete_query)
-            logger.info(f'Success delete by file id')
+            logger.info(f'Success delete documents in file id: {file_id}')
         except Exception as e:
-            logger.error(f'delete by file id error: {e}')
+            logger.error(f'Delete documents in file id error: {e}')
 
 
     async def close(self):

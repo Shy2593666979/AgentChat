@@ -9,5 +9,5 @@ class KnowledgeFileTable(SQLModel, table=True):
     file_name: str = Field(index=True)
     knowledge_id: str = Field(index=True)
     user_id: str = Field(index=True)
-    oss_url: str = Field(index=True)
+    oss_url: str = Field(default=None)
     update_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))

@@ -1,18 +1,26 @@
 import json
-from fastapi import APIRouter, Body
+from typing import Annotated
+from fastapi import APIRouter, Body, UploadFile, File
 from api.services.history import HistoryService
 from api.services.dialog import DialogService
 from services.chat.client import ChatClient
+from utils.file_utils import save_upload_file, read_upload_file
 from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
 @router.post("/chat", description="对话接口")
-async def chat(user_input: str = Body(description='用户问题'),
+async def chat(file: UploadFile = File(None),
+               user_input: str = Body(description='用户问题'),
                dialog_id: str = Body(description='对话的ID')):
     """与助手进行对话"""
 
     chat_client = ChatClient(dialog_id=dialog_id)
+
+    if file:
+        file_path = await save_upload_file(file)
+        file_content = await read_upload_file(file_path)
+        user_input += f"上传的文件路径为：{file_path}"
 
     # 流式输出LLM生成结果
     async def general_generate():

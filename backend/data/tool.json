@@ -28,5 +28,15 @@
     "en_name": "crawl_web",
     "zh_name": "爬取网页",
     "description": "帮助用户爬取给定网址的内容信息"
+  },
+  {
+    "en_name": "convert_to_pdf",
+    "zh_name": "转成PDf文件",
+    "description": "帮助用户将上传的文件转成PDF文件"
+  },
+  {
+    "en_name": "convert_to_docx",
+    "zh_name": "转成Docx文件",
+    "description": "帮助用户将上传的文件转成Docx文件"
   }
 ]

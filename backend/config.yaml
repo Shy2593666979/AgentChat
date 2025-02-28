@@ -74,3 +74,4 @@ oss:
   base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
 
 use_captcha: True
+user_oss: False

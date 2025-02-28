@@ -11,6 +11,5 @@ class KnowledgeTable(SQLModel, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str = Field(index=True)
     description: Optional[str] = Field(index=True)
-    oss_object_name: Optional[str] = Field(index=True)
     user_id: Optional[str] = Field(index=True)
     update_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))

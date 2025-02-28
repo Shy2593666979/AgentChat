@@ -29,6 +29,12 @@ class OSSClient:
         except oss2.exceptions.OssError as e:
             logger.error(f"Failed to delete bucket: {e}")
 
+    def sign_url_for_get(self, object_name, expiration=3600):
+        try:
+            url = self.bucket.sign_url("GET", object_name, expiration, slash_safe=True)
+            return url
+        except oss2.exceptions.OssError as e:
+            logger.error(f"Failed to generate GET URL for {object_name}: {e}")
 
     def download_file(self, object_name, local_file):
         try:

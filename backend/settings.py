@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     tool_google: dict = {}
     tool_weather: dict = {}
 
+    use_oss: bool = False
     use_captcha: bool = False
 
 app_settings = Settings()
