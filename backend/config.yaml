@@ -1,5 +1,5 @@
 server:
-  host: "0.0.0.0"
+  host: "127.0.0.1"
   port: 8880
   project_name: "AgentChat"
   version: "1.0.1"
@@ -12,7 +12,7 @@ langfuse:
   user_id: "tian_chat"
 
 llm:
-  api_key:
+  api_key: ''
   base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
   model_name: "qwen-plus"
 
@@ -31,7 +31,7 @@ tool_delivery:
   base_url: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
 
 tool_google:
-  api_key: ""
+  api_key: "xxx"
 
 tool_weather:
   api_key: ""
@@ -48,11 +48,11 @@ split:
   overlap_size:
 
 milvus:
-  host:
-  port:
+  host: "localhost"
+  port: "19530"
 
 elasticsearch:
-  hosts:
+  hosts: "http://localhost:9200"
   index_config_path:
   index_search_path:
 
@@ -74,4 +74,4 @@ oss:
   base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
 
 use_captcha: True
-user_oss: False
+use_oss: False

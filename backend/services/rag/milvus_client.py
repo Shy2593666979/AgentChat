@@ -1,6 +1,4 @@
-
 from loguru import logger
-from services.rag.parser import doc_parser
 from settings import app_settings
 from services.rag.embedding import get_embedding
 from schema.search import SearchModel
@@ -14,6 +12,7 @@ class MilvusClient:
 
 
         connections.connect("default", host=self.milvus_host, port=self.milvus_port)
+
 
         self.collections = self._get_collection()
 
@@ -46,6 +45,7 @@ class MilvusClient:
             }
             collection.create_index("embedding", index_params)
             self.collections[collection_name] = collection
+            logger.info(f'Successful create milvus collection name: {collection_name}')
 
     async def search(self, query, collection_name, top_k=10):
         """
@@ -88,6 +88,7 @@ class MilvusClient:
                     knowledge_id=hit.entity.get("knowledge_id", ""),  # 获取知识库 ID
                     update_time=hit.entity.get("update_time", ""),  # 获取更新时间
                     score=hit.distance))
+
         return documents
 
     async def delete_by_file_id(self, file_id, collection_name):
@@ -117,8 +118,9 @@ class MilvusClient:
 
     async def insert(self, collection_name, chunks):
         """插入数据到当前集合"""
-        if collection_name not in self.collections :
-            raise ValueError("Collection is not set. Use set_collection() first.")
+        if collection_name not in self.collections:
+            await self.create_collection(collection_name)
+            # raise ValueError("Collection is not set. Use set_collection() first.")
         content_list, chunk_id_list, file_id_list, file_name_list, update_time_list, knowledge_id_list = [], [], [], [], [], []
 
         for chunk in chunks:

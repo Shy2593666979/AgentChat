@@ -8,7 +8,7 @@ from schema.schemas import resp_200, resp_500
 class AgentService:
 
     @classmethod
-    def create_agent(cls, name: str, description: str, logo: str, user_id: str,
+    def create_agent(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
                      llm_id: str, tool_id: List[str], embedding_id: str = None, is_custom: bool = True):
         try:
             agent_id = AgentDao.create_agent(name=name,
@@ -17,6 +17,7 @@ class AgentService:
                                             llm_id=llm_id,
                                             tool_id=tool_id,
                                             user_id=user_id,
+                                            knowledges_id=knowledges_id,
                                             is_custom=is_custom,
                                             embedding_id=embedding_id)
             return agent_id
@@ -36,7 +37,7 @@ class AgentService:
 
     @classmethod
     def update_agent_by_id(cls, id: str, name: str, description: str, user_id: str,
-                           logo: str, tool_id: List[str], llm_id: str, embedding_id: str):
+                           logo: str, tool_id: List[str], knowledges_id: List[str], llm_id: str, embedding_id: str):
         try:
             # 需要判断是否有权限，管理员随意
             if user_id == AdminUser or user_id == cls.get_agent_user_id(agent_id=id):
@@ -44,6 +45,7 @@ class AgentService:
                                             name=name,
                                             logo=logo,
                                             description=description,
+                                            knowledges_id=knowledges_id,
                                             tool_id=tool_id,
                                             llm_id=llm_id,
                                             embedding_id=embedding_id)

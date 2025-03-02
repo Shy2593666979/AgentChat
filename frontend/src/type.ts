@@ -53,3 +53,10 @@ export interface ChatMessage {
   personMessage: MessageType
   aiMessage: MessageType
 }
+export interface KnowledgeListType{
+    id: string,
+    name: string,
+    description: string,
+    userId: string,
+    updateTime: string
+}

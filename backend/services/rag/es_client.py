@@ -3,8 +3,6 @@ from typing import List
 from elasticsearch import AsyncElasticsearch
 from schema.chunk import ChunkModel
 from schema.search import SearchModel
-from services.rag.eval import query
-from services.rag.parser import doc_parser
 from settings import app_settings
 from loguru import logger
 

@@ -10,7 +10,7 @@ from database import engine
 class AgentDao:
 
     @classmethod
-    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: str,
+    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
                        llm_id: str, tool_id: List[str], is_custom: bool, embedding_id: str):
         agent = AgentTable(name=name,
                            logo=logo,
@@ -18,15 +18,16 @@ class AgentDao:
                            llm_id=llm_id,
                            tool_id=tool_id,
                            description=description,
+                           knowledges_id=knowledges_id,
                            is_custom=is_custom,
                            embedding_id=embedding_id)
         return agent
 
     @classmethod
-    def create_agent(cls, name: str, description: str, logo: str, user_id: str,
+    def create_agent(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
                      llm_id: str, tool_id: List[str], is_custom: bool, embedding_id: str):
         with Session(engine) as session:
-            session.add(cls._get_agent_sql(name, description, logo, user_id, llm_id, tool_id, is_custom, embedding_id))
+            session.add(cls._get_agent_sql(name, description, logo, user_id, knowledges_id, llm_id, tool_id, is_custom, embedding_id))
             session.commit()
 
     @classmethod
@@ -118,7 +119,7 @@ class AgentDao:
             return result
 
     @classmethod
-    def update_agent_by_id(cls, id: str, name: str, description: str,
+    def update_agent_by_id(cls, id: str, name: str, description: str, knowledges_id: List[str],
                            logo: str, llm_id: str, tool_id: List[str], embedding_id: str):
         with Session(engine) as session:
             # 构建 update 语句
@@ -133,6 +134,8 @@ class AgentDao:
                 update_values['llm_id'] = llm_id
             if tool_id is not None:
                 update_values['tool_id'] = tool_id
+            if knowledges_id is not None:
+                update_values['knowledges_id'] = knowledges_id
 
             if logo is not None:
                 # 删除agent的logo地址

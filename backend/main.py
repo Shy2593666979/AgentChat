@@ -4,15 +4,15 @@ from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from fastapi.responses import JSONResponse
 
-from database.init_data import  init_database, init_default_agent
 from fastapi.middleware.cors import CORSMiddleware
-from api.router import router
-from api.JWT import Settings
+
+
 from settings import initialize_app_settings
 from settings import app_settings
 
 
 def register_router(app: FastAPI):
+    from api.router import router
     app.mount("/img", StaticFiles(directory="data/img"), name="img")
     app.include_router(router)
 
@@ -33,14 +33,20 @@ def register_middleware(app: FastAPI):
 
 def init_config():
     initialize_app_settings()
+
+    # 必须放到init settings 之后 import
+    from database.init_data import init_database, init_default_agent
     init_database()
     init_default_agent()
 
 def create_app():
+    init_config()
+
     app = FastAPI(title=app_settings.server.get('project_name'),
                   version=app_settings.server.get('version'))
 
-    init_config()
+    from api.JWT import Settings
+
     register_router(app)
     register_middleware(app)
 

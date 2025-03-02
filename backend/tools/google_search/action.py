@@ -2,9 +2,11 @@ import os
 from typing import Type
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
+from settings import app_settings
 from langchain_community.utilities import SerpAPIWrapper
 
-search = SerpAPIWrapper()
+# os['SERPAPI_API_KEY`'] =
+search = SerpAPIWrapper(serpapi_api_key=app_settings.tool_google.get('api_key'))
 
 class GoogleSearchInput(BaseModel):
     query: str = Field(description='用户想要搜索的问题')

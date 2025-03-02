@@ -5,7 +5,7 @@ from sqlmodel import Session, SQLModel, Field
 from uuid import uuid4
 
 class KnowledgeFileTable(SQLModel, table=True):
-    id: str = Field(default=uuid4().hex, description='知识库文件id')
+    id: str = Field(default=uuid4().hex, description='知识库文件id', primary_key=True)
     file_name: str = Field(index=True)
     knowledge_id: str = Field(index=True)
     user_id: str = Field(index=True)

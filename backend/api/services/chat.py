@@ -1,3 +1,4 @@
+import asyncio
 from uuid import uuid4
 
 from langchain.agents import create_structured_chat_agent, AgentExecutor
@@ -64,9 +65,15 @@ class ChatService:
 
 
     async def run(self, user_input: str):
-        history_message = self.get_history_message(user_input=user_input, dialog_id=self.dialog_id)
 
-        recall_knowledge_data = await RagHandler.rag_query(user_input, self.knowledges_id)
+        # 都是通过检索RAG，并发可以减少消耗时间
+        history_message, recall_knowledge_data = await asyncio.gather(
+            self.get_history_message(user_input=user_input, dialog_id=self.dialog_id),
+            RagHandler.rag_query(user_input, self.knowledges_id)
+        )
+
+        # history_message = await self.get_history_message(user_input=user_input, dialog_id=self.dialog_id)
+        # recall_knowledge_data = await RagHandler.rag_query(user_input, self.knowledges_id)
 
         if self.llm_call == 'React':
             return self._run_react(user_input, history_message, recall_knowledge_data)
@@ -120,13 +127,13 @@ class ChatService:
             return fail_action_prompt
 
 
-    def get_history_message(self, user_input: str, dialog_id: str, top_k: int = 5) -> str:
+    async def get_history_message(self, user_input: str, dialog_id: str, top_k: int = 5) -> str:
         # 如果绑定了Embedding模型，默认走RAG检索聊天记录
         if self.embedding:
-            messages = self._retrieval_history(user_input, dialog_id, top_k)
+            messages = await self._retrieval_history(user_input, dialog_id, top_k)
             return messages
         else:
-            messages = self._direct_history(dialog_id, top_k)
+            messages = await self._direct_history(dialog_id, top_k)
 
             result = ''
             for message in messages:
@@ -134,7 +141,7 @@ class ChatService:
             return result
 
     @staticmethod
-    def _direct_history(dialog_id: str, top_k: int):
+    async def _direct_history(dialog_id: str, top_k: int):
         messages = HistoryService.select_history(dialog_id=dialog_id, top_k=top_k)
         result = []
         for message in messages:
@@ -142,16 +149,18 @@ class ChatService:
         return result
 
     # 使用RAG检索的方式将最近2 * top_k条数据按照相关性排序，取其中top_k个
-    def _retrieval_history(self, user_input: str, dialog_id: str, top_k: int):
+    async def _retrieval_history(self, user_input: str, dialog_id: str, top_k: int):
 
-        messages = HistoryService.select_history(dialog_id=dialog_id, top_k=top_k * 2)
-
-        for msg in messages:
-            self.collection.add(documents=[msg.to_str()], ids=[uuid4().hex])
-
-        results = self.collection.query(query_texts=[user_input], n_results=top_k)
-        history = ''.join(results['documents'][0])
-        return history
+        # messages = HistoryService.select_history(dialog_id=dialog_id, top_k=top_k * 2)
+        #
+        # for msg in messages:
+        #     self.collection.add(documents=[msg.to_str()], ids=[uuid4().hex])
+        #
+        # results = self.collection.query(query_texts=[user_input], n_results=top_k)
+        # history = ''.join(results['documents'][0])
+        # return history
+        messages = await RagHandler.rag_query(user_input, dialog_id, 0.6, top_k, False)
+        return messages
 
     @staticmethod
     def function_to_json(func) -> dict:

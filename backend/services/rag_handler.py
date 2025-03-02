@@ -35,7 +35,8 @@ class RagHandler:
         return documents
 
     @classmethod
-    async def rag_query(cls, query, knowledges_id, min_score: float=None, top_k: int=None):
+    async def rag_query(cls, query, knowledges_id, min_score: float=None,
+                        top_k: int=None, needs_query_rewrite: bool=True):
         """
             处理 RAG 流程：查询重写、文档检索、重排序、结果过滤和拼接。
 
@@ -43,7 +44,7 @@ class RagHandler:
                 query (str): 用户查询。
                 knowledges_id (str): 知识库 ID。
                 min_score (float): 文档最低分数阈值，默认为配置中的值。
-                skip_docs (int): 跳过前 N 个文档，默认为 3。
+                top_k (int): 召回文档的个数。
 
             返回:
                 str: 拼接后的最终结果。
@@ -54,7 +55,10 @@ class RagHandler:
             top_k = app_settings.rag.get('top_k')
 
         # 查询重写
-        rewritten_queries = await cls.query_rewrite(query)
+        if needs_query_rewrite:
+            rewritten_queries = await cls.query_rewrite(query)
+        else:
+            rewritten_queries = [query]
 
         # 文档检索
         retrieved_documents = await cls.mix_retrival_documents(rewritten_queries, knowledges_id)

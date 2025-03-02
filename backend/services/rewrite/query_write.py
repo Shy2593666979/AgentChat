@@ -23,6 +23,6 @@ class QueryRewrite:
             return result
         except Exception as e:
             logger.info(f"json loads error: {e}")
-            return []
+            return [user_input]
 
 query_rewriter = QueryRewrite()

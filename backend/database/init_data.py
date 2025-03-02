@@ -46,21 +46,20 @@ def insert_agent_to_mysql():
                                   user_id=SystemUser,
                                   llm_id=llm.llm_id,
                                   tool_id=[tool.tool_id],
+                                  knowledges_id=[],
                                   logo=app_settings.logo.get('agent'),
                                   is_custom=False)
 
 
 # 认定OS下有一个默认LLM API KEY
 def insert_llm_to_mysql():
-    api_key = os.getenv('API_KEY')
-    base_url = os.getenv('BASE_URL')
-    model = os.getenv('MODEL') or 'GPT-4'
+    api_key = app_settings.llm.get('api_key')
+    base_url = app_settings.llm.get('base_url')
+    model = app_settings.llm.get('model_name')
     llm_type = os.getenv('TYPE') or 'LLM'
     provider = os.getenv('PROVIDER') or 'OpenAI'
 
-
-    if model and api_key and base_url and provider:
-        LLMService.create_llm(user_id=SystemUser, model=model, llm_type=llm_type,
+    LLMService.create_llm(user_id=SystemUser, model=model, llm_type=llm_type,
                               api_key=api_key, base_url=base_url, provider=provider)
 
 # 初始化默认的Tool

@@ -16,5 +16,5 @@ class AgentTable(SQLModel, table=True):
     llm_id: str = Field(default=None, description='Agent绑定的LLM模型')
     embedding_id: str = Field(default=None, description='Agent绑定的Embedding模型')
     tool_id: List[str] = Field(default=[], sa_column=Column(JSON), description='Agent绑定的工具列表')
-    knowledge_id: List[str] = Field(default=[], description="Agent 绑定的知识库")
+    knowledges_id: List[str] = Field(default=[], sa_column=Column(JSON), description="Agent 绑定的知识库")
     create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
