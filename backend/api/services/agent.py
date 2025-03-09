@@ -9,17 +9,17 @@ class AgentService:
 
     @classmethod
     def create_agent(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                     llm_id: str, tool_id: List[str], embedding_id: str = None, is_custom: bool = True):
+                     llm_id: str, tools_id: List[str], use_embedding: bool, is_custom: bool = True):
         try:
             agent_id = AgentDao.create_agent(name=name,
                                             description=description,
                                             logo=logo,
                                             llm_id=llm_id,
-                                            tool_id=tool_id,
+                                            tools_id=tools_id,
                                             user_id=user_id,
                                             knowledges_id=knowledges_id,
                                             is_custom=is_custom,
-                                            embedding_id=embedding_id)
+                                            use_embedding=use_embedding)
             return agent_id
         except Exception as err:
             logger.error(f"create agent is appear error: {err}")
@@ -37,7 +37,7 @@ class AgentService:
 
     @classmethod
     def update_agent_by_id(cls, id: str, name: str, description: str, user_id: str,
-                           logo: str, tool_id: List[str], knowledges_id: List[str], llm_id: str, embedding_id: str):
+                           logo: str, tools_id: List[str], knowledges_id: List[str], llm_id: str, use_embedding: bool):
         try:
             # 需要判断是否有权限，管理员随意
             if user_id == AdminUser or user_id == cls.get_agent_user_id(agent_id=id):
@@ -46,9 +46,9 @@ class AgentService:
                                             logo=logo,
                                             description=description,
                                             knowledges_id=knowledges_id,
-                                            tool_id=tool_id,
+                                            tools_id=tools_id,
                                             llm_id=llm_id,
-                                            embedding_id=embedding_id)
+                                            use_embedding=use_embedding)
                 return resp_200(message='update agent success')
             else:
                 return resp_500(message='no permission exec')

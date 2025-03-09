@@ -30,10 +30,10 @@ async def chat(file: UploadFile = File(None),
             yield f"data: {one_data}\n\n"
         yield "data: [DONE]"
         # LLM回答的信息存放到MySQL数据库
-        HistoryService.create_history(role="assistant", content=final_result, dialog_id=dialog_id)
+        await HistoryService.save_chat_history("assistant", final_result, dialog_id)
     
     # 将用户问题存放到MySQL数据库
-    HistoryService.create_history(role="user", content=user_input, dialog_id=dialog_id)
+    await HistoryService.save_chat_history("user", user_input, dialog_id)
     # 更新对话窗口的最近使用时间
     DialogService.update_dialog_time(dialog_id=dialog_id)
     return StreamingResponse(general_generate(), media_type="text/event-stream")

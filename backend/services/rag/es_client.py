@@ -38,7 +38,7 @@ class AsyncESClient:
         await self.insert_documents(index_name, chunks)
 
     async def search_documents(self, query, index_name):
-        with open(app_settings.elasticsearch.get('index_search_path'), 'r') as f:
+        with open(app_settings.elasticsearch.get('index_search_content_path'), 'r') as f:
             content = f.read()
             content = content.format(query=query)
             index_search = json.loads(content)
@@ -49,11 +49,31 @@ class AsyncESClient:
             documents = []
             for hit in response['hits']:
                 documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'], update_time=hit['_source']['update_time'],
-                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'],
+                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'], summary=hit['_source']['summary'],
                                              file_id=hit['_source']['file_id'], knowledge_id=hit['_source']['knowledge_id']))
 
         except Exception as e:
             logger.error(f'Search documents error: {e}')
+        finally:
+            await self.close()
+
+    async def search_documents_summary(self, query, index_name):
+        with open(app_settings.elasticsearch.get('index_search_summary_path'), 'r') as f:
+            content = f.read()
+            content = content.format(query=query)
+            index_search = json.loads(content)
+
+        try:
+            response = await self.client.search(index=index_name, body=index_search)
+
+            documents = []
+            for hit in response['hits']:
+                documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'], update_time=hit['_source']['update_time'],
+                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'], summary=hit['_source']['summary'],
+                                             file_id=hit['_source']['file_id'], knowledge_id=hit['_source']['knowledge_id']))
+
+        except Exception as e:
+            logger.error(f'Search documents summary error: {e}')
         finally:
             await self.close()
 

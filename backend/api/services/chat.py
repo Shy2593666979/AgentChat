@@ -34,8 +34,7 @@ class ChatService:
         self.tools = []
         self.init_llm()
         self.init_tools()
-        self.collection = chromadb.Client().get_or_create_collection(name=self.dialog_id,
-                                                                     embedding_function=self.embedding)
+
 
     def init_llm(self):
         llm_config = LLMService.get_llm_by_id(llm_id=self.llm_id)

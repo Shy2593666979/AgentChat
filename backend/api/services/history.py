@@ -47,6 +47,7 @@ class HistoryService:
                              content=content,
                              file_id='history_rag',
                              knowledge_id=index_name,
+                             summary="history_rag",
                              update_time=get_now_beijing_time(),
                              file_name='history_rag')]
 
@@ -59,13 +60,14 @@ class HistoryService:
                              file_id='history_rag',
                              knowledge_id=collection_name,
                              update_time=get_now_beijing_time(),
+                             summary="history_rag",
                              file_name='history_rag')]
 
         await milvus_client.insert(collection_name, chunks)
 
     # 历史记录都存milvus 和 es一份，开启RAG召回历史记录
     @classmethod
-    async def save_chat_history(cls, role, knowledge_id, content):
+    async def save_chat_history(cls, role, content, knowledge_id):
         documents = f"{role}: \n {content}"
 
         cls.create_history(role, content, knowledge_id)

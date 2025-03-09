@@ -54,7 +54,8 @@ milvus:
 elasticsearch:
   hosts: "http://localhost:9200"
   index_config_path:
-  index_search_path:
+  index_search_summary_path:
+  index_search_content_path:
 
 rag:
   top_k:
@@ -72,6 +73,7 @@ oss:
   endpoint: "oss-cn-beijing.aliyuncs.com"
   bucket_name: "agentchat"
   base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
+
 
 use_captcha: True
 use_oss: False

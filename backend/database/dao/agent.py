@@ -11,23 +11,23 @@ class AgentDao:
 
     @classmethod
     def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                       llm_id: str, tool_id: List[str], is_custom: bool, embedding_id: str):
+                       llm_id: str, tools_id: List[str], is_custom: bool, use_embedding: bool):
         agent = AgentTable(name=name,
                            logo=logo,
                            user_id=user_id,
                            llm_id=llm_id,
-                           tool_id=tool_id,
+                           tools_id=tools_id,
                            description=description,
                            knowledges_id=knowledges_id,
                            is_custom=is_custom,
-                           embedding_id=embedding_id)
+                           use_embedding=use_embedding)
         return agent
 
     @classmethod
     def create_agent(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                     llm_id: str, tool_id: List[str], is_custom: bool, embedding_id: str):
+                     llm_id: str, tools_id: List[str], is_custom: bool, use_embedding: bool):
         with Session(engine) as session:
-            session.add(cls._get_agent_sql(name, description, logo, user_id, knowledges_id, llm_id, tool_id, is_custom, embedding_id))
+            session.add(cls._get_agent_sql(name, description, logo, user_id, knowledges_id, llm_id, tools_id, is_custom, use_embedding))
             session.commit()
 
     @classmethod
@@ -120,7 +120,7 @@ class AgentDao:
 
     @classmethod
     def update_agent_by_id(cls, id: str, name: str, description: str, knowledges_id: List[str],
-                           logo: str, llm_id: str, tool_id: List[str], embedding_id: str):
+                           logo: str, llm_id: str, tools_id: List[str], use_embedding: bool):
         with Session(engine) as session:
             # 构建 update 语句
             update_values = {
@@ -132,10 +132,13 @@ class AgentDao:
                 update_values['description'] = description
             if llm_id is not None:
                 update_values['llm_id'] = llm_id
-            if tool_id is not None:
-                update_values['tool_id'] = tool_id
+            if tools_id is not None:
+                update_values['tools_id'] = tools_id
             if knowledges_id is not None:
                 update_values['knowledges_id'] = knowledges_id
+            if use_embedding:
+                update_values['use_embedding'] = use_embedding
+
 
             if logo is not None:
                 # 删除agent的logo地址
@@ -146,6 +149,7 @@ class AgentDao:
             sql = update(AgentTable).where(AgentTable.id == id).values(**update_values)
             session.exec(sql)
             session.commit()
+
             # sql = select(AgentTable).where(AgentTable.id == id)
             # agent = session.exec(sql).one()
             #

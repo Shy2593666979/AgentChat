@@ -12,8 +12,6 @@ class MilvusClient:
 
 
         connections.connect("default", host=self.milvus_host, port=self.milvus_port)
-
-
         self.collections = self._get_collection()
 
     def _collection_exists(self, collection_name):
@@ -28,6 +26,8 @@ class MilvusClient:
                 FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, max_length=128),
                 FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=1024),
                 FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=768),
+                FieldSchema(name="summary", dtype=DataType.VARCHAR, max_lenth=512),
+                FieldSchema(name="embedding_summary", dtype=DataType.FLOAT_VECTOR, dim=768),
                 FieldSchema(name="file_id", dtype=DataType.VARCHAR, max_length=128),
                 FieldSchema(name="file_name", dtype=DataType.VARCHAR, max_length=128),
                 FieldSchema(name="knowledge_id", dtype=DataType.VARCHAR, max_length=128),
@@ -44,10 +44,57 @@ class MilvusClient:
                 "params": {"nlist": 128}
             }
             collection.create_index("embedding", index_params)
+            # 为embedding_summary字段创建索引
+            collection.create_index("embedding_summary", index_params)
             self.collections[collection_name] = collection
             logger.info(f'Successful create milvus collection name: {collection_name}')
 
     async def search(self, query, collection_name, top_k=10):
+        """
+            在指定集合中搜索相似数据
+            :param collection_name: 要搜索的集合名称
+            :param query: 查询文本
+            :param top_k: 返回的结果数量
+            :return: 搜索结果
+        """
+        # 获取集合实例
+        collection = self.collections.get(collection_name)
+
+        # 生成查询向量
+        query_embedding = await get_embedding(query)
+
+        # 定义搜索参数
+        search_params = {
+            "metric_type": "L2",
+            "params": {"nprobe": 16}
+        }
+
+        # 执行搜索
+        results = collection.search(
+            data=[query_embedding],
+            anns_field="embedding",  # 向量字段名
+            param=search_params,
+            limit=top_k,
+            output_fields=["content", "chunk_id", "summary", "file_id", "file_name", "knowledge_id", "update_time"]  # 返回的字段
+        )
+
+        # 格式化结果
+        documents = []
+        for hit in results[0]:
+            documents.append(
+                SearchModel(
+                    content=hit.entity.get("content", ""),  # 获取内容
+                    chunk_id=hit.entity.get("chunk_id", ""),  # 获取块 ID
+                    file_id=hit.entity.get("file_id", ""),  # 获取文件 ID
+                    file_name=hit.entity.get("file_name", ""),  # 获取文件名
+                    knowledge_id=hit.entity.get("knowledge_id", ""),  # 获取知识库 ID
+                    update_time=hit.entity.get("update_time", ""),  # 获取更新时间
+                    summary=hit.entity.get("summary", ""),
+                    score=hit.distance))
+
+        return documents
+
+    async def search_summary(self, query, collection_name, top_k=10):
         """
                 在指定集合中搜索相似数据
                 :param collection_name: 要搜索的集合名称
@@ -64,16 +111,16 @@ class MilvusClient:
         # 定义搜索参数
         search_params = {
             "metric_type": "L2",
-            "params": {"nprobe": 10}
+            "params": {"nprobe": 16}
         }
 
         # 执行搜索
         results = collection.search(
             data=[query_embedding],
-            anns_field="embedding",  # 向量字段名
+            anns_field="embedding_summary",  # 向量字段名
             param=search_params,
             limit=top_k,
-            output_fields=["content", "chunk_id", "file_id", "file_name", "knowledge_id", "update_time"]  # 返回的字段
+            output_fields=["content", "chunk_id", "summary", "file_id", "file_name", "knowledge_id", "update_time"]  # 返回的字段
         )
 
         # 格式化结果
@@ -87,6 +134,7 @@ class MilvusClient:
                     file_name=hit.entity.get("file_name", ""),  # 获取文件名
                     knowledge_id=hit.entity.get("knowledge_id", ""),  # 获取知识库 ID
                     update_time=hit.entity.get("update_time", ""),  # 获取更新时间
+                    summary=hit.entity.get("summary", ""),
                     score=hit.distance))
 
         return documents
@@ -121,10 +169,11 @@ class MilvusClient:
         if collection_name not in self.collections:
             await self.create_collection(collection_name)
             # raise ValueError("Collection is not set. Use set_collection() first.")
-        content_list, chunk_id_list, file_id_list, file_name_list, update_time_list, knowledge_id_list = [], [], [], [], [], []
+        content_list, summary_list, chunk_id_list, file_id_list, file_name_list, update_time_list, knowledge_id_list = [], [], [], [], [], [], []
 
         for chunk in chunks:
             content_list.append(chunk.content)
+            summary_list.append(chunk.summary)
             chunk_id_list.append(chunk.chunk_id)
             file_id_list.append(chunk.file_id)
             file_name_list.append(chunk.file_name)
@@ -132,13 +181,16 @@ class MilvusClient:
             knowledge_id_list.append(chunk.knowledge_id)
 
 
-        embedding_list = get_embedding(content_list)
+        embedding_list = await get_embedding(content_list)
+        embedding_summary_list = await get_embedding(summary_list)
 
         # 组织数据
         data = [
             chunk_id_list,  # chunk_id
             content_list,  # content
             embedding_list,  # embedding
+            summary_list,   # summary
+            embedding_summary_list, # embedding summary
             file_id_list,  # file_id
             file_name_list,  # file_name
             knowledge_id_list,  # knowledge_id

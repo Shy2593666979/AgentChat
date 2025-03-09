@@ -33,11 +33,12 @@ class Reranker:
                 else:
                     response.raise_for_status()
 
-    async def rerank_documents(self, query, documents):
+    @classmethod
+    async def rerank_documents(cls, query, documents):
         final_documents = []
         original_documents = documents
 
-        results = await self.request_rerank(query, documents)
+        results = await cls.request_rerank(query, documents)
 
         for result in results:
             result['document'] = original_documents[result['index']]

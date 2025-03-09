@@ -1,4 +1,5 @@
 from openai import AsyncOpenAI
+from settings import app_settings
 
 
 class AsyncChatClient(AsyncOpenAI):
@@ -12,3 +13,7 @@ class AsyncChatClient(AsyncOpenAI):
                                                      {"role": "system", "content": system_input},
                                                      {"role": "user", "content": user_input}])
         return response.choices[0].message.content
+
+async_client = AsyncChatClient(base_url=app_settings.llm.get('base_url'),
+                               api_key=app_settings.llm.get('api_key'),
+                               model_name=app_settings.llm.get('model_name'))

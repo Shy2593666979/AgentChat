@@ -14,10 +14,11 @@ router = APIRouter()
 @router.post("/agent", response_model=UnifiedResponseModel)
 async def create_agent(name: str = Form(...),
                        description: str = Form(...),
-                       tool_id: List[str] = Form(None),
+                       tools_id: List[str] = Form(default=[], description="绑定的工具id"),
                        llm_id: str = Form(None),
-                       embedding_id: str = Form(None),
-                       logoFile: UploadFile = File(...),
+                       knowledges_id: List[str] = Form(default=[], description="绑定的知识库ID"),
+                       use_embedding: bool = Form(True),
+                       logoFile: UploadFile = File(None),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         # 判断Agent名字是否重复
@@ -35,10 +36,11 @@ async def create_agent(name: str = Form(...),
         AgentService.create_agent(name=name,
                                   description=description,
                                   logo=logo,
-                                  tool_id=tool_id,
+                                  tools_id=tools_id,
                                   llm_id=llm_id,
                                   user_id=login_user.user_id,
-                                  embedding_id=embedding_id)
+                                  knowledges_id=knowledges_id,
+                                  use_embedding=use_embedding)
         return resp_200()
     except Exception as err:
         logger.error(f"create agent API error: {err}")
@@ -55,10 +57,10 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
                            "name": item.name,
                            "description": item.description,
                            "logo": app_settings.logo.get('prefix') + item.logo,
-                           "tool_id": item.tool_id,
+                           "tools_id": item.tools_id,
                            "llm_id": item.llm_id,
                            "is_custom": item.is_custom,
-                           "embedding_id": item.embedding_id,
+                           "use_embedding": item.use_embedding,
                            "create_time": item.create_time})
 
         return resp_200(data=result)
@@ -81,10 +83,10 @@ async def delete_agent(agent_id: str = Form(...),
 async def update_agent(agent_id: str = Form(...),
                        name: str = Form(None),
                        description: str = Form(None),
-                       tool_id: List[str] = Form(None),
+                       tools_id: List[str] = Form(None),
                        knowledges_id: List[str] = Form(None),
                        llm_id: str = Form(None),
-                       embedding_id: str = Form(None),
+                       use_embedding: bool = Form(True),
                        logoFile: UploadFile = File(None),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
@@ -105,9 +107,9 @@ async def update_agent(agent_id: str = Form(...),
                                         logo=logo,
                                         knowledges_id=knowledges_id,
                                         user_id=login_user.user_id,
-                                        tool_id=tool_id,
+                                        tools_id=tools_id,
                                         llm_id=llm_id,
-                                        embedding_id=embedding_id)
+                                        use_embedding=use_embedding)
 
     except Exception as err:
         logger.error(f"update agent API error: {err}")
@@ -125,9 +127,9 @@ async def search_agent(name: str = Form(...),
                            "name": item.name,
                            "description": item.description,
                            "logo": app_settings.logo.get('prefix') + item.logo,
-                           "tool_id": item.tool_id,
+                           "tools_id": item.tools_id,
                            "llm_id": item.llm_id,
-                           "embedding_id": item.embedding_id,
+                           "use_embedding": item.use_embedding,
                            "is_custom": item.is_custom,
                            "create_time": item.create_time})
 

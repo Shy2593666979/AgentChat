@@ -1,4 +1,4 @@
-
+from loguru import logger
 from services.rag.parser import doc_parser
 from services.retrieval import MixRetrival
 from services.rewrite.query_write import query_rewriter
@@ -25,14 +25,51 @@ class RagHandler:
         await es_client.index_documents(index_name, chunks)
 
     @classmethod
-    async def mix_retrival_documents(cls, query_list, knowledges_id):
-        es_documents, milvus_documents = await MixRetrival.mix_retrival_documents(query_list, knowledges_id)
+    async def mix_retrival_documents(cls, query_list, knowledges_id, search_field="summary"):
+        es_documents, milvus_documents = await MixRetrival.mix_retrival_documents(query_list, knowledges_id, search_field)
 
         es_documents.sort(key=lambda x: x.score, reverse=True)
         milvus_documents.sort(key=lambda x: x.score, reverse=True)
 
         documents = es_documents[:5] + milvus_documents[:5]
         return documents
+
+    @classmethod
+    async def rag_query_summary(cls, query, knowledges_id, min_score: float=None,
+                                top_k: int=None, needs_query_rewrite: bool=True):
+        if min_score is None:
+            min_score = app_settings.rag.get('min_score')
+        if top_k is None:
+            top_k = app_settings.rag.get('top_k')
+
+        # 查询重写
+        if needs_query_rewrite:
+            rewritten_queries = await cls.query_rewrite(query)
+        else:
+            rewritten_queries = [query]
+
+        # 文档检索
+        retrieved_documents = await cls.mix_retrival_documents(rewritten_queries, knowledges_id, "summary")
+
+        # 准备重排序的文档内容
+        documents_to_rerank = [doc.content for doc in retrieved_documents]
+
+        # 文档重排序
+        reranked_docs = await Reranker.rerank_documents(query, documents_to_rerank)
+
+        # 过滤结果
+        filtered_results = []
+        if len(reranked_docs) >= top_k:
+            for doc in reranked_docs[:top_k]:
+                if doc.score >= min_score:
+                    filtered_results.append(doc)
+            # 拼接最终结果
+            final_result = "\n".join(result.content for result in filtered_results)
+            return final_result
+        else:
+            logger.info(f"Recall for summary Field numbers < top k, Start recall use content Field")
+            return await cls.rag_query(query, knowledges_id)
+
 
     @classmethod
     async def rag_query(cls, query, knowledges_id, min_score: float=None,
@@ -61,7 +98,7 @@ class RagHandler:
             rewritten_queries = [query]
 
         # 文档检索
-        retrieved_documents = await cls.mix_retrival_documents(rewritten_queries, knowledges_id)
+        retrieved_documents = await cls.mix_retrival_documents(rewritten_queries, knowledges_id, "content")
 
         # 准备重排序的文档内容
         documents_to_rerank = [doc.content for doc in retrieved_documents]

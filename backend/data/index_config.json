@@ -18,7 +18,14 @@
         "type": "text",
         "analyzer": "ik_analyzer"
       },
+      "summary": {
+        "type": "text",
+        "analyzer": "ik_analyzer"
+      },
       "file_id": {
+        "type": "keyword"
+      },
+      "knowledge_id": {
         "type": "keyword"
       },
       "file_name": {
