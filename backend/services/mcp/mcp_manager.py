@@ -26,39 +26,14 @@ class MCPManager:
             self.mcp_clients.append(mcp_client)
 
     async def list_all_server_tools(self):
-        """收集所有 MCP 服务器的可用工具
-
-        Returns:
-            list: 所有服务器工具的聚合列表，每个工具包含：
-                - name (str)
-                - description (str)
-                - input_schema (dict)
-        """
+        """收集所有 MCP 服务器的可用工具"""
         available_tools = []
         for client in self.mcp_clients:
             available_tools += await client.list_server_tools()
         return available_tools
 
     async def _chat_model(self, messages, available_tools):
-        """根据客户端类型调用对应的聊天模型接口
-
-        Args:
-            messages (list): 符合模型规范的对话消息列表
-            available_tools (list): 可用的工具列表（用于工具调用）
-
-        Returns:
-            dict: 模型返回的响应数据
-
-        Raises:
-            NotImplementedError: 当使用未实现的客户端类型时
-            ValueError: 当客户端类型不受支持时
-            Exception: 其他未知错误
-
-        Supported Clients:
-            - AsyncAnthropic: 异步 Claude 模型调用
-            - Anthropic: 同步 Claude 模型调用
-            - AsyncOpenAI/OpenAI: 当前未实现（抛出异常）
-        """
+        """根据客户端类型调用对应的聊天模型接口"""
         try:
             match self.chat_client:
                 case AsyncAnthropic():
