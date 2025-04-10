@@ -2,6 +2,7 @@ import logging
 from typing import Union
 
 from anthropic import Anthropic, AsyncAnthropic
+from mcp.types import CallToolResult
 from openai import AsyncOpenAI, OpenAI
 from services.mcp.mcp_client import MCPClient
 from services.mcp.mcp_util import MCPUtil
@@ -20,7 +21,7 @@ class MCPManager:
     async def enter_mcp_server(self, server_path):
         self.mcp_server_stack.append(server_path)
         mcp_client = MCPClient()
-        # self.mcp_clients.append(mcp_client)
+
         self.server_client_dict[server_path] = mcp_client
 
     async def connect_client(self):
@@ -31,9 +32,6 @@ class MCPManager:
 
     async def list_all_server_tools(self) -> list[FunctionTool]:
         """收集所有 MCP 服务器的可用工具"""
-        # available_tools = []
-        # for client in self.mcp_clients:
-        #     available_tools += await client.list_server_tools()
         function_calls = await MCPUtil.get_all_function_tools(self.mcp_clients)
         for func in function_calls:
             self.mcp_call_tool[func.name] = func
@@ -83,8 +81,8 @@ class MCPManager:
         available_tools = [{
             "name": tool.name,
             "description": tool.description,
-            "input_schema": tool.inputSchema
-        } for tool in response.tools]
+            "input_schema": tool.params_json_schema
+        } for tool in response]
 
         response = await self._chat_model(messages, available_tools)
 
@@ -127,5 +125,5 @@ class MCPManager:
 
         return "\n".join(final_text)
 
-    async def _get_tool_response(self, name, arguments):
-        return self.mcp_call_tool[name].on_run_tool(arguments)
+    async def _get_tool_response(self, name, arguments) -> CallToolResult:
+        return await self.mcp_call_tool[name].on_run_tool(arguments)

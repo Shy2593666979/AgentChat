@@ -96,12 +96,12 @@ class MilvusClient:
 
     async def search_summary(self, query, collection_name, top_k=10):
         """
-                在指定集合中搜索相似数据
-                :param collection_name: 要搜索的集合名称
-                :param query: 查询文本
-                :param top_k: 返回的结果数量
-                :return: 搜索结果
-                """
+        在指定集合中搜索相似数据
+        :param collection_name: 要搜索的集合名称
+        :param query: 查询文本
+        :param top_k: 返回的结果数量
+        :return: 搜索结果
+        """
         # 获取集合实例
         collection = self.collections.get(collection_name)
 

@@ -2,7 +2,7 @@ import logging
 
 from contextlib import AsyncExitStack
 from typing import Optional
-from mcp.types import Prompt, Tool, Resource
+from mcp.types import Prompt, Tool, Resource, CallToolResult
 from mcp import ClientSession, StdioServerParameters, stdio_client
 
 
@@ -43,7 +43,7 @@ class MCPClient:
 
         return resources
 
-    async def call_server_tool(self, name, arguments):
+    async def call_server_tool(self, name, arguments) -> CallToolResult:
         return await self.session.call_tool(name, arguments)
 
     # @property
