@@ -4,6 +4,9 @@ from typing import Union
 from anthropic import Anthropic, AsyncAnthropic
 from openai import AsyncOpenAI, OpenAI
 from services.mcp.mcp_client import MCPClient
+from services.mcp.mcp_util import MCPUtil
+from services.mcp.schema import FunctionTool
+
 
 class MCPManager:
     def __init__(self, client: Union[AsyncOpenAI, OpenAI, Anthropic, AsyncAnthropic]):
@@ -11,6 +14,7 @@ class MCPManager:
         self.chat_client = client
         self.mcp_clients: list[MCPClient] = []
         self.server_client_dict: dict[str, MCPClient] = {}
+        self.mcp_call_tool: dict[str, FunctionTool] = {}
 
     # 增加MCP Server的地址
     async def enter_mcp_server(self, server_path):
@@ -25,12 +29,15 @@ class MCPManager:
             await mcp_client.connect_to_server(mcp_server)
             self.mcp_clients.append(mcp_client)
 
-    async def list_all_server_tools(self):
+    async def list_all_server_tools(self) -> list[FunctionTool]:
         """收集所有 MCP 服务器的可用工具"""
-        available_tools = []
-        for client in self.mcp_clients:
-            available_tools += await client.list_server_tools()
-        return available_tools
+        # available_tools = []
+        # for client in self.mcp_clients:
+        #     available_tools += await client.list_server_tools()
+        function_calls = await MCPUtil.get_all_function_tools(self.mcp_clients)
+        for func in function_calls:
+            self.mcp_call_tool[func.name] = func
+        return function_calls
 
     async def _chat_model(self, messages, available_tools):
         """根据客户端类型调用对应的聊天模型接口"""
@@ -94,7 +101,7 @@ class MCPManager:
                 tool_args = content.input
 
                 # Execute tool call
-                result = await self.session.call_tool(tool_name, tool_args)
+                result = await self._get_tool_response(tool_name, tool_args)
                 final_text.append(f"[Calling tool {tool_name} with args {tool_args}]")
 
                 assistant_message_content.append(content)
@@ -119,3 +126,6 @@ class MCPManager:
                 final_text.append(response.content[0].text)
 
         return "\n".join(final_text)
+
+    async def _get_tool_response(self, name, arguments):
+        return self.mcp_call_tool[name].on_run_tool(arguments)
