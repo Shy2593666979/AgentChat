@@ -9,4 +9,7 @@ class Message:
     def to_str(self):
         """Return the string representation of the message"""
         return f"{self.role}: {self.content} \n"
+
+    def to_json(self):
+        return {"role": self.role, "content": self.content}
         

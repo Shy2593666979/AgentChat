@@ -15,7 +15,7 @@ class MCPManager:
         self.chat_client = client
         self.mcp_clients: list[MCPClient] = []
         self.server_client_dict: dict[str, MCPClient] = {}
-        self.mcp_call_tool: dict[str, FunctionTool] = {}
+        self.callable_mcp_tools: dict[str, FunctionTool] = {}
 
     # 增加MCP Server的地址
     async def enter_mcp_server(self, server_path):
@@ -34,7 +34,7 @@ class MCPManager:
         """收集所有 MCP 服务器的可用工具"""
         function_calls = await MCPUtil.get_all_function_tools(self.mcp_clients)
         for func in function_calls:
-            self.mcp_call_tool[func.name] = func
+            self.callable_mcp_tools[func.name] = func
         return function_calls
 
     async def _chat_model(self, messages, available_tools):
@@ -70,13 +70,7 @@ class MCPManager:
             logging.info(f"chat model appear error: {err}")
             raise
 
-    async def process_query(self, query: str):
-        messages = [
-            {
-                "role": "user",
-                "content": query
-            }
-        ]
+    async def process_query(self, messages):
         response = await self.list_all_server_tools()
         available_tools = [{
             "name": tool.name,
@@ -123,7 +117,7 @@ class MCPManager:
 
                 final_text.append(response.content[0].text)
 
-        return "\n".join(final_text)
+        return final_text
 
     async def _get_tool_response(self, name, arguments) -> CallToolResult:
-        return await self.mcp_call_tool[name].on_run_tool(arguments)
+        return await self.callable_mcp_tools[name].on_run_tool(arguments)

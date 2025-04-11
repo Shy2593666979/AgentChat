@@ -9,10 +9,11 @@ class AsyncChatClient(AsyncOpenAI):
 
     async def ainvoke(self, user_input, system_input: str = "你是一个有帮助的助手。"):
         response = await self.chat.completions.create(model=self.model_name,
-                                                 messages=[
-                                                     {"role": "system", "content": system_input},
-                                                     {"role": "user", "content": user_input}])
+                                                      messages=[
+                                                          {"role": "system", "content": system_input},
+                                                          {"role": "user", "content": user_input}])
         return response.choices[0].message.content
+
 
 async_client = AsyncChatClient(base_url=app_settings.llm.get('base_url'),
                                api_key=app_settings.llm.get('api_key'),

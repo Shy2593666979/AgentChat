@@ -20,7 +20,7 @@ class HistoryService:
             logger.error(f"add history data appear error: {err}")
 
     @classmethod
-    def select_history(cls, dialog_id: str, top_k: int = 5):
+    def select_history(cls, dialog_id: str, top_k: int = 5) -> List[Message]:
         try:
             result = HistoryDao.select_history(dialog_id, top_k)
             message_sql: List[Message] = []
