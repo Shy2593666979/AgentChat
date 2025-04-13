@@ -1,3 +1,4 @@
+import json
 import logging
 
 from contextlib import AsyncExitStack
@@ -11,12 +12,12 @@ class MCPClient:
         self.session: Optional[ClientSession] = None
         self.exit_stack = AsyncExitStack()
 
-    async def connect_to_server(self, server_path: str):
+    async def connect_to_server(self, server_path: str, server_env: str):
         command = "python"
         server_params = StdioServerParameters(
             command=command,
             args=[server_path],
-            env=None
+            env=json.loads(server_env)
         )
 
         stdio_transport = await self.exit_stack.enter_async_context((stdio_client(server_params)))

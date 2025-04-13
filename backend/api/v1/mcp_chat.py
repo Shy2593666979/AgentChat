@@ -7,7 +7,7 @@ from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
-
+# 前端根据Dialog.agent_type判断走/mcp_chat 还是/chat
 @router.post("/mcp_chat", description="对话接口")
 async def chat(user_input: str = Body(description='用户问题'),
                dialog_id: str = Body(description='对话的ID')):
@@ -15,18 +15,17 @@ async def chat(user_input: str = Body(description='用户问题'),
 
     agent = DialogService.get_agent_by_dialog_id(dialog_id)
     mcp_chat_agent = MCPChatAgent(**agent)
+    await mcp_chat_agent.init_MCP_Server()
 
     # 流式输出LLM生成结果
     async def general_generate():
-        final_result = ''
-        async for one_data in await mcp_chat_agent.ainvoke(user_input, dialog_id):
-            final_result += json.loads(one_data)['content']
-            yield f"data: {one_data}\n\n"
-        yield "data: [DONE]"
-        # LLM回答的信息存放到MySQL数据库
-        await HistoryService.save_chat_history("assistant", final_result, dialog_id)
+        assistant_result = ""
+        async for text in await mcp_chat_agent.ainvoke(user_input, dialog_id, True):
+            assistant_result += text
+            yield f"{text}\n\n"
+        yield "[DONE]"
+        await HistoryService.save_chat_history("assistant", assistant_result, dialog_id)
 
-    # 将用户问题存放到MySQL数据库
     await HistoryService.save_chat_history("user", user_input, dialog_id)
     # 更新对话窗口的最近使用时间
     DialogService.update_dialog_time(dialog_id)

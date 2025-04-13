@@ -9,6 +9,7 @@ from fastapi.responses import StreamingResponse
 
 router = APIRouter()
 
+# 前端根据Dialog.agent_type判断走/mcp_chat 还是/chat
 @router.post("/chat", description="对话接口")
 async def chat(file: UploadFile = File(None),
                user_input: str = Body(description='用户问题'),

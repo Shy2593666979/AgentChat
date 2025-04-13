@@ -3,31 +3,35 @@ from typing import Union
 
 from anthropic import Anthropic, AsyncAnthropic
 from mcp.types import CallToolResult
-from openai import AsyncOpenAI, OpenAI
+from openai import OpenAI, AsyncOpenAI
+from core.models.anthropic import DeepAsyncAnthropic, DeepAnthropic
 from services.mcp.mcp_client import MCPClient
 from services.mcp.mcp_util import MCPUtil
 from services.mcp.schema import FunctionTool
 
 
 class MCPManager:
-    def __init__(self, client: Union[AsyncOpenAI, OpenAI, Anthropic, AsyncAnthropic]):
+    def __init__(self, client: Union[DeepAsyncAnthropic, DeepAnthropic]):
         self.mcp_server_stack: list[str] = []
         self.chat_client = client
         self.mcp_clients: list[MCPClient] = []
         self.server_client_dict: dict[str, MCPClient] = {}
+        self.server_path_env_dict: dict[str, str] = {}
         self.callable_mcp_tools: dict[str, FunctionTool] = {}
 
     # 增加MCP Server的地址
-    async def enter_mcp_server(self, server_path):
+    async def enter_mcp_server(self, server_path, server_env):
         self.mcp_server_stack.append(server_path)
         mcp_client = MCPClient()
 
+        self.server_path_env_dict[server_path] = server_env
         self.server_client_dict[server_path] = mcp_client
 
     async def connect_client(self):
         for mcp_server in self.mcp_server_stack:
             mcp_client = self.server_client_dict.get(mcp_server)
-            await mcp_client.connect_to_server(mcp_server)
+            server_env = self.server_path_env_dict[mcp_server]
+            await mcp_client.connect_to_server(mcp_server, server_env)
             self.mcp_clients.append(mcp_client)
 
     async def list_all_server_tools(self) -> list[FunctionTool]:
@@ -42,20 +46,10 @@ class MCPManager:
         try:
             match self.chat_client:
                 case AsyncAnthropic():
-                    response = await self.chat_client.messages.create(
-                        model="claude-3-5-sonnet-20241022",
-                        max_tokens=1000,
-                        messages=messages,
-                        tools=available_tools
-                    )
+                    response = await self.chat_client.ainvoke(messages, available_tools)
                     return response
                 case Anthropic():
-                    response = self.chat_client.messages.create(
-                        model="claude-3-5-sonnet-20241022",
-                        max_tokens=1000,
-                        messages=messages,
-                        tools=available_tools
-                    )
+                    response = self.chat_client.invoke(messages, available_tools)
                     return response
                 case AsyncOpenAI():
                     # 暂时不实现

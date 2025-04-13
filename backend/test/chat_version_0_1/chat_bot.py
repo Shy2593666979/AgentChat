@@ -4,12 +4,12 @@
 import json
 from typing import List
 from schema.message import Message
-from services.chat.version_0_1.openai import LLMChat
+from test.version_0_1.openai import LLMChat
 from prompts.template import function_call_template, ask_user_template, action_template, llm_chat_template
 from prompts.llm_prompt import fail_action_prompt
 from langchain.prompts import PromptTemplate
 from api.services.agent import AgentService
-from services.chat.version_0_1.impl import BotCheck
+from test.version_0_1.impl import BotCheck
 from tools import action_Function_call
 from loguru import logger
 

@@ -1,7 +1,7 @@
 import asyncio
 
 from api.services.history import HistoryService
-from prompts.llm_prompt import MCP_TOOL_TEMPLATE
+from api.services.mcp_server import MCPServerService
 from services.mcp.mcp_manager import MCPManager
 from core.models.anthropic import DeepAsyncAnthropic
 from api.services.llm import LLMService
@@ -17,7 +17,6 @@ class MCPChatAgent:
 
         self.deep_anthropic = self._init_Anthropic()
         self.mcp_manager = self._init_MCP_Manager()
-        self._init_MCP_Server()
 
     def _init_Anthropic(self) -> DeepAsyncAnthropic:
         llm_config = LLMService.get_llm_by_id(self.llm_id)
@@ -26,11 +25,13 @@ class MCPChatAgent:
     def _init_MCP_Manager(self) -> MCPManager:
         return MCPManager(self.deep_anthropic)
 
-    def _init_MCP_Server(self):
+    async def init_MCP_Server(self):
         for server_id in self.mcp_servers_id:
-            # MCP_Server.get_server(server_id) 获得server_id 对应的脚本Path
-            server_path = ""
-            self.mcp_manager.enter_mcp_server(server_path)
+            mcp_server = MCPServerService.get_mcp_server_user(server_id)
+            await self.mcp_manager.enter_mcp_server(mcp_server.mcp_server_path, mcp_server.mcp_server_env)
+
+        await self.mcp_manager.connect_client()
+
 
     async def ainvoke(self, user_input: str, dialog_id: str, stream: bool=False):
         # 并发获取History 和 RAG Message

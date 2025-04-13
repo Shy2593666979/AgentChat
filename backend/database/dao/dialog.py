@@ -7,14 +7,14 @@ from datetime import datetime
 class DialogDao:
 
     @classmethod
-    def _get_dialog_sql(cls, name: str, agent_id: str, user_id: str):
-        dialog = DialogTable(name=name, agent_id=agent_id, user_id=user_id)
+    def _get_dialog_sql(cls, name: str, agent_id: str, agent_type: str, user_id: str):
+        dialog = DialogTable(name=name, agent_id=agent_id, agent_type=agent_type, user_id=user_id)
         return dialog
 
     @classmethod
-    def create_dialog(cls, name: str, agent_id: str, user_id: str):
+    def create_dialog(cls, name: str, agent_id: str, agent_type: str, user_id: str):
         with Session(engine) as session:
-            dialog = cls._get_dialog_sql(name, agent_id, user_id)
+            dialog = cls._get_dialog_sql(name, agent_id, agent_type, user_id)
             session.add(dialog)
             session.commit()
             return dialog.dialog_id
@@ -48,13 +48,6 @@ class DialogDao:
             sql = update(DialogTable).where(DialogTable.dialog_id == dialog_id).values(create_time=datetime.utcnow())
             session.exec(sql)
             session.commit()
-            # dialog = session.exec(sql).one()
-            #
-            # dialog.create_time = datetime.utcnow()
-            #
-            # session.add(dialog)
-            # session.commit()
-            # session.refresh()
 
     @classmethod
     def delete_dialog_by_id(cls, dialog_id: str):
