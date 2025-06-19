@@ -1,5 +1,7 @@
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+![2a9a914f959cbe8efb9b1a5037ad866](https://github.com/user-attachments/assets/9a90b82e-1076-4b26-96ef-3da1eb3a04b0)
+
 - [欢迎来到 智言平台](#%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0-%E6%99%BA%E8%A8%80%E5%B9%B3%E5%8F%B0)
   - [成果图](#%E6%88%90%E6%9E%9C%E5%9B%BE)
     - [智言平台首页](#%E6%99%BA%E8%A8%80%E5%B9%B3%E5%8F%B0%E9%A6%96%E9%A1%B5)
@@ -15,11 +17,11 @@
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
-# 欢迎来到 DeepSleep
+# 欢迎来到 AgentChat
 
-DeepSleep 是一个开源的智能体交流与开发平台，让更多的AIGC爱好者更好的了解Agent
+AgentChat 是一个开源的智能体交流与开发平台，让更多的AIGC爱好者更好的了解Agent
 
-## 成果图
+## 成果图（V1.0， V2.0前端页面还没做好）
 ### 智言平台首页
 ![1725542910516](https://github.com/user-attachments/assets/9036192a-8d19-4c3f-86d9-98f2b057b6b3)
 
@@ -137,7 +139,7 @@ npm run dev
 
 例如在我电脑中，需要更改的文件就是
 
-`D:\conda\envs\deepsleep\Lib\site-packages\fastapi_jwt_auth\config.py` 
+`D:\conda\envs\agentchat\Lib\site-packages\fastapi_jwt_auth\config.py` 
 
 更改成以下代码：
 ```python
