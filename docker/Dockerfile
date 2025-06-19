@@ -10,7 +10,7 @@ COPY ../requirement.txt .
 # 安装python 依赖
 RUN pip install -r requirement.txt
 
-COPY ../backend .
+COPY ../src/backend .
 
 # 运行 
 CMD [ "python", "main.py"]

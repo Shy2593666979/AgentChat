@@ -1,0 +1,107 @@
+from agentchat.database.models.user import UserTable
+from typing import List
+from sqlalchemy import select, func
+from sqlmodel import Session
+from agentchat.database import engine
+
+class UserDao:
+
+    @classmethod
+    def get_user(cls, user_id: str) -> UserTable | None:
+        with Session(engine) as session:
+            statement = select(UserTable).where(UserTable.user_id == user_id)
+            return session.exec(statement).first()
+
+    @classmethod
+    def get_user_by_ids(cls, user_ids: List[str]) -> List[UserTable] | None:
+        with Session(engine) as session:
+            statement = select(UserTable).where(UserTable.user_id.in_(user_ids))
+            return session.exec(statement).all()
+
+    @classmethod
+    def get_user_by_username(cls, user_name: str) -> UserTable | None:
+        with Session(engine) as session:
+            statement = select(UserTable).where(UserTable.user_name == user_name)
+            return session.exec(statement).first()
+
+    @classmethod
+    def update_user(cls, user_id: str, user_name: str, user_email: str, user_password: str) :
+        with Session(engine) as session:
+            session.add(UserTable(user_id=user_id, user_email=user_email,
+                                  user_name=user_name, user_password=user_password))
+            session.commit()
+
+    @classmethod
+    def filter_users(cls, user_ids: List[str], keyword: str = None, page: int = 0, limit: int = 0) -> (List[UserTable], int):
+        statement = select(UserTable)
+        count_statement = select(func.count(UserTable.user_id))
+        if user_ids:
+            statement = statement.where(UserTable.user_id.in_(user_ids))
+            count_statement = count_statement.where(UserTable.user_id.in_(user_ids))
+        if keyword:
+            statement = statement.where(UserTable.user_name.like(f'%{keyword}%'))
+            count_statement = count_statement.where(UserTable.user_name.like(f'%{keyword}%'))
+        if page and limit:
+            statement = statement.offset((page - 1) * limit).limit(limit)
+        statement = statement.order_by(UserTable.user_id.desc())
+        with Session(engine) as session:
+            return session.exec(statement).all(), session.scalar(count_statement)
+
+    @classmethod
+    def get_unique_user_by_name(cls, user_name: str) -> UserTable | None:
+        with Session(engine) as session:
+            statement = select(UserTable).where(UserTable.user_name == user_name)
+            return session.exec(statement).first()
+
+    @classmethod
+    def create_user(cls, user_id: str, user_name: str, user_email: str, user_password: str):
+        with Session(engine) as session:
+            session.add(UserTable(user_id=user_id, user_name=user_name,
+                                  user_email=user_email, user_password=user_password))
+            session.commit()
+
+    @classmethod
+    def add_user_and_default_role(cls, user_name: str, user_email: str, user_password: str):
+        """
+        新增用户，并添加默认角色
+        用户的ID以此递增
+        """
+        user_number = len(cls.get_user_number()) + 1
+        with Session(engine) as session:
+            session.add(UserTable(user_id=str(user_number), user_name=user_name,
+                                  user_email=user_email, user_password=user_password))
+            session.commit()
+
+    @classmethod
+    def add_user_and_admin_role(cls, user_id: str, user_name: str,
+                                user_email: str, user_password: str):
+        """
+        新增用户，并添加超级管理员角色
+        """
+        with Session(engine) as session:
+            session.add(UserTable(user_email=user_email, user_id=user_id,
+                                  user_name=user_name, user_password=user_password))
+            session.commit()
+
+    @classmethod
+    def get_all_users(cls, page: int = 0, limit: int = 0) -> List[UserTable]:
+        """
+        分页获取所有用户
+        """
+        statement = select(UserTable)
+        if page and limit:
+            statement = statement.offset((page - 1) * limit).limit(limit)
+        with Session(engine) as session:
+            return session.exec(statement).all()
+
+    @classmethod
+    def get_visible_users(cls):
+        with Session(engine) as session:
+            statement = select(UserTable).where(UserTable.delete == False)
+            return session.exec(statement).all()
+
+    @classmethod
+    def get_user_number(cls) -> int:
+        with Session(engine) as session:
+            statement = select(UserTable)
+            return session.exec(statement).all()

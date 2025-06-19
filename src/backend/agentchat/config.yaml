@@ -1,0 +1,88 @@
+server:
+  host: "127.0.0.1"
+  port: 8880
+  project_name: "AgentChat"
+  version: "1.0.1"
+
+langfuse:
+  trace_name: "FunctionCallChat"
+  host: "https://cloud.langfuse.com"
+  public_key:
+  secret_key:
+  user_id: "tian_chat"
+
+# 根据自己的LLM配置进行更改
+llm:
+  api_key: ""
+  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+  model_name: "qwen-plus"
+
+# 根据自己的Embedding配置进行更改
+embedding:
+  api_key: ""
+  base_url: ""
+  model_name: ""
+
+# 根据自己的Rerank配置进行更改
+rerank:
+  api_key: ""
+  model_name: ""
+  base_url: ""
+
+# 使用的是aliyun上的快递查询api
+tool_delivery:
+  api_key: ""
+  base_url: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
+
+# 使用的是serpapi上的Google Search的api
+tool_google:
+  api_key: "xxx"
+
+# 使用高德地图上的天气api
+tool_weather:
+  api_key: ""
+  base_url: "https://restapi.amap.com/v3/weather/weatherInfo?parameters"
+
+redis:
+  endpoint: "redis://localhost:6379"
+
+# 根据自己的MySQL配置更改：mysql+pymysql://账号（root）:账号密码（123456）@主机地址（localhost）:端口号（3306）/数据库名
+mysql:
+  endpoint: "mysql+pymysql://root:mingguang0703@localhost:3306/agentchat"
+
+
+# milvus根据自己的配置更改
+milvus:
+  host: "localhost"
+  port: "19530"
+
+elasticsearch:
+  hosts: "http://localhost:9200"
+  index_config_path: "agentchat/data/index_config.json"
+  index_search_summary_path: "agentchat/data/index_search_content.json"
+  index_search_content_path: "agentchat/data/index_search_summary.json"
+
+rag:
+  top_k: 5  # 知识库召回的数量
+  min_score: 0.4 # 知识库召回的最小分数
+
+split:
+  chunk_size: 500 # 知识库片段的最大字符数
+  overlap_size: 100 # 知识库片段之间的重复字符
+
+logo:
+  tool: "img/tool/tool.png"
+  agent: "img/agent/assistant.png"
+  prefix: "http://127.0.0.1:8880/"
+
+
+oss:
+  access_key_id: ""
+  access_key_secret: ""
+  endpoint: "oss-cn-beijing.aliyuncs.com"
+  bucket_name: "agentchat"
+  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
+
+
+use_captcha: False # 用户登录是否需要验证码
+use_oss: False  # 是否开启OSS

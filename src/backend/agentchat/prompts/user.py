@@ -1,0 +1,1 @@
+user_query_write = "请把问题转成意思相近的三个问题，输出Json格式 \n {user_input}"

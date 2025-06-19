@@ -1,0 +1,42 @@
+[
+  {
+    "en_name": "send_email",
+    "zh_name": "发送邮件",
+    "description": "帮助用户发送邮件"
+  },
+  {
+    "en_name": "google_search",
+    "zh_name": "Google搜索",
+    "description": "帮助用户去Google搜索相关信息"
+  },
+  {
+    "en_name": "get_arxiv",
+    "zh_name": "论文检索",
+    "description": "帮助用户去查找论文"
+  },
+  {
+    "en_name": "get_weather",
+    "zh_name": "天气预报",
+    "description": "帮助用户去获取位置的天气情况"
+  },
+  {
+    "en_name": "get_delivery",
+    "zh_name": "物流快递",
+    "description": "帮助用户获取快递的物流情况"
+  },
+  {
+    "en_name": "crawl_web",
+    "zh_name": "爬取网页",
+    "description": "帮助用户爬取给定网址的内容信息"
+  },
+  {
+    "en_name": "convert_to_pdf",
+    "zh_name": "转成PDf文件",
+    "description": "帮助用户将上传的文件转成PDF文件"
+  },
+  {
+    "en_name": "convert_to_docx",
+    "zh_name": "转成Docx文件",
+    "description": "帮助用户将上传的文件转成Docx文件"
+  }
+]

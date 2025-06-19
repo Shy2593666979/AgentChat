@@ -1,0 +1,16 @@
+{
+  "size": 10,
+  "timeout": "3s",
+  "query": {
+    "match": {
+      "content": {
+        "query": "{query}",
+        "analyzer": "ik_smart",
+        "operator": "and",
+        "minimum_should_match": "75%",
+        "fuzziness": "AUTO",
+        "boost": 2.0
+      }
+    }
+  }
+}
