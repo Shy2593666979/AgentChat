@@ -1,6 +1,8 @@
 import json
 from typing import Annotated
 from fastapi import APIRouter, Body, UploadFile, File
+from langchain_core.messages import HumanMessage, SystemMessage
+
 from agentchat.api.services.history import HistoryService
 from agentchat.api.services.dialog import DialogService
 from agentchat.services.chat.client import ChatClient
@@ -24,9 +26,10 @@ async def chat(file: UploadFile = File(None),
         user_input += f"上传的文件路径为：{file_path}"
 
     # 流式输出LLM生成结果
+    messages = [SystemMessage(content=""), HumanMessage(content=user_input)]
     async def general_generate():
         final_result = ''
-        async for one_data in chat_client.send_response(user_input=user_input):
+        async for one_data in chat_client.send_response(messages):
             final_result += json.loads(one_data)['content']
             yield f"data: {one_data}\n\n"
         yield "data: [DONE]"

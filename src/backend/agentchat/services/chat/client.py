@@ -1,3 +1,7 @@
+from typing import List
+
+from langchain_core.messages import BaseMessage
+
 from agentchat.api.services.chat import ChatService
 from agentchat.api.services.dialog import DialogService
 
@@ -14,7 +18,7 @@ class ChatClient:
         agent = DialogService.get_agent_by_dialog_id(dialog_id=self.dialog_id)
         self.chat_service = ChatService(dialog_id=self.dialog_id, **agent)
 
-    async def send_response(self, user_input: str):
-        async for one in self.chat_service.run(user_input):
+    async def send_response(self, messages: List[BaseMessage]):
+        async for one in self.chat_service.run(messages):
             yield one
 

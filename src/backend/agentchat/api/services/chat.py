@@ -1,9 +1,11 @@
 import asyncio
+from typing import List
 from uuid import uuid4
 
 from langchain.agents import create_structured_chat_agent, AgentExecutor
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, SystemMessage
 from langchain_core.prompts import PromptTemplate
+from langchain_core.tools import BaseTool, Tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from agentchat.api.services.llm import Function_Call_provider
@@ -12,7 +14,7 @@ from agentchat.prompts.template import function_call_template
 from agentchat.api.services.history import HistoryService
 from agentchat.api.services.tool import ToolService
 from agentchat.services.rag_handler import RagHandler
-from agentchat.tools import action_Function_call, action_React
+from agentchat.tools import action_Function_call, action_React, Call_Tool
 from agentchat.api.services.llm import LLMService
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.api.services.mcp_stdio_server import MCPServerService
@@ -24,6 +26,58 @@ INCLUDE_MSG = {"content", "id"}
 
 FUNCTION_CALL_MSG = "Function Call"
 REACT_MSG = "React"
+
+class AgentConfig:
+    mcp_ids: List[str]
+    knowledge_ids: List[str]
+    tool_ids: List[str]
+
+class ChatAgent:
+    def __init__(self, agent_config: AgentConfig):
+        self.agent_config = agent_config
+        self.mcp_manager = MCPManager(timeout=10)
+
+
+    async def init_agent(self):
+        tools = await self.set_tools()
+
+        mcp_tools = await self.set_mcp_tools()
+
+        collection_names, index_names = await self.set_knowledge_names()
+
+    async def set_mcp_tools(self) -> List[BaseTool]:
+        mcp_tools = await self.mcp_manager.get_mcp_tools()
+        return mcp_tools
+
+    async def set_tools(self) -> List[BaseTool]:
+        tools = []
+        tools_name = ToolService.get_tool_name_by_id(self.agent_config.tool_ids)
+        for name in tools_name:
+            tools.append(Tool(name=name, description=Call_Tool[name].__doc__, func=Call_Tool[name]))
+        return tools
+
+    async def set_knowledge_names(self):
+        return self.agent_config.knowledge_ids, self.agent_config.knowledge_ids
+
+    async def call_mcp_tools(self):
+        pass
+
+    async def call_tools(self):
+        pass
+
+    async def function_call(self):
+        pass
+
+    async def set_agent_graph(self):
+        pass
+
+    async def connect_mcp_server(self):
+        servers = []
+        for mcp_id in self.agent_config.mcp_ids:
+            server = MCPServerService.get_mcp_server_user(mcp_id)
+            servers.append(server)
+
+        await self.mcp_manager.connect_mcp_servers(servers)
 
 class ChatService:
     def __init__(self, **kwargs):
@@ -86,27 +140,30 @@ class ChatService:
                 self.tools.append(action_Function_call[name])
 
 
-    async def run(self, user_input: str):
+    async def run(self, messages: List[BaseMessage]):
 
+        user_input = messages[-1].content
         # 都是通过检索RAG，并发可以减少消耗时间
-        history_message, recall_knowledge_data = await asyncio.gather(
+        history_messages, recall_knowledge_data = await asyncio.gather(
             self.get_history_message(user_input=user_input, dialog_id=self.dialog_id),
             RagHandler.rag_query(user_input, self.knowledges_id)
         )
 
+        messages.extend(history_messages)
         # history_message = await self.get_history_message(user_input=user_input, dialog_id=self.dialog_id)
         # recall_knowledge_data = await RagHandler.rag_query(user_input, self.knowledges_id)
 
         if self.llm_call == 'React':
-            return self._run_react(user_input, history_message, recall_knowledge_data)
+            return self._run_react(messages, recall_knowledge_data)
         else:
-            return self._run_function_call(user_input, history_message, recall_knowledge_data)
+            return self._run_function_call(messages, recall_knowledge_data)
 
-    async def _run_react(self, user_input: str, history_message: str, recall_knowledge_data: str):
-        agent = create_structured_chat_agent(llm=self.llm, tools=self.tools, prompt=react_prompt_en)
+    async def _run_react(self, messages: List[BaseMessage], recall_knowledge_data: str):
+        agent = create_structured_chat_agent(llm=self.llm, tools=self.tools)
         agent_executor = AgentExecutor(agent=agent, tools=self.tools, verbose=True, handle_parsing_errors=True)
+        messages.append(AIMessage(content=recall_knowledge_data))
 
-        async for chunk in agent_executor.astream({'input': user_input, 'history': history_message, 'recall_knowledge_data': recall_knowledge_data}):
+        async for chunk in agent_executor.astream(messages):
             yield chunk.json(ensure_ascii=False, include=INCLUDE_MSG)
 
     async def _run_function_call(self, user_input: str, history_message: str, recall_knowledge_text: str):
@@ -194,26 +251,25 @@ class ChatService:
             return fail_action_prompt
 
 
-    async def get_history_message(self, user_input: str, dialog_id: str, top_k: int = 5) -> str:
+    async def get_history_message(self, user_input: str, dialog_id: str, top_k: int = 5) -> List[BaseMessage]:
         # 如果绑定了Embedding模型，默认走RAG检索聊天记录
         if self.embedding:
             messages = await self._retrieval_history(user_input, dialog_id, top_k)
             return messages
         else:
             messages = await self._direct_history(dialog_id, top_k)
-
-            result = ''
-            for message in messages:
-                result += message.to_str()
-            return result
+            return messages
 
     @staticmethod
     async def _direct_history(dialog_id: str, top_k: int):
         messages = HistoryService.select_history(dialog_id=dialog_id, top_k=top_k)
-        result = []
-        for message in messages:
-            result.append(message)
-        return result
+        results = []
+        for idx, message in enumerate(messages):
+            if idx % 2 == 0:
+                results.append(HumanMessage(content=message.content))
+            else:
+                results.append(AIMessage(content=message.content))
+        return results
 
     # 使用RAG检索的方式将最近2 * top_k条数据按照相关性排序，取其中top_k个
     async def _retrieval_history(self, user_input: str, dialog_id: str, top_k: int):
@@ -227,7 +283,7 @@ class ChatService:
         # history = ''.join(results['documents'][0])
         # return history
         messages = await RagHandler.rag_query(user_input, dialog_id, 0.6, top_k, False)
-        return messages
+        return [SystemMessage(content=messages)]
 
     @staticmethod
     def function_to_json(func) -> dict:

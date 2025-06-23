@@ -19,6 +19,17 @@ action_Function_call = {
     # "RagAgent": exec_rag
 }
 
+Call_Tool = {
+    "send_email": send_email,
+    "google_search": google_search,
+    "get_arxiv": get_arxiv,
+    "get_weather": get_weather,
+    "get_delivery": get_delivery,
+    "crawl_web": crawl_web,
+    "convert_to_pdf": convert_file_to_pdf,
+    "convert_to_docx": convert_file_to_docx,
+}
+
 action_React = {
     "send_email": SendEmailTool,
     "google_search": GoogleSearchTool,
