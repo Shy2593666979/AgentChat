@@ -68,11 +68,11 @@ class RagHandler:
             return final_result
         else:
             logger.info(f"Recall for summary Field numbers < top k, Start recall use content Field")
-            return await cls.rag_query(query, knowledges_id)
+            return await cls.retrieve_ranked_documents(query, knowledges_id, knowledges_id)
 
 
     @classmethod
-    async def rag_query(cls, query, knowledges_id, min_score: float=None,
+    async def retrieve_ranked_documents(cls, query, collection_names, index_names, min_score: float=None,
                         top_k: int=None, needs_query_rewrite: bool=True):
         """
             处理 RAG 流程：查询重写、文档检索、重排序、结果过滤和拼接。
@@ -98,7 +98,7 @@ class RagHandler:
             rewritten_queries = [query]
 
         # 文档检索
-        retrieved_documents = await cls.mix_retrival_documents(rewritten_queries, knowledges_id, "content")
+        retrieved_documents = await cls.mix_retrival_documents(rewritten_queries, collection_names, "content")
 
         # 准备重排序的文档内容
         documents_to_rerank = [doc.content for doc in retrieved_documents]

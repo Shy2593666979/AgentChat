@@ -38,6 +38,10 @@ DEFAULT_CALL_PROMPT = """
     4.返回结果或下一步行动：如果没有工具需要调用，直接回答用户的问题或提供相关信息。
 """
 
+SYSTEM_PROMPT = """
+
+"""
+
 class AgentConfig:
     mcp_ids: List[str]
     knowledge_ids: List[str]
@@ -57,7 +61,7 @@ class ChatAgent:
 
         self.tools.extend(mcp_tools)
 
-        collection_names, index_names = await self.set_knowledge_names()
+        self.collection_names, self.index_names = await self.set_knowledge_names()
         await self.set_language_model()
 
     async def set_language_model(self):
@@ -105,9 +109,20 @@ class ChatAgent:
         else:
             return AIMessage(content="没有命中可用的工具")
 
+    async def execute_tool_message(self, messages: List[BaseMessage]):
+        tool_message = messages[-1]
 
-    async def call_knowledge_messages(self):
-        pass
+
+    async def call_knowledge_messages(self, messages: List[BaseMessage]):
+        knowledge_query = messages[-1].content
+
+        # 去Milvus和ES检索相关的知识库
+        knowledge_message = await RagHandler.retrieve_ranked_documents(knowledge_query, self.collection_names, self.index_names)
+        return SystemMessage(content=knowledge_message)
+
+
+    async def ainvoke(self, message: List[BaseMessage]):
+
 
     async def set_agent_graph(self):
         pass
