@@ -9,6 +9,7 @@ from langchain_core.tools import BaseTool, Tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 
 from agentchat.api.services.llm import Function_Call_provider
+from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.llm_prompt import react_prompt_en, fail_action_prompt, function_call_prompt
 from agentchat.prompts.template import function_call_template
 from agentchat.api.services.history import HistoryService
@@ -27,10 +28,21 @@ INCLUDE_MSG = {"content", "id"}
 FUNCTION_CALL_MSG = "Function Call"
 REACT_MSG = "React"
 
+DEFAULT_CALL_PROMPT = """
+你是一个智能助手，能够根据用户的需求调用适当的工具来完成任务。以下是你的工作流程：
+    1.分析用户输入：仔细阅读用户的当前查询和对话历史，理解用户的意图。
+    2.判断是否需要调用工具：如果用户的请求需要特定工具的支持（例如搜索、计算、翻译等），请明确指出需要调用哪个工具。
+    3.生成调用指令：如果需要调用工具，请按照以下格式生成调用指令：
+        - 工具名称：工具的具体名称。
+        - 输入参数：根据工具要求，从当前查询或对话历史中提取必要的信息作为输入参数。
+    4.返回结果或下一步行动：如果没有工具需要调用，直接回答用户的问题或提供相关信息。
+"""
+
 class AgentConfig:
     mcp_ids: List[str]
     knowledge_ids: List[str]
     tool_ids: List[str]
+    llm_id: str
 
 class ChatAgent:
     def __init__(self, agent_config: AgentConfig):
@@ -39,11 +51,19 @@ class ChatAgent:
 
 
     async def init_agent(self):
-        tools = await self.set_tools()
+        self.tools = await self.set_tools()
 
         mcp_tools = await self.set_mcp_tools()
 
+        self.tools.extend(mcp_tools)
+
         collection_names, index_names = await self.set_knowledge_names()
+        await self.set_language_model()
+
+    async def set_language_model(self):
+        self.conversation_model = ModelManager.get_conversation_model()
+        self.tool_invocation_model = ModelManager.get_tool_invocation_model()
+        self.reasoning_model = ModelManager.get_reasoning_model()
 
     async def set_mcp_tools(self) -> List[BaseTool]:
         mcp_tools = await self.mcp_manager.get_mcp_tools()
@@ -62,10 +82,31 @@ class ChatAgent:
     async def call_mcp_tools(self):
         pass
 
-    async def call_tools(self):
-        pass
+    async def call_tools_messages(self, messages: List[BaseMessage]) -> BaseMessage:
+        for tool in self.tools:
+            if isinstance(tool, BaseTool) and tool.args_schema:
+                tool.args_schema = function_to_args_schema(tool.func)
 
-    async def function_call(self):
+        self.tool_invocation_model.bind_tools(self.tools)
+
+        system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
+        call_tool_messages = [system_message, messages[-1]]
+
+        response = await self.tool_invocation_model.ainvoke(call_tool_messages)
+        if response.additional_kwargs:
+            return AIMessage(
+                content="",
+                additional_kwargs=response.additional_kwargs,
+                usage_metadata=response.usage_metadata,
+                tool_calls=response.tool_calls,
+                id=response.id,
+                response_metadata=response.response_metadata
+            )
+        else:
+            return AIMessage(content="没有命中可用的工具")
+
+
+    async def call_knowledge_messages(self):
         pass
 
     async def set_agent_graph(self):
@@ -285,61 +326,62 @@ class ChatService:
         messages = await RagHandler.rag_query(user_input, dialog_id, 0.6, top_k, False)
         return [SystemMessage(content=messages)]
 
-    @staticmethod
-    def function_to_json(func) -> dict:
-        """
-        Converts a Python function into a JSON-serializable dictionary
-        that describes the function's signature, including its name,
-        description, and parameters.
+    #@staticmethod
 
-        Args:
-            func: The function to be converted.
+def function_to_args_schema(func) -> dict:
+    """
+    Converts a Python function into a JSON-serializable dictionary
+    that describes the function's signature, including its name,
+    description, and parameters.
 
-        Returns:
-            A dictionary representing the function's signature in JSON format.
-        """
-        type_map = {
-            str: "string",
-            int: "integer",
-            float: "number",
-            bool: "boolean",
-            list: "array",
-            dict: "object",
-            type(None): "null",
-        }
+    Args:
+        func: The function to be converted.
 
+    Returns:
+        A dictionary representing the function's signature in JSON format.
+    """
+    type_map = {
+        str: "string",
+        int: "integer",
+        float: "number",
+        bool: "boolean",
+        list: "array",
+        dict: "object",
+        type(None): "null",
+    }
+
+    try:
+        signature = inspect.signature(func)
+    except ValueError as e:
+        raise ValueError(
+            f"Failed to get signature for function {func.__name__}: {str(e)}"
+        )
+
+    parameters = {}
+    for param in signature.parameters.values():
         try:
-            signature = inspect.signature(func)
-        except ValueError as e:
-            raise ValueError(
-                f"Failed to get signature for function {func.__name__}: {str(e)}"
+            param_type = type_map.get(param.annotation, "string")
+        except KeyError as e:
+            raise KeyError(
+                f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
             )
+        parameters[param.name] = {"schema": param_type}
 
-        parameters = {}
-        for param in signature.parameters.values():
-            try:
-                param_type = type_map.get(param.annotation, "string")
-            except KeyError as e:
-                raise KeyError(
-                    f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
-                )
-            parameters[param.name] = {"schema": param_type}
+    required = [
+        param.name
+        for param in signature.parameters.values()
+        if param.default == inspect._empty
+    ]
 
-        required = [
-            param.name
-            for param in signature.parameters.values()
-            if param.default == inspect._empty
-        ]
-
-        return {
-            "schema": "function",
-            "function": {
-                "name": func.__name__,
-                "description": func.__doc__ or "",
-                "parameters": {
-                    "schema": "object",
-                    "properties": parameters,
-                    "required": required,
-                },
+    return {
+        "schema": "function",
+        "function": {
+            "name": func.__name__,
+            "description": func.__doc__ or "",
+            "parameters": {
+                "schema": "object",
+                "properties": parameters,
+                "required": required,
             },
-        }
+        },
+    }
