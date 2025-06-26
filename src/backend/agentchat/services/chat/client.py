@@ -2,7 +2,6 @@ from typing import List
 
 from langchain_core.messages import BaseMessage
 
-from agentchat.api.services.chat import ChatService
 from agentchat.api.services.dialog import DialogService
 
 

@@ -10,25 +10,25 @@ from agentchat.database import engine
 class AgentDao:
 
     @classmethod
-    def _get_agent_sql(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                       llm_id: str, tools_id: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str]):
+    def _get_agent_sql(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
+                       llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str]):
         agent = AgentTable(name=name,
-                           logo=logo,
+                           logo_url=logo_url,
                            user_id=user_id,
                            llm_id=llm_id,
-                           tools_id=tools_id,
+                           tool_ids=tool_ids,
                            description=description,
-                           knowledges_id=knowledges_id,
+                           knowledge_ids=knowledge_ids,
                            is_custom=is_custom,
                            mcp_ids=mcp_ids,
                            use_embedding=use_embedding)
         return agent
 
     @classmethod
-    def create_agent(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                     llm_id: str, tools_id: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str]):
+    def create_agent(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
+                     llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str]):
         with Session(engine) as session:
-            session.add(cls._get_agent_sql(name, description, logo, user_id, knowledges_id, llm_id, tools_id, is_custom, use_embedding, mcp_ids))
+            session.add(cls._get_agent_sql(name, description, logo_url, user_id, knowledge_ids, llm_id, tool_ids, is_custom, use_embedding, mcp_ids))
             session.commit()
 
     @classmethod
@@ -78,9 +78,6 @@ class AgentDao:
         with Session(engine) as session:
             sql = delete(AgentTable).where(AgentTable.id == id)
             session.exec(sql)
-            # 删除agent的logo地址
-            agent_logo = cls._get_logo_by_id(id)
-            delete_img(logo=agent_logo)
             session.commit()
 
     @classmethod
@@ -88,7 +85,7 @@ class AgentDao:
         with Session(engine) as session:
             sql = select(AgentTable).where(AgentTable.id == id)
             result = session.exec(sql).all()
-            return result[0][0].logo
+            return result[0][0].logo_url
 
     @classmethod
     def check_repeat_name(cls, name: str, user_id: str):
@@ -106,7 +103,7 @@ class AgentDao:
             return result
 
     @classmethod
-    def get_agent_by_user_id(cls, user_id: int):
+    def get_agent_by_user_id(cls, user_id: str):
         with Session(engine) as session:
             sql = select(AgentTable).where(AgentTable.user_id == user_id)
             result = session.exec(sql).all()
@@ -120,8 +117,8 @@ class AgentDao:
             return result
 
     @classmethod
-    def update_agent_by_id(cls, id: str, name: str, description: str, knowledges_id: List[str],
-                           logo: str, llm_id: str, tools_id: List[str], use_embedding: bool, mcp_ids: List[str]):
+    def update_agent_by_id(cls, id: str, name: str, description: str, knowledge_ids: List[str],
+                           logo_url: str, llm_id: str, tool_ids: List[str], use_embedding: bool, mcp_ids: List[str]):
         with Session(engine) as session:
             # 构建 update 语句
             update_values = {
@@ -133,20 +130,20 @@ class AgentDao:
                 update_values['description'] = description
             if llm_id is not None:
                 update_values['llm_id'] = llm_id
-            if tools_id is not None:
-                update_values['tools_id'] = tools_id
-            if knowledges_id is not None:
-                update_values['knowledges_id'] = knowledges_id
+            if tool_ids is not None:
+                update_values['tool_ids'] = tool_ids
+            if knowledge_ids is not None:
+                update_values['knowledge_ids'] = knowledge_ids
             if use_embedding:
                 update_values['use_embedding'] = use_embedding
             if mcp_ids:
                 update_values["mcp_ids"] = mcp_ids
 
-            if logo is not None:
+            if logo_url is not None:
                 # 删除agent的logo地址
                 agent_logo = cls._get_logo_by_id(id)
-                delete_img(logo=agent_logo)
-                update_values['logo'] = logo
+                delete_img(logo_url=agent_logo)
+                update_values['logo_url'] = logo_url
 
             sql = update(AgentTable).where(AgentTable.id == id).values(**update_values)
             session.exec(sql)
@@ -165,10 +162,10 @@ class AgentDao:
             #     agent.schema = schema
             # if code is not None:
             #     agent.code = code
-            # if logo is not None:
+            # if logo_url is not None:
             #     # 删除agent的logo地址
-            #     delete_img(logo=logo)
-            #     agent.logo = logo
+            #     delete_img(logo_url=logo_url)
+            #     agent.logo_url = logo_url
             # agent.create_time = datetime.utcnow()
             #
             # session.add(agent)

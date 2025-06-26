@@ -1,6 +1,7 @@
-from fastapi import APIRouter, Form, UploadFile, File, Depends
+from fastapi import APIRouter, Form, UploadFile, File, Depends, Body
 
 from agentchat.api.services.agent import AgentService
+from agentchat.schema.agent import CreateAgentRequest, UpdateAgentRequest
 from agentchat.schema.schemas import resp_200, resp_500, UnifiedResponseModel
 from agentchat.settings import app_settings
 from agentchat.prompts.template import code_template, parameter_template
@@ -12,37 +13,33 @@ from uuid import uuid4
 router = APIRouter()
 
 @router.post("/agent", response_model=UnifiedResponseModel)
-async def create_agent(name: str = Form(...),
-                       description: str = Form(...),
-                       tools_id: List[str] = Form(default=[], description="绑定的工具id"),
-                       llm_id: str = Form(None, description="Agent 绑定的LLM ID"),
-                       mcp_ids: List[str] = Form(default=[], description="绑定的MCP Server"),
-                       knowledges_id: List[str] = Form(default=[], description="绑定的知识库ID"),
-                       use_embedding: bool = Form(True),
-                       logoFile: UploadFile = File(None),
+async def create_agent(agent_request: CreateAgentRequest,
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         # 判断Agent名字是否重复
-        if AgentService.check_repeat_name(name=name, user_id=login_user.user_id):
+        if AgentService.check_repeat_name(name=agent_request.name, user_id=login_user.user_id):
             return resp_500(message="The Agent name is repeated, please change it")
 
-        uid = uuid4().hex
-        if logoFile is not None:
-            logo = f"img/agent/{uid}.{logoFile.content_type.split('/')[-1]}"
-            with open(logo, 'wb') as file:
-                file.write(await logoFile.read())
-        else:
-            logo = app_settings.logo.get('agent')
+        # logo 存到本地
+        # uid = uuid4().hex
+        # if logoFile is not None:
+        #     logo = f"agentchat/img/agent/{uid}.{logoFile.content_type.split("/")[-1]}"
+        #     with open(logo, "wb") as file:
+        #         file.write(await logoFile.read())
+        # else:
+        #     logo = app_settings.logo.get("agent")
 
-        AgentService.create_agent(name=name,
-                                  description=description,
-                                  logo=logo,
-                                  tools_id=tools_id,
-                                  llm_id=llm_id,
-                                  mcp_ids=mcp_ids,
+
+
+        AgentService.create_agent(name=agent_request.name,
+                                  description=agent_request.description,
+                                  logo=agent_request.logo_url,
+                                  tool_ids=agent_request.tool_ids,
+                                  llm_id=agent_request.llm_id,
+                                  mcp_ids=agent_request.mcp_ids,
                                   user_id=login_user.user_id,
-                                  knowledges_id=knowledges_id,
-                                  use_embedding=use_embedding)
+                                  knowledge_ids=agent_request.knowledge_ids,
+                                  use_embedding=agent_request.use_embedding)
         return resp_200()
     except Exception as err:
         logger.error(f"create agent API error: {err}")
@@ -58,8 +55,8 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
             result.append({"id": item.id,
                            "name": item.name,
                            "description": item.description,
-                           "logo": app_settings.logo.get('prefix') + item.logo,
-                           "tools_id": item.tools_id,
+                           "logo_url": item.logo_url,
+                           "tool_ids": item.tool_ids,
                            "mcp_ids": item.mcp_ids,
                            "llm_id": item.llm_id,
                            "is_custom": item.is_custom,
@@ -68,7 +65,7 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
 
         return resp_200(data=result)
     except Exception as err:
-        logger.error(f"get agent API error: {err}")
+        logger.error(f"get Agent API error: {err}")
         return resp_500(message=str(err))
 
 
@@ -83,38 +80,22 @@ async def delete_agent(agent_id: str = Form(...),
 
 
 @router.put("/agent", response_model=UnifiedResponseModel)
-async def update_agent(agent_id: str = Form(...),
-                       name: str = Form(None),
-                       description: str = Form(None),
-                       tools_id: List[str] = Form(None),
-                       knowledges_id: List[str] = Form(None),
-                       mcp_ids: List[str] = Form(None),
-                       llm_id: str = Form(None),
-                       use_embedding: bool = Form(True),
-                       logoFile: UploadFile = File(None),
+async def update_agent(agent_request: UpdateAgentRequest,
                        login_user: UserPayload = Depends(get_login_user)):
     try:
-        if name and AgentService.check_repeat_name(name, login_user.user_id):
-            return resp_500(message='agent name repeated')
+        if agent_request.name and AgentService.check_repeat_name(agent_request.name, login_user.user_id):
+            return resp_500(message="Agent name repeated, please update Agent name")
 
-        uid = uuid4().hex
-        if logoFile is not None:
-            logo = f"img/agent/{uid}.{logoFile.content_type.split('/')[-1]}"
-            with open(logo, 'wb') as file:
-                file.write(await logoFile.read())
-        else:
-            logo = None
-
-        return AgentService.update_agent_by_id(id=agent_id,
-                                        name=name,
-                                        description=description,
-                                        logo=logo,
-                                        knowledges_id=knowledges_id,
+        return AgentService.update_agent_by_id(id=agent_request.agent_id,
+                                        name=agent_request.name,
+                                        description=agent_request.description,
+                                        logo_url=agent_request.logo_url,
+                                        knowledge_ids=agent_request.knowledge_ids,
                                         user_id=login_user.user_id,
-                                        tools_id=tools_id,
-                                        llm_id=llm_id,
-                                        mcp_ids=mcp_ids,
-                                        use_embedding=use_embedding)
+                                        tool_ids=agent_request.tool_ids,
+                                        llm_id=agent_request.llm_id,
+                                        mcp_ids=agent_request.mcp_ids,
+                                        use_embedding=agent_request.use_embedding)
 
     except Exception as err:
         logger.error(f"update agent API error: {err}")
@@ -122,17 +103,23 @@ async def update_agent(agent_id: str = Form(...),
 
 
 @router.post("/agent/search", response_model=UnifiedResponseModel)
-async def search_agent(name: str = Form(...),
+async def search_agent(name: str = Body(..., description="搜索框中的Agent 名称"),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         data = AgentService.search_agent_name(name=name, user_id=login_user.user_id)
         result = []
         for item in data:
+            # TODO: 之后是否能改成这样的形式
+            # attributes = {
+            #     key: getattr(item, key)
+            #     for key in dir(item)
+            #     if not key.startswith('__') and not callable(getattr(item, key))
+            # }
             result.append({"id": item.id,
                            "name": item.name,
                            "description": item.description,
-                           "logo": app_settings.logo.get('prefix') + item.logo,
-                           "tools_id": item.tools_id,
+                           "logo_url": item.logo_url,
+                           "tool_ids": item.tool_ids,
                            "llm_id": item.llm_id,
                            "mcp_ids": item.mcp_ids,
                            "use_embedding": item.use_embedding,
