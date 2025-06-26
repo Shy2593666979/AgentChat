@@ -1,6 +1,6 @@
 from fastapi import FastAPI, APIRouter, Body, UploadFile, File, Depends
 
-from agentchat.services.oss import oss_client
+from agentchat.services.aliyun_oss import oss_client
 from agentchat.settings import app_settings
 from loguru import logger
 from agentchat.api.services.knowledge_file import KnowledgeFileService

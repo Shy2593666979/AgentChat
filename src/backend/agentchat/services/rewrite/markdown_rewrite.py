@@ -93,7 +93,7 @@ class MarkdownRewrite:
             image_oss_object_name = image_oss_dict.get(os.path.basename(image_url))
             image_desc = image_desc_dict.get(os.path.basename(image_url))
 
-            return f'![{image_desc}]({urljoin(app_settings.oss.get("base_url"), image_oss_object_name)})'
+            return f'![{image_desc}]({urljoin(app_settings.aliyun_oss.get("base_url"), image_oss_object_name)})'
 
         # 使用re.sub进行替换
         result = re.sub(pattern, replace_image, markdown_text)

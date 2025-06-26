@@ -5,7 +5,7 @@ from typing import Type
 import tempfile
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
-from agentchat.services.oss import oss_client
+from agentchat.services.aliyun_oss import oss_client
 from agentchat.utils.helpers import get_now_beijing_time
 
 

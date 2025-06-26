@@ -76,13 +76,13 @@ logo:
   prefix: "http://127.0.0.1:8880/"
 
 
-oss:
+aliyun_oss:
   access_key_id: ""
   access_key_secret: ""
   endpoint: "oss-cn-beijing.aliyuncs.com"
   bucket_name: "agentchat"
-  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
+  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/agent-platform"
 
 
 use_captcha: False # 用户登录是否需要验证码
-use_oss: False  # 是否开启OSS
+use_oss: True  # 是否开启OSS

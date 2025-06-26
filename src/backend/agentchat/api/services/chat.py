@@ -1,12 +1,15 @@
 import asyncio
+import copy
 from typing import List
 from uuid import uuid4
 
 from langchain.agents import create_structured_chat_agent, AgentExecutor
-from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, SystemMessage
+from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, SystemMessage, ToolMessage
 from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import BaseTool, Tool
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from langgraph.graph import MessagesState, StateGraph, END, START
+from pydantic.v1 import BaseModel
 
 from agentchat.api.services.llm import Function_Call_provider
 from agentchat.core.models.manager import ModelManager
@@ -38,14 +41,12 @@ DEFAULT_CALL_PROMPT = """
     4.返回结果或下一步行动：如果没有工具需要调用，直接回答用户的问题或提供相关信息。
 """
 
-SYSTEM_PROMPT = """
-
-"""
-
-class AgentConfig:
+class AgentConfig(BaseModel):
     mcp_ids: List[str]
     knowledge_ids: List[str]
     tool_ids: List[str]
+    system_prompt: str
+    use_embedding: bool = False
     llm_id: str
 
 class ChatAgent:
@@ -56,13 +57,12 @@ class ChatAgent:
 
     async def init_agent(self):
         self.tools = await self.set_tools()
-
-        mcp_tools = await self.set_mcp_tools()
-
-        self.tools.extend(mcp_tools)
+        self.mcp_tools = await self.set_mcp_tools()
+        self.tools.extend(self.mcp_tools)
 
         self.collection_names, self.index_names = await self.set_knowledge_names()
         await self.set_language_model()
+        await self.set_agent_graph()
 
     async def set_language_model(self):
         self.conversation_model = ModelManager.get_conversation_model()
@@ -82,9 +82,6 @@ class ChatAgent:
 
     async def set_knowledge_names(self):
         return self.agent_config.knowledge_ids, self.agent_config.knowledge_ids
-
-    async def call_mcp_tools(self):
-        pass
 
     async def call_tools_messages(self, messages: List[BaseMessage]) -> BaseMessage:
         for tool in self.tools:
@@ -110,22 +107,93 @@ class ChatAgent:
             return AIMessage(content="没有命中可用的工具")
 
     async def execute_tool_message(self, messages: List[BaseMessage]):
-        tool_message = messages[-1]
+        tool_calls = messages[-1].tool_calls
+        tool_messages: List[BaseMessage] = []
+        for tool_call in tool_calls:
+            is_mcp_tool, use_tool = self.mcp_tool_use(tool_call["name"])
+            tool_name = tool_call["name"]
+            tool_args = tool_call["args"]
+            tool_call_id = tool_call["id"]
+            if is_mcp_tool:
+                try:
+                    tool_result = await use_tool.coroutine(tool_name, tool_args)
+                    tool_messages.append(
+                        ToolMessage(content=tool_result, name=tool_name + "_mcp", tool_call_id=tool_call_id))
+                    logger.info(f"MCP Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
+                except Exception as err:
+                    logger.error(f"MCP Tool {tool_name} Error: {str(err)}")
+                    tool_messages.append(
+                        ToolMessage(content=str(err), name=tool_name + "_mcp", tool_call_id=tool_call_id))
+            else:
+                try:
+                    tool_result = use_tool.func(tool_args)
+                    tool_messages.append(
+                        ToolMessage(content=tool_result, name=tool_name, tool_call_id=tool_call_id))
+                    logger.info(f"Plugin Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
+                except Exception as err:
+                    logger.error(f"Plugin Tool {tool_name} Error: {str(err)}")
+                    tool_messages.append(
+                        ToolMessage(content=str(err), name=tool_name, tool_call_id=tool_call_id))
+        return tool_messages
 
 
-    async def call_knowledge_messages(self, messages: List[BaseMessage]):
+    async def call_knowledge_messages(self, messages: List[BaseMessage]) -> BaseMessage:
         knowledge_query = messages[-1].content
 
-        # 去Milvus和ES检索相关的知识库
+        # Milvus和ES检索相关的知识库
         knowledge_message = await RagHandler.retrieve_ranked_documents(knowledge_query, self.collection_names, self.index_names)
         return SystemMessage(content=knowledge_message)
 
 
-    async def ainvoke(self, message: List[BaseMessage]):
+    async def ainvoke(self, messages: List[BaseMessage]):
+        knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
 
+        await self.graph.ainvoke({"messages": messages})
+        messages.append(knowledge_message)
+
+        async for chunk in self.conversation_model.astream(messages):
+            yield chunk.content
 
     async def set_agent_graph(self):
-        pass
+
+        # 构建调用工具Graph
+        async def should_continue(state: MessagesState):
+            messages = state["messages"]
+            last_message = messages[-1]
+
+            if last_message.tool_calls:
+                return "execute_tool_node"
+            else:
+                return END
+
+        async def call_tool_node(state: MessagesState):
+            messages = state["messages"]
+            tool_message = await self.call_tools_messages(messages)
+            messages.extend(tool_message)
+
+            return {"messages": messages}
+
+        async def execute_tool_node(state: MessagesState):
+            messages = state["messages"]
+            tool_results = await self.execute_tool_message(messages)
+            messages.extend(tool_results)
+
+            return {"messages": messages}
+
+        workflow = StateGraph(MessagesState)
+
+        workflow.add_node("call_tool_node", call_tool_node)
+        workflow.add_node("execute_tool_node", execute_tool_node)
+
+        # 设置起始节点
+        workflow.add_edge(START, "call_tool_node")
+        # 设置判断是否调用工具边
+        workflow.add_conditional_edges("call_tool_node", should_continue)
+        # 检测是否存在工具递归信息
+        workflow.add_edge("execute_tool_node", "call_tool_node")
+
+        self.graph = workflow.compile()
+
 
     async def connect_mcp_server(self):
         servers = []
@@ -134,6 +202,15 @@ class ChatAgent:
             servers.append(server)
 
         await self.mcp_manager.connect_mcp_servers(servers)
+
+    def mcp_tool_use(self, tool_name):
+        for tool in self.tools:
+            if tool.name == tool_name and tool in self.mcp_tools:
+                return True, tool
+            elif tool.name == tool_name:
+                return False, tool
+        return False, None
+
 
 class ChatService:
     def __init__(self, **kwargs):
@@ -320,11 +397,11 @@ class ChatService:
     async def _direct_history(dialog_id: str, top_k: int):
         messages = HistoryService.select_history(dialog_id=dialog_id, top_k=top_k)
         results = []
-        for idx, message in enumerate(messages):
-            if idx % 2 == 0:
-                results.append(HumanMessage(content=message.content))
-            else:
-                results.append(AIMessage(content=message.content))
+        # for message in enumerate(messages):
+        #     if idx % 2 == 0:
+        #         results.append(HumanMessage(content=message.content))
+        #     else:
+        #         results.append(AIMessage(content=message.content))
         return results
 
     # 使用RAG检索的方式将最近2 * top_k条数据按照相关性排序，取其中top_k个

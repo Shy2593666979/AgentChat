@@ -1,5 +1,11 @@
 # encoding=utf-8
 from datetime import datetime, timedelta
+import pytz
+
+def get_beijing_date_str():
+    """获取当前北京时间，并返回格式为 'YYYY-m-d' 的字符串（如 2025-6-30）"""
+    now = datetime.now(pytz.timezone('Asia/Shanghai'))
+    return f"{now.year}-{now.month}-{now.day}"
 
 
 def get_current_date():

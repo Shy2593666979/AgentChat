@@ -4,7 +4,7 @@ from pydantic.v1 import BaseSettings
 
 class Settings(BaseSettings):
     llm: dict = {}
-    oss: dict = {}
+    aliyun_oss: dict = {}
     rag: dict = {}
     logo: dict = {}
     redis: dict = {}

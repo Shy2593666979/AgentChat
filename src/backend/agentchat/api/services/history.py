@@ -1,7 +1,9 @@
 from typing import List
 from uuid import uuid4
 
+from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
 
+from agentchat.api.services.dialog import DialogService
 from agentchat.database.dao.history import HistoryDao
 from agentchat.schema.message import Message
 from loguru import logger
@@ -9,6 +11,9 @@ from agentchat.services.rag.es_client import client as es_client
 from agentchat.services.rag.milvus_client import client as milvus_client
 from agentchat.schema.chunk import ChunkModel
 from agentchat.utils.helpers import get_now_beijing_time
+
+Assistant_Role = "assistant"
+User_Role = "user"
 
 class HistoryService:
 
@@ -20,15 +25,22 @@ class HistoryService:
             logger.error(f"add history data appear error: {err}")
 
     @classmethod
-    def select_history(cls, dialog_id: str, top_k: int = 5) -> List[Message]:
+    def select_history(cls, dialog_id: str, top_k: int = 5) -> List[BaseMessage]:
         try:
             result = HistoryDao.select_history(dialog_id, top_k)
-            message_sql: List[Message] = []
+            messages: List[BaseMessage] = []
             for data in result:
-                message_sql.append(Message(content=data[0].content, role=data[0].role))
-            return message_sql
+                if data[0].role == Assistant_Role:
+                    messages.append(AIMessage(content=data[0].content))
+                elif data[0].role == User_Role:
+                    messages.append(AIMessage(content=data[0].content))
+            return messages
         except Exception as err:
             logger.error(f"select history is appear error: {err}")
+
+    @classmethod
+    def use_embedding_select_history(cls, dialog_id: str, top_k: int = 10):
+        pass
 
     @classmethod
     def get_dialog_history(cls, dialog_id: str):
@@ -75,4 +87,6 @@ class HistoryService:
         await cls.save_es_documents(knowledge_id, documents)
         await cls.save_milvus_documents(knowledge_id, documents)
 
+        # 更新对话窗口的最近使用时间
+        DialogService.update_dialog_time(dialog_id=knowledge_id)
 

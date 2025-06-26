@@ -3,7 +3,7 @@ from loguru import logger
 from agentchat.config.service_config import OSS_ENDPOINT, OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET, OSS_BUCKET_NAME
 
 
-class OSSClient:
+class AliyunOSSClient:
     def __init__(self):
         auth = oss2.Auth(access_key_id=OSS_ACCESS_KEY_ID, access_key_secret=OSS_ACCESS_KEY_SECRET)
         self.bucket = oss2.Bucket(auth, OSS_ENDPOINT, OSS_BUCKET_NAME)
@@ -43,4 +43,4 @@ class OSSClient:
         except oss2.exceptions.OssError as e:
             logger.error(f"Failed to download {object_name} to {local_file}: {e}")
 
-oss_client = OSSClient()
+aliyun_oss = AliyunOSSClient()
