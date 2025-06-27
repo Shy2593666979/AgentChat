@@ -9,15 +9,15 @@ from datetime import datetime
 class LLMDao:
 
     @classmethod
-    def _create_llm(cls, model: str, base_url: str, llm_type: str,
-                    api_key: str, provider: str, user_id: str):
+    async def _create_llm(cls, model: str, base_url: str, llm_type: str,
+                          api_key: str, provider: str, user_id: str):
         llm = LLMTable(model=model, base_url=base_url,
                        api_key=api_key, provider=provider, user_id=user_id)
         return llm
 
     @classmethod
-    def create_llm(cls, model: str, base_url: str, llm_type: str,
-                   api_key: str, provider: str, user_id: str):
+    async def create_llm(cls, model: str, base_url: str, llm_type: str,
+                         api_key: str, provider: str, user_id: str):
         with Session(engine) as session:
             llm = cls._create_llm(model=model, base_url=base_url, llm_type=llm_type,
                                   api_key=api_key, provider=provider, user_id=user_id)
@@ -25,14 +25,14 @@ class LLMDao:
             session.commit()
 
     @classmethod
-    def delete_llm(cls, llm_id: str):
+    async def delete_llm(cls, llm_id: str):
         with Session(engine) as session:
             sql = delete(LLMTable).where(LLMTable.llm_id == llm_id)
             session.exec(sql)
             session.commit()
 
     @classmethod
-    def update_llm(cls, llm_id: str, base_url: str, llm_type: str,
+    async def update_llm(cls, llm_id: str, base_url: str, llm_type: str,
                    model: str, api_key: str, provider: str):
         with Session(engine) as session:
             update_values = {
@@ -54,35 +54,35 @@ class LLMDao:
             session.commit()
 
     @classmethod
-    def get_llm_by_user(cls, user_id: str):
+    async def get_llm_by_user(cls, user_id: str):
         with Session(engine) as session:
             sql = select(LLMTable).where(LLMTable.user_id == user_id)
             result = session.exec(sql).all()
             return result
 
     @classmethod
-    def get_llm_by_id(cls, llm_id: str):
+    async def get_llm_by_id(cls, llm_id: str):
         with Session(engine) as session:
             sql = select(LLMTable).where(LLMTable.llm_id == llm_id)
-            result = session.exec(sql).first()
+            result = session.exec(sql).all()
             return result
 
     @classmethod
-    def get_all_llm(cls):
+    async def get_all_llm(cls):
         with Session(engine) as session:
             sql = select(LLMTable)
             result = session.exec(sql).all()
             return result
 
     @classmethod
-    def get_user_id_by_llm(cls, llm_id: str):
+    async def get_user_id_by_llm(cls, llm_id: str):
         with Session(engine) as session:
             sql = select(LLMTable).where(LLMTable.llm_id == llm_id)
             llm = session.exec(sql).first()
             return llm
 
     @classmethod
-    def get_llm_by_type(cls, llm_type: str):
+    async def get_llm_by_type(cls, llm_type: str):
         with Session(engine) as session:
             sql = select(LLMTable).where(LLMTable.llm_type == llm_type)
             result = session.exec(sql).all()

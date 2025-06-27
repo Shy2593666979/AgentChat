@@ -6,68 +6,58 @@ from loguru import logger
 class DialogService:
 
     @classmethod
-    def create_dialog(cls, name: str, agent_id: str, agent_type: str, user_id: str):
+    async def create_dialog(cls, name: str, agent_id: str, agent_type: str, user_id: str):
         try:
-            dialog_id = DialogDao.create_dialog(name, agent_id, agent_type, user_id)
-            return dialog_id
+            await DialogDao.create_dialog(name, agent_id, agent_type, user_id)
         except Exception as err:
-            logger.error(f"add dialog is appear error: {err}")
+            raise ValueError(f"Add Dialog Appear Error: {err}")
 
     @classmethod
-    def select_dialog(cls, dialog_id: str):
+    async def select_dialog(cls, dialog_id: str):
         try:
-            data = DialogDao.select_dialog(dialog_id)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
+            results = await DialogDao.select_dialog(dialog_id)
+            return [res.to_dict() for res in results]
         except Exception as err:
-            logger.error(f"select dialog is appear error: {err}")
+            raise ValueError(f"Select Dialog Appear Error: {err}")
 
     @classmethod
-    def get_list_dialog(cls, user_id: str):
+    async def get_list_dialog(cls, user_id: str):
         try:
-            data = DialogDao.get_dialog_by_user(user_id=user_id)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
+            results = await DialogDao.get_dialog_by_user(user_id=user_id)
+            return [res.to_dict() for res in results]
         except Exception as err:
-            logger.error(f"get list dialog is appear error: {err}")
+            raise ValueError(f"Get List Dialog Appear Error: {err}")
 
     @classmethod
-    def get_agent_by_dialog_id(cls, dialog_id: str):
+    async def get_agent_by_dialog_id(cls, dialog_id: str):
         try:
-            data = DialogDao.get_agent_by_dialog_id(dialog_id)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
+            results = await DialogDao.get_agent_by_dialog_id(dialog_id)
+            return [res.to_dict() for res in results]
         except Exception as err:
-            logger.error(f"select dialog is appear error: {err}")
+            raise ValueError(f"Select Dialog Appear Error: {err}")
 
     @classmethod
-    def update_dialog_time(cls, dialog_id: str):
+    async def update_dialog_time(cls, dialog_id: str):
         try:
-            DialogDao.update_dialog_time(dialog_id=dialog_id)
+            await DialogDao.update_dialog_time(dialog_id=dialog_id)
         except Exception as err:
-            logger.error(f"update dialog create time appear error: {err}")
+            raise ValueError(f"Update Dialog Create Time Appear Error: {err}")
 
     @classmethod
-    def delete_dialog(cls, dialog_id: str):
+    async def delete_dialog(cls, dialog_id: str):
         try:
-            DialogDao.delete_dialog_by_id(dialog_id=dialog_id)
+            await DialogDao.delete_dialog_by_id(dialog_id=dialog_id)
             HistoryDao.delete_history_by_dialog_id(dialog_id=dialog_id)
         except Exception as err:
-            logger.error(f"delete dialog appear error: {err}")
+            raise ValueError(f"Delete Dialog Appear Error: {err}")
 
     @classmethod
-    def check_dialog_iscustom(cls, dialog_id: str):
+    async def check_dialog_iscustom(cls, dialog_id: str):
         try:
-            result = DialogDao.check_dialog_iscustom(dialog_id=dialog_id)
+            result = await DialogDao.check_dialog_iscustom(dialog_id=dialog_id)
             for data in result:
                 if data[0].is_custom:
                     return True
             return False
         except Exception as err:
-            logger.error(f"check dialog is Custom appear error: {err}")
+            raise ValueError(f"Check Dialog Custom Appear Error: {err}")
