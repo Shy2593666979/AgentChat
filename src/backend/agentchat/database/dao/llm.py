@@ -19,8 +19,8 @@ class LLMDao:
     async def create_llm(cls, model: str, base_url: str, llm_type: str,
                          api_key: str, provider: str, user_id: str):
         with Session(engine) as session:
-            llm = cls._create_llm(model=model, base_url=base_url, llm_type=llm_type,
-                                  api_key=api_key, provider=provider, user_id=user_id)
+            llm = await cls._create_llm(model=model, base_url=base_url, llm_type=llm_type,
+                                        api_key=api_key, provider=provider, user_id=user_id)
             session.add(llm)
             session.commit()
 
@@ -33,7 +33,7 @@ class LLMDao:
 
     @classmethod
     async def update_llm(cls, llm_id: str, base_url: str, llm_type: str,
-                   model: str, api_key: str, provider: str):
+                         model: str, api_key: str, provider: str):
         with Session(engine) as session:
             update_values = {
                 'create_time': datetime.utcnow()

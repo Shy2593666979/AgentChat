@@ -108,7 +108,7 @@ class MarkdownParser:
             text = f.read()
         return text
 
-    async def parse_into_chunks(self, file_id, file_path, knowledge_id):
+    async def parse_into_chunks(self, file_id: str, file_path: str, knowledge_id: str):
         text = await self.parse_file(file_path)
         contents = await self.parse_markdown_headers(text)
         chunks = []

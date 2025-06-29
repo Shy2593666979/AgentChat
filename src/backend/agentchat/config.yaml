@@ -71,8 +71,8 @@ split:
   overlap_size: 100 # 知识库片段之间的重复字符
 
 logo:
-  tool: "img/tool/tool.png"
-  agent: "img/agent/assistant.png"
+  tool_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tool.png"
+  agent_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/bot.png"
   prefix: "http://127.0.0.1:8880/"
 
 
@@ -81,7 +81,7 @@ aliyun_oss:
   access_key_secret: ""
   endpoint: "oss-cn-beijing.aliyuncs.com"
   bucket_name: "agentchat"
-  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/agent-platform"
+  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/agentchat"
 
 
 use_captcha: False # 用户登录是否需要验证码

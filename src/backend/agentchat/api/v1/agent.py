@@ -49,7 +49,7 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
 
 
 @router.delete("/agent", response_model=UnifiedResponseModel)
-async def delete_agent(agent_id: str = Body(..., description="删除的Agent ID"),
+async def delete_agent(agent_id: str = Body(..., description="删除的Agent ID", embed=True),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         return await AgentService.delete_agent_by_id(id=agent_id, user_id=login_user.user_id)
@@ -83,7 +83,7 @@ async def update_agent(agent_request: UpdateAgentRequest,
 
 
 @router.post("/agent/search", response_model=UnifiedResponseModel)
-async def search_agent(name: str = Body(..., description="搜索框中的Agent 名称"),
+async def search_agent(name: str = Body(..., description="搜索框中的Agent 名称", embed=True),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         results = await AgentService.search_agent_name(name=name, user_id=login_user.user_id)

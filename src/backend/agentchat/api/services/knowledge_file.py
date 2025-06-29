@@ -13,10 +13,7 @@ class KnowledgeFileService:
     @classmethod
     async def get_knowledge_file(cls, knowledge_id):
         results = KnowledgeFileDao.select_knowledge_file(knowledge_id)
-        result = []
-        for data in results:
-            result.append(data[0])
-        return result
+        return [res[0].to_dict() for res in results]
 
     @classmethod
     async def create_knowledge_file(cls, file_path, knowledge_id, user_id, oss_url):
@@ -36,4 +33,4 @@ class KnowledgeFileService:
     @classmethod
     async def select_knowledge_file_by_id(cls, knowledge_file_id):
         knowledge_file = await KnowledgeFileDao.select_knowledge_file_by_id(knowledge_file_id)[0][0]
-        return knowledge_file
+        return knowledge_file[0]

@@ -45,6 +45,29 @@ async def save_upload_file(upload_file):
         await file.write(content)
     return file_path
 
+def get_save_tempfile(file_name):
+    # 创建临时文件夹
+    temp = tempfile.mkdtemp()
+    file_name = os.path.basename(file_name)
+    file_path = os.path.join(temp, file_name)
+    return file_path
+
+def get_images_dir(images_dir: str="images"):
+    # 创建临时文件夹
+    temp = tempfile.mkdtemp()
+    file_path = os.path.join(temp, images_dir)
+    return file_path
+
+def get_markdown_dir():
+    return get_images_dir("markdown")
+
+def generate_unique_filename(file_name: str, file_suffix: str=None) -> str:
+    file_name = os.path.basename(file_name)
+    if file_suffix:
+        return f"{file_name.split(".")[0]}_{uuid4().hex}.{file_suffix}"
+    else:
+        return f"{file_name.split(".")[0]}_{uuid4().hex}.{file_name.split(".")[-1]}"
+
 async def get_oss_object_name(file_path, knowledge_id):
     file_name = os.path.basename(file_path)
     file_suffix = file_name.split('.')[-1]

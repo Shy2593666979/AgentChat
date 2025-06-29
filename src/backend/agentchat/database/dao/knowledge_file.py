@@ -29,5 +29,5 @@ class KnowledgeFileDao:
     async def select_knowledge_file_by_id(cls, knowledge_file_id):
         with Session(engine) as session:
             sql = select(KnowledgeFileTable).where(KnowledgeFileTable.id == knowledge_file_id)
-            results = session.exec(sql).all()
+            results = session.exec(sql).first()
             return results

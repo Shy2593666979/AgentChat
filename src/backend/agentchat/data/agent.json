@@ -2,7 +2,7 @@
     {
         "name": "EmailAgent",
         "description": "根据用户提供的邮箱参数，帮助用户发送邮件",
-        "logo": "img/email.png",
+        "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/email.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -29,7 +29,7 @@
     {
         "name": "GoogleAgent",
         "description": "在Google搜索一些信息",
-        "logo": "img/google.png",
+        "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/google.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -44,7 +44,7 @@
     {
         "name": "WeatherAgent",
         "description": "获得指定位置的实时天气以及预报天气信息",
-        "logo": "img/weather.png",
+        "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/weather.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -59,7 +59,7 @@
     {
         "name": "ArxivAgent",
         "description": "为用户提供Arxiv上的论文",
-        "logo": "img/arxiv.png",
+        "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/arxiv.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -74,7 +74,7 @@
     {
         "name": "DeliveryAgent",
         "description": "根据用户提供的快递单号，可查看快递公司以及实时信息",
-        "logo": "img/delivery.png",
+        "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/delivery.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -89,7 +89,7 @@
     {
         "name": "RagAgent",
         "description": "根据用户问题在知识库进行检索，支持.pdf .txt .md .docx .xlsx加载知识库",
-        "logo": "img/default.png",
+        "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/bot.png",
         "parameters": {
             "type": "object",
             "properties": {
@@ -104,7 +104,7 @@
     {
         "name": "ChatAgent",
         "description": "根据用户输入直接与LLM进行对话",
-        "logo": "img/default.png",
+        "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/bot.png",
         "parameters": {}
     }
 ]

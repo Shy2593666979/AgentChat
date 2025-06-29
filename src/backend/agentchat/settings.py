@@ -26,7 +26,7 @@ class Settings(BaseSettings):
 
 app_settings = Settings()
 
-def initialize_app_settings(file_path: str = None):
+async def initialize_app_settings(file_path: str = None):
     global app_settings
 
     file_path = file_path or "agentchat/config.yaml"

@@ -5,7 +5,7 @@ from typing import Type
 import tempfile
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
-from agentchat.services.aliyun_oss import oss_client
+from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.utils.helpers import get_now_beijing_time
 
 
@@ -52,9 +52,9 @@ def convert_file_to_pdf(file_path):
 
     oss_object_name = f"/convert_pdf/{os.path.splitext(file_path)}.pdf"
     local_file_path = os.path.join(output_dir, f"{os.path.splitext(file_path)}.pdf")
-    oss_client.upload_local_file(oss_object_name, local_file_path)
+    aliyun_oss.upload_local_file(oss_object_name, local_file_path)
 
-    url = oss_client.sign_url_for_get(oss_object_name)
+    url = aliyun_oss.sign_url_for_get(oss_object_name)
     now_time = get_now_beijing_time(delta=1)
 
     return f'您的{os.path.basename(file_path)}文件解析成功，下载路径为：{url}，请在{now_time} 前进行下载，超过时间就会失效~~~'

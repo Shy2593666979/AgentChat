@@ -2,8 +2,10 @@ import os
 import asyncio
 
 from agentchat.schema.chunk import ChunkModel
-from agentchat.services.rag.doc_split.text import text_parser
-from agentchat.services.rag.doc_split.markdown import markdown_parser
+from agentchat.services.rag.doc_parser.docx import docx_parser
+from agentchat.services.rag.doc_parser.pdf import pdf_parser
+from agentchat.services.rag.doc_parser.text import text_parser
+from agentchat.services.rag.doc_parser.markdown import markdown_parser
 from agentchat.core.models.models import async_client
 
 
@@ -17,6 +19,10 @@ class DocParser:
             chunks = await markdown_parser.parse_into_chunks(file_id, file_path, knowledge_id)
         elif file_suffix == 'txt':
             chunks = await text_parser.parse_into_chunks(file_id, file_path, knowledge_id)
+        elif file_suffix == 'docx':
+            chunks = await docx_parser.parse_into_chunks(file_id, file_path, knowledge_id)
+        elif file_suffix == 'pdf':
+            chunks = await pdf_parser.parse_into_chunks(file_id, file_path, knowledge_id)
         """其他文档"""
 
         # 创建信号量，限制最大并发任务数

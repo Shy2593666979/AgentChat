@@ -9,12 +9,10 @@ class KnowledgeService:
     @classmethod
     async def create_knowledge(cls, knowledge_name, knowledge_desc, user_id):
         try:
-            KnowledgeDao.create_knowledge(knowledge_name, knowledge_desc, user_id)
-            logger.info(f'Success Create knowledge')
-            return SUCCESS_RESP
+            await KnowledgeDao.create_knowledge(knowledge_name, knowledge_desc, user_id)
         except Exception as err:
-            logger.error(f'Create Knowledge Error: {err}')
-            return FAIL_RESP
+            raise ValueError(f'Create Knowledge Error: {err}')
+
 
     @classmethod
     async def select_knowledge(cls, user_id):
@@ -23,26 +21,18 @@ class KnowledgeService:
             if user_id == AdminUser:
                 return await cls._select_all_knowledge()
 
-            datas = KnowledgeDao.get_knowledge_by_user(user_id)
-            result = []
-            for data in datas:
-                result.append(data[0])
-            logger.info('Success Select All knowledges')
-            return SUCCESS_RESP, result
+            results = await KnowledgeDao.get_knowledge_by_user(user_id)
+            return [res[0].to_dict() for res in results]
         except Exception as err:
-            logger.error(f'Select Knowledge By User Error: {err}')
-            return FAIL_RESP, None
+            raise ValueError(f'Select Knowledge By User Error: {err}')
 
     @classmethod
     async def _select_all_knowledge(cls):
         try:
-            datas = KnowledgeDao.get_all_knowledge()
-            result = []
-            for data in datas:
-                result.append(data[0])
-            return result
+            results = await KnowledgeDao.get_all_knowledge()
+            return [res[0].to_dict() for res in results]
         except Exception as err:
-            logger.error(f'Delete Knowledge By ID Error: {err}')
+            raise ValueError(f'Delete Knowledge By ID Error: {err}')
 
     @classmethod
     async def delete_knowledge(cls, knowledge_id, user_id):
@@ -51,32 +41,26 @@ class KnowledgeService:
             if user_id != knowledge_user_id and user_id != AdminUser:
                 raise ValueError(f'User id: {user_id} update knowledge, but no permission')
 
-            KnowledgeDao.delete_knowledge_by_id(knowledge_id)
-            logger.info(f'Success Delete Knowledge ID: {knowledge_id}')
-            return SUCCESS_RESP
+            await KnowledgeDao.delete_knowledge_by_id(knowledge_id)
         except Exception as err:
-            logger.error(f'Delete Knowledge By ID Error: {err}')
-            return FAIL_RESP
+            raise ValueError(f'Delete Knowledge By ID Error: {err}')
+
 
     @classmethod
     async def update_knowledge(cls, knowledge_id, knowledge_name, knowledge_desc, user_id):
         try:
             knowledge_user_id = await cls.select_user_by_id(knowledge_id)
             if user_id != knowledge_user_id and user_id != AdminUser:
-                raise ValueError(f'User id: {user_id} update knowledge, but no permission')
+                raise ValueError(f'User id: {user_id} update knowledge, But no permission')
 
-            KnowledgeDao.update_knowledge_by_id(knowledge_id, knowledge_name, knowledge_desc)
-            logger.info(f'Success Update Knowledge ID: {knowledge_id}')
-            return SUCCESS_RESP
+            await KnowledgeDao.update_knowledge_by_id(knowledge_id, knowledge_name, knowledge_desc)
         except Exception as err:
-            logger.error(f'Update Knowledge Error: {err}')
-            return FAIL_RESP
+            raise ValueError(f'Update Knowledge Error: {err}')
 
     @classmethod
     async def select_user_by_id(cls, knowledge_id):
         try:
             knowledge = KnowledgeDao.select_user_by_id(knowledge_id)
-            return knowledge.user_id
+            return knowledge[0].user_id
         except Exception as err:
-            logger.error(f'select user id error :{err}')
-
+            raise ValueError(f'Select user id error :{err}')

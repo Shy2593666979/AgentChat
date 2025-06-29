@@ -15,19 +15,20 @@ from agentchat.utils.helpers import get_now_beijing_time
 Assistant_Role = "assistant"
 User_Role = "user"
 
+
 class HistoryService:
 
     @classmethod
-    def create_history(cls, role: str, content: str, dialog_id: str):
+    async def create_history(cls, role: str, content: str, dialog_id: str):
         try:
-            HistoryDao.create_history(role, content, dialog_id)
+            await HistoryDao.create_history(role, content, dialog_id)
         except Exception as err:
-            logger.error(f"add history data appear error: {err}")
+            raise ValueError(f"Add history data appear error: {err}")
 
     @classmethod
-    def select_history(cls, dialog_id: str, top_k: int = 5) -> List[BaseMessage]:
+    async def select_history(cls, dialog_id: str, top_k: int = 5) -> List[BaseMessage] | None:
         try:
-            result = HistoryDao.select_history(dialog_id, top_k)
+            result = await HistoryDao.select_history(dialog_id, top_k)
             messages: List[BaseMessage] = []
             for data in result:
                 if data[0].role == Assistant_Role:
@@ -36,22 +37,19 @@ class HistoryService:
                     messages.append(AIMessage(content=data[0].content))
             return messages
         except Exception as err:
-            logger.error(f"select history is appear error: {err}")
+            raise ValueError(f"Select history is appear error: {err}")
 
     @classmethod
-    def use_embedding_select_history(cls, dialog_id: str, top_k: int = 10):
+    async def use_embedding_select_history(cls, dialog_id: str, top_k: int = 10):
         pass
 
     @classmethod
-    def get_dialog_history(cls, dialog_id: str):
+    async def get_dialog_history(cls, dialog_id: str):
         try:
-            result = HistoryDao.get_dialog_history(dialog_id)
-            message_sql: List[Message] = []
-            for data in result:
-                message_sql.append(Message(content=data[0].content, role=data[0].role))
-            return message_sql
+            results = await HistoryDao.get_dialog_history(dialog_id)
+            return [res[0].to_dict() for res in results]
         except Exception as err:
-            logger.error(f"get dialog history is appear error: {err}")
+            raise ValueError(f"Get dialog history is appear error: {err}")
 
     @classmethod
     async def save_es_documents(cls, index_name, content):
@@ -82,11 +80,10 @@ class HistoryService:
     async def save_chat_history(cls, role, content, knowledge_id):
         documents = f"{role}: \n {content}"
 
-        cls.create_history(role, content, knowledge_id)
+        await cls.create_history(role, content, knowledge_id)
 
         await cls.save_es_documents(knowledge_id, documents)
         await cls.save_milvus_documents(knowledge_id, documents)
 
         # 更新对话窗口的最近使用时间
-        DialogService.update_dialog_time(dialog_id=knowledge_id)
-
+        await DialogService.update_dialog_time(dialog_id=knowledge_id)

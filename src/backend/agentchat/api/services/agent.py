@@ -23,7 +23,7 @@ class AgentService:
     async def get_agent(cls):
         try:
             results = await AgentDao.get_agent()
-            return [res.to_dict() for res in results]
+            return [res[0].to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Get Agent Appear Error: {err}")
 
@@ -53,7 +53,7 @@ class AgentService:
     async def get_agent_user_id(cls, agent_id: str):
         try:
             agent = await AgentDao.get_agent_user_id(agent_id=agent_id)
-            return agent.user_id
+            return agent[0].user_id
         except Exception as err:
             raise ValueError(f"Get Agent User Id Error: {err}")
 
@@ -72,7 +72,7 @@ class AgentService:
     async def search_agent_name(cls, name: str, user_id: str):
         try:
             results = await AgentDao.search_agent_name(name=name, user_id=user_id)
-            return [res.to_dict() for res in results]
+            return [res[0].to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Search Agent Name Appear Error: {err}")
 
@@ -90,31 +90,25 @@ class AgentService:
     @classmethod
     async def check_name_iscustom(cls, name: str):
         try:
-            data = await AgentDao.select_agent_by_name(name)
-            return data[0][0].is_custom
+            agent = await AgentDao.select_agent_by_name(name)
+            return agent[0].is_custom
         except Exception as err:
             raise ValueError(f"Get Code by Name Appear Error: {err}")
 
     @classmethod
     async def get_personal_agent_by_user_id(cls, user_id: str):
         try:
-            data = await AgentDao.get_agent_by_user_id(user_id=user_id)
-            result = []
-            for item in data:
-                result.append(item[0])
-            return result
+            results = await AgentDao.get_agent_by_user_id(user_id=user_id)
+            return [res[0].to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Get Personal Agent By User Id Error: {err}")
 
     @classmethod
     async def get_all_agent_by_user_id(cls, user_id: str):
         try:
-            system_data = await AgentDao.get_agent_by_user_id(user_id=SystemUser)
-            user_data = await AgentDao.get_agent_by_user_id(user_id=user_id)
-            result = []
-            for item in (system_data + user_data):
-                result.append(item[0])
-            return result
+            system_results = await AgentDao.get_agent_by_user_id(user_id=SystemUser)
+            user_results = await AgentDao.get_agent_by_user_id(user_id=user_id)
+            return [res[0].to_dict() for res in system_results + user_results]
         except Exception as err:
             raise ValueError(f"Get All Agent By User Id Error: {err}")
 
@@ -122,7 +116,7 @@ class AgentService:
     async def select_agent_by_custom(cls, is_custom):
         try:
             results = await AgentDao.select_agent_by_custom(is_custom=is_custom)
-            return [res.to_dict() for res in results]
+            return [res[0].to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Select Agent By Custom Appear Error: {err}")
 
@@ -130,14 +124,14 @@ class AgentService:
     async def select_agent_by_name(cls, name: str):
         try:
             results = await AgentDao.select_agent_by_name(name)
-            return [res.to_dict() for res in results]
+            return [res[0].to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Select Agent By Name Appear Error: {err}")
 
     @classmethod
     async def select_agent_by_id(cls, agent_id: str):
         try:
-            data = AgentDao.select_agent_by_id(agent_id)
-            return data
+            agent = AgentDao.select_agent_by_id(agent_id)
+            return agent[0].to_dict()
         except Exception as err:
             raise ValueError(f"Select Agent By Id Appear Error: {err}")

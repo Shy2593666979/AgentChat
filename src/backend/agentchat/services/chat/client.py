@@ -13,8 +13,8 @@ class ChatClient:
 
         self.init_chat_service()
 
-    def init_chat_service(self):
-        agent = DialogService.get_agent_by_dialog_id(dialog_id=self.dialog_id)
+    async def init_chat_service(self):
+        agent = await DialogService.get_agent_by_dialog_id(dialog_id=self.dialog_id)
         self.chat_service = ChatService(dialog_id=self.dialog_id, **agent)
 
     async def send_response(self, messages: List[BaseMessage]):

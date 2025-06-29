@@ -38,7 +38,7 @@ class DialogDao:
     async def get_agent_by_dialog_id(cls, dialog_id: str):
         with Session(engine) as session:
             sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
-            result = session.exec(sql).all()
+            result = session.exec(sql).first()
             return result
 
     @classmethod
@@ -59,6 +59,6 @@ class DialogDao:
     async def check_dialog_iscustom(cls, dialog_id: str):
         with Session(engine) as session:
             sql = select(DialogTable).where(DialogTable.dialog_id == dialog_id)
-            result = session.exec(sql).all()
+            result = session.exec(sql).first()
 
             return result

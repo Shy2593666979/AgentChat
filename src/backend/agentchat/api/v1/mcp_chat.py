@@ -13,7 +13,7 @@ async def chat(user_input: str = Body(description='用户问题'),
                dialog_id: str = Body(description='对话的ID')):
     """与助手进行对话"""
 
-    agent = DialogService.get_agent_by_dialog_id(dialog_id)
+    agent = await DialogService.get_agent_by_dialog_id(dialog_id)
     mcp_chat_agent = MCPChatAgent(**agent)
     await mcp_chat_agent.init_MCP_Server()
 

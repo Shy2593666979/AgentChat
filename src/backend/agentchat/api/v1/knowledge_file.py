@@ -1,53 +1,46 @@
-from fastapi import FastAPI, APIRouter, Body, UploadFile, File, Depends
+from urllib.parse import urlparse
+from fastapi import FastAPI, APIRouter, Body, Depends
 
-from agentchat.services.aliyun_oss import oss_client
-from agentchat.settings import app_settings
-from loguru import logger
+from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.api.services.knowledge_file import KnowledgeFileService
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
-from agentchat.utils.file_utils import save_upload_file, get_oss_object_name
+from agentchat.utils.file_utils import get_save_tempfile
 
 router = APIRouter()
 
 
 @router.post('/knowledge_file/create', response_model=UnifiedResponseModel)
-async def upload_file(knowledge_id: str = Body(...),
-                      file: UploadFile = File(...),
+async def upload_file(knowledge_id: str = Body(..., description="知识库的ID"),
+                      file_url: str = Body(..., description="文件上传后返回的URL"),
                       login_user: UserPayload = Depends(get_login_user)):
     try:
-        file_path = await save_upload_file(file)
-        if app_settings.use_oss:
-            object_name = await get_oss_object_name(file_path, knowledge_id)
-            oss_client.upload_local_file(object_name, file_path)
-        else:
-            object_name = None
-        await KnowledgeFileService.create_knowledge_file(file_path, knowledge_id, login_user.user_id, object_name)
+        # 获取本地临时文件路径
+        file_name = file_url.split("/")[-1]
+        local_file_path = get_save_tempfile(file_name)
+        # 根据URL解析出对应的object name
+        parsed = urlparse(file_url)
+        object_key = parsed.path.lstrip('/')
+        aliyun_oss.download_file(object_key, local_file_path)
+
+        await KnowledgeFileService.create_knowledge_file(local_file_path, knowledge_id, login_user.user_id, file_url)
         return resp_200()
     except Exception as err:
         return resp_500(message=str(err))
 
+
 @router.get('/knowledge_file/select', response_model=UnifiedResponseModel)
-async def select_knowledge_file(knowledge_id: str = Body(...),
-                           login_user: UserPayload = Depends(get_login_user)):
+async def select_knowledge_file(knowledge_id: str = Body(..., embed=True),
+                                login_user: UserPayload = Depends(get_login_user)):
     try:
         results = await KnowledgeFileService.get_knowledge_file(knowledge_id)
-        knowledge_file_data = []
-        for result in results:
-            knowledge_file_data.append({
-                'id': result.id,
-                'file_name': result.file_name,
-                'knowledge_id': result.knowledge_id,
-                'user_id': result.user_id,
-                'oss_url': result.oss_url,
-                'update_time': result.update_time
-            })
-        return resp_200(data=knowledge_file_data)
+        return resp_200(data=results)
     except Exception as err:
         return resp_500(message=str(err))
 
+
 @router.delete('/knowledge_file/delete', response_model=UnifiedResponseModel)
-async def delete_knowledge_file(knowledge_file_id: str = Body(...),
+async def delete_knowledge_file(knowledge_file_id: str = Body(..., embed=True),
                                 login_user: UserPayload = Depends(get_login_user)):
     try:
         await KnowledgeFileService.delete_knowledge_file(knowledge_file_id)

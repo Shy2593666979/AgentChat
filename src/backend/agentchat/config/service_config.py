@@ -6,7 +6,7 @@ SERVICE_HOST = "127.0.0.1"
 
 SERVICE_PORT = 8880
 
-TOOL_OPENAI = "tools/function_openai.json"
+TOOL_OPENAI = "tools/agent.json"
 
 AGENT_DEFAULT_LOGO = "img/agent/assistant.png"
 

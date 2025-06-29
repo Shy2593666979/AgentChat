@@ -12,8 +12,8 @@ class AgentDao:
 
     @classmethod
     async def _get_agent_sql(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
-                       llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str],
-                       system_prompt: str):
+                             llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str],
+                             system_prompt: str):
         agent = AgentTable(name=name, logo_url=logo_url, user_id=user_id, llm_id=llm_id,
                            tool_ids=tool_ids, description=description, mcp_ids=mcp_ids,
                            system_prompt=system_prompt, use_embedding=use_embedding, is_custom=is_custom)
@@ -21,12 +21,12 @@ class AgentDao:
 
     @classmethod
     async def create_agent(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
-                     llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str],
-                     system_prompt: str):
+                           llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str],
+                           system_prompt: str):
         with Session(engine) as session:
             session.add(
-                cls._get_agent_sql(name, description, logo_url, user_id, knowledge_ids, llm_id, tool_ids, is_custom,
-                                   use_embedding, mcp_ids, system_prompt))
+                await cls._get_agent_sql(name, description, logo_url, user_id, knowledge_ids, llm_id, tool_ids,
+                                         is_custom, use_embedding, mcp_ids, system_prompt))
             session.commit()
 
     @classmethod
@@ -40,7 +40,7 @@ class AgentDao:
     async def select_agent_by_name(cls, name: str):
         with Session(engine) as session:
             sql = select(AgentTable).where(AgentTable.name == name)
-            result = session.exec(sql).all()
+            result = session.exec(sql).first()
             return result
 
     @classmethod
@@ -116,8 +116,9 @@ class AgentDao:
 
     @classmethod
     async def update_agent_by_id(cls, id: str, name: str, description: str, knowledge_ids: List[str],
-                           logo_url: str, llm_id: str, tool_ids: List[str], use_embedding: bool, mcp_ids: List[str],
-                           system_prompt):
+                                 logo_url: str, llm_id: str, tool_ids: List[str], use_embedding: bool,
+                                 mcp_ids: List[str],
+                                 system_prompt):
         with Session(engine) as session:
             # 构建 update 语句
             update_values = {

@@ -14,7 +14,7 @@ class HistoryTable(SQLModelSerializable, table=True):
 
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     content: str = Field(sa_column=Column(Text))
-    dialog_id: str
+    dialog_id: str = Field(description="对话的ID")
     role: str = Literal["assistant", "system", "user"]
     create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
 

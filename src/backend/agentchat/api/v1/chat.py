@@ -1,9 +1,9 @@
 import json
-from typing import Annotated
+from typing import Annotated, List
 from urllib.parse import urljoin
 
 from fastapi import APIRouter, Body, UploadFile, File, Depends
-from langchain_core.messages import HumanMessage, SystemMessage
+from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
 
 from agentchat.api.services.chat import ChatAgent, AgentConfig
 from agentchat.api.services.history import HistoryService
@@ -46,25 +46,25 @@ async def chat(*,
                conversation_req: ConversationReq = Body(description="传递的会话信息"),
                login_user: UserPayload = Depends(get_login_user)):
     """与助手进行对话"""
-
-    config = DialogService.get_agent_by_dialog_id(dialog_id=conversation_req.dialog_id)
+    config = await DialogService.get_agent_by_dialog_id(dialog_id=conversation_req.dialog_id)
     agent_config = AgentConfig(**config)
 
     # 初始化对话助手
     chat_agent = ChatAgent(agent_config)
     await chat_agent.init_agent()
 
-    messages = [HumanMessage(content=conversation_req.use_input), SystemMessage(
+    messages: List[BaseMessage] = [HumanMessage(content=conversation_req.use_input), SystemMessage(
         content=SYSTEM_PROMPT if agent_config.system_prompt.strip() == "" else agent_config.system_prompt)]
     if agent_config.use_embedding:
-        history_messages = messages = HistoryService.select_history(conversation_req.dialog_id, 10)
+        history_messages = await HistoryService.select_history(conversation_req.dialog_id, 10)
     else:
-        history_messages = HistoryService.select_history(conversation_req.dialog_id)
+        history_messages = await HistoryService.select_history(conversation_req.dialog_id)
     messages.extend(history_messages)
 
     async def general_generate():
         final_content = ""
         async for chunk_content in chat_agent.ainvoke(messages):
+            final_content += chunk_content
             yield f"data: {chunk_content}\n\n"
         yield "data: [DONE]"
         await HistoryService.save_chat_history(Assistant_Role, final_content, conversation_req.dialog_id)
