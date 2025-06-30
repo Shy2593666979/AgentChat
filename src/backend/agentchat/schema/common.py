@@ -24,3 +24,14 @@ class UpdateLLMRequest(BaseModel):
     llm_id: str = Field(..., description="大模型的ID")
     provider: str = Field(None, description="大模型提供商，例如 OpenAI、Anthropic")
 
+
+class ModelConfig(BaseModel):
+    model_name: str = ""
+    api_key: str = ""
+    base_url: str = ""
+
+class MultiModels(BaseModel):
+    qwen_vl: ModelConfig = Field(default_factory=ModelConfig)
+    deepseek_v3: ModelConfig = Field(default_factory=ModelConfig)
+    qwen2: ModelConfig = Field(default_factory=ModelConfig)
+    deepseek_r1: ModelConfig = Field(default_factory=ModelConfig)

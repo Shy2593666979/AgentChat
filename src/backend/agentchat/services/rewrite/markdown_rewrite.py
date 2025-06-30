@@ -120,6 +120,6 @@ class MarkdownRewrite:
             return base64.b64encode(image_file.read()).decode("utf-8")
 
 
-rewrite_client = MarkdownRewrite()
+markdown_rewriter = MarkdownRewrite()
 
 

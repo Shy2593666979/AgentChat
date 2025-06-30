@@ -1,7 +1,7 @@
 import pymupdf4llm
 import pathlib
 
-pdf_file = "C:\\Users\\枯木逢春i\\Desktop\\test_pdf.pdf"
+pdf_file = r"C:\Users\harry\Desktop\数据\其他\2023商保福利介绍-公司付费方案.pdf"
 # md_text = pymupdf4llm.to_markdown("C:\\Users\\枯木逢春i\\Desktop\\test_pdf.pdf")
 # print(md_text)
 

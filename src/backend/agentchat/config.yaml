@@ -12,10 +12,23 @@ langfuse:
   user_id: "tian_chat"
 
 # 根据自己的LLM配置进行更改
-llm:
-  api_key: ""
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  model_name: "qwen-plus"
+multi_models:
+  qwen2:
+    api_key: ""
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "qwen-plus"
+  deepseek_v3:
+    api_key: ""
+    base_url: "https://api.deepseek.com/v1"
+    model_name: "deepseek-chat"
+  qwen_vl:
+    api_key: ""
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "qwen_vl"
+  deepseek_r1:
+    api_key: ""
+    base_url: "https://api.deepseek.com/v1"
+    model_name: "deepseek-r1"
 
 # 根据自己的Embedding配置进行更改
 embedding:

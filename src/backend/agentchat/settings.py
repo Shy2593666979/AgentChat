@@ -2,6 +2,9 @@ import yaml
 from loguru import logger
 from pydantic.v1 import BaseSettings
 
+from agentchat.schema.common import MultiModels
+
+
 class Settings(BaseSettings):
     llm: dict = {}
     aliyun_oss: dict = {}
@@ -19,7 +22,7 @@ class Settings(BaseSettings):
     tool_delivery: dict = {}
     tool_google: dict = {}
     tool_weather: dict = {}
-
+    multi_models: MultiModels = MultiModels()
 
     use_oss: bool = False
     use_captcha: bool = False

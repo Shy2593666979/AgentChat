@@ -1,23 +1,15 @@
 import asyncio
 import copy
 from typing import List
-from uuid import uuid4
-
-from langchain.agents import create_structured_chat_agent, AgentExecutor
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, SystemMessage, ToolMessage
-from langchain_core.prompts import PromptTemplate
 from langchain_core.tools import BaseTool, Tool
-from langchain_openai import ChatOpenAI, OpenAIEmbeddings
 from langgraph.graph import MessagesState, StateGraph, END, START
 from pydantic.v1 import BaseModel
 
 from agentchat.core.models.manager import ModelManager
-from agentchat.prompts.llm_prompt import react_prompt_en, fail_action_prompt, function_call_prompt
-from agentchat.prompts.template import function_call_template
-from agentchat.api.services.history import HistoryService
 from agentchat.api.services.tool import ToolService
 from agentchat.services.rag_handler import RagHandler
-from agentchat.tools import action_Function_call, action_React, Call_Tool
+from agentchat.tools import Call_Tool
 from agentchat.api.services.llm import LLMService
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.api.services.mcp_stdio_server import MCPServerService
@@ -74,7 +66,7 @@ class ChatAgent:
 
     async def set_tools(self) -> List[BaseTool]:
         tools = []
-        tools_name = ToolService.get_tool_name_by_id(self.agent_config.tool_ids)
+        tools_name = await ToolService.get_tool_name_by_id(self.agent_config.tool_ids)
         for name in tools_name:
             tools.append(Tool(name=name, description=Call_Tool[name].__doc__, func=Call_Tool[name]))
         return tools

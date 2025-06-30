@@ -1,6 +1,6 @@
 from docx import Document
 from agentchat.services.rag.doc_parser.pdf import pdf_parser
-
+from agentchat.services.rag.convert_pdf import convert_to_pdf
 
 
 class DocxParser:
@@ -8,7 +8,7 @@ class DocxParser:
         pass
 
     async def convert_pdf(self, file_path: str):
-        pass
+        return convert_to_pdf(file_path)
 
     async def parse_into_chunks(self, file_id, file_path, knowledge_id):
         pdf_file_path = await self.convert_pdf(file_path)
@@ -35,8 +35,8 @@ docx_parser = DocxParser()
 # from reportlab.lib.pagesizes import letter
 # from reportlab.pdfbase import pdfmetrics
 # from reportlab.pdfbase.ttfonts import TTFont
-
-
+#
+#
 # def convert_docx_to_pdf(input_docx, output_pdf):
 #     # 读取Word文档
 #     doc = Document(input_docx)
@@ -62,8 +62,5 @@ docx_parser = DocxParser()
 #         y -= 20  # 行间距
 #
 #     c.save()
-#
-#
-# # 使用示例
-# convert_docx_to_pdf('input.docx', 'output.pdf')
+
 

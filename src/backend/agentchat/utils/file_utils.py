@@ -61,6 +61,13 @@ def get_images_dir(images_dir: str="images"):
 def get_markdown_dir():
     return get_images_dir("markdown")
 
+# 只对PDF ---> Markdown使用
+def get_convert_markdown_images_dir():
+    # 创建临时文件夹
+    temp = tempfile.mkdtemp()
+    images_path = os.path.join(temp, "images")
+    return temp, images_path
+
 def generate_unique_filename(file_name: str, file_suffix: str=None) -> str:
     file_name = os.path.basename(file_name)
     if file_suffix:
