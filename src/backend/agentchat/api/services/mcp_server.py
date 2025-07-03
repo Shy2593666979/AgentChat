@@ -6,10 +6,10 @@ class MCPService:
 
     @classmethod
     def create_mcp_server(cls, mcp_server_name: str, user_id: str, user_name: str,
-                          url: str, type: str, config: str, tools: str, params: dict):
+                          url: str, type: str, config: dict, tools: str, params: dict, config_enabled: bool):
         try:
             return MCPServerDao.create_mcp_server(mcp_server_name, user_id, user_name, url, type,
-                                                  config, tools, params)
+                                                  config, tools, params, config_enabled)
         except Exception as err:
             raise ValueError(f"Create MCP Server Error: {err}")
 
@@ -22,7 +22,7 @@ class MCPService:
 
     @classmethod
     def update_mcp_server(cls, mcp_server_id: str, mcp_server_name: str,
-                          url: str, type: str, config: str, tools: str, params: dict):
+                          url: str, type: str, config: dict, tools: str, params: dict):
         try:
             return MCPServerDao.update_mcp_server(mcp_server_id, mcp_server_name, url, type, config,
                                                   tools, params)

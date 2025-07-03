@@ -13,7 +13,7 @@ router = APIRouter()
 async def create_mcp_server(mcp_server_name: str = Body(..., description="MCP Server的名称"),
                             url: str = Body(..., description="MCP Server 的URL"),
                             type: str = Body(..., description="MCP Server 的连接方式，SSE、Websocket"),
-                            config: str = Body({}, description="MCP Server 的配置信息"),
+                            config: dict = Body(None, description="MCP Server 的配置信息"),
                             login_user: UserPayload = Depends(get_login_user)):
     try:
         mcp_manager = MCPManager()
@@ -61,7 +61,7 @@ async def update_mcp_server(mcp_server_id: str = Body(..., description="MCP Serv
                             mcp_server_name: str = Body(None, description="MCP Server的名称"),
                             url: str = Body(None, description="MCP Server 的URL"),
                             type: str = Body(None, description="MCP Server 的连接方式，SSE、Websocket"),
-                            config: str = Body(None, description="MCP Server 的配置信息"),
+                            config: dict = Body(None, description="MCP Server 的配置信息"),
                             login_user: UserPayload = Depends(get_login_user)):
     try:
         if url:

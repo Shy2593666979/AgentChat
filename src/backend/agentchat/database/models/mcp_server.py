@@ -33,6 +33,7 @@ class MCPServerTable(SQLModelSerializable, table=True):
     config: Optional[dict] = Field(sa_column=Column(JSON), description="配置，如apikey等")
     tools: str = Field(default="", description="MCP Server的工具列表")
     params: Optional[dict] = Field(sa_column=Column(JSON), description="输入参数")
+    config_enabled: bool = Field(False, description="是否需要用户单独配置参数")
     create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
     update_time: Optional[datetime] = Field(
         sa_column=Column(DateTime, nullable=False, server_default=text('CURRENT_TIMESTAMP'),

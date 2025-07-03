@@ -10,11 +10,11 @@ from agentchat.database.models.mcp_server import MCPServerStdioTable, MCPServerT
 class MCPServerDao:
     @classmethod
     def create_mcp_server(cls, mcp_server_name: str, user_id: str, user_name: str,
-                          url: str, type: str, config: str, tools: str, params: dict):
+                          url: str, type: str, config: dict, tools: str, params: dict, config_enabled: bool):
         with Session(engine) as session:
             mcp_server = MCPServerTable(mcp_server_name=mcp_server_name, user_id=user_id,
                                         user_name=user_name, url=url, type=type, config=config,
-                                        tools=tools, params=params)
+                                        tools=tools, params=params, config_enabled=config_enabled)
             session.add(mcp_server)
             session.commit()
 
@@ -35,7 +35,7 @@ class MCPServerDao:
 
     @classmethod
     def update_mcp_server(cls, mcp_server_id: str, mcp_server_name: str,
-                          url: str, type: str, config: str, tools: str, params: dict):
+                          url: str, type: str, config: dict, tools: str, params: dict):
         with Session(engine) as session:
             update_values = {
                 'update_time': datetime.utcnow()
