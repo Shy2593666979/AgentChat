@@ -63,17 +63,18 @@ class MCPService:
     @classmethod
     async def get_mcp_tools_info(cls, server_id):
         try:
-            server = await MCPServerDao.get_mcp_server_from_id(server_id)[0].to_dict()
+            servers = await MCPServerDao.get_mcp_server_from_id(server_id)
+            server = servers[0].to_dict()
             tools_info = []
             for param in server["params"]:
                 tool_schema = []
-                properties = param["tool_schema"]["properties"]
-                required = param["tool_schema"].get("required", [])
-                for param_key, param_value in properties:
+                properties = param["input_schema"]["properties"]
+                required = param["input_schema"].get("required", [])
+                for param_key, param_value in properties.items():
                     tool_schema.append({
                         "name": param_key,
                         "description": param_value.get("description", ""),
-                        "type": param_value.get("type", "object"),
+                        "type": param_value.get("type"),
                         "required": True if param_key in required else False
                     })
 
@@ -82,5 +83,6 @@ class MCPService:
                     "tool_description": param.get("description", ""),
                     "tool_schema": tool_schema
                 })
+            return tools_info
         except Exception as err:
             raise ValueError(f"Get MCP Tools Info Error:{err}")

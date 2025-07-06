@@ -56,8 +56,9 @@ async def delete_mcp_server(server_id: str = Body(..., description="MCP Server �
         logger.error(err)
         return resp_500(message=str(err))
 
+
 @router.get("/mcp_tools")
-async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID"),
+async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID", embed=True),
                         login_user: UserPayload = Depends(get_login_user)):
     try:
         results = await MCPService.get_mcp_tools_info(server_id)
@@ -65,6 +66,7 @@ async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))
+
 
 # TODO：目前不支持修改MCP Server
 @router.put("/mcp_server")
