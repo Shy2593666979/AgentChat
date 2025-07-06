@@ -64,8 +64,7 @@ def convert_mcp_tool_to_langchain_tool(
         name=tool.name,
         description=tool.description or "",
         args_schema=tool.inputSchema,
-        coroutine=call_tool,
-        response_format="content_and_artifact",
+        coroutine=call_tool
     )
 
 

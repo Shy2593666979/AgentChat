@@ -1,0 +1,10 @@
+[
+  {
+    "server_name": "MCP 飞书",
+    "url": "http://127.0.0.1:8000/sse",
+    "type": "sse",
+    "config": {},
+    "params": {},
+    "config_enabled": false
+  }
+]

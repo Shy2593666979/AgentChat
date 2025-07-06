@@ -107,7 +107,7 @@ class LLMService:
     async def get_llm_by_id(cls, llm_id: str):
         try:
             llms = await LLMDao.get_llm_by_id(llm_id)
-            return [llm[0].to_dict() for llm in llms]
+            return llms[0].to_dict()
         except Exception as err:
             raise ValueError(f'Get LLM By Id Appear Err: {err}')
 

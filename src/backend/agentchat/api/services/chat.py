@@ -1,21 +1,22 @@
 import asyncio
 import copy
+import inspect
+from loguru import logger
 from typing import List
 from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool, Tool
 from langgraph.graph import MessagesState, StateGraph, END, START
 from pydantic.v1 import BaseModel
 
+from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
 from agentchat.api.services.tool import ToolService
 from agentchat.services.rag_handler import RagHandler
 from agentchat.tools import Call_Tool
-from agentchat.api.services.llm import LLMService
 from agentchat.services.mcp.manager import MCPManager
-from agentchat.api.services.mcp_stdio_server import MCPServerService
-from loguru import logger
-import inspect
-import json
+from agentchat.api.services.mcp_server import MCPService
+from agentchat.api.services.mcp_user_config import MCPUserConfigService
+
 
 INCLUDE_MSG = {"content", "id"}
 
@@ -38,6 +39,7 @@ class AgentConfig(BaseModel):
     tool_ids: List[str]
     system_prompt: str
     use_embedding: bool = False
+    user_id: str
     llm_id: str
 
 class ChatAgent:
@@ -56,9 +58,18 @@ class ChatAgent:
         await self.set_agent_graph()
 
     async def set_language_model(self):
-        self.conversation_model = ModelManager.get_conversation_model()
+        # 普通对话模型
+        if self.agent_config.llm_id:
+            model_config = await LLMService.get_llm_by_id(self.agent_config.llm_id)
+            self.conversation_model = ModelManager.get_user_model(**model_config)
+        else:
+            self.conversation_model = ModelManager.get_conversation_model()
+
+        # 支持Function Call模型
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
-        self.reasoning_model = ModelManager.get_reasoning_model()
+
+        # 推理模型
+        # self.reasoning_model = ModelManager.get_reasoning_model()
 
     async def set_mcp_tools(self) -> List[BaseTool]:
         mcp_tools = await self.mcp_manager.get_mcp_tools()
@@ -107,6 +118,11 @@ class ChatAgent:
             tool_call_id = tool_call["id"]
             if is_mcp_tool:
                 try:
+                    # 针对鉴权的MCP Server需要用户的单独配置，例如飞书、邮箱
+                    mcp_server = await MCPService.get_server_from_tool_name(tool_name)
+                    mcp_config = await MCPUserConfigService.get_mcp_user_config(self.agent_config.user_id, mcp_server["id"])
+                    tool_args.update(mcp_config)
+                    # 调用MCP 工具返回结果
                     tool_result = await use_tool.coroutine(tool_name, tool_args)
                     tool_messages.append(
                         ToolMessage(content=tool_result, name=tool_name + "_mcp", tool_call_id=tool_call_id))
@@ -189,7 +205,7 @@ class ChatAgent:
     async def connect_mcp_server(self):
         servers = []
         for mcp_id in self.agent_config.mcp_ids:
-            server = MCPServerService.get_mcp_server_user(mcp_id)
+            server = await MCPService.get_mcp_server_from_id(mcp_id)
             servers.append(server)
 
         await self.mcp_manager.connect_mcp_servers(servers)

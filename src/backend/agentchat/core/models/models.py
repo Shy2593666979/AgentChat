@@ -15,6 +15,6 @@ class AsyncChatClient(AsyncOpenAI):
         return response.choices[0].message.content
 
 
-async_client = AsyncChatClient(base_url=app_settings.llm.get('base_url'),
-                               api_key=app_settings.llm.get('api_key'),
-                               model_name=app_settings.llm.get('model_name'))
+async_client = AsyncChatClient(base_url=app_settings.multi_models.qwen2.base_url,
+                               api_key=app_settings.multi_models.qwen2.api_key,
+                               model_name=app_settings.multi_models.qwen2.model_name)

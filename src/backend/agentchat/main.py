@@ -36,9 +36,10 @@ async def init_config():
     await initialize_app_settings()
 
     # 必须放到init settings 之后 import
-    from agentchat.database.init_data import init_database, init_default_agent
+    from agentchat.database.init_data import init_database, init_default_agent, update_system_mcp_server
     await init_database()
     await init_default_agent()
+    await update_system_mcp_server()
 
 
 @asynccontextmanager
@@ -50,6 +51,7 @@ async def lifespan(app: FastAPI):
     # 关闭时执行
     # pass
 
+
 def create_app():
     app = FastAPI(title=app_settings.server.get('project_name') or "AgentChat",
                   version=app_settings.server.get('version') or "V2025.630",
@@ -58,7 +60,6 @@ def create_app():
     app = register_middleware(app)
 
     from agentchat.api.JWT import Settings
-
 
     # 配置 AuthJWT
     @AuthJWT.load_config

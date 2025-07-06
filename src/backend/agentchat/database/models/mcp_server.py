@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 
 from sqlalchemy import Column, VARCHAR, JSON, text, DateTime
 from sqlmodel import SQLModel, Field
@@ -24,14 +24,14 @@ class MCPServerTable(SQLModelSerializable, table=True):
     __tablename__ = "mcp_server"
 
     mcp_server_id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
-    mcp_server_name: str = Field(default="MCP Server", description="MCP Server名称")
+    server_name: str = Field(default="MCP Server", description="MCP Server名称")
     user_id: str = Field(description='MCP Server对应的创建用户')
     user_name: str = Field(description="MCP Server创建者的名称")
     url: str = Field(description="MCP Server的连接地址")
     type: str = Field(sa_column=Column(VARCHAR(255), nullable=False),
                       description="连接类型，只允许三种，sse、websocket、stdio")
     config: Optional[dict] = Field(sa_column=Column(JSON), description="配置，如apikey等")
-    tools: str = Field(default="", description="MCP Server的工具列表")
+    tools: List[str] = Field(default=[], sa_column=Column(JSON), description="MCP Server的工具列表")
     params: Optional[dict] = Field(sa_column=Column(JSON), description="输入参数")
     config_enabled: bool = Field(False, description="是否需要用户单独配置参数")
     create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))

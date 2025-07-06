@@ -31,6 +31,10 @@ class ModelConfig(BaseModel):
     base_url: str = ""
 
 class MultiModels(BaseModel):
+    class Config:
+        # 允许从dict额外属性创建模型
+        extra = "allow"
+
     qwen_vl: ModelConfig = Field(default_factory=ModelConfig)
     deepseek_v3: ModelConfig = Field(default_factory=ModelConfig)
     qwen2: ModelConfig = Field(default_factory=ModelConfig)

@@ -7,6 +7,7 @@ from agentchat.database.models.knowledge_file import KnowledgeFileTable
 from agentchat.database.models.tool import ToolTable
 from agentchat.database.models.dialog import DialogTable
 from agentchat.database.models.mcp_server import MCPServerTable, MCPServerStdioTable
+from agentchat.database.models.mcp_user_config import MCPUserConfigTable
 from agentchat.database.models.mcp_agent import MCPAgentTable
 from agentchat.database.models.user_role import UserRole
 from agentchat.database.models.llm import LLMTable

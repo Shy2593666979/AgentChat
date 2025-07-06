@@ -69,6 +69,11 @@ class MCPUserConfigService:
         """
         try:
             results = await MCPUserConfigDao.get_mcp_user_configs(user_id, mcp_server_id)
-            return results[0].to_dict()
+            mcp_config = {}
+            # 确认用户配置信息
+            if len(results):
+                for res in results[0].config:
+                    mcp_config[res["key"]] = res["value"]
+            return mcp_config
         except Exception as err:
             raise ValueError(f"Get MCP User Configs Error: {err}")
