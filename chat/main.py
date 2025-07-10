@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from config.service_config import SERVICE_HOST, SERVICE_PORT
 from routers import chat, dialog, message, agent, history
 from config.user_config import userConfig
-from rag import init_rag_data
+# from rag import init_rag_data
 
 app = FastAPI()
 
@@ -31,5 +31,5 @@ app.include_router(history.router, prefix="/api")
 if  __name__ == "__main__":
     init_database()
     init_default_agent()
-    init_rag_data()
+    # init_rag_data()
     uvicorn.run("main:app", host=SERVICE_HOST, port=SERVICE_PORT)
