@@ -105,7 +105,11 @@ python main.py
 
 **2.下载依赖文件**
 ```shell
-npm i
+npm install 
+```
+大概率会碰到依赖冲突 ，建议直接强制安装（不太懂前端）
+```shell
+npm install --force
 ```
 **3.启动前端服务**
 ```
