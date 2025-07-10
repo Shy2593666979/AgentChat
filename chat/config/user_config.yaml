@@ -7,7 +7,7 @@ langfuse:
   user_id: tian_chat
 llm:
   openai:
-    api_key: sk-fc40dd0604f04142a0730793ec74585f
+    api_key: 填入你自己的API key，在这里可换deepseek、kimi等模型
     base_url: https://dashscope.aliyuncs.com/compatible-mode/v1
     model: qwen-plus
 rag:
@@ -38,3 +38,5 @@ tool:
   weather:
     api_key: fac0ad465078da96a3ec6ba1ccc6746f
     base_url: https://restapi.amap.com/v3/weather/weatherInfo?parameters
+
+# 这几个API KEY免费提供给大家
