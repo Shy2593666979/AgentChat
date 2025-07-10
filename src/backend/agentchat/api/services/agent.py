@@ -58,13 +58,16 @@ class AgentService:
             raise ValueError(f"Get Agent User Id Error: {err}")
 
     @classmethod
-    async def delete_agent_by_id(cls, id: str, user_id: str):
+    async def verify_user_permission(cls, id, user_id, action: str="update"):
+        if user_id == AdminUser or user_id == await cls.get_agent_user_id(agent_id=id):
+            pass
+        else:
+            raise ValueError(f"没有权限访问")
+
+    @classmethod
+    async def delete_agent_by_id(cls, id: str):
         try:
-            # 需要判断是否有权限，管理员随意
-            if user_id == AdminUser or user_id == cls.get_agent_user_id(agent_id=id):
-                await AgentDao.delete_agent_by_id(id=id)
-            else:
-                raise ValueError("No Permission Exec")
+            await AgentDao.delete_agent_by_id(id=id)
         except Exception as err:
             raise ValueError(f"Delete Agent By Id Appear Error: {err}")
 
@@ -131,7 +134,7 @@ class AgentService:
     @classmethod
     async def select_agent_by_id(cls, agent_id: str):
         try:
-            agent = AgentDao.select_agent_by_id(agent_id)
+            agent = await AgentDao.select_agent_by_id(agent_id)
             return agent[0].to_dict()
         except Exception as err:
             raise ValueError(f"Select Agent By Id Appear Error: {err}")

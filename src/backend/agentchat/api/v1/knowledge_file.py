@@ -3,6 +3,7 @@ from fastapi import FastAPI, APIRouter, Body, Depends
 
 from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.api.services.knowledge_file import KnowledgeFileService
+from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
 from agentchat.utils.file_utils import get_save_tempfile
@@ -33,6 +34,9 @@ async def upload_file(knowledge_id: str = Body(..., description="知识库的ID"
 async def select_knowledge_file(knowledge_id: str = Body(..., embed=True),
                                 login_user: UserPayload = Depends(get_login_user)):
     try:
+        # 验证用户权限
+        await KnowledgeService.verify_user_permission(knowledge_id, login_user.user_id)
+
         results = await KnowledgeFileService.get_knowledge_file(knowledge_id)
         return resp_200(data=results)
     except Exception as err:
@@ -43,6 +47,9 @@ async def select_knowledge_file(knowledge_id: str = Body(..., embed=True),
 async def delete_knowledge_file(knowledge_file_id: str = Body(..., embed=True),
                                 login_user: UserPayload = Depends(get_login_user)):
     try:
+        # 验证用户权限
+        await KnowledgeFileService.verify_user_permission(knowledge_file_id, login_user.user_id)
+
         await KnowledgeFileService.delete_knowledge_file(knowledge_file_id)
         return resp_200()
     except Exception as err:

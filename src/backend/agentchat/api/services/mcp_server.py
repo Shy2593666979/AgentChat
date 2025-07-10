@@ -46,6 +46,15 @@ class MCPService:
             raise ValueError(f"Delete Server From ID Error: {err}")
 
     @classmethod
+    async def verify_user_permission(cls, server_id, user_id, action: str="update"):
+        mcp_server = await MCPServerDao.get_mcp_server_from_id(server_id)
+        if mcp_server:
+            if user_id not in (mcp_server[0].user_id, AdminUser):
+                raise ValueError(f"没有权限访问")
+        else:
+            raise ValueError(f"服务不存在")
+
+    @classmethod
     async def get_all_servers(cls, user_id):
         try:
             # 管理员可看见所有用户的MCP Server

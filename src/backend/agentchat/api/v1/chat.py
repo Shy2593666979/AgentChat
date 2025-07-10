@@ -5,7 +5,7 @@ from urllib.parse import urljoin
 from fastapi import APIRouter, Body, UploadFile, File, Depends
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
 
-from agentchat.api.services.chat import ChatAgent, AgentConfig
+from agentchat.api.services.chat import StreamingAgent, AgentConfig
 from agentchat.api.services.history import HistoryService
 from agentchat.api.services.dialog import DialogService
 from agentchat.api.services.user import UserPayload, get_login_user
@@ -15,6 +15,8 @@ from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.settings import app_settings
 from agentchat.utils.file_utils import get_aliyun_oss_base_path
 from fastapi.responses import StreamingResponse
+
+from agentchat.utils.helpers import combine_user_input
 
 router = APIRouter()
 
@@ -38,8 +40,6 @@ SYSTEM_PROMPT = """
     - 在回复中应明确标注是否调用了工具，并简要说明结果来源。
 """
 
-
-# 前端根据Dialog.agent_type判断走/mcp_chat 还是/chat
 @router.post("/chat", description="对话接口")
 async def chat(*,
                conversation_req: ConversationReq = Body(description="传递的会话信息"),
@@ -49,10 +49,13 @@ async def chat(*,
     agent_config = AgentConfig(**config)
 
     # 初始化对话助手
-    chat_agent = ChatAgent(agent_config)
+    chat_agent = StreamingAgent(agent_config)
     await chat_agent.init_agent()
 
-    messages: List[BaseMessage] = [HumanMessage(content=conversation_req.use_input), SystemMessage(
+    # 整合User Input
+    conversation_req.user_input = combine_user_input(conversation_req.user_input, conversation_req.file_url)
+
+    messages: List[BaseMessage] = [HumanMessage(content=conversation_req.user_input), SystemMessage(
         content=SYSTEM_PROMPT if agent_config.system_prompt.strip() == "" else agent_config.system_prompt)]
     if agent_config.use_embedding:
         history_messages = await HistoryService.select_history(conversation_req.dialog_id, 10)
@@ -61,12 +64,15 @@ async def chat(*,
     messages.extend(history_messages)
 
     async def general_generate():
-        final_content = ""
-        async for chunk_content in chat_agent.ainvoke(messages):
-            final_content += chunk_content
-            yield f"data: {chunk_content}\n\n"
-        yield "data: [DONE]"
-        await HistoryService.save_chat_history(Assistant_Role, final_content, conversation_req.dialog_id)
+        response_content = ""
+        async for event in chat_agent.ainvoke_streaming(messages):
+            if event.get("type") == "response_chunk":
+                chunk_content = event["data"].get("chunk")
+                yield chunk_content
+                response_content += chunk_content
+            else:
+                yield json.dumps(event)
+        await HistoryService.save_chat_history(Assistant_Role, response_content, conversation_req.dialog_id)
 
     # 将用户问题存放到MySQL数据库
     await HistoryService.save_chat_history(User_Role, conversation_req.user_input, conversation_req.dialog_id)

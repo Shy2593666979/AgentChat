@@ -50,6 +50,9 @@ async def get_mcp_servers(login_user: UserPayload = Depends(get_login_user)):
 async def delete_mcp_server(server_id: str = Body(..., description="MCP Server 的ID"),
                             login_user: UserPayload = Depends(get_login_user)):
     try:
+        # 验证是否有权限
+        await MCPService.verify_user_permission(server_id, login_user.user_id)
+
         await MCPService.delete_server_from_id(server_id)
         return resp_200()
     except Exception as err:
@@ -61,6 +64,9 @@ async def delete_mcp_server(server_id: str = Body(..., description="MCP Server �
 async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID", embed=True),
                         login_user: UserPayload = Depends(get_login_user)):
     try:
+        # 验证是否有权限
+        await MCPService.verify_user_permission(server_id, login_user.user_id)
+
         results = await MCPService.get_mcp_tools_info(server_id)
         return resp_200(results)
     except Exception as err:

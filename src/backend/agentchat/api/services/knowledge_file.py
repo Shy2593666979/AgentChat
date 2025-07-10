@@ -1,6 +1,7 @@
 from uuid import uuid4
 
 from agentchat.database.dao.knowledge_file import KnowledgeFileDao
+from agentchat.database.models.user import AdminUser
 from agentchat.services.rag_handler import RagHandler
 
 
@@ -34,3 +35,9 @@ class KnowledgeFileService:
     async def select_knowledge_file_by_id(cls, knowledge_file_id):
         knowledge_file = await KnowledgeFileDao.select_knowledge_file_by_id(knowledge_file_id)[0][0]
         return knowledge_file[0]
+
+    @classmethod
+    async def verify_user_permission(cls, knowledge_file_id, user_id):
+        knowledge_file = await cls.select_knowledge_file_by_id(knowledge_file_id)
+        if user_id not in (AdminUser, knowledge_file.user_id):
+            raise ValueError("没有权限访问")

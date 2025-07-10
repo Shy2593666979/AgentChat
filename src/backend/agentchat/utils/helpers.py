@@ -16,6 +16,9 @@ def check_or_create(path):
     else:
         os.makedirs(path)
 
+def combine_user_input(user_input, file_url):
+    return f"{user_input}, 上传的文件链接：{file_url}"
+
 def init_dir(path):
     try:
         if not os.path.exists(path):

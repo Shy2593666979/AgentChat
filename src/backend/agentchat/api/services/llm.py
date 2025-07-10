@@ -19,14 +19,18 @@ class LLMService:
             raise ValueError(f'Create LLM Appear Err: {err}')
 
     @classmethod
-    async def delete_llm(cls, user_id: str, llm_id: str):
+    async def delete_llm(cls, llm_id: str):
         try:
-            if user_id == AdminUser or user_id == cls.get_user_id_by_llm(llm_id):
-                await LLMDao.delete_llm(llm_id=llm_id)
-            else:
-                raise ValueError(f'No Permission Exec')
+            await LLMDao.delete_llm(llm_id=llm_id)
         except Exception as err:
             raise ValueError(f'Delete LLM Appear Err: {err}')
+
+    @classmethod
+    async def verify_user_permission(cls, llm_id, user_id):
+        if user_id == AdminUser or user_id == await cls.get_user_id_by_llm(llm_id):
+            pass
+        else:
+            raise ValueError(f"没有权限访问")
 
     @classmethod
     async def get_user_id_by_llm(cls, llm_id: str):
@@ -37,14 +41,10 @@ class LLMService:
             raise ValueError(f'Get User Id By LLM Appear Err: {err}')
 
     @classmethod
-    async def update_llm(cls, user_id: str, llm_id: str, model: str,
-                         base_url: str, api_key: str, provider: str, llm_type: str):
+    async def update_llm(cls, llm_id: str, model: str, base_url: str, api_key: str, provider: str, llm_type: str):
         try:
-            if user_id == AdminUser or user_id == cls.get_user_id_by_llm(llm_id):
-                await LLMDao.update_llm(llm_id=llm_id, model=model, llm_type=llm_type,
-                                        base_url=base_url, api_key=api_key, provider=provider)
-            else:
-                raise ValueError(f'No Permission Exec')
+            await LLMDao.update_llm(llm_id=llm_id, model=model, llm_type=llm_type,
+                                    base_url=base_url, api_key=api_key, provider=provider)
         except Exception as err:
             raise ValueError(f'Update LLM Appear Err: {err}')
 

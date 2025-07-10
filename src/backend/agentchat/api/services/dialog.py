@@ -1,6 +1,9 @@
+from agentchat.api.services.agent import AgentService
 from agentchat.database.dao.dialog import DialogDao
 from agentchat.database.dao.history import HistoryDao
 from loguru import logger
+
+from agentchat.database.models.user import AdminUser
 
 
 class DialogService:
@@ -31,8 +34,8 @@ class DialogService:
     @classmethod
     async def get_agent_by_dialog_id(cls, dialog_id: str):
         try:
-            result = await DialogDao.get_agent_by_dialog_id(dialog_id)
-            return result[0].to_dict()
+            agent = await DialogDao.get_agent_by_dialog_id(dialog_id)
+            return await AgentService.select_agent_by_id(agent[0].agent_id)
         except Exception as err:
             raise ValueError(f"Select Dialog Appear Error: {err}")
 
@@ -50,4 +53,10 @@ class DialogService:
             await HistoryDao.delete_history_by_dialog_id(dialog_id=dialog_id)
         except Exception as err:
             raise ValueError(f"Delete Dialog Appear Error: {err}")
+
+    @classmethod
+    async def verify_user_permission(cls, dialog_id, user_id):
+        dialog = await cls.get_agent_by_dialog_id(dialog_id)
+        if user_id not in (AdminUser, dialog["user_id"]):
+            raise ValueError(f"没有权限访问")
 

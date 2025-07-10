@@ -3,6 +3,8 @@ import json
 import os.path
 import tempfile
 import logging
+from urllib.parse import urlparse
+
 import aiofiles
 from uuid import uuid4
 
@@ -44,6 +46,12 @@ async def save_upload_file(upload_file):
         content = await upload_file.read()
         await file.write(content)
     return file_path
+
+def get_object_name_from_aliyun_url(url: str) -> str:
+    """从阿里云OSS公共URL中提取object name"""
+    parsed_url = urlparse(url)
+    # 去除开头的斜杠，获取完整object name
+    return parsed_url.path.lstrip('/')
 
 def get_save_tempfile(file_name):
     # 创建临时文件夹

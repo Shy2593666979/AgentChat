@@ -35,24 +35,21 @@ class KnowledgeService:
             raise ValueError(f'Delete Knowledge By ID Error: {err}')
 
     @classmethod
-    async def delete_knowledge(cls, knowledge_id, user_id):
+    async def delete_knowledge(cls, knowledge_id):
         try:
-            knowledge_user_id = await cls.select_user_by_id(knowledge_id)
-            if user_id != knowledge_user_id and user_id != AdminUser:
-                raise ValueError(f'User id: {user_id} update knowledge, but no permission')
-
             await KnowledgeDao.delete_knowledge_by_id(knowledge_id)
         except Exception as err:
             raise ValueError(f'Delete Knowledge By ID Error: {err}')
 
+    @classmethod
+    async def verify_user_permission(cls, knowledge_id, user_id):
+        knowledge_user_id = await cls.select_user_by_id(knowledge_id)
+        if user_id != knowledge_user_id and user_id != AdminUser:
+            raise ValueError(f'没有权限访问')
 
     @classmethod
-    async def update_knowledge(cls, knowledge_id, knowledge_name, knowledge_desc, user_id):
+    async def update_knowledge(cls, knowledge_id, knowledge_name, knowledge_desc):
         try:
-            knowledge_user_id = await cls.select_user_by_id(knowledge_id)
-            if user_id != knowledge_user_id and user_id != AdminUser:
-                raise ValueError(f'User id: {user_id} update knowledge, But no permission')
-
             await KnowledgeDao.update_knowledge_by_id(knowledge_id, knowledge_name, knowledge_desc)
         except Exception as err:
             raise ValueError(f'Update Knowledge Error: {err}')

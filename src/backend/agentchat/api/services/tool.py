@@ -16,24 +16,25 @@ class ToolService:
             raise ValueError(f'Create Tool Appear Error: {err}')
 
     @classmethod
-    async def delete_tool(cls, tool_id: str, user_id: str):
+    async def delete_tool(cls, tool_id: str):
         try:
-            if user_id == AdminUser or user_id == await cls._get_user_by_tool_id(user_id):
-                await ToolDao.delete_tool_by_id(tool_id=tool_id)
-            else:
-                raise ValueError('No Permission Exec')
+            await ToolDao.delete_tool_by_id(tool_id=tool_id)
         except Exception as err:
             raise ValueError(f'Delete Tool Appear Error: {err}')
 
     @classmethod
-    async def update_tool(cls, tool_id: str, user_id: str, zh_name: str,
+    async def verify_user_permission(cls, tool_id, user_id):
+        if user_id == AdminUser or user_id == await cls._get_user_by_tool_id(tool_id):
+            pass
+        else:
+            raise ValueError("没有权限访问")
+
+    @classmethod
+    async def update_tool(cls, tool_id: str, zh_name: str,
                           en_name: str, description: str, logo_url: str):
         try:
-            if user_id == AdminUser or user_id == await cls._get_user_by_tool_id(user_id):
-                await ToolDao.update_tool_by_id(tool_id=tool_id, zh_name=zh_name, logo_url=logo_url,
-                                                en_name=en_name, description=description)
-            else:
-                raise ValueError('No Permission Exec')
+            await ToolDao.update_tool_by_id(tool_id=tool_id, zh_name=zh_name, logo_url=logo_url,
+                                            en_name=en_name, description=description)
         except Exception as err:
             raise ValueError(f'Update Tool Appear Error: {err}')
 

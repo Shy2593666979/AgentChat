@@ -58,7 +58,10 @@ async def get_visible_tool(login_user: UserPayload = Depends(get_login_user)):
 async def delete_tool(tool_id: str = Body(embed=True, description='工具的ID'),
                       login_user: UserPayload = Depends(get_login_user)):
     try:
-        await ToolService.delete_tool(tool_id=tool_id, user_id=login_user.user_id)
+        # 验证用户权限
+        await ToolService.verify_user_permission(tool_id, login_user.user_id)
+
+        await ToolService.delete_tool(tool_id=tool_id)
         return resp_200()
     except Exception as err:
         logger.error(err)
@@ -70,8 +73,12 @@ async def update_tool(*,
                       tool_request: ToolUpdateRequest,
                       login_user: UserPayload = Depends(get_login_user)):
     try:
-        await ToolService.update_tool(tool_id=tool_request.tool_id, user_id=login_user.user_id, logo_url=tool_request.logo_url,
-                                      en_name=tool_request.en_name, zh_name=tool_request.zh_name, description=tool_request.description)
+        # 验证用户权限
+        await ToolService.verify_user_permission(tool_request.tool_id, login_user.user_id)
+
+        await ToolService.update_tool(tool_id=tool_request.tool_id, logo_url=tool_request.logo_url,
+                                      en_name=tool_request.en_name, zh_name=tool_request.zh_name,
+                                      description=tool_request.description)
         return resp_200()
     except Exception as err:
         logger.error(err)

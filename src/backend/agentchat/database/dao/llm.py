@@ -64,7 +64,7 @@ class LLMDao:
     async def get_llm_by_id(cls, llm_id: str):
         with Session(engine) as session:
             sql = select(LLMTable).where(LLMTable.llm_id == llm_id)
-            result = session.exec(sql).all()
+            result = session.exec(sql).first()
             return result
 
     @classmethod

@@ -6,23 +6,30 @@ import tempfile
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.utils.file_utils import get_object_name_from_aliyun_url, get_save_tempfile
 from agentchat.utils.helpers import get_now_beijing_time
 from pdf2docx import Converter
 
 class ConvertDocxInput(BaseModel):
-    file_path: str = Field(description='用户上传的文件路径')
+    file_url: str = Field(description='用户上传的OSS路径')
 
 class ConvertDocxTool(BaseTool):
     name: str = 'convert_to_docx'
     description: str = '将用户上传的文件解析成Docx'
     args_schema: Type[BaseModel] = ConvertDocxInput
 
-    def _run(self, file_path):
-        return convert_file_to_docx(file_path)
+    def _run(self, file_url):
+        return convert_file_to_docx(file_url)
 
 
-def convert_file_to_docx(file_path):
+def convert_file_to_docx(file_url):
     """将用户上传的文件解析成Docx"""
+    object_name = get_object_name_from_aliyun_url(file_url)
+    file_name = file_url.spilt("/")[-1]
+    file_path = get_save_tempfile(file_name)
+    aliyun_oss.download_file(object_name, file_path)
+
+
     if not os.path.isfile(file_path):
         return f"上传的文件: {os.path.basename(file_path)}没有被接收到，重新上传试试呢~~~"
     if file_path.split('.')[-1] != 'pdf':

@@ -42,6 +42,9 @@ async def create_dialog(*,
 async def delete_dialog(dialog_id: str = Body(description="对话ID", embed=True),
                         login_user: UserPayload = Depends(get_login_user)):
     try:
+        # 验证用户权限
+        await DialogService.verify_user_permission(dialog_id, login_user.user_id)
+
         await DialogService.delete_dialog(dialog_id=dialog_id)
         return resp_200()
     except Exception as err:

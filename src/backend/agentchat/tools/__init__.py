@@ -6,6 +6,7 @@ from agentchat.tools.delivery.action import get_delivery, DeliveryTool
 from agentchat.tools.crawl_web.action import crawl_web, CrawlWebTool
 from agentchat.tools.convert_to_pdf.action import convert_file_to_pdf, ConvertPdfTool
 from agentchat.tools.convert_to_docx.action import convert_file_to_docx, ConvertDocxTool
+from agentchat.tools.image2text.action import image_to_text, Image2TextTool
 
 action_Function_call = {
     "send_email": send_email,
@@ -26,6 +27,7 @@ Call_Tool = {
     "get_weather": get_weather,
     "get_delivery": get_delivery,
     "crawl_web": crawl_web,
+    "image_to_text": image_to_text,
     "convert_to_pdf": convert_file_to_pdf,
     "convert_to_docx": convert_file_to_docx,
 }

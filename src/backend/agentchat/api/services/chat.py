@@ -1,9 +1,10 @@
 import asyncio
 import copy
+import time
 import inspect
 from loguru import logger
-from typing import List
-from langchain_core.messages import HumanMessage, BaseMessage, AIMessage, SystemMessage, ToolMessage
+from typing import List, Dict, Any, AsyncGenerator
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage
 from langchain_core.tools import BaseTool, Tool
 from langgraph.graph import MessagesState, StateGraph, END, START
 from pydantic.v1 import BaseModel
@@ -16,12 +17,6 @@ from agentchat.tools import Call_Tool
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
-
-
-INCLUDE_MSG = {"content", "id"}
-
-FUNCTION_CALL_MSG = "Function Call"
-REACT_MSG = "React"
 
 DEFAULT_CALL_PROMPT = """
 你是一个智能助手，能够根据用户的需求调用适当的工具来完成任务。以下是你的工作流程：
@@ -42,11 +37,31 @@ class AgentConfig(BaseModel):
     user_id: str
     llm_id: str
 
-class ChatAgent:
-    def __init__(self, agent_config: AgentConfig):
+class StreamingAgent:
+    def __init__(self, agent_config):
         self.agent_config = agent_config
-        self.mcp_manager = MCPManager(timeout=10)
+        self.mcp_manager = MCPManager()
+        self.conversation_model = None
+        self.tool_invocation_model = None
+        self.tools = []
+        self.mcp_tools = []
+        self.collection_names = []
+        self.index_names = []
+        self.graph = None
 
+        # 流式事件队列
+        self.event_queue = asyncio.Queue()
+        self.step_counter_lock = asyncio.Lock()
+        self.step_counter = 0
+
+    async def emit_event(self, event_type: str, data: Dict[Any, Any]):
+        """发送流式事件"""
+        event = {
+            "type": event_type,
+            "timestamp": time.time(),
+            "data": data
+        }
+        await self.event_queue.put(event)
 
     async def init_agent(self):
         self.tools = await self.set_tools()
@@ -68,9 +83,6 @@ class ChatAgent:
         # 支持Function Call模型
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
 
-        # 推理模型
-        # self.reasoning_model = ModelManager.get_reasoning_model()
-
     async def set_mcp_tools(self) -> List[BaseTool]:
         mcp_tools = await self.mcp_manager.get_mcp_tools()
         return mcp_tools
@@ -86,6 +98,13 @@ class ChatAgent:
         return self.agent_config.knowledge_ids, self.agent_config.knowledge_ids
 
     async def call_tools_messages(self, messages: List[BaseMessage]) -> BaseMessage:
+        """调用工具选择，添加流式事件"""
+
+        # 发送工具分析开始事件
+        await self.emit_event("tool_analysis_start", {
+            "message": "正在分析需要使用的工具..."
+        })
+
         for tool in self.tools:
             if isinstance(tool, BaseTool) and tool.args_schema:
                 tool.args_schema = function_to_args_schema(tool.func)
@@ -96,9 +115,16 @@ class ChatAgent:
         call_tool_messages = [system_message, messages[-1]]
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
+
         if response.additional_kwargs:
+            # 发送工具选择完成事件
+            await self.emit_event("tool_analysis_complete", {
+                "selected_tools": [tool_call["name"] for tool_call in response.tool_calls],
+                "tool_calls": response.tool_calls
+            })
+
             return AIMessage(
-                content="",
+                content="命中可用工具",
                 additional_kwargs=response.additional_kwargs,
                 usage_metadata=response.usage_metadata,
                 tool_calls=response.tool_calls,
@@ -106,82 +132,250 @@ class ChatAgent:
                 response_metadata=response.response_metadata
             )
         else:
+            # 发送无工具可用事件
+            await self.emit_event("no_tools_available", {
+                "message": "没有命中可用的工具"
+            })
             return AIMessage(content="没有命中可用的工具")
 
     async def execute_tool_message(self, messages: List[BaseMessage]):
+        """执行工具，添加流式事件"""
         tool_calls = messages[-1].tool_calls
         tool_messages: List[BaseMessage] = []
+
         for tool_call in tool_calls:
+            # 保证不出现竞争条件
+            async with self.step_counter_lock:
+                self.step_counter += 1
+
+            # 发送工具执行开始事件
+            await self.emit_event("tool_execution_start", {
+                "step": self.step_counter,
+                "tool_name": tool_call["name"],
+                "tool_args": tool_call["args"],
+                "tool_call_id": tool_call["id"]
+            })
+
             is_mcp_tool, use_tool = self.mcp_tool_use(tool_call["name"])
             tool_name = tool_call["name"]
             tool_args = tool_call["args"]
             tool_call_id = tool_call["id"]
+
             if is_mcp_tool:
                 try:
                     # 针对鉴权的MCP Server需要用户的单独配置，例如飞书、邮箱
                     mcp_server = await MCPService.get_server_from_tool_name(tool_name)
-                    mcp_config = await MCPUserConfigService.get_mcp_user_config(self.agent_config.user_id, mcp_server["id"])
+                    mcp_config = await MCPUserConfigService.get_mcp_user_config(self.agent_config.user_id,
+                                                                                mcp_server["id"])
                     tool_args.update(mcp_config)
+
+                    # 发送MCP工具调用事件
+                    await self.emit_event("mcp_tool_calling", {
+                        "step": self.step_counter,
+                        "tool_name": tool_name,
+                        "server_info": mcp_server,
+                        "message": f"正在调用MCP工具 {tool_name}..."
+                    })
+
                     # 调用MCP 工具返回结果
                     tool_result = await use_tool.coroutine(tool_name, tool_args)
+
+                    # 发送MCP工具执行完成事件
+                    await self.emit_event("mcp_tool_complete", {
+                        "step": self.step_counter,
+                        "tool_name": tool_name,
+                        "result": tool_result,
+                        "status": "success"
+                    })
+
                     tool_messages.append(
                         ToolMessage(content=tool_result, name=tool_name + "_mcp", tool_call_id=tool_call_id))
                     logger.info(f"MCP Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
+
                 except Exception as err:
+                    # 发送MCP工具执行错误事件
+                    await self.emit_event("mcp_tool_error", {
+                        "step": self.step_counter,
+                        "tool_name": tool_name,
+                        "error": str(err),
+                        "status": "error"
+                    })
+
                     logger.error(f"MCP Tool {tool_name} Error: {str(err)}")
                     tool_messages.append(
                         ToolMessage(content=str(err), name=tool_name + "_mcp", tool_call_id=tool_call_id))
             else:
                 try:
+                    # 发送插件工具调用事件
+                    await self.emit_event("plugin_tool_calling", {
+                        "step": self.step_counter,
+                        "tool_name": tool_name,
+                        "message": f"正在调用插件工具 {tool_name}..."
+                    })
+
                     tool_result = use_tool.func(tool_args)
+
+                    # 发送插件工具执行完成事件
+                    await self.emit_event("plugin_tool_complete", {
+                        "step": self.step_counter,
+                        "tool_name": tool_name,
+                        "result": tool_result,
+                        "status": "success"
+                    })
+
                     tool_messages.append(
                         ToolMessage(content=tool_result, name=tool_name, tool_call_id=tool_call_id))
                     logger.info(f"Plugin Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
+
                 except Exception as err:
+                    # 发送插件工具执行错误事件
+                    await self.emit_event("plugin_tool_error", {
+                        "step": self.step_counter,
+                        "tool_name": tool_name,
+                        "error": str(err),
+                        "status": "error"
+                    })
+
                     logger.error(f"Plugin Tool {tool_name} Error: {str(err)}")
                     tool_messages.append(
                         ToolMessage(content=str(err), name=tool_name, tool_call_id=tool_call_id))
+
         return tool_messages
 
-
     async def call_knowledge_messages(self, messages: List[BaseMessage]) -> BaseMessage:
+        """调用知识库，添加流式事件"""
         knowledge_query = messages[-1].content
 
+        # 发送知识库检索开始事件
+        await self.emit_event("knowledge_retrieval_start", {
+            "query": knowledge_query,
+            "collections": self.collection_names,
+            "indexes": self.index_names
+        })
+
         # Milvus和ES检索相关的知识库
-        knowledge_message = await RagHandler.retrieve_ranked_documents(knowledge_query, self.collection_names, self.index_names)
+        knowledge_message = await RagHandler.retrieve_ranked_documents(
+            knowledge_query, self.collection_names, self.index_names
+        )
+
+        # 发送知识库检索完成事件
+        await self.emit_event("knowledge_retrieval_complete", {
+            "retrieved_content": knowledge_message[:500] + "..." if len(knowledge_message) > 500 else knowledge_message,
+            "status": "success"
+        })
+
         return SystemMessage(content=knowledge_message)
 
+    async def ainvoke_streaming(self, messages: List[BaseMessage]) -> AsyncGenerator[Dict[str, Any], None]:
+        """流式调用主方法"""
 
-    async def ainvoke(self, messages: List[BaseMessage]):
-        knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
+        # 发送开始事件
+        await self.emit_event("conversation_start", {
+            "user_message": messages[-1].content,
+            "message": "开始处理您的请求..."
+        })
 
-        await self.graph.ainvoke({"messages": messages})
-        messages.append(knowledge_message)
+        # 调用知识库
+        knowledge_message = None
+        breakpoint()
+        if self.collection_names and len(self.collection_names) != 0:
+            knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
 
+        # 启动图执行
+        graph_task = asyncio.create_task(self.graph.ainvoke({"messages": messages}))
+
+        # 流式返回事件
+        conversation_ended = False
+
+        while not conversation_ended:
+            try:
+                # 等待事件或超时
+                event = await asyncio.wait_for(self.event_queue.get(), timeout=10.0)
+                yield event
+
+                # 检查是否为工具调用最终响应事件
+                if event["type"] == "tool_execution_finished":
+                    conversation_ended = True
+
+            except asyncio.TimeoutError:
+                # 发送心跳事件
+                yield {
+                    "type": "heartbeat",
+                    "timestamp": time.time(),
+                    "data": {"message": "连接保持中..."}
+                }
+
+                # 检查图执行是否完成
+                if graph_task.done():
+                    break
+
+        # 等待图执行完成
+        await graph_task
+
+        # 添加知识库消息并开始最终响应
+        if knowledge_message:
+            messages.append(knowledge_message)
+
+        # 流式生成最终响应
+        response_content = ""
         async for chunk in self.conversation_model.astream(messages):
-            yield chunk.content
+            response_content += chunk.content
+            yield {
+                "type": "response_chunk",
+                "timestamp": time.time(),
+                "data": {
+                    "chunk": chunk.content,
+                    "accumulated": response_content
+                }
+            }
 
     async def set_agent_graph(self):
+        """设置Agent图，添加流式事件支持"""
 
         # 构建调用工具Graph
         async def should_continue(state: MessagesState):
             messages = state["messages"]
             last_message = messages[-1]
 
+            # 如果工具递归调用次数超过5次，直接返回END
+            if self.step_counter > 5:
+                return END
+
             if last_message.tool_calls:
+                # 发送继续执行工具事件
+                await self.emit_event("continue_tool_execution", {
+                    "message": "检测到工具调用，继续执行...",
+                    "tool_calls_count": len(last_message.tool_calls)
+                })
                 return "execute_tool_node"
             else:
+                # 发送工具执行完成事件
+                await self.emit_event("tool_execution_finished", {
+                    "message": "所有工具执行完成，准备生成最终回答"
+                })
                 return END
 
         async def call_tool_node(state: MessagesState):
             messages = state["messages"]
+
+            # 发送工具选择节点开始事件
+            await self.emit_event("tool_selection_node_start", {
+                "message": "进入工具选择节点"
+            })
+
             tool_message = await self.call_tools_messages(messages)
-            messages.extend(tool_message)
+            messages.append(tool_message)
 
             return {"messages": messages}
 
         async def execute_tool_node(state: MessagesState):
             messages = state["messages"]
+
+            # 发送工具执行节点开始事件
+            await self.emit_event("tool_execution_node_start", {
+                "message": "进入工具执行节点"
+            })
+
             tool_results = await self.execute_tool_message(messages)
             messages.extend(tool_results)
 
@@ -201,16 +395,26 @@ class ChatAgent:
 
         self.graph = workflow.compile()
 
+    # 保留原有的ainvoke方法作为普通流式版本
+    async def ainvoke(self, messages: List[BaseMessage]):
+        """非流式版本（保持向后兼容）"""
+        # 调用知识库
+        knowledge_message = None
+        if self.collection_names and len(self.collection_names) != 0:
+            knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
 
-    async def connect_mcp_server(self):
-        servers = []
-        for mcp_id in self.agent_config.mcp_ids:
-            server = await MCPService.get_mcp_server_from_id(mcp_id)
-            servers.append(server)
 
-        await self.mcp_manager.connect_mcp_servers(servers)
+        await self.graph.ainvoke({"messages": messages})
 
-    def mcp_tool_use(self, tool_name):
+        if knowledge_message:
+            messages.append(knowledge_message)
+
+        async for chunk in self.conversation_model.astream(messages):
+            yield chunk.content
+
+    # 新增辅助方法
+    def mcp_tool_use(self, tool_name: str):
+        """判断是否为MCP工具并返回对应的工具实例"""
         for tool in self.tools:
             if tool.name == tool_name and tool in self.mcp_tools:
                 return True, tool
@@ -219,6 +423,187 @@ class ChatAgent:
         return False, None
 
 
+
+
+
+
+# class ChatAgent:
+#     def __init__(self, agent_config: AgentConfig):
+#         self.agent_config = agent_config
+#         self.mcp_manager = MCPManager(timeout=10)
+#
+#
+#     async def init_agent(self):
+#         self.tools = await self.set_tools()
+#         self.mcp_tools = await self.set_mcp_tools()
+#         self.tools.extend(self.mcp_tools)
+#
+#         self.collection_names, self.index_names = await self.set_knowledge_names()
+#         await self.set_language_model()
+#         await self.set_agent_graph()
+#
+#     async def set_language_model(self):
+#         # 普通对话模型
+#         if self.agent_config.llm_id:
+#             model_config = await LLMService.get_llm_by_id(self.agent_config.llm_id)
+#             self.conversation_model = ModelManager.get_user_model(**model_config)
+#         else:
+#             self.conversation_model = ModelManager.get_conversation_model()
+#
+#         # 支持Function Call模型
+#         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
+#
+#         # 推理模型
+#         # self.reasoning_model = ModelManager.get_reasoning_model()
+#
+#     async def set_mcp_tools(self) -> List[BaseTool]:
+#         mcp_tools = await self.mcp_manager.get_mcp_tools()
+#         return mcp_tools
+#
+#     async def set_tools(self) -> List[BaseTool]:
+#         tools = []
+#         tools_name = await ToolService.get_tool_name_by_id(self.agent_config.tool_ids)
+#         for name in tools_name:
+#             tools.append(Tool(name=name, description=Call_Tool[name].__doc__, func=Call_Tool[name]))
+#         return tools
+#
+#     async def set_knowledge_names(self):
+#         return self.agent_config.knowledge_ids, self.agent_config.knowledge_ids
+#
+#     async def call_tools_messages(self, messages: List[BaseMessage]) -> BaseMessage:
+#         for tool in self.tools:
+#             if isinstance(tool, BaseTool) and tool.args_schema:
+#                 tool.args_schema = function_to_args_schema(tool.func)
+#
+#         self.tool_invocation_model.bind_tools(self.tools)
+#
+#         system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
+#         call_tool_messages = [system_message, messages[-1]]
+#
+#         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
+#         if response.additional_kwargs:
+#             return AIMessage(
+#                 content="",
+#                 additional_kwargs=response.additional_kwargs,
+#                 usage_metadata=response.usage_metadata,
+#                 tool_calls=response.tool_calls,
+#                 id=response.id,
+#                 response_metadata=response.response_metadata
+#             )
+#         else:
+#             return AIMessage(content="没有命中可用的工具")
+#
+#     async def execute_tool_message(self, messages: List[BaseMessage]):
+#         tool_calls = messages[-1].tool_calls
+#         tool_messages: List[BaseMessage] = []
+#         for tool_call in tool_calls:
+#             is_mcp_tool, use_tool = self.mcp_tool_use(tool_call["name"])
+#             tool_name = tool_call["name"]
+#             tool_args = tool_call["args"]
+#             tool_call_id = tool_call["id"]
+#             if is_mcp_tool:
+#                 try:
+#                     # 针对鉴权的MCP Server需要用户的单独配置，例如飞书、邮箱
+#                     mcp_server = await MCPService.get_server_from_tool_name(tool_name)
+#                     mcp_config = await MCPUserConfigService.get_mcp_user_config(self.agent_config.user_id, mcp_server["id"])
+#                     tool_args.update(mcp_config)
+#                     # 调用MCP 工具返回结果
+#                     tool_result = await use_tool.coroutine(tool_name, tool_args)
+#                     tool_messages.append(
+#                         ToolMessage(content=tool_result, name=tool_name + "_mcp", tool_call_id=tool_call_id))
+#                     logger.info(f"MCP Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
+#                 except Exception as err:
+#                     logger.error(f"MCP Tool {tool_name} Error: {str(err)}")
+#                     tool_messages.append(
+#                         ToolMessage(content=str(err), name=tool_name + "_mcp", tool_call_id=tool_call_id))
+#             else:
+#                 try:
+#                     tool_result = use_tool.func(tool_args)
+#                     tool_messages.append(
+#                         ToolMessage(content=tool_result, name=tool_name, tool_call_id=tool_call_id))
+#                     logger.info(f"Plugin Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
+#                 except Exception as err:
+#                     logger.error(f"Plugin Tool {tool_name} Error: {str(err)}")
+#                     tool_messages.append(
+#                         ToolMessage(content=str(err), name=tool_name, tool_call_id=tool_call_id))
+#         return tool_messages
+#
+#
+#     async def call_knowledge_messages(self, messages: List[BaseMessage]) -> BaseMessage:
+#         knowledge_query = messages[-1].content
+#
+#         # Milvus和ES检索相关的知识库
+#         knowledge_message = await RagHandler.retrieve_ranked_documents(knowledge_query, self.collection_names, self.index_names)
+#         return SystemMessage(content=knowledge_message)
+#
+#
+#     async def ainvoke(self, messages: List[BaseMessage]):
+#         knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
+#
+#         await self.graph.ainvoke({"messages": messages})
+#         messages.append(knowledge_message)
+#
+#         async for chunk in self.conversation_model.astream(messages):
+#             yield chunk.content
+#
+#     async def set_agent_graph(self):
+#
+#         # 构建调用工具Graph
+#         async def should_continue(state: MessagesState):
+#             messages = state["messages"]
+#             last_message = messages[-1]
+#
+#             if last_message.tool_calls:
+#                 return "execute_tool_node"
+#             else:
+#                 return END
+#
+#         async def call_tool_node(state: MessagesState):
+#             messages = state["messages"]
+#             tool_message = await self.call_tools_messages(messages)
+#             messages.extend(tool_message)
+#
+#             return {"messages": messages}
+#
+#         async def execute_tool_node(state: MessagesState):
+#             messages = state["messages"]
+#             tool_results = await self.execute_tool_message(messages)
+#             messages.extend(tool_results)
+#
+#             return {"messages": messages}
+#
+#         workflow = StateGraph(MessagesState)
+#
+#         workflow.add_node("call_tool_node", call_tool_node)
+#         workflow.add_node("execute_tool_node", execute_tool_node)
+#
+#         # 设置起始节点
+#         workflow.add_edge(START, "call_tool_node")
+#         # 设置判断是否调用工具边
+#         workflow.add_conditional_edges("call_tool_node", should_continue)
+#         # 检测是否存在工具递归信息
+#         workflow.add_edge("execute_tool_node", "call_tool_node")
+#
+#         self.graph = workflow.compile()
+#
+#
+#     async def connect_mcp_server(self):
+#         servers = []
+#         for mcp_id in self.agent_config.mcp_ids:
+#             server = await MCPService.get_mcp_server_from_id(mcp_id)
+#             servers.append(server)
+#
+#         await self.mcp_manager.connect_mcp_servers(servers)
+#
+#     def mcp_tool_use(self, tool_name):
+#         for tool in self.tools:
+#             if tool.name == tool_name and tool in self.mcp_tools:
+#                 return True, tool
+#             elif tool.name == tool_name:
+#                 return False, tool
+#         return False, None
+#
+#
 def function_to_args_schema(func) -> dict:
     """
     Converts a Python function into a JSON-serializable dictionary
@@ -482,6 +867,4 @@ def function_to_args_schema(func) -> dict:
 #         # return history
 #         messages = await RagHandler.rag_query(user_input, dialog_id, 0.6, top_k, False)
 #         return [SystemMessage(content=messages)]
-#
-#     #@staticmethod
 #
