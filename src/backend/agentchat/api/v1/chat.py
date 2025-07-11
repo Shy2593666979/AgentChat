@@ -42,8 +42,8 @@ SYSTEM_PROMPT = """
 
 @router.post("/chat", description="对话接口")
 async def chat(*,
-               conversation_req: ConversationReq = Body(description="传递的会话信息"),
-               login_user: UserPayload = Depends(get_login_user)):
+               conversation_req: ConversationReq = Body(description="传递的会话信息"),):
+               # login_user: UserPayload = Depends(get_login_user)):
     """与助手进行对话"""
     config = await DialogService.get_agent_by_dialog_id(dialog_id=conversation_req.dialog_id)
     agent_config = AgentConfig(**config)
@@ -67,11 +67,13 @@ async def chat(*,
         response_content = ""
         async for event in chat_agent.ainvoke_streaming(messages):
             if event.get("type") == "response_chunk":
-                chunk_content = event["data"].get("chunk")
-                yield chunk_content
-                response_content += chunk_content
+                # 响应片段：用data:包裹，JSON格式，双换行结尾
+                chunk_data = {"chunk": event["data"].get("chunk")}
+                yield f'data: {json.dumps(chunk_data)}\n\n'
+                response_content += event["data"].get("chunk")
             else:
-                yield json.dumps(event)
+                # 其他事件（如工具调用、心跳）同样按SSE格式输出
+                yield f'data: {json.dumps(event)}\n\n'
         await HistoryService.save_chat_history(Assistant_Role, response_content, conversation_req.dialog_id)
 
     # 将用户问题存放到MySQL数据库

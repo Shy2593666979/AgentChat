@@ -1,12 +1,15 @@
 import asyncio
 import copy
+import json
 import time
 import inspect
 from loguru import logger
 from typing import List, Dict, Any, AsyncGenerator
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage, HumanMessage, ToolCall
 from langchain_core.tools import BaseTool, Tool
 from langgraph.graph import MessagesState, StateGraph, END, START
+from openai.types.chat import ChatCompletionMessageToolCall
+from openai.types.chat.chat_completion_message_tool_call import Function
 from pydantic.v1 import BaseModel
 
 from agentchat.api.services.llm import LLMService
@@ -105,18 +108,31 @@ class StreamingAgent:
             "message": "正在分析需要使用的工具..."
         })
 
-        for tool in self.tools:
-            if isinstance(tool, BaseTool) and tool.args_schema:
-                tool.args_schema = function_to_args_schema(tool.func)
+        call_tool_messages: List[BaseMessage] = []
+        # 只有第一次调用工具的时候才会初始化
+        if self.step_counter == 0:
+            tools_schema = []
+            for tool in self.tools:
+                if isinstance(tool, BaseTool) and tool.args_schema:
+                    pass
+                else:
+                    tools_schema.append(function_to_args_schema(tool.func))
 
-        self.tool_invocation_model.bind_tools(self.tools)
+            self.tool_invocation_model.bind_tools(tools_schema)
 
-        system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
-        call_tool_messages = [system_message, messages[-1]]
+            system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
+            call_tool_messages.append(system_message)
 
+        call_tool_messages.extend(messages)
+        if self.step_counter == 1:
+            pass
+            # breakpoint()
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
+        # 判断是否有工具可调用
+        if response.tool_calls:
+            openai_tool_calls = response.tool_calls
 
-        if response.additional_kwargs:
+            response.tool_calls = convert_langchain_tool_calls(response.tool_calls)
             # 发送工具选择完成事件
             await self.emit_event("tool_analysis_complete", {
                 "selected_tools": [tool_call["name"] for tool_call in response.tool_calls],
@@ -125,11 +141,7 @@ class StreamingAgent:
 
             return AIMessage(
                 content="命中可用工具",
-                additional_kwargs=response.additional_kwargs,
-                usage_metadata=response.usage_metadata,
                 tool_calls=response.tool_calls,
-                id=response.id,
-                response_metadata=response.response_metadata
             )
         else:
             # 发送无工具可用事件
@@ -213,7 +225,7 @@ class StreamingAgent:
                         "message": f"正在调用插件工具 {tool_name}..."
                     })
 
-                    tool_result = use_tool.func(tool_args)
+                    tool_result = use_tool.func(**tool_args)
 
                     # 发送插件工具执行完成事件
                     await self.emit_event("plugin_tool_complete", {
@@ -277,7 +289,6 @@ class StreamingAgent:
 
         # 调用知识库
         knowledge_message = None
-        breakpoint()
         if self.collection_names and len(self.collection_names) != 0:
             knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
 
@@ -290,7 +301,7 @@ class StreamingAgent:
         while not conversation_ended:
             try:
                 # 等待事件或超时
-                event = await asyncio.wait_for(self.event_queue.get(), timeout=10.0)
+                event = await asyncio.wait_for(self.event_queue.get(), timeout=30.0)
                 yield event
 
                 # 检查是否为工具调用最终响应事件
@@ -310,15 +321,15 @@ class StreamingAgent:
                     break
 
         # 等待图执行完成
-        await graph_task
+        results = await graph_task
+        messages = results["messages"]
 
         # 添加知识库消息并开始最终响应
         if knowledge_message:
             messages.append(knowledge_message)
 
-        # 流式生成最终响应
         response_content = ""
-        async for chunk in self.conversation_model.astream(messages):
+        async for chunk in self.conversation_model.astream(messages[:-1]):
             response_content += chunk.content
             yield {
                 "type": "response_chunk",
@@ -422,7 +433,82 @@ class StreamingAgent:
                 return False, tool
         return False, None
 
+# 将OpenAI的function call格式转成Langchain格式做适配
+def convert_langchain_tool_calls(tool_calls: List[ChatCompletionMessageToolCall]):
+    langchain_tool_calls: List[ToolCall] = []
 
+    for tool_call in tool_calls:
+        langchain_tool_calls.append(ToolCall(id=tool_call.id, args=json.loads(tool_call.function.arguments), name=tool_call.function.name))
+
+    return langchain_tool_calls
+
+# 将Langchain的格式转为OpenAI的格式适配
+def convert_openai_tool_calls(tool_calls: List[ToolCall]):
+    openai_tool_calls: List[ChatCompletionMessageToolCall] = []
+
+    for tool_call in tool_calls:
+        openai_tool_calls.append(ChatCompletionMessageToolCall(id=tool_call.id, type="function", function=Function(arguments=tool_call.args, name=tool_call.name)))
+
+    return openai_tool_calls
+
+# 将函数转成function schema格式
+def function_to_args_schema(func) -> dict:
+    """
+    Converts a Python function into a JSON-serializable dictionary
+    that describes the function's signature, including its name,
+    description, and parameters.
+
+    Args:
+        func: The function to be converted.
+
+    Returns:
+        A dictionary representing the function's signature in JSON format.
+    """
+    type_map = {
+        str: "string",
+        int: "integer",
+        float: "number",
+        bool: "boolean",
+        list: "array",
+        dict: "object",
+        type(None): "null",
+    }
+
+    try:
+        signature = inspect.signature(func)
+    except ValueError as e:
+        raise ValueError(
+            f"Failed to get signature for function {func.__name__}: {str(e)}"
+        )
+
+    parameters = {}
+    for param in signature.parameters.values():
+        try:
+            param_type = type_map.get(param.annotation, "string")
+        except KeyError as e:
+            raise KeyError(
+                f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
+            )
+        parameters[param.name] = {"schema": param_type}
+
+    required = [
+        param.name
+        for param in signature.parameters.values()
+        if param.default == inspect._empty
+    ]
+
+    return {
+        "type": "function",
+        "function": {
+            "name": func.__name__,
+            "description": func.__doc__ or "",
+            "parameters": {
+                "type": "object",
+                "properties": parameters,
+                "required": required,
+            },
+        },
+    }
 
 
 
@@ -604,63 +690,7 @@ class StreamingAgent:
 #         return False, None
 #
 #
-def function_to_args_schema(func) -> dict:
-    """
-    Converts a Python function into a JSON-serializable dictionary
-    that describes the function's signature, including its name,
-    description, and parameters.
 
-    Args:
-        func: The function to be converted.
-
-    Returns:
-        A dictionary representing the function's signature in JSON format.
-    """
-    type_map = {
-        str: "string",
-        int: "integer",
-        float: "number",
-        bool: "boolean",
-        list: "array",
-        dict: "object",
-        type(None): "null",
-    }
-
-    try:
-        signature = inspect.signature(func)
-    except ValueError as e:
-        raise ValueError(
-            f"Failed to get signature for function {func.__name__}: {str(e)}"
-        )
-
-    parameters = {}
-    for param in signature.parameters.values():
-        try:
-            param_type = type_map.get(param.annotation, "string")
-        except KeyError as e:
-            raise KeyError(
-                f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
-            )
-        parameters[param.name] = {"schema": param_type}
-
-    required = [
-        param.name
-        for param in signature.parameters.values()
-        if param.default == inspect._empty
-    ]
-
-    return {
-        "schema": "function",
-        "function": {
-            "name": func.__name__,
-            "description": func.__doc__ or "",
-            "parameters": {
-                "schema": "object",
-                "properties": parameters,
-                "required": required,
-            },
-        },
-    }
 
 # class ChatService:
 #     def __init__(self, **kwargs):

@@ -10,9 +10,9 @@ class MilvusClient:
         self.milvus_host = app_settings.milvus.get('host')
         self.milvus_port = app_settings.milvus.get('port')
 
-
-        connections.connect("default", host=self.milvus_host, port=self.milvus_port)
-        self.collections = self._get_collection()
+        # 如用不到知识库，直接注释掉
+        # connections.connect("default", host=self.milvus_host, port=self.milvus_port)
+        # self.collections = self._get_collection()
 
     def _collection_exists(self, collection_name):
         """检查集合是否存在"""
