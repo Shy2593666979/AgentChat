@@ -1,10 +1,37 @@
 [
   {
-    "server_name": "MCP 飞书",
-    "url": "http://127.0.0.1:8000/sse",
+    "server_name": "Gaode_Map",
+    "url": "https://mcp.api-inference.modelscope.net/77df8a09751e4c/sse",
     "type": "sse",
     "config": {},
     "params": {},
     "config_enabled": false
+  },
+  {
+    "server_name": "Fetch",
+    "url": "https://mcp-5ce5b754-c359-4ea4.api-inference.modelscope.net/sse",
+    "type": "sse",
+    "config": {},
+    "params": {},
+    "config_enabled": false
+  },
+  {
+    "server_name": "Lark",
+    "url": "http://47.95.23.87:8000/sse",
+    "type": "sse",
+    "config": [
+      {
+        "label": "APP_ID",
+        "key": "app_id",
+        "value": ""
+      },
+      {
+        "label": "APP_SECRET",
+        "key": "app_secret",
+        "value": ""
+      }
+    ],
+    "params": {},
+    "config_enabled": true
   }
 ]

@@ -68,11 +68,11 @@ class MCPUserConfigService:
         :return: 查询结果
         """
         try:
-            results = await MCPUserConfigDao.get_mcp_user_configs(user_id, mcp_server_id)
+            result = await MCPUserConfigDao.get_mcp_user_configs(user_id, mcp_server_id)
             mcp_config = {}
             # 确认用户配置信息
-            if len(results):
-                for res in results[0].config:
+            if result:
+                for res in result.config:
                     mcp_config[res["key"]] = res["value"]
             return mcp_config
         except Exception as err:

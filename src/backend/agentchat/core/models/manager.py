@@ -9,9 +9,9 @@ class ModelManager:
 
     @classmethod
     def get_tool_invocation_model(cls) -> ToolCallModel:
-        # return ChatOpenAI(model=app_settings.multi_models.deepseek_v3.model_name,
-        #                   api_key=app_settings.multi_models.deepseek_v3.api_key,
-        #                   base_url=app_settings.multi_models.deepseek_v3.base_url)
+        # return ToolCallModel(model_name=app_settings.multi_models.qwen2.model_name,
+        #                      api_key=app_settings.multi_models.qwen2.api_key,
+        #                      base_url=app_settings.multi_models.qwen2.base_url)
         return ToolCallModel(model_name=app_settings.multi_models.deepseek_v3.model_name,
                              api_key=app_settings.multi_models.deepseek_v3.api_key,
                              base_url=app_settings.multi_models.deepseek_v3.base_url)

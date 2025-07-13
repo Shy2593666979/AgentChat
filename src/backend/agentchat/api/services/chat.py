@@ -18,6 +18,7 @@ from agentchat.api.services.tool import ToolService
 from agentchat.services.rag_handler import RagHandler
 from agentchat.tools import Call_Tool
 from agentchat.services.mcp.manager import MCPManager
+from agentchat.services.mcp_agent.agent import MCPAgent, MCPConfig
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 
@@ -31,6 +32,7 @@ DEFAULT_CALL_PROMPT = """
     4.返回结果或下一步行动：如果没有工具需要调用，直接回答用户的问题或提供相关信息。
 """
 
+
 class AgentConfig(BaseModel):
     mcp_ids: List[str]
     knowledge_ids: List[str]
@@ -40,14 +42,16 @@ class AgentConfig(BaseModel):
     user_id: str
     llm_id: str
 
+
 class StreamingAgent:
-    def __init__(self, agent_config):
+    def __init__(self, agent_config: AgentConfig):
         self.agent_config = agent_config
         self.mcp_manager = MCPManager()
         self.conversation_model = None
         self.tool_invocation_model = None
         self.tools = []
         self.mcp_tools = []
+        self.mcp_agents: List[MCPAgent] = []
         self.collection_names = []
         self.index_names = []
         self.graph = None
@@ -67,6 +71,8 @@ class StreamingAgent:
         await self.event_queue.put(event)
 
     async def init_agent(self):
+        self.mcp_agents = await self.set_mcp_agents()
+
         self.tools = await self.set_tools()
         self.mcp_tools = await self.set_mcp_tools()
         self.tools.extend(self.mcp_tools)
@@ -97,10 +103,55 @@ class StreamingAgent:
             tools.append(Tool(name=name, description=Call_Tool[name].__doc__, func=Call_Tool[name]))
         return tools
 
+    async def set_mcp_agents(self) -> List[MCPAgent]:
+        mcp_agents = []
+        for mcp_id in self.agent_config.mcp_ids:
+            mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
+            mcp_config = MCPConfig(**mcp_server)
+
+            mcp_agent = MCPAgent(mcp_config, self.agent_config.user_id)
+            mcp_agents.append(mcp_agent)
+        return mcp_agents
+
     async def set_knowledge_names(self):
         return self.agent_config.knowledge_ids, self.agent_config.knowledge_ids
 
-    async def call_tools_messages(self, messages: List[BaseMessage]) -> BaseMessage:
+    async def call_mcp_agent_messages(self, messages: List[BaseMessage]):
+
+        async def process_mcp_agent(mcp_agent: MCPAgent):
+            # 开始执行MCP Agent
+            await self.emit_event("MCP_Agent_Start", {
+                "message": "开始执行MCP Agent..."
+            })
+
+            await mcp_agent.init_mcp_agent()
+
+            responses = await mcp_agent.ainvoke(messages)
+
+            # 返回MCP Agent结果
+            await self.emit_event("MCP_Agent_End", {
+                "message": "\n\n".join([response.content for response in responses])
+            })
+            return responses
+
+        process_tasks = [process_mcp_agent(mcp_agent) for mcp_agent in self.mcp_agents]
+        results = await asyncio.gather(*process_tasks, return_exceptions=True)
+
+        # # 并发初始化所有MCP Agent
+        # init_tasks = [mcp_agent.init_mcp_agent() for mcp_agent in self.mcp_agents]
+        # await asyncio.gather(*init_tasks)
+        #
+        # # 并发处理MCP Agent的循环流程
+        # ainvoke_tasks = [asyncio.create_task(mcp_agent.ainvoke(messages)) for mcp_agent in self.mcp_agents]
+        # results = asyncio.gather(*ainvoke_tasks, return_exceptions=True)
+
+        # 获取MCP Agent信息并返回
+        mcp_agent_messages: List[BaseMessage] = []
+        for result in results:
+            mcp_agent_messages.extend(result)
+        return mcp_agent_messages
+
+    async def call_tools_messages(self, messages: List[BaseMessage]) -> AIMessage:
         """调用工具选择，添加流式事件"""
 
         # 发送工具分析开始事件
@@ -113,8 +164,8 @@ class StreamingAgent:
         if self.step_counter == 0:
             tools_schema = []
             for tool in self.tools:
-                if isinstance(tool, BaseTool) and tool.args_schema:
-                    pass
+                if isinstance(tool, BaseTool) and tool.args_schema:  # MCP Tool
+                    tools_schema.append(mcp_tool_to_args_schema(tool.name, tool.description, tool.args_schema))
                 else:
                     tools_schema.append(function_to_args_schema(tool.func))
 
@@ -124,9 +175,7 @@ class StreamingAgent:
             call_tool_messages.append(system_message)
 
         call_tool_messages.extend(messages)
-        if self.step_counter == 1:
-            pass
-            # breakpoint()
+
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
         # 判断是否有工具可调用
         if response.tool_calls:
@@ -150,7 +199,7 @@ class StreamingAgent:
             })
             return AIMessage(content="没有命中可用的工具")
 
-    async def execute_tool_message(self, messages: List[BaseMessage]):
+    async def execute_tool_message(self, messages: List[ToolMessage]):
         """执行工具，添加流式事件"""
         tool_calls = messages[-1].tool_calls
         tool_messages: List[BaseMessage] = []
@@ -190,7 +239,7 @@ class StreamingAgent:
                     })
 
                     # 调用MCP 工具返回结果
-                    tool_result = await use_tool.coroutine(tool_name, tool_args)
+                    tool_result = await use_tool.coroutine(**tool_args)
 
                     # 发送MCP工具执行完成事件
                     await self.emit_event("mcp_tool_complete", {
@@ -278,68 +327,6 @@ class StreamingAgent:
 
         return SystemMessage(content=knowledge_message)
 
-    async def ainvoke_streaming(self, messages: List[BaseMessage]) -> AsyncGenerator[Dict[str, Any], None]:
-        """流式调用主方法"""
-
-        # 发送开始事件
-        await self.emit_event("conversation_start", {
-            "user_message": messages[-1].content,
-            "message": "开始处理您的请求..."
-        })
-
-        # 调用知识库
-        knowledge_message = None
-        if self.collection_names and len(self.collection_names) != 0:
-            knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
-
-        # 启动图执行
-        graph_task = asyncio.create_task(self.graph.ainvoke({"messages": messages}))
-
-        # 流式返回事件
-        conversation_ended = False
-
-        while not conversation_ended:
-            try:
-                # 等待事件或超时
-                event = await asyncio.wait_for(self.event_queue.get(), timeout=30.0)
-                yield event
-
-                # 检查是否为工具调用最终响应事件
-                if event["type"] == "tool_execution_finished":
-                    conversation_ended = True
-
-            except asyncio.TimeoutError:
-                # 发送心跳事件
-                yield {
-                    "type": "heartbeat",
-                    "timestamp": time.time(),
-                    "data": {"message": "连接保持中..."}
-                }
-
-                # 检查图执行是否完成
-                if graph_task.done():
-                    break
-
-        # 等待图执行完成
-        results = await graph_task
-        messages = results["messages"]
-
-        # 添加知识库消息并开始最终响应
-        if knowledge_message:
-            messages.append(knowledge_message)
-
-        response_content = ""
-        async for chunk in self.conversation_model.astream(messages[:-1]):
-            response_content += chunk.content
-            yield {
-                "type": "response_chunk",
-                "timestamp": time.time(),
-                "data": {
-                    "chunk": chunk.content,
-                    "accumulated": response_content
-                }
-            }
-
     async def set_agent_graph(self):
         """设置Agent图，添加流式事件支持"""
 
@@ -406,6 +393,85 @@ class StreamingAgent:
 
         self.graph = workflow.compile()
 
+    async def ainvoke_streaming(self, messages: List[BaseMessage]) -> AsyncGenerator[Dict[str, Any], None]:
+        """流式调用主方法"""
+
+        # 发送开始事件
+        await self.emit_event("conversation_start", {
+            "user_message": messages[-1].content,
+            "message": "开始处理您的请求..."
+        })
+
+        # 启动知识库检索
+        knowledge_task = None
+        if self.collection_names and len(self.collection_names) != 0:
+            knowledge_task = asyncio.create_task(self.call_knowledge_messages(copy.deepcopy(messages)))
+
+
+        # 启动MCP Agent执行
+        mcp_agent_task = None
+        if self.mcp_agents and len(self.mcp_agents) != 0:
+            mcp_agent_task = asyncio.create_task(self.call_mcp_agent_messages(copy.deepcopy(messages)))
+
+        # 启动图执行
+        graph_task = None
+        if self.tools and len(self.tools) != 0:
+            graph_task = asyncio.create_task(self.graph.ainvoke({"messages": messages}))
+
+        # 收集所有任务
+        all_tasks = [task for task in [knowledge_task, mcp_agent_task, graph_task] if task is not None]
+
+        # 流式返回事件
+        conversation_ended = False
+
+        while not conversation_ended:
+            try:
+                # 等待事件或超时
+                event = await asyncio.wait_for(self.event_queue.get(), timeout=5.0)
+                yield event
+
+            except asyncio.TimeoutError:
+                # 发送心跳事件
+                yield {
+                    "type": "heartbeat",
+                    "timestamp": time.time(),
+                    "data": {"message": "连接保持中..."}
+                }
+
+            # 检查任务执行是否完成
+            if all(task.done() for task in all_tasks):
+                conversation_ended = True
+
+        # 等待知识库返回结果
+        knowledge_message = knowledge_task.result() if knowledge_task and knowledge_task.done() else None
+
+        # 等待MCP Agent任务返回
+        mcp_agent_messages = mcp_agent_task.result() if mcp_agent_task and mcp_agent_task.done() else None
+
+        # 等待图执行完成
+        results = graph_task.result() if graph_task and graph_task.done() else {"messages": []}
+        messages = results["messages"][:-1]  # 去除没有命中工具的message
+
+        # 添加MCP Agent消息
+        if mcp_agent_messages:
+            messages.extend(mcp_agent_messages)
+
+        # 添加知识库消息并开始最终响应
+        if knowledge_message:
+            messages.append(knowledge_message)
+
+        response_content = ""
+        async for chunk in self.conversation_model.astream(messages):
+            response_content += chunk.content
+            yield {
+                "type": "response_chunk",
+                "timestamp": time.time(),
+                "data": {
+                    "chunk": chunk.content,
+                    "accumulated": response_content
+                }
+            }
+
     # 保留原有的ainvoke方法作为普通流式版本
     async def ainvoke(self, messages: List[BaseMessage]):
         """非流式版本（保持向后兼容）"""
@@ -413,7 +479,6 @@ class StreamingAgent:
         knowledge_message = None
         if self.collection_names and len(self.collection_names) != 0:
             knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
-
 
         await self.graph.ainvoke({"messages": messages})
 
@@ -433,23 +498,40 @@ class StreamingAgent:
                 return False, tool
         return False, None
 
+
 # 将OpenAI的function call格式转成Langchain格式做适配
 def convert_langchain_tool_calls(tool_calls: List[ChatCompletionMessageToolCall]):
     langchain_tool_calls: List[ToolCall] = []
 
     for tool_call in tool_calls:
-        langchain_tool_calls.append(ToolCall(id=tool_call.id, args=json.loads(tool_call.function.arguments), name=tool_call.function.name))
+        langchain_tool_calls.append(
+            ToolCall(id=tool_call.id, args=json.loads(tool_call.function.arguments), name=tool_call.function.name))
 
     return langchain_tool_calls
+
 
 # 将Langchain的格式转为OpenAI的格式适配
 def convert_openai_tool_calls(tool_calls: List[ToolCall]):
     openai_tool_calls: List[ChatCompletionMessageToolCall] = []
 
     for tool_call in tool_calls:
-        openai_tool_calls.append(ChatCompletionMessageToolCall(id=tool_call.id, type="function", function=Function(arguments=tool_call.args, name=tool_call.name)))
+        openai_tool_calls.append(ChatCompletionMessageToolCall(id=tool_call.id, type="function",
+                                                               function=Function(arguments=tool_call.args,
+                                                                                 name=tool_call.name)))
 
     return openai_tool_calls
+
+
+def mcp_tool_to_args_schema(name, description, args_schema) -> dict:
+    return {
+        "type": "function",
+        "function": {
+            "name": name,
+            "description": description,
+            "parameters": args_schema
+        }
+    }
+
 
 # 将函数转成function schema格式
 def function_to_args_schema(func) -> dict:
@@ -510,9 +592,7 @@ def function_to_args_schema(func) -> dict:
         },
     }
 
-
-
-
+# ❌ AgentChat V1.0 版本❌
 # class ChatAgent:
 #     def __init__(self, agent_config: AgentConfig):
 #         self.agent_config = agent_config
@@ -691,7 +771,7 @@ def function_to_args_schema(func) -> dict:
 #
 #
 
-
+# ❌ V0.1版本 ❌
 # class ChatService:
 #     def __init__(self, **kwargs):
 #         self.llm_id = kwargs.get('llm_id')

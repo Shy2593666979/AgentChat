@@ -17,7 +17,8 @@ class MCPService:
     @classmethod
     async def get_mcp_server_from_id(cls, mcp_server_id):
         try:
-            return await MCPServerDao.get_mcp_server_from_id(mcp_server_id)
+            result = await MCPServerDao.get_mcp_server_from_id(mcp_server_id)
+            return result[0].to_dict()
         except Exception as err:
             raise ValueError(f"Get MCP Server From ID Error: {err}")
 
