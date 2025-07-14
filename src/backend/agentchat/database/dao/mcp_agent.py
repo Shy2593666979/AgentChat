@@ -2,8 +2,7 @@ from datetime import datetime
 
 from typing import List
 from agentchat.database.models.mcp_agent import MCPAgentTable
-from sqlmodel import Session
-from sqlalchemy import select, and_, update, desc, delete
+from sqlmodel import Session, select, and_, update, desc, delete
 from agentchat.utils.helpers import delete_img
 from agentchat.database import engine
 
@@ -43,7 +42,7 @@ class MCPAgentDao:
     def select_mcp_agent_by_name(cls, name: str):
         with Session(engine) as session:
             sql = select(MCPAgentTable).where(MCPAgentTable.name == name)
-            result = session.exec(sql).all()
+            result = session.exec(sql).first()
             return result
 
     @classmethod

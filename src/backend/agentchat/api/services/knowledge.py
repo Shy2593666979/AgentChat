@@ -22,7 +22,7 @@ class KnowledgeService:
                 return await cls._select_all_knowledge()
 
             results = await KnowledgeDao.get_knowledge_by_user(user_id)
-            return [res[0].to_dict() for res in results]
+            return [res.to_dict() for res in results]
         except Exception as err:
             raise ValueError(f'Select Knowledge By User Error: {err}')
 
@@ -30,7 +30,7 @@ class KnowledgeService:
     async def _select_all_knowledge(cls):
         try:
             results = await KnowledgeDao.get_all_knowledge()
-            return [res[0].to_dict() for res in results]
+            return [res.to_dict() for res in results]
         except Exception as err:
             raise ValueError(f'Delete Knowledge By ID Error: {err}')
 
@@ -58,6 +58,6 @@ class KnowledgeService:
     async def select_user_by_id(cls, knowledge_id):
         try:
             knowledge = KnowledgeDao.select_user_by_id(knowledge_id)
-            return knowledge[0].user_id
+            return knowledge.user_id
         except Exception as err:
             raise ValueError(f'Select user id error :{err}')

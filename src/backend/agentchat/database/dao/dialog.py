@@ -1,6 +1,5 @@
 from agentchat.database.models.dialog import DialogTable
-from sqlmodel import Session
-from sqlalchemy import select, update, desc, delete
+from sqlmodel import Session, select, update, desc, delete
 from agentchat.database import engine
 from datetime import datetime
 

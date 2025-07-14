@@ -18,7 +18,7 @@ class MCPService:
     async def get_mcp_server_from_id(cls, mcp_server_id):
         try:
             result = await MCPServerDao.get_mcp_server_from_id(mcp_server_id)
-            return result[0].to_dict()
+            return result.to_dict()
         except Exception as err:
             raise ValueError(f"Get MCP Server From ID Error: {err}")
 
@@ -35,7 +35,7 @@ class MCPService:
     async def get_server_from_tool_name(cls, tool_name):
         try:
             results = await MCPServerDao.get_server_from_tool_name(tool_name)
-            return results[0].to_dict()
+            return results.to_dict()
         except Exception as err:
             raise ValueError(f"Get Server From Tool Name Error: {err}")
 
@@ -50,7 +50,7 @@ class MCPService:
     async def verify_user_permission(cls, server_id, user_id, action: str="update"):
         mcp_server = await MCPServerDao.get_mcp_server_from_id(server_id)
         if mcp_server:
-            if user_id not in (mcp_server[0].user_id, AdminUser):
+            if user_id not in (mcp_server.user_id, AdminUser):
                 raise ValueError(f"没有权限访问")
         else:
             raise ValueError(f"服务不存在")
@@ -61,20 +61,20 @@ class MCPService:
             # 管理员可看见所有用户的MCP Server
             if user_id in (AdminUser, SystemUser):
                 all_servers = await MCPServerDao.get_all_mcp_servers()
-                return [server[0].to_dict() for server in all_servers]
+                return [server.to_dict() for server in all_servers]
             else:
                 personal_servers = await MCPServerDao.get_mcp_servers_from_user(user_id)
                 admin_servers = await MCPServerDao.get_mcp_servers_from_user(SystemUser)
                 all_servers = personal_servers + admin_servers
-                return [server[0].to_dict() for server in all_servers]
+                return [server.to_dict() for server in all_servers]
         except Exception as err:
             raise ValueError(f"Get All Servers Error: {err}")
 
     @classmethod
     async def get_mcp_tools_info(cls, server_id):
         try:
-            servers = await MCPServerDao.get_mcp_server_from_id(server_id)
-            server = servers[0].to_dict()
+            server = await MCPServerDao.get_mcp_server_from_id(server_id)
+            server = server.to_dict()
             tools_info = []
             for param in server["params"]:
                 tool_schema = []

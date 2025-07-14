@@ -36,7 +36,7 @@ class LLMService:
     async def get_user_id_by_llm(cls, llm_id: str):
         try:
             llm = await LLMDao.get_user_id_by_llm(llm_id)
-            return llm[0].user_id
+            return llm.user_id
         except Exception as err:
             raise ValueError(f'Get User Id By LLM Appear Err: {err}')
 
@@ -54,7 +54,7 @@ class LLMService:
             llm_data = await LLMDao.get_llm_by_user(user_id)
             result = []
             for data in llm_data:
-                result.append(data[0])
+                result.append(data)
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
@@ -73,7 +73,7 @@ class LLMService:
             system_data = await LLMDao.get_llm_by_user(SystemUser)
             result = []
             for data in (user_data + system_data):
-                result.append(data[0])
+                result.append(data)
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
@@ -91,7 +91,7 @@ class LLMService:
             llm_data = await LLMDao.get_all_llm()
             result = []
             for data in llm_data:
-                result.append(data[0])
+                result.append(data)
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
@@ -107,7 +107,7 @@ class LLMService:
     async def get_llm_by_id(cls, llm_id: str):
         try:
             llms = await LLMDao.get_llm_by_id(llm_id)
-            return llms[0].to_dict()
+            return llms.to_dict()
         except Exception as err:
             raise ValueError(f'Get LLM By Id Appear Err: {err}')
 
@@ -115,7 +115,7 @@ class LLMService:
     async def get_one_llm(cls):
         try:
             llms = await LLMDao.get_all_llm()
-            return [llm[0].to_dict() for llm in llms][0]
+            return llms[0].to_dict()
         except Exception as err:
             raise ValueError(f'Get One LLM Appear Err: {err}')
 
@@ -123,7 +123,7 @@ class LLMService:
     async def get_llm_type(cls):
         try:
             llms = await LLMDao.get_llm_by_type(llm_type='LLM')
-            return [llm[0].to_dict() for llm in llms]
+            return [llm.to_dict() for llm in llms]
         except Exception as err:
             raise ValueError(f'Get LLM Type Appear Err: {err}')
 

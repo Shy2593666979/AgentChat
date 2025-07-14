@@ -31,10 +31,10 @@ class HistoryService:
             result = await HistoryDao.select_history(dialog_id, top_k)
             messages: List[BaseMessage] = []
             for data in result:
-                if data[0].role == Assistant_Role:
-                    messages.append(AIMessage(content=data[0].content))
-                elif data[0].role == User_Role:
-                    messages.append(AIMessage(content=data[0].content))
+                if data.role == Assistant_Role:
+                    messages.append(AIMessage(content=data.content))
+                elif data.role == User_Role:
+                    messages.append(AIMessage(content=data.content))
             return messages
         except Exception as err:
             raise ValueError(f"Select history is appear error: {err}")
@@ -47,7 +47,7 @@ class HistoryService:
     async def get_dialog_history(cls, dialog_id: str):
         try:
             results = await HistoryDao.get_dialog_history(dialog_id)
-            return [res[0].to_dict() for res in results]
+            return [res.to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Get dialog history is appear error: {err}")
 

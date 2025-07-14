@@ -1,7 +1,7 @@
 from agentchat.database import engine
 from agentchat.database.models.knowledge_file import KnowledgeFileTable
-from sqlmodel import Session
-from sqlalchemy import select, delete
+from sqlmodel import Session, select, delete
+
 
 class KnowledgeFileDao:
 

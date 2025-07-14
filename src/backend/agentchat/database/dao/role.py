@@ -1,8 +1,7 @@
 from typing import List
 from sqlmodel import Session
 from agentchat.database import engine
-from sqlalchemy import func, delete, and_
-from sqlmodel import select
+from sqlmodel import select, func, delete, and_
 from agentchat.database.models.role import RoleBase, Role, AdminRole, RoleCreate
 
 

@@ -42,7 +42,7 @@ class ToolService:
     async def get_personal_tool_by_user(cls, user_id: str):
         try:
             personal_results = await ToolDao.get_tool_by_user_id(user_id=user_id)
-            return [res[0].to_dict() for res in personal_results]
+            return [res.to_dict() for res in personal_results]
         except Exception as err:
             raise ValueError(f'Get Tool By User Id Appear Error: {err}')
 
@@ -51,7 +51,7 @@ class ToolService:
         try:
             personal_results = await ToolDao.get_tool_by_user_id(user_id=user_id)
             system_results = await ToolDao.get_tool_by_user_id(user_id=AdminUser)
-            return [res[0].to_dict() for res in personal_results + system_results]
+            return [res.to_dict() for res in personal_results + system_results]
         except Exception as err:
             raise ValueError(f'Get All Tool By User Appear Error: {err}')
 
@@ -72,7 +72,7 @@ class ToolService:
                 tools = await ToolDao.get_tool_name_by_id(tool_id=tool_id)
             result = []
             for tool in tools:
-                result.append(tool[0].en_name)
+                result.append(tool.en_name)
             return result
         except Exception as err:
             raise ValueError(f'Get Tool name by Id appear Err: {err}')
@@ -81,7 +81,7 @@ class ToolService:
     async def _get_user_by_tool_id(cls, tool_id: str):
         try:
             tool = await ToolDao.get_tool_by_id(tool_id=tool_id)
-            return tool[0].tool_id
+            return tool.tool_id
         except Exception as err:
             raise ValueError(f'Get user by tool Id appear Error: {err}')
 
@@ -89,7 +89,7 @@ class ToolService:
     async def get_tools_data(cls):
         try:
             tools = await ToolDao.get_all_tools()
-            return [tool[0].to_dict() for tool in tools]
+            return [tool.to_dict() for tool in tools]
         except Exception as err:
             raise ValueError(f'Get tools data appear Error: {err}')
 
@@ -97,6 +97,6 @@ class ToolService:
     async def get_id_by_tool_name(cls, tool_name: str, user_id: str):
         try:
             tool = await ToolDao.get_id_by_tool_name(tool_name, user_id)
-            return tool[0].tool_id
+            return tool.tool_id
         except Exception as err:
             raise ValueError(f'Get Id by tool name appear Error: {err}')

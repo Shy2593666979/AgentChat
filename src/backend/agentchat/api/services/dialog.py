@@ -19,7 +19,7 @@ class DialogService:
     async def select_dialog(cls, dialog_id: str):
         try:
             results = await DialogDao.select_dialog(dialog_id)
-            return [res[0].to_dict() for res in results]
+            return [res.to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Select Dialog Appear Error: {err}")
 
@@ -27,7 +27,7 @@ class DialogService:
     async def get_list_dialog(cls, user_id: str):
         try:
             results = await DialogDao.get_dialog_by_user(user_id=user_id)
-            return [res[0].to_dict() for res in results]
+            return [res.to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Get List Dialog Appear Error: {err}")
 
@@ -35,7 +35,7 @@ class DialogService:
     async def get_agent_by_dialog_id(cls, dialog_id: str):
         try:
             agent = await DialogDao.get_agent_by_dialog_id(dialog_id)
-            return await AgentService.select_agent_by_id(agent[0].agent_id)
+            return await AgentService.select_agent_by_id(agent.agent_id)
         except Exception as err:
             raise ValueError(f"Select Dialog Appear Error: {err}")
 

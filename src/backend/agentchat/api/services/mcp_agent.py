@@ -30,7 +30,7 @@ class MCPAgentService:
             data = MCPAgentDao.get_mcp_agent()
             result = []
             for item in data:
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f"get agent is appear error: {err}")
@@ -82,7 +82,7 @@ class MCPAgentService:
             data = MCPAgentDao.search_mcp_agent_name(name=name, user_id=user_id)
             result = []
             for item in data:
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f"search agent name appear error: {err}")
@@ -101,8 +101,8 @@ class MCPAgentService:
     @classmethod
     def check_name_iscustom(cls, name: str):
         try:
-            data = MCPAgentDao.select_mcp_agent_by_name(name)
-            return data[0][0].is_custom
+            agent = MCPAgentDao.select_mcp_agent_by_name(name)
+            return agent.is_custom
         except Exception as err:
             logger.error(f"get code by name is appear error: {err}")
 
@@ -112,7 +112,7 @@ class MCPAgentService:
             data = MCPAgentDao.get_mcp_agent_by_user_id(user_id=user_id)
             result = []
             for item in data:
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f'get personal agent by user id Err: {err}')
@@ -124,7 +124,7 @@ class MCPAgentService:
             user_data = MCPAgentDao.get_mcp_agent_by_user_id(user_id=user_id)
             result = []
             for item in (system_data + user_data):
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f'get all agent by user id Err: {err}')
@@ -135,7 +135,7 @@ class MCPAgentService:
             data = MCPAgentDao.select_mcp_agent_by_custom(is_custom=is_custom)
             result = []
             for item in data:
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f"select agent by custom is appear error: {err}")
@@ -146,7 +146,7 @@ class MCPAgentService:
             data = MCPAgentDao.select_mcp_agent_by_name(name)
             result = []
             for item in data:
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f"select agent by name is appear error: {err}")

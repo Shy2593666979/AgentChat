@@ -27,7 +27,7 @@ class MCPUserConfigService:
         """
         try:
             results = await MCPUserConfigDao.get_mcp_user_config_from_id(config_id)
-            return results[0].to_dict()
+            return results.to_dict()
         except Exception as err:
             raise ValueError(f"Get MCP User Config From ID Error: {err}")
 

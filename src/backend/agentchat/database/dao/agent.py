@@ -2,9 +2,7 @@ from datetime import datetime
 
 from typing import List
 from agentchat.database.models.agent import AgentTable
-from sqlmodel import Session
-from sqlalchemy import select, and_, update, desc, delete
-from agentchat.utils.helpers import delete_img
+from sqlmodel import Session, select, and_, update, desc, delete
 from agentchat.database import engine
 
 

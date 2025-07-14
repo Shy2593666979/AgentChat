@@ -7,6 +7,7 @@ from uuid import uuid4, UUID
 from agentchat.database.models.base import SQLModelSerializable
 import pytz
 
+# 目前暂时用不上
 class MCPServerStdioTable(SQLModelSerializable, table=True):
     __tablename__ = "mcp_stdio_server"
 
@@ -32,7 +33,7 @@ class MCPServerTable(SQLModelSerializable, table=True):
                       description="连接类型，只允许三种，sse、websocket、stdio")
     config: Optional[dict] = Field(sa_column=Column(JSON), description="配置，如apikey等")
     tools: List[str] = Field(default=[], sa_column=Column(JSON), description="MCP Server的工具列表")
-    params: Optional[dict] = Field(sa_column=Column(JSON), description="输入参数")
+    params: List[dict] = Field(sa_column=Column(JSON), description="输入参数")
     config_enabled: bool = Field(False, description="是否需要用户单独配置参数")
     create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
     update_time: Optional[datetime] = Field(

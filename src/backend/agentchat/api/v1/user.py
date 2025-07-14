@@ -54,7 +54,7 @@ async def login(user_name: str = Body(description='用户名'),
     #     if not user.captcha_key or not await verify_captcha(user.captcha, user.captcha_key):
     #         raise HTTPException(status_code=500, detail='验证码错误')
 
-    db_user = UserDao.get_user_by_username(user_name)[0]
+    db_user = UserDao.get_user_by_username(user_name)
     # 检查密码
     if not db_user or not UserService.verify_password(user_password, db_user.user_password):
         return UserValidateError.return_resp()

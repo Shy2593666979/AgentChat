@@ -1,6 +1,5 @@
 from agentchat.database.models.history import HistoryTable
-from sqlmodel import Session
-from sqlalchemy import select, delete
+from sqlmodel import Session, select, delete
 from agentchat.database import engine
 
 class HistoryDao:

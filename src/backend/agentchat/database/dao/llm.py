@@ -1,6 +1,4 @@
-from sqlmodel import Session
-from sqlalchemy import select, and_, update, desc, delete
-from typing import List
+from sqlmodel import Session, select, and_, update, desc, delete
 from agentchat.database import engine
 from agentchat.database.models.llm import LLMTable
 from datetime import datetime

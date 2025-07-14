@@ -1,7 +1,6 @@
 from agentchat.database.models.user import UserTable
 from typing import List
-from sqlalchemy import select, func
-from sqlmodel import Session
+from sqlmodel import Session, select, func
 from agentchat.database import engine
 
 class UserDao:

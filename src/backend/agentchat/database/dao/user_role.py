@@ -1,8 +1,7 @@
 from datetime import datetime
 from typing import List, Optional
 
-from sqlalchemy import delete
-from sqlmodel import Field, select, Session
+from sqlmodel import Field, select, Session, delete
 from agentchat.database import engine
 from agentchat.database.models.role import AdminRole
 from agentchat.database.models.user_role import UserRoleBase, UserRole

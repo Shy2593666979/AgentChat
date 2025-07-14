@@ -61,11 +61,11 @@ async def delete_mcp_server(server_id: str = Body(..., description="MCP Server �
 
 
 @router.get("/mcp_tools")
-async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID", embed=True),
-                        login_user: UserPayload = Depends(get_login_user)):
+async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID", embed=True),):
+                        # login_user: UserPayload = Depends(get_login_user)):
     try:
         # 验证是否有权限
-        await MCPService.verify_user_permission(server_id, login_user.user_id)
+        # await MCPService.verify_user_permission(server_id, login_user.user_id)
 
         results = await MCPService.get_mcp_tools_info(server_id)
         return resp_200(results)
