@@ -136,7 +136,7 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
                                                tools=tools_name, params=params)
         else:
             await MCPService.create_mcp_server(key, SystemUser, "Admin", server["url"], server["type"],
-                                               server["config"], tools_name, params, server["config_enabled"])
+                                               server["config"], tools_name, params, server["config_enabled"], server["logo_url"])
 
 
 async def load_default_tool():

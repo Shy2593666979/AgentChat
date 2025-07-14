@@ -31,6 +31,7 @@ class MCPServerTable(SQLModelSerializable, table=True):
     url: str = Field(description="MCP Server的连接地址")
     type: str = Field(sa_column=Column(VARCHAR(255), nullable=False),
                       description="连接类型，只允许三种，sse、websocket、stdio")
+    logo_url: str = Field(description="MCP Server的logo地址")
     config: Optional[dict] = Field(sa_column=Column(JSON), description="配置，如apikey等")
     tools: List[str] = Field(default=[], sa_column=Column(JSON), description="MCP Server的工具列表")
     params: List[dict] = Field(sa_column=Column(JSON), description="输入参数")

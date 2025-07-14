@@ -7,10 +7,10 @@ class MCPService:
     @classmethod
     async def create_mcp_server(cls, server_name: str, user_id: str, user_name: str,
                                 url: str, type: str, config: dict, tools: list, params: dict,
-                                config_enabled: bool = False):
+                                config_enabled: bool, logo_url: str):
         try:
             return await MCPServerDao.create_mcp_server(server_name, user_id, user_name, url, type,
-                                                        config, tools, params, config_enabled)
+                                                        config, tools, params, config_enabled, logo_url)
         except Exception as err:
             raise ValueError(f"Create MCP Server Error: {err}")
 
@@ -24,10 +24,10 @@ class MCPService:
 
     @classmethod
     async def update_mcp_server(cls, mcp_server_id: str, server_name: str = None, url: str = None, type: str = None,
-                                config: dict = None, tools: list = None, params: dict = None):
+                                config: dict = None, tools: list = None, params: dict = None, logo_url: str = None):
         try:
             return await MCPServerDao.update_mcp_server(mcp_server_id, server_name, url, type, config,
-                                                        tools, params)
+                                                        tools, params, logo_url)
         except Exception as err:
             raise ValueError(f"Update MCP Server Error: {err}")
 

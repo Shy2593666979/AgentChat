@@ -8,9 +8,9 @@ from agentchat.database.models.mcp_server import MCPServerStdioTable, MCPServerT
 class MCPServerDao:
     @classmethod
     async def create_mcp_server(cls, server_name: str, user_id: str, user_name: str,
-                                url: str, type: str, config: dict, tools: list, params: dict, config_enabled: bool):
+                                url: str, type: str, config: dict, tools: list, params: dict, config_enabled: bool, logo_url):
         with Session(engine) as session:
-            mcp_server = MCPServerTable(server_name=server_name, user_id=user_id,
+            mcp_server = MCPServerTable(server_name=server_name, user_id=user_id, logo_url=logo_url,
                                         user_name=user_name, url=url, type=type, config=config,
                                         tools=tools, params=params, config_enabled=config_enabled)
             session.add(mcp_server)
@@ -32,7 +32,7 @@ class MCPServerDao:
 
     @classmethod
     async def update_mcp_server(cls, mcp_server_id: str, server_name: str,
-                                url: str, type: str, config: dict, tools: list, params: dict):
+                                url: str, type: str, config: dict, tools: list, params: dict, logo_url: str):
         with Session(engine) as session:
             update_values = {
                 'update_time': datetime.utcnow()
@@ -49,6 +49,8 @@ class MCPServerDao:
                 update_values["tools"] = tools
             if params:
                 update_values["params"] = params
+            if logo_url:
+                update_values["logo_url"] = logo_url
 
             sql = update(MCPServerTable).where(MCPServerTable.mcp_server_id == mcp_server_id).values(**update_values)
             session.exec(sql)

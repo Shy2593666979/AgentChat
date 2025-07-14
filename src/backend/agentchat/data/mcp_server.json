@@ -5,7 +5,8 @@
     "type": "sse",
     "config": {},
     "params": {},
-    "config_enabled": false
+    "config_enabled": false,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/map.png"
   },
   {
     "server_name": "Fetch",
@@ -13,7 +14,8 @@
     "type": "sse",
     "config": {},
     "params": {},
-    "config_enabled": false
+    "config_enabled": false,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/fetch.png"
   },
   {
     "server_name": "Lark",
@@ -32,6 +34,7 @@
       }
     ],
     "params": {},
-    "config_enabled": true
+    "config_enabled": true,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/feishu.png"
   }
 ]
