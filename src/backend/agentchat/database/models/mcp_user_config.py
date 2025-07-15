@@ -1,4 +1,4 @@
-from typing import Optional
+from typing import Optional, List
 from sqlalchemy import Column, VARCHAR, JSON, text, DateTime
 from sqlmodel import SQLModel, Field
 from datetime import datetime
@@ -23,7 +23,7 @@ class MCPUserConfigTable(SQLModelSerializable, table=True):
     user_id: str = Field(description="绑定到该MCP Server的用户ID")
 
     # 针对一些需要鉴权的MCP Server的配置信息
-    config: Optional[dict] = Field(
+    config: List[dict] = Field(
         sa_column=Column(JSON),
         description="针对一些需要鉴权的MCP Server的配置信息"
     )

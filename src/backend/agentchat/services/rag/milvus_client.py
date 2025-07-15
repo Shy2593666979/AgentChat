@@ -11,8 +11,8 @@ class MilvusClient:
         self.milvus_port = app_settings.milvus.get('port')
 
         # 如用不到知识库，直接注释掉
-        # connections.connect("default", host=self.milvus_host, port=self.milvus_port)
-        # self.collections = self._get_collection()
+        connections.connect("default", host=self.milvus_host, port=self.milvus_port)
+        self.collections = self._get_collection()
 
     def _collection_exists(self, collection_name):
         """检查集合是否存在"""
@@ -25,9 +25,9 @@ class MilvusClient:
                 FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
                 FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, max_length=128),
                 FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=1024),
-                FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=768),
-                FieldSchema(name="summary", dtype=DataType.VARCHAR, max_lenth=512),
-                FieldSchema(name="embedding_summary", dtype=DataType.FLOAT_VECTOR, dim=768),
+                FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=1024),
+                FieldSchema(name="summary", dtype=DataType.VARCHAR, max_length=512),
+                FieldSchema(name="embedding_summary", dtype=DataType.FLOAT_VECTOR, dim=1024),
                 FieldSchema(name="file_id", dtype=DataType.VARCHAR, max_length=128),
                 FieldSchema(name="file_name", dtype=DataType.VARCHAR, max_length=128),
                 FieldSchema(name="knowledge_id", dtype=DataType.VARCHAR, max_length=128),

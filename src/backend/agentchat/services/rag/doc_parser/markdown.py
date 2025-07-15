@@ -4,8 +4,9 @@ from datetime import datetime, timedelta
 from uuid import uuid4
 from agentchat.schema.chunk import ChunkModel
 
+
 class MarkdownParser:
-    def __init__(self, chunk_size=500, overlap_size=100):
+    def __init__(self, chunk_size=300, overlap_size=30):  # 更小的chunk_size和overlap_size
         self.chunk_size = chunk_size
         self.overlap_size = overlap_size
         self.header_pattern = r'^(#{1,5})\s+(.+)$'
@@ -20,8 +21,22 @@ class MarkdownParser:
         start = 0
         text_length = len(text)
 
+        # 预留给header_path和格式字符的空间
+        header_overhead = len(header_path) + 2  # "\n\n"
+
+        # 如果header路径太长，截断它（保留最后几级标题）
+        if header_overhead > 300:  # 如果header太长
+            header_parts = header_path.split(' > ')
+            while len(' > '.join(header_parts)) + 2 > 300 and len(header_parts) > 1:
+                header_parts = header_parts[1:]  # 移除第一级标题
+            header_path = ' > '.join(header_parts)
+            header_overhead = len(header_path) + 2
+
+        max_text_size = 1024 - header_overhead
+        effective_chunk_size = min(self.chunk_size, max_text_size)
+
         while start < text_length:
-            end = start + self.chunk_size
+            end = start + effective_chunk_size
 
             # 检查链接和图片是否被切断
             if end < text_length:
@@ -40,6 +55,13 @@ class MarkdownParser:
             chunk_text = text[start:end].strip()
             if chunk_text:
                 full_chunk = f"{header_path}\n\n{chunk_text}"
+
+                # 最终安全检查：确保绝对不超过1024字符
+                if len(full_chunk) > 1024:
+                    max_chunk_text_len = 1024 - header_overhead - 10  # 留10字符缓冲
+                    chunk_text = chunk_text[:max_chunk_text_len].strip()
+                    full_chunk = f"{header_path}\n\n{chunk_text}"
+
                 chunks.append(full_chunk)
 
             # 更新起始位置，考虑重叠区域
@@ -114,15 +136,17 @@ class MarkdownParser:
         chunks = []
         update_time = datetime.utcnow() + timedelta(hours=8)
         for content in contents:
+            chunk_id = f"{os.path.splitext(os.path.basename(file_path))[0]}_{uuid4().hex}"
             chunks.append(ChunkModel(
-                chunk_id=f"{os.path.splitext(file_path)}_{uuid4().hex}",
+                chunk_id=chunk_id[:128] if len(chunk_id) > 128 else chunk_id,
                 content=content,
                 file_id=file_id,
                 file_name=os.path.basename(file_path),
                 knowledge_id=knowledge_id,
-                update_time=update_time
+                update_time=update_time.isoformat()
             ))
 
         return chunks
+
 
 markdown_parser = MarkdownParser()

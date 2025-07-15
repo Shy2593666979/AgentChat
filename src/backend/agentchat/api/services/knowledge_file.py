@@ -20,8 +20,8 @@ class KnowledgeFileService:
     async def create_knowledge_file(cls, file_path, knowledge_id, user_id, oss_url):
         knowledge_file_id = uuid4().hex
         # 将上传的文件解析成chunks 放到ES 和 Milvus
-        await RagHandler.index_es_documents(knowledge_id, knowledge_file_id, file_path, knowledge_id)
-        await RagHandler.index_milvus_documents(knowledge_id, knowledge_file_id, file_path, knowledge_id)
+        # await RagHandler.index_es_documents(knowledge_id, knowledge_file_id, file_path, knowledge_id)
+        await RagHandler.index_milvus_documents(f"t_{knowledge_id}", knowledge_file_id, file_path, knowledge_id)
         KnowledgeFileDao.create_knowledge_file(knowledge_file_id, file_path, knowledge_id, user_id, oss_url)
 
     @classmethod

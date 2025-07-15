@@ -1,12 +1,13 @@
 import oss2
 from loguru import logger
-from agentchat.config.service_config import OSS_ENDPOINT, OSS_ACCESS_KEY_ID, OSS_ACCESS_KEY_SECRET, OSS_BUCKET_NAME
+from agentchat.settings import app_settings
 
 
 class AliyunOSSClient:
     def __init__(self):
-        auth = oss2.Auth(access_key_id=OSS_ACCESS_KEY_ID, access_key_secret=OSS_ACCESS_KEY_SECRET)
-        self.bucket = oss2.Bucket(auth, OSS_ENDPOINT, OSS_BUCKET_NAME)
+        auth = oss2.Auth(access_key_id=app_settings.aliyun_oss["access_key_id"],
+                         access_key_secret=app_settings.aliyun_oss["access_key_secret"])
+        self.bucket = oss2.Bucket(auth, app_settings.aliyun_oss["endpoint"], app_settings.aliyun_oss["bucket_name"])
 
     def upload_file(self, object_name, data):
         try:
@@ -42,5 +43,6 @@ class AliyunOSSClient:
             logger.info(f"File {object_name} downloaded successfully to {local_file}")
         except oss2.exceptions.OssError as e:
             logger.error(f"Failed to download {object_name} to {local_file}: {e}")
+
 
 aliyun_oss = AliyunOSSClient()

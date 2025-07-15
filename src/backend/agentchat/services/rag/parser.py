@@ -29,7 +29,7 @@ class DocParser:
         semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
         tasks = [asyncio.create_task(cls.generate_summary(chunk, semaphore)) for chunk in chunks]
-        chunks = asyncio.gather(*tasks)
+        chunks = await asyncio.gather(*tasks)
 
         return chunks
 
@@ -45,7 +45,7 @@ class DocParser:
                 2. 摘要中仅包含文字和字母，不得出现链接或其他特殊符号。
                 3. 只输出摘要部分，不准输出 `以下是文本的摘要` 等字段
             """
-            response = async_client.ainvoke(prompt)
+            response = await async_client.ainvoke(prompt)
             chunk.summary = response
 
             return chunk
