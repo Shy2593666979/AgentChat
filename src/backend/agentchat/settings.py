@@ -24,6 +24,8 @@ class Settings(BaseSettings):
     tool_delivery: dict = {}
     tool_google: dict = {}
     tool_weather: dict = {}
+    whitelist_paths: list = []
+
     multi_models: MultiModels = MultiModels()
 
     use_oss: bool = False

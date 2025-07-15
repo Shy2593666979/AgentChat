@@ -233,3 +233,11 @@ class LoadConfig(BaseModel):
 ## 向量库安装
 
 https://milvus.io/docs/zh/install_standalone-windows.md
+
+## Rerank模型示例
+
+https://help.aliyun.com/zh/model-studio/text-rerank-api
+
+## Embedding模型示例
+
+https://help.aliyun.com/zh/model-studio/embedding-interfaces-compatible-with-openai

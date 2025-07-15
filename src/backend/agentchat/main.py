@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
@@ -28,6 +28,17 @@ def register_middleware(app: FastAPI):
         allow_methods=['*'],
         allow_headers=['*'],
     )
+
+    # 全局中间件：标记白名单请求
+    @app.middleware("http")
+    def mark_whitelist_paths(request: Request, call_next):
+        # 检查请求路径是否以任何白名单前缀开头
+        request.state.is_whitelisted = any(
+            request.url.path.startswith(prefix) for prefix in app_settings.whitelist_paths
+        )
+        # 检查请求路径以具体白名单匹配
+        # request.state.is_whitelisted = request.url.path in app_settings.whitelist_paths
+        return call_next(request)
 
     return app
 

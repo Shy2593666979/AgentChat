@@ -9,7 +9,7 @@ from agentchat.database.models.role import AdminRole
 from agentchat.api.errcode.user import UserNameAlreadyExistError
 from agentchat.utils.hash import md5_hash
 from base64 import b64decode
-from fastapi import Request, Depends
+from fastapi import Request, Depends, HTTPException
 from agentchat.database.models.user import UserTable
 from agentchat.database.dao.user import UserDao
 from agentchat.utils.constants import RSA_KEY
@@ -77,17 +77,21 @@ class UserService:
                                                  user_password=user.user_password)
         return user
 
-async def get_login_user(authorize: AuthJWT = Depends()) -> UserPayload:
+async def get_login_user(request: Request, authorize: AuthJWT = Depends()) -> UserPayload:
     """
     获取当前登录的用户
     """
-    # 校验是否过期，过期则直接返回http 状态码的 401
-    authorize.jwt_required()
+    if request.state.is_whitelisted:
+        # 白名单路径：直接返回Admin
+        return UserPayload(user_id="1", user_name="Admin")
 
-    current_user = json.loads(authorize.get_jwt_subject())
-    user = UserPayload(**current_user)
-
-    return user
+    # 非白名单路径：执行 JWT 验证
+    try:
+        authorize.jwt_required()
+        current_user = json.loads(authorize.get_jwt_subject())
+        return UserPayload(**current_user)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 def get_user_role(db_user: UserTable):
     # 查询用户的角色列表
