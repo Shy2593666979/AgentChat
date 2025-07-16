@@ -15,13 +15,11 @@ class RagHandler:
         return query_list
 
     @classmethod
-    async def index_milvus_documents(cls, collection_name, file_id, file_path, knowledge_id):
-        chunks = await doc_parser.parse_doc_into_chunks(file_id, file_path, knowledge_id)
+    async def index_milvus_documents(cls, collection_name, chunks):
         await milvus_client.insert(collection_name, chunks)
 
     @classmethod
-    async def index_es_documents(cls, index_name, file_id, file_path, knowledge_id):
-        chunks = await doc_parser.parse_doc_into_chunks(file_id, file_path, knowledge_id)
+    async def index_es_documents(cls, index_name, chunks):
         await es_client.index_documents(index_name, chunks)
 
     @classmethod

@@ -57,7 +57,7 @@ class KnowledgeService:
     @classmethod
     async def select_user_by_id(cls, knowledge_id):
         try:
-            knowledge = KnowledgeDao.select_user_by_id(knowledge_id)
+            knowledge = await KnowledgeDao.select_user_by_id(knowledge_id)
             return knowledge.user_id
         except Exception as err:
             raise ValueError(f'Select user id error :{err}')

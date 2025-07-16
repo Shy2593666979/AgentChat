@@ -100,8 +100,14 @@ async def insert_tools_to_mysql():
 async def update_mcp_server_into_mysql(has_mcp_server: bool):
     mcp_manager = MCPManager(timeout=10)
 
+    # 判断是不是不是首次连接
     if has_mcp_server:
-        servers = await MCPService.get_all_servers(AdminUser)
+        # 超过七天才有更新MCP Server的策略
+        if await MCPService.mcp_server_need_update():
+            servers = await MCPService.get_all_servers(AdminUser)
+            logger.info("MCP Server 最新版已更新到数据库！")
+        else:
+            return
     else:
         servers = await load_system_mcp_server()
 

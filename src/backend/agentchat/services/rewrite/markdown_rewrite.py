@@ -55,7 +55,7 @@ class MarkdownRewrite:
                             # WEBP图像： f"data:image/webp;base64,{base64_image}"
                             "image_url": {"url": f"data:image/{image_type};base64,{base64_image}"},
                         },
-                        {"type": "text", "text": "图中描绘的是什么景象?"},
+                        {"type": "text", "text": "图中描绘的是什么景象? 要求：1.字数不超过100字。2.直接输出图片描述文本"},
                     ],
                 }
             ],
@@ -64,15 +64,26 @@ class MarkdownRewrite:
         return completion.choices[0].message.content
 
     async def async_request_vl(self, image, image_path):
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, self.request_vl, image_path)
+        result = await self.request_vl(image_path)
         return image, result
 
     async def get_image_description(self, image_path_dict):
+        # 创建信号量，限制并发数为5
+        semaphore = asyncio.Semaphore(3)
+
+        async def limited_request(image, image_path):
+            async with semaphore:  # 使用信号量控制并发
+                return await self.async_request_vl(image, image_path)
+
+        # 创建任务列表
+        tasks = [limited_request(image, image_path)
+                 for image, image_path in image_path_dict.items()]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
         # 获得每张图片的描述信息
         # 采用的是异步调用，只需要一次请求模型的时间
-        tasks = [self.async_request_vl(image, image_path) for image, image_path in image_path_dict.items()]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # tasks = [self.async_request_vl(image, image_path) for image, image_path in image_path_dict.items()]
+        # results = await asyncio.gather(*tasks, return_exceptions=True)
 
         image_desc_dict = {}
         for result in results:

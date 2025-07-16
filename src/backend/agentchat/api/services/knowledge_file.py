@@ -2,6 +2,7 @@ from uuid import uuid4
 
 from agentchat.database.dao.knowledge_file import KnowledgeFileDao
 from agentchat.database.models.user import AdminUser
+from agentchat.services.rag.parser import doc_parser
 from agentchat.services.rag_handler import RagHandler
 
 
@@ -13,23 +14,25 @@ class KnowledgeFileService:
 
     @classmethod
     async def get_knowledge_file(cls, knowledge_id):
-        results = KnowledgeFileDao.select_knowledge_file(knowledge_id)
+        results = await KnowledgeFileDao.select_knowledge_file(knowledge_id)
         return [res.to_dict() for res in results]
 
     @classmethod
     async def create_knowledge_file(cls, file_path, knowledge_id, user_id, oss_url):
         knowledge_file_id = uuid4().hex
+        # 针对不同的文件类型进行解析
+        chunks = await doc_parser.parse_doc_into_chunks(knowledge_file_id, file_path, knowledge_id)
         # 将上传的文件解析成chunks 放到ES 和 Milvus
-        # await RagHandler.index_es_documents(knowledge_id, knowledge_file_id, file_path, knowledge_id)
-        await RagHandler.index_milvus_documents(f"t_{knowledge_id}", knowledge_file_id, file_path, knowledge_id)
-        KnowledgeFileDao.create_knowledge_file(knowledge_file_id, file_path, knowledge_id, user_id, oss_url)
+        await RagHandler.index_es_documents(knowledge_id, chunks)
+        await RagHandler.index_milvus_documents(knowledge_id, chunks)
+        await KnowledgeFileDao.create_knowledge_file(knowledge_file_id, file_path, knowledge_id, user_id, oss_url)
 
     @classmethod
     async def delete_knowledge_file(cls, knowledge_file_id):
         knowledge_file = await cls.select_knowledge_file_by_id(knowledge_file_id)
-        await RagHandler.delete_documents_es_milvus(knowledge_file.file_id, knowledge_file.knowledge_id)
+        await RagHandler.delete_documents_es_milvus(knowledge_file.id, knowledge_file.knowledge_id)
 
-        KnowledgeFileDao.delete_knowledge_file(knowledge_file_id)
+        await KnowledgeFileDao.delete_knowledge_file(knowledge_file_id)
 
     @classmethod
     async def select_knowledge_file_by_id(cls, knowledge_file_id):

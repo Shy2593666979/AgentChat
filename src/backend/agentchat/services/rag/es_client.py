@@ -6,6 +6,7 @@ from agentchat.schema.search import SearchModel
 from agentchat.settings import app_settings
 from loguru import logger
 
+
 class ESClient:
     def __init__(self):
         self.client = Elasticsearch(hosts=app_settings.elasticsearch.get('hosts'))
@@ -48,9 +49,12 @@ class ESClient:
 
             documents = []
             for hit in response['hits']:
-                documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'], update_time=hit['_source']['update_time'],
-                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'], summary=hit['_source']['summary'],
-                                             file_id=hit['_source']['file_id'], knowledge_id=hit['_source']['knowledge_id']))
+                documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
+                                             update_time=hit['_source']['update_time'],
+                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'],
+                                             summary=hit['_source']['summary'],
+                                             file_id=hit['_source']['file_id'],
+                                             knowledge_id=hit['_source']['knowledge_id']))
 
         except Exception as e:
             logger.error(f'Search documents error: {e}')
@@ -68,9 +72,12 @@ class ESClient:
 
             documents = []
             for hit in response['hits']:
-                documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'], update_time=hit['_source']['update_time'],
-                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'], summary=hit['_source']['summary'],
-                                             file_id=hit['_source']['file_id'], knowledge_id=hit['_source']['knowledge_id']))
+                documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
+                                             update_time=hit['_source']['update_time'],
+                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'],
+                                             summary=hit['_source']['summary'],
+                                             file_id=hit['_source']['file_id'],
+                                             knowledge_id=hit['_source']['knowledge_id']))
 
         except Exception as e:
             logger.error(f'Search documents summary error: {e}')
@@ -80,23 +87,25 @@ class ESClient:
     async def delete_documents(self, file_id, index_name):
         try:
             # 构造查询条件
-            with open(app_settings.elasticsearch.get('index_delete_path'), 'r') as f:
-                content = f.read()
-                content = content.format(file_id=file_id)
-                delete_query = json.loads(content)
-
+            delete_query = {
+                "query": {
+                    "term": {
+                        "file_id": f"{file_id}"
+                    }
+                }
+            }
             self.client.delete_by_query(index=index_name, body=delete_query)
             logger.info(f'Success delete documents in file id: {file_id}')
         except Exception as e:
-            logger.error(f'Delete documents in file id error: {e}')
-
+            logger.error(f'Delete documents Error: {e}')
 
     async def close(self):
         pass
 
+
 client = ESClient()
 
-#⭐Elasticsearch 在7.11版本之前不支持异步，因本地部署的7.0.0版本，所以使用的同步，如果ES版本较高，建议使用下面的异步代码⭐
+# ⭐Elasticsearch 在7.11版本之前不支持异步，因本地部署的7.0.0版本，所以使用的同步，如果ES版本较高，建议使用下面的异步代码⭐
 # import json
 # from typing import List
 # from elasticsearch import AsyncElasticsearch

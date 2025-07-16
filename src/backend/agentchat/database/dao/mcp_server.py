@@ -56,6 +56,14 @@ class MCPServerDao:
             session.exec(sql)
             session.commit()
 
+    # 检查更新时间是否超过7天
+    @classmethod
+    async def get_first_mcp_server(cls):
+        with Session(engine) as session:
+            statement = select(MCPServerTable)
+            server = session.exec(statement).first()
+            return server
+
     @classmethod
     async def get_server_from_tool_name(cls, tool_name):
         with Session(engine) as session:

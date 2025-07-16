@@ -6,7 +6,7 @@ from agentchat.schema.chunk import ChunkModel
 
 
 class MarkdownParser:
-    def __init__(self, chunk_size=300, overlap_size=30):  # 更小的chunk_size和overlap_size
+    def __init__(self, chunk_size=512, overlap_size=128):  # 更小的chunk_size和overlap_size
         self.chunk_size = chunk_size
         self.overlap_size = overlap_size
         self.header_pattern = r'^(#{1,5})\s+(.+)$'
@@ -25,9 +25,9 @@ class MarkdownParser:
         header_overhead = len(header_path) + 2  # "\n\n"
 
         # 如果header路径太长，截断它（保留最后几级标题）
-        if header_overhead > 300:  # 如果header太长
+        if header_overhead > 512:  # 如果header太长
             header_parts = header_path.split(' > ')
-            while len(' > '.join(header_parts)) + 2 > 300 and len(header_parts) > 1:
+            while len(' > '.join(header_parts)) + 2 > 512 and len(header_parts) > 1:
                 header_parts = header_parts[1:]  # 移除第一级标题
             header_path = ' > '.join(header_parts)
             header_overhead = len(header_path) + 2

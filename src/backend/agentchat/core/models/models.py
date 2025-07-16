@@ -24,9 +24,9 @@ class AsyncChatClient(AsyncOpenAI):
         return response.choices[0].message.content
 
 
-async_client = AsyncChatClient(base_url=app_settings.multi_models.qwen2.base_url,
-                               api_key=app_settings.multi_models.qwen2.api_key,
-                               model_name=app_settings.multi_models.qwen2.model_name)
+async_client = AsyncChatClient(base_url=app_settings.multi_models.deepseek_v3.base_url,
+                               api_key=app_settings.multi_models.deepseek_v3.api_key,
+                               model_name=app_settings.multi_models.deepseek_v3.model_name)
 
 
 class ToolCallModel:

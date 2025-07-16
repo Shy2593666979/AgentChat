@@ -89,11 +89,11 @@ async def upload_file(*,
     try:
         file_content = await file.read()
 
-        oss_base_path = get_aliyun_oss_base_path(file.filename)
-        sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_base_path)
+        oss_object_name = get_aliyun_oss_base_path(file.filename)
+        sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_object_name)
 
         aliyun_oss.sign_url_for_get(sign_url)
-        aliyun_oss.upload_file(sign_url, file_content)
+        aliyun_oss.upload_file(oss_object_name, file_content)
 
         return resp_200(message=sign_url)
     except Exception as err:

@@ -1,5 +1,5 @@
 from urllib.parse import urlparse
-from fastapi import FastAPI, APIRouter, Body, Depends
+from fastapi import FastAPI, APIRouter, Body, Depends, Query
 
 from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.api.services.knowledge_file import KnowledgeFileService
@@ -31,7 +31,7 @@ async def upload_file(knowledge_id: str = Body(..., description="知识库的ID"
 
 
 @router.get('/knowledge_file/select', response_model=UnifiedResponseModel)
-async def select_knowledge_file(knowledge_id: str = Body(..., embed=True),
+async def select_knowledge_file(knowledge_id: str = Query(...),
                                 login_user: UserPayload = Depends(get_login_user)):
     try:
         # 验证用户权限
