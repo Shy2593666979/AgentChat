@@ -241,3 +241,7 @@ https://help.aliyun.com/zh/model-studio/text-rerank-api
 ## Embedding模型示例
 
 https://help.aliyun.com/zh/model-studio/embedding-interfaces-compatible-with-openai
+
+## Elasticsearch-Analysis-IK分词器
+
+https://release.infinilabs.com/analysis-ik/stable/
