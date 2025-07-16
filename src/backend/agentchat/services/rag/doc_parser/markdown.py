@@ -136,7 +136,7 @@ class MarkdownParser:
         chunks = []
         update_time = datetime.utcnow() + timedelta(hours=8)
         for content in contents:
-            chunk_id = f"{os.path.splitext(os.path.basename(file_path))[0]}_{uuid4().hex}"
+            chunk_id = f"{os.path.basename(file_path).split("_")[0]}_{uuid4().hex}"
             chunks.append(ChunkModel(
                 chunk_id=chunk_id[:128] if len(chunk_id) > 128 else chunk_id,
                 content=content,
