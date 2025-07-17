@@ -95,13 +95,13 @@ class MilvusClient:
         try:
             fields = [
                 FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-                FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, max_length=128),
-                FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=1024),
+                FieldSchema(name="chunk_id", dtype=DataType.VARCHAR, max_length=256),
+                FieldSchema(name="content", dtype=DataType.VARCHAR, max_length=2048),
                 FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=1024),
-                FieldSchema(name="summary", dtype=DataType.VARCHAR, max_length=512),
+                FieldSchema(name="summary", dtype=DataType.VARCHAR, max_length=1024),
                 FieldSchema(name="embedding_summary", dtype=DataType.FLOAT_VECTOR, dim=1024),
                 FieldSchema(name="file_id", dtype=DataType.VARCHAR, max_length=128),
-                FieldSchema(name="file_name", dtype=DataType.VARCHAR, max_length=128),
+                FieldSchema(name="file_name", dtype=DataType.VARCHAR, max_length=256),
                 FieldSchema(name="knowledge_id", dtype=DataType.VARCHAR, max_length=128),
                 FieldSchema(name="update_time", dtype=DataType.VARCHAR, max_length=128),
             ]

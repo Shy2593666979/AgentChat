@@ -46,4 +46,4 @@ async def get_embedding(query: Union[str, List[str]]):
 if __name__ == "__main__":
     asyncio.run(initialize_app_settings("../../config.yaml"))
 
-    asyncio.run(get_embedding(["你好啊", "你是谁？"]))
+    asyncio.run(get_embedding(["大模型"]))
