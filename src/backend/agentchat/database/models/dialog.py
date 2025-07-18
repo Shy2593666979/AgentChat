@@ -1,8 +1,9 @@
+from sqlalchemy import Column, DateTime, text
 from sqlmodel import Field, SQLModel
 from datetime import datetime
 from uuid import uuid4
 import pytz
-from typing import Literal
+from typing import Literal, Optional
 
 from agentchat.database.models.base import SQLModelSerializable
 
@@ -16,4 +17,19 @@ class DialogTable(SQLModelSerializable, table=True):
     agent_id: str = Field(description='对话Dialog绑定Agent的ID')
     agent_type: str = Field(default="Agent", description="对话Dialog绑定Agent, MCPAgent or Agent")
     user_id: str = Field(description='对话Dialog的用户ID')
-    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    update_time: Optional[datetime] = Field(sa_column=Column(
+            DateTime,
+            nullable=False,
+            server_default=text('CURRENT_TIMESTAMP'),
+            onupdate=text('CURRENT_TIMESTAMP')
+        ),
+        description="修改时间"
+    )
+    create_time: Optional[datetime] = Field(
+        sa_column=Column(
+            DateTime,
+            nullable=False,
+            server_default=text('CURRENT_TIMESTAMP')
+        ),
+        description="创建时间"
+    )

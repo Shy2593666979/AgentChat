@@ -1,6 +1,6 @@
 from agentchat.database import engine
 from agentchat.database.models.knowledge_file import KnowledgeFileTable
-from sqlmodel import Session, select, delete
+from sqlmodel import Session, select, delete, update
 
 
 class KnowledgeFileDao:
@@ -31,3 +31,11 @@ class KnowledgeFileDao:
             sql = select(KnowledgeFileTable).where(KnowledgeFileTable.id == knowledge_file_id)
             results = session.exec(sql).first()
             return results
+
+    @classmethod
+    async def update_parsing_status(cls, knowledge_file_id, status):
+        with Session(engine) as session:
+            update_values = {"status": status}
+            sql = update(KnowledgeFileTable).where(KnowledgeFileTable.id == knowledge_file_id).values(**update_values)
+            session.exec(sql)
+            session.commit()

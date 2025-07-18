@@ -1,6 +1,8 @@
 import json
 from typing import List
 from elasticsearch import Elasticsearch
+
+from agentchat.prompts.es_index import ESIndex
 from agentchat.schema.chunk import ChunkModel
 from agentchat.schema.search import SearchModel
 from agentchat.settings import app_settings
@@ -12,8 +14,8 @@ class ESClient:
         self.client = Elasticsearch(hosts=app_settings.elasticsearch.get('hosts'))
 
     async def insert_documents(self, index_name, chunks: List[ChunkModel]):
-        with open(app_settings.elasticsearch.get('index_config_path'), 'r') as f:
-            index_config = json.loads(f.read())
+        # 构造查询条件
+        index_config = json.loads(ESIndex.index_config)
 
         if not self.client.indices.exists(index=index_name):
 
@@ -39,15 +41,14 @@ class ESClient:
         await self.insert_documents(index_name, chunks)
 
     async def search_documents(self, query, index_name):
-        with open(app_settings.elasticsearch.get('index_search_content_path'), 'r') as f:
-            content = f.read()
-            content = content.format(query=query)
-            index_search = json.loads(content)
+        index_search = json.loads(ESIndex.index_search_content.format(query=query))
 
+        documents = []
         try:
             response = self.client.search(index=index_name, body=index_search)
-
-            documents = []
+            hits = response['hits']
+            if not hits.get("max_score"):
+                return documents
             for hit in response['hits']:
                 documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
                                              update_time=hit['_source']['update_time'],
@@ -55,22 +56,19 @@ class ESClient:
                                              summary=hit['_source']['summary'],
                                              file_id=hit['_source']['file_id'],
                                              knowledge_id=hit['_source']['knowledge_id']))
-
         except Exception as e:
             logger.error(f'Search documents error: {e}')
         finally:
             await self.close()
+            return documents
 
     async def search_documents_summary(self, query, index_name):
-        with open(app_settings.elasticsearch.get('index_search_summary_path'), 'r') as f:
-            content = f.read()
-            content = content.format(query=query)
-            index_search = json.loads(content)
+        index_search = json.loads(ESIndex.index_search_summary.format(query=query))
 
+        documents = []
         try:
             response = self.client.search(index=index_name, body=index_search)
 
-            documents = []
             for hit in response['hits']:
                 documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
                                              update_time=hit['_source']['update_time'],
@@ -83,17 +81,12 @@ class ESClient:
             logger.error(f'Search documents summary error: {e}')
         finally:
             await self.close()
+            return documents
 
     async def delete_documents(self, file_id, index_name):
         try:
             # 构造查询条件
-            delete_query = {
-                "query": {
-                    "term": {
-                        "file_id": f"{file_id}"
-                    }
-                }
-            }
+            delete_query = json.loads(ESIndex.index_delete.format(file_id=file_id))
             self.client.delete_by_query(index=index_name, body=delete_query)
             logger.info(f'Success delete documents in file id: {file_id}')
         except Exception as e:

@@ -34,9 +34,7 @@ class MCPServerDao:
     async def update_mcp_server(cls, mcp_server_id: str, server_name: str,
                                 url: str, type: str, config: dict, tools: list, params: dict, logo_url: str):
         with Session(engine) as session:
-            update_values = {
-                'update_time': datetime.utcnow()
-            }
+            update_values = {}
             if server_name:
                 update_values["server_name"] = server_name
             if url:

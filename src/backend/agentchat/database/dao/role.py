@@ -64,7 +64,7 @@ class RoleDao(RoleBase):
         """
         删除分组下所有的角色，清理用户对应的角色
         """
-        from database.models.user_role import UserRole
+        from agentchat.database.models.user_role import UserRole
         with Session(engine) as session:
             # 清理对应的用户
             all_user = select(UserRole, Role).join(

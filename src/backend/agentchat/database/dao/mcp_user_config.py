@@ -58,9 +58,7 @@ class MCPUserConfigDao:
         :return: None
         """
         with Session(engine) as session:
-            update_values = {
-                'update_time': datetime.utcnow()
-            }
+            update_values = {}
             if mcp_server_id:
                 update_values["mcp_server_id"] = mcp_server_id
             if user_id:

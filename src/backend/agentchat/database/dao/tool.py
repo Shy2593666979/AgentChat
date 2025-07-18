@@ -36,9 +36,7 @@ class ToolDao:
     async def update_tool_by_id(cls, tool_id: str, zh_name: str, en_name: str,
                                 description: str, logo_url: str):
         with Session(engine) as session:
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if zh_name:
                 update_values['zh_name'] = zh_name
             if en_name:

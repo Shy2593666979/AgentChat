@@ -33,9 +33,7 @@ class LLMDao:
     async def update_llm(cls, llm_id: str, base_url: str, llm_type: str,
                          model: str, api_key: str, provider: str):
         with Session(engine) as session:
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if base_url:
                 update_values['base_url'] = base_url
             if model:

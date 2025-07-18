@@ -90,16 +90,10 @@ def create_app():
 
 app = create_app()  # 不需要使用 await
 
-
-def main():
-    import uvicorn
-    uvicorn.run("main:app",
-                host=app_settings.server.get('host'),
-                port=app_settings.server.get('port'))
-
-
 if __name__ == "__main__":
-    main()
+    import uvicorn
+
+    uvicorn.run("agentchat.main:app", host="0.0.0.0", port=7860)
 
 # from fastapi import FastAPI
 # from fastapi.staticfiles import StaticFiles

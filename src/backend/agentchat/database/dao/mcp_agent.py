@@ -110,9 +110,7 @@ class MCPAgentDao:
                                logo: str, llm_id: str, mcp_servers_id: List[str], use_embedding: bool):
         with Session(engine) as session:
             # 构建 update 语句
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if name is not None:
                 update_values['name'] = name
             if description is not None:

@@ -41,9 +41,7 @@ class MCPServerStdioDao:
     def update_mcp_server(cls, mcp_server_id: str, mcp_server_path: str,
                           mcp_server_command: str, name: str, mcp_server_env: str):
         with Session(engine) as session:
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if mcp_server_env:
                 update_values["mcp_server_env"] = mcp_server_env
             if mcp_server_path:

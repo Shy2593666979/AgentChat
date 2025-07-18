@@ -15,22 +15,13 @@ from pydantic.v1 import BaseModel
 from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
 from agentchat.api.services.tool import ToolService
+from agentchat.prompts.chat_prompt import DEFAULT_CALL_PROMPT
 from agentchat.services.rag_handler import RagHandler
 from agentchat.tools import Call_Tool
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.services.mcp_agent.agent import MCPAgent, MCPConfig
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
-
-DEFAULT_CALL_PROMPT = """
-你是一个智能助手，能够根据用户的需求调用适当的工具来完成任务。以下是你的工作流程：
-    1.分析用户输入：仔细阅读用户的当前查询和对话历史，理解用户的意图。
-    2.判断是否需要调用工具：如果用户的请求需要特定工具的支持（例如搜索、计算、翻译等），请明确指出需要调用哪个工具。
-    3.生成调用指令：如果需要调用工具，请按照以下格式生成调用指令：
-        - 工具名称：工具的具体名称。
-        - 输入参数：根据工具要求，从当前查询或对话历史中提取必要的信息作为输入参数。
-    4.返回结果或下一步行动：如果没有工具需要调用，直接回答用户的问题或提供相关信息。
-"""
 
 
 class AgentConfig(BaseModel):

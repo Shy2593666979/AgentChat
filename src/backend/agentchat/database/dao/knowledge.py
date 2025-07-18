@@ -37,7 +37,7 @@ class KnowledgeDao:
     @classmethod
     async def update_knowledge_by_id(cls, knowledge_id, knowledge_desc, knowledge_name):
         with Session(engine) as session:
-            update_values = {'create_time': datetime.utcnow() + timedelta(hours=8)}
+            update_values = {}
 
             if knowledge_name:
                 update_values['name'] = knowledge_name

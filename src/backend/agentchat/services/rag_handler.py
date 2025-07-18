@@ -1,4 +1,5 @@
 from loguru import logger
+from typing import Optional
 from agentchat.services.rag.parser import doc_parser
 from agentchat.services.retrieval import MixRetrival
 from agentchat.services.rewrite.query_write import query_rewriter
@@ -26,15 +27,32 @@ class RagHandler:
     async def mix_retrival_documents(cls, query_list, knowledges_id, search_field="summary"):
         es_documents, milvus_documents = await MixRetrival.mix_retrival_documents(query_list, knowledges_id, search_field)
 
+        # 先对ES和Milvus结果分别排序
         es_documents.sort(key=lambda x: x.score, reverse=True)
         milvus_documents.sort(key=lambda x: x.score, reverse=True)
 
-        documents = es_documents[:5] + milvus_documents[:5]
+        # 合并并去重，保留分数更高的文档
+        documents = []
+        seen_chunk_ids = set()
+        
+        # 创建一个合并的文档列表
+        all_documents = es_documents + milvus_documents
+        # 按分数从高到低排序
+        all_documents.sort(key=lambda x: x.score, reverse=True)
+        
+        # 去重，保留分数最高的
+        for doc in all_documents:
+            if doc.chunk_id not in seen_chunk_ids:
+                seen_chunk_ids.add(doc.chunk_id)
+                documents.append(doc)
+                if len(documents) >= 10:  # 限制返回10个文档
+                    break
+        
         return documents
 
     @classmethod
-    async def rag_query_summary(cls, query, knowledges_id, min_score: float=None,
-                                top_k: int=None, needs_query_rewrite: bool=True):
+    async def rag_query_summary(cls, query, knowledges_id, min_score: Optional[float]=None,
+                                top_k: Optional[int]=None, needs_query_rewrite: bool=True):
         if min_score is None:
             min_score = app_settings.rag.get('min_score')
         if top_k is None:
@@ -57,9 +75,11 @@ class RagHandler:
 
         # 过滤结果
         filtered_results = []
-        if len(reranked_docs) >= top_k:
-            for doc in reranked_docs[:top_k]:
-                if doc.score >= min_score:
+        # 确保top_k不为None
+        actual_top_k = top_k if top_k is not None else 0
+        if len(reranked_docs) >= actual_top_k:
+            for doc in reranked_docs[:actual_top_k]:
+                if min_score is not None and doc.score >= min_score:
                     filtered_results.append(doc)
             # 拼接最终结果
             final_result = "\n".join(result.content for result in filtered_results)
@@ -70,8 +90,8 @@ class RagHandler:
 
 
     @classmethod
-    async def retrieve_ranked_documents(cls, query, collection_names, index_names, min_score: float=None,
-                        top_k: int=None, needs_query_rewrite: bool=True):
+    async def retrieve_ranked_documents(cls, query, collection_names, index_names, min_score: Optional[float]=None,
+                        top_k: Optional[int]=None, needs_query_rewrite: bool=True):
         """
             处理 RAG 流程：查询重写、文档检索、重排序、结果过滤和拼接。
 
@@ -106,10 +126,12 @@ class RagHandler:
 
         # 过滤结果
         filtered_results = []
-        if len(reranked_docs) > top_k:
-            for doc in reranked_docs[:top_k]:
-                if doc.score >= min_score:
-                    filtered_results.append(doc)
+        # 确保top_k不为None
+        actual_top_k = top_k if top_k is not None else 0
+        docs_to_process = reranked_docs if len(reranked_docs) <= actual_top_k else reranked_docs[:actual_top_k]
+        for doc in docs_to_process:
+            if min_score is not None and doc.score >= min_score:
+                filtered_results.append(doc)
 
         # 处理空结果
         if not filtered_results:

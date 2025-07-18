@@ -153,19 +153,19 @@ class MilvusClient:
                 limit=top_k,
                 output_fields=["content", "chunk_id", "summary", "file_id", "file_name", "knowledge_id", "update_time"]
             )
-
+    
             # 格式化结果
             documents = []
             for hit in results[0]:
                 documents.append(
                     SearchModel(
-                        content=hit.entity.get("content", ""),
-                        chunk_id=hit.entity.get("chunk_id", ""),
-                        file_id=hit.entity.get("file_id", ""),
-                        file_name=hit.entity.get("file_name", ""),
-                        knowledge_id=hit.entity.get("knowledge_id", ""),
-                        update_time=hit.entity.get("update_time", ""),
-                        summary=hit.entity.get("summary", ""),
+                        content=hit.entity.content,
+                        chunk_id=hit.entity.chunk_id,
+                        file_id=hit.entity.file_id,
+                        file_name=hit.entity.file_name,
+                        knowledge_id=hit.entity.knowledge_id,
+                        update_time=hit.entity.update_time,
+                        summary=hit.entity.summary,
                         score=hit.distance
                     )
                 )

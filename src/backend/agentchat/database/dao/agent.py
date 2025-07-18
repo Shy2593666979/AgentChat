@@ -118,10 +118,7 @@ class AgentDao:
                                  mcp_ids: List[str],
                                  system_prompt):
         with Session(engine) as session:
-            # 构建 update 语句
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if name is not None:
                 update_values['name'] = name
             if description is not None:
