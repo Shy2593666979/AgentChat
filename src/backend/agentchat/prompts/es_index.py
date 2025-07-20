@@ -41,43 +41,43 @@ class ESIndex:
           }}
         }}"""
 
-    index_config = """{{
-      "settings": {{
-        "analysis": {{
-          "analyzer": {{
-            "ik_analyzer": {{
+    index_config = """{
+      "settings": {
+        "analysis": {
+          "analyzer": {
+            "ik_analyzer": {
               "type": "custom",
               "tokenizer": "ik_smart"
-            }}
-          }}
-        }}
-      }},
-      "mappings": {{
-        "properties": {{
-          "chunk_id": {{
+            }
+          }
+        }
+      },
+      "mappings": {
+        "properties": {
+          "chunk_id": {
             "type": "keyword"
-          }},
-          "content": {{
+          },
+          "content": {
             "type": "text",
             "analyzer": "ik_analyzer"
-          }},
-          "summary": {{
+          },
+          "summary": {
             "type": "text",
             "analyzer": "ik_analyzer"
-          }},
-          "file_id": {{
+          },
+          "file_id": {
             "type": "keyword"
-          }},
-          "knowledge_id": {{
+          },
+          "knowledge_id": {
             "type": "keyword"
-          }},
-          "file_name": {{
+          },
+          "file_name": {
             "type": "keyword"
-          }},
-          "update_time": {{
+          },
+          "update_time": {
             "type": "date",
             "format": "strict_date_optional_time||epoch_millis"
-          }}
-        }}
-      }}
-    }}"""
+          }
+        }
+      }
+    }"""

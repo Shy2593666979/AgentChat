@@ -15,7 +15,7 @@ router = APIRouter()
 
 
 @router.post("/agent", response_model=UnifiedResponseModel)
-async def create_agent(agent_request: CreateAgentRequest,
+async def create_agent(agent_request: CreateAgentRequest = Body(),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         # 判断Agent名称是否重复
@@ -55,7 +55,8 @@ async def delete_agent(agent_id: str = Body(..., description="删除的Agent ID"
         # 验证用户权限
         await AgentService.verify_user_permission(agent_id, login_user.user_id)
 
-        return await AgentService.delete_agent_by_id(agent_id)
+        await AgentService.delete_agent_by_id(agent_id)
+        return resp_200()
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))

@@ -1,3 +1,5 @@
+
+
 # AgentChat API 文档 v1.0
 
 本文档整理了 AgentChat 系统 v1 版本的所有 API 接口，包含接口 URL、请求方法、请求参数和返回参数。
@@ -21,7 +23,7 @@
 ## 对话相关 API
 
 ### 1. 对话接口
-- **接口 URL**: `/chat`
+- **接口 URL**: `/api/v1/chat`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -40,7 +42,7 @@
   ```
 
 ### 2. 文件上传接口
-- **接口 URL**: `/upload`
+- **接口 URL**: `/api/v1/upload`
 - **请求方法**: `POST`
 - **请求参数**: 
   - `file`: 上传的文件（支持 PDF、DOCX、TXT、JPG 等格式）
@@ -54,7 +56,7 @@
   ```
 
 ### 3. 知识库检索接口
-- **接口 URL**: `/knowledge/retrieval`
+- **接口 URL**: `/api/v1/knowledge/retrieval`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -77,7 +79,7 @@
 ## 知识库文件 API
 
 ### 1. 创建知识库文件
-- **接口 URL**: `/knowledge_file/create`
+- **接口 URL**: `/api/v1/knowledge_file/create`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -96,7 +98,7 @@
   ```
 
 ### 2. 查询知识库文件
-- **接口 URL**: `/knowledge_file/select`
+- **接口 URL**: `/api/v1/knowledge_file/select`
 - **请求方法**: `GET`
 - **请求参数**:
   - `knowledge_id`: 知识库ID (Query参数)
@@ -117,7 +119,7 @@
   ```
 
 ### 3. 删除知识库文件
-- **接口 URL**: `/knowledge_file/delete`
+- **接口 URL**: `/api/v1/knowledge_file/delete`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -139,9 +141,10 @@
 ## MCP 服务器 API
 
 ### 1. 创建 MCP 服务器
-- **接口 URL**: `/mcp_server`
+- **接口 URL**: `/api/v1/mcp_server`
 - **请求方法**: `POST`
 - **请求参数**:
+  
   ```json
   {
     "server_name": "string",      // MCP Server名称
@@ -160,7 +163,7 @@
   ```
 
 ### 2. 获取 MCP 服务器列表
-- **接口 URL**: `/mcp_server`
+- **接口 URL**: `/api/v1/mcp_server`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -182,7 +185,7 @@
   ```
 
 ### 3. 删除 MCP 服务器
-- **接口 URL**: `/mcp_server`
+- **接口 URL**: `/api/v1/mcp_server`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -200,7 +203,7 @@
   ```
 
 ### 4. 获取 MCP 工具信息
-- **接口 URL**: `/mcp_tools`
+- **接口 URL**: `/api/v1/mcp_tools`
 - **请求方法**: `GET`
 - **请求参数**:
   ```json
@@ -226,7 +229,7 @@
   ```
 
 ### 5. 更新 MCP 服务器
-- **接口 URL**: `/mcp_server`
+- **接口 URL**: `/api/v1/mcp_server`
 - **请求方法**: `PUT`
 - **请求参数**:
   ```json
@@ -252,9 +255,10 @@
 ## 用户 API
 
 ### 1. 用户注册
-- **接口 URL**: `/user/register`
+- **接口 URL**: `/api/v1/user/register`
 - **请求方法**: `POST`
 - **请求参数**:
+  
   ```json
   {
     "user_name": "string",        // 用户名
@@ -272,7 +276,7 @@
   ```
 
 ### 2. 用户登录
-- **接口 URL**: `/user/login`
+- **接口 URL**: `/api/v1/user/login`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -293,12 +297,45 @@
   }
   ```
 
+### 3. 更新用户信息
+- **接口 URL**: `/api/v1/user/login`
+- **请求方法**: `POST`
+- **请求参数**:
+  ```json
+  {
+    "user_avatar": "string",        // 用户上传头像或选择头像的链接
+    "user_description": "string"    // 用户的描述，默认就是：该用户很懒，没有留下一片云彩
+  }
+  ```
+- **返回参数**:
+  ```json
+  {
+    "code": 200,
+    "message": "success",
+    "data": {
+      
+    }
+  }
+
+### 4. 用户头像选择
+- **接口 URL**: `/api/v1/user/icons`
+- **请求方法**: `GET`
+- **返回参数**:
+  ```json
+  {
+    "code": 200,
+    "message": "success",
+    "data": ["http://........", "https://........."]
+  }
+
+
+
 ---
 
 ## 工具 API
 
 ### 1. 创建工具
-- **接口 URL**: `/tool/create`
+- **接口 URL**: `/api/v1/tool/create`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -321,7 +358,7 @@
   ```
 
 ### 2. 获取所有工具
-- **接口 URL**: `/tool/all`
+- **接口 URL**: `/api/v1/tool/all`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -342,7 +379,7 @@
   ```
 
 ### 3. 获取个人工具
-- **接口 URL**: `/tool/own`
+- **接口 URL**: `/api/v1/tool/own`
 - **请求方法**: `POST`
 - **请求参数**: 无
 - **返回参数**:
@@ -363,7 +400,7 @@
   ```
 
 ### 4. 获取可见工具
-- **接口 URL**: `/tool/visible`
+- **接口 URL**: `/api/v1/tool/visible`
 - **请求方法**: `POST`
 - **请求参数**: 无
 - **返回参数**:
@@ -384,7 +421,7 @@
   ```
 
 ### 5. 删除工具
-- **接口 URL**: `/tool/delete`
+- **接口 URL**: `/api/v1/tool/delete`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -402,7 +439,7 @@
   ```
 
 ### 6. 更新工具
-- **接口 URL**: `/tool/update`
+- **接口 URL**: `/api/v1/tool/update`
 - **请求方法**: `PUT`
 - **请求参数**:
   ```json
@@ -428,7 +465,7 @@
 ## 大模型 API
 
 ### 1. 创建大模型
-- **接口 URL**: `/llm/create`
+- **接口 URL**: `/api/v1/llm/create`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -450,7 +487,7 @@
   ```
 
 ### 2. 删除大模型
-- **接口 URL**: `/llm/delete`
+- **接口 URL**: `/api/v1/llm/delete`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -468,7 +505,7 @@
   ```
 
 ### 3. 更新大模型
-- **接口 URL**: `/llm/update`
+- **接口 URL**: `/api/v1/llm/update`
 - **请求方法**: `PUT`
 - **请求参数**:
   ```json
@@ -491,7 +528,7 @@
   ```
 
 ### 4. 获取所有大模型
-- **接口 URL**: `/llm/all`
+- **接口 URL**: `/api/v1/llm/all`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -511,7 +548,7 @@
   ```
 
 ### 5. 获取个人大模型
-- **接口 URL**: `/llm/personal`
+- **接口 URL**: `/api/v1/llm/personal`
 - **请求方法**: `POST`
 - **请求参数**: 无
 - **返回参数**:
@@ -531,7 +568,7 @@
   ```
 
 ### 6. 获取可见大模型
-- **接口 URL**: `/llm/visible`
+- **接口 URL**: `/api/v1/llm/visible`
 - **请求方法**: `POST`
 - **请求参数**: 无
 - **返回参数**:
@@ -551,7 +588,7 @@
   ```
 
 ### 7. 获取大模型类型
-- **接口 URL**: `/llm/schema`
+- **接口 URL**: `/api/v1/llm/schema`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -568,7 +605,7 @@
 ## 知识库 API
 
 ### 1. 创建知识库
-- **接口 URL**: `/knowledge/create`
+- **接口 URL**: `/api/v1/knowledge/create`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -587,7 +624,7 @@
   ```
 
 ### 2. 查询知识库
-- **接口 URL**: `/knowledge/select`
+- **接口 URL**: `/api/v1/knowledge/select`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -607,7 +644,7 @@
   ```
 
 ### 3. 更新知识库
-- **接口 URL**: `/knowledge/update`
+- **接口 URL**: `/api/v1/knowledge/update`
 - **请求方法**: `PUT`
 - **请求参数**:
   ```json
@@ -627,7 +664,7 @@
   ```
 
 ### 4. 删除知识库
-- **接口 URL**: `/knowledge/delete`
+- **接口 URL**: `/api/v1/knowledge/delete`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -649,7 +686,7 @@
 ## 对话框 API
 
 ### 1. 获取对话列表
-- **接口 URL**: `/dialog/list`
+- **接口 URL**: `/api/v1/dialog/list`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -670,7 +707,7 @@
   ```
 
 ### 2. 创建对话
-- **接口 URL**: `/dialog`
+- **接口 URL**: `/api/v1/dialog`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -690,7 +727,7 @@
   ```
 
 ### 3. 删除对话
-- **接口 URL**: `/dialog`
+- **接口 URL**: `/api/v1/dialog`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -712,7 +749,7 @@
 ## 智能体 API
 
 ### 1. 创建智能体
-- **接口 URL**: `/agent`
+- **接口 URL**: `/api/v1/agent`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -738,7 +775,7 @@
   ```
 
 ### 2. 获取智能体
-- **接口 URL**: `/agent`
+- **接口 URL**: `/api/v1/agent`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -764,7 +801,7 @@
   ```
 
 ### 3. 删除智能体
-- **接口 URL**: `/agent`
+- **接口 URL**: `/api/v1/agent`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -782,7 +819,7 @@
   ```
 
 ### 4. 更新智能体
-- **接口 URL**: `/agent`
+- **接口 URL**: `/api/v1/agent`
 - **请求方法**: `PUT`
 - **请求参数**:
   ```json
@@ -809,7 +846,7 @@
   ```
 
 ### 5. 搜索智能体
-- **接口 URL**: `/agent/search`
+- **接口 URL**: `/api/v1/agent/search`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -838,7 +875,7 @@
 ## MCP 用户配置 API
 
 ### 1. 创建 MCP 用户配置
-- **接口 URL**: `/mcp_user_config/create`
+- **接口 URL**: `/api/v1/mcp_user_config/create`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -859,7 +896,7 @@
   ```
 
 ### 2. 根据ID获取 MCP 用户配置
-- **接口 URL**: `/mcp_user_config/{config_id}`
+- **接口 URL**: `/api/v1/mcp_user_config/{config_id}`
 - **请求方法**: `GET`
 - **请求参数**: 
   - `config_id`: 配置ID (路径参数)
@@ -877,7 +914,7 @@
   ```
 
 ### 3. 更新 MCP 用户配置
-- **接口 URL**: `/mcp_user_config/update`
+- **接口 URL**: `/api/v1/mcp_user_config/update`
 - **请求方法**: `PUT`
 - **请求参数**:
   ```json
@@ -897,7 +934,7 @@
   ```
 
 ### 4. 删除 MCP 用户配置
-- **接口 URL**: `/mcp_user_config/delete`
+- **接口 URL**: `/api/v1/mcp_user_config/delete`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
@@ -915,7 +952,7 @@
   ```
 
 ### 5. 获取 MCP 用户配置
-- **接口 URL**: `/mcp_user_config`
+- **接口 URL**: `/api/v1/mcp_user_config`
 - **请求方法**: `GET`
 - **请求参数**:
   - `mcp_server_id`: MCP服务器ID (Query参数)
@@ -937,7 +974,7 @@
 ## 历史记录 API
 
 ### 1. 获取对话历史
-- **接口 URL**: `/history`
+- **接口 URL**: `/api/v1/history`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -966,9 +1003,10 @@
 ## 消息 API
 
 ### 1. 消息点赞
-- **接口 URL**: `/message/like`
+- **接口 URL**: `/api/v1/message/like`
 - **请求方法**: `POST`
 - **请求参数**:
+  
   ```json
   {
     "user_input": "string",       // 用户输入
@@ -985,7 +1023,7 @@
   ```
 
 ### 2. 消息踩
-- **接口 URL**: `/message/down`
+- **接口 URL**: `/api/v1/message/down`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json

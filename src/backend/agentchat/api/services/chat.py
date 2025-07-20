@@ -65,8 +65,6 @@ class StreamingAgent:
         self.mcp_agents = await self.set_mcp_agents()
 
         self.tools = await self.set_tools()
-        self.mcp_tools = await self.set_mcp_tools()
-        self.tools.extend(self.mcp_tools)
 
         self.collection_names, self.index_names = await self.set_knowledge_names()
         await self.set_language_model()
@@ -82,10 +80,6 @@ class StreamingAgent:
 
         # 支持Function Call模型
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
-
-    async def set_mcp_tools(self) -> List[BaseTool]:
-        mcp_tools = await self.mcp_manager.get_mcp_tools()
-        return mcp_tools
 
     async def set_tools(self) -> List[BaseTool]:
         tools = []
@@ -213,6 +207,7 @@ class StreamingAgent:
             tool_args = tool_call["args"]
             tool_call_id = tool_call["id"]
 
+            # TODO：去除对MCP 工具的单独调用，但保留
             if is_mcp_tool:
                 try:
                     # 针对鉴权的MCP Server需要用户的单独配置，例如飞书、邮箱
@@ -463,21 +458,53 @@ class StreamingAgent:
                 }
             }
 
-    # 保留原有的ainvoke方法作为普通流式版本
+    # 非流式版本（保持向后兼容）
     async def ainvoke(self, messages: List[BaseMessage]):
         """非流式版本（保持向后兼容）"""
-        # 调用知识库
-        knowledge_message = None
+        # 并发执行知识库检索、MCP Agent和工具调用
+        knowledge_task = None
         if self.collection_names and len(self.collection_names) != 0:
-            knowledge_message = await self.call_knowledge_messages(copy.deepcopy(messages))
+            knowledge_task = asyncio.create_task(self.call_knowledge_messages(copy.deepcopy(messages)))
 
-        await self.graph.ainvoke({"messages": messages})
+        mcp_agent_task = None
+        if self.mcp_agents and len(self.mcp_agents) != 0:
+            mcp_agent_task = asyncio.create_task(self.call_mcp_agent_messages(copy.deepcopy(messages)))
 
+        graph_task = None
+        if self.tools and len(self.tools) != 0:
+            graph_task = asyncio.create_task(self.graph.ainvoke({"messages": messages}))
+
+        # 等待所有任务完成
+        if knowledge_task:
+            knowledge_message = await knowledge_task
+        else:
+            knowledge_message = None
+
+        if mcp_agent_task:
+            mcp_agent_messages = await mcp_agent_task
+        else:
+            mcp_agent_messages = None
+
+        if graph_task:
+            results = await graph_task
+            messages = results["messages"][:-1]  # 去除没有命中工具的message
+        else:
+            messages = messages.copy()
+
+        # 添加MCP Agent消息
+        if mcp_agent_messages:
+            messages.extend(mcp_agent_messages)
+
+        # 添加知识库消息
         if knowledge_message:
             messages.append(knowledge_message)
 
+        # 收集完整响应
+        response_content = ""
         async for chunk in self.conversation_model.astream(messages):
-            yield chunk.content
+            response_content += chunk.content
+
+        return response_content
 
     # 新增辅助方法
     def mcp_tool_use(self, tool_name: str):

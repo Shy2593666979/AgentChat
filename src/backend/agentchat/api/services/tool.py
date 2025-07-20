@@ -1,3 +1,4 @@
+from agentchat.database import SystemUser
 from agentchat.database.models.user import AdminUser
 from agentchat.database.dao.tool import ToolDao
 from typing import List, Union
@@ -50,7 +51,7 @@ class ToolService:
     async def get_visible_tool_by_user(cls, user_id: str):
         try:
             personal_results = await ToolDao.get_tool_by_user_id(user_id=user_id)
-            system_results = await ToolDao.get_tool_by_user_id(user_id=AdminUser)
+            system_results = await ToolDao.get_tool_by_user_id(user_id=SystemUser)
             return [res.to_dict() for res in personal_results + system_results]
         except Exception as err:
             raise ValueError(f'Get All Tool By User Appear Error: {err}')

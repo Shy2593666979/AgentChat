@@ -1,3 +1,4 @@
+import os
 from urllib.parse import urlparse
 from fastapi import FastAPI, APIRouter, Body, Depends, Query
 
@@ -23,8 +24,14 @@ async def upload_file(knowledge_id: str = Body(..., description="知识库的ID"
         parsed = urlparse(file_url)
         object_key = parsed.path.lstrip('/')
         aliyun_oss.download_file(object_key, local_file_path)
+        # 获得文件的字节数
+        file_size_bytes = os.path.getsize(local_file_path)
 
-        await KnowledgeFileService.create_knowledge_file(local_file_path, knowledge_id, login_user.user_id, file_url)
+        name_part, ext_part = file_name.rsplit('.', 1) if '.' in file_name else (file_name, '')
+        parts = name_part.split("_")
+        file_name = "_".join(parts[:-1]) + f".{ext_part}"
+
+        await KnowledgeFileService.create_knowledge_file(file_name, local_file_path, knowledge_id, login_user.user_id, file_url, file_size_bytes)
         return resp_200()
     except Exception as err:
         return resp_500(message=str(err))

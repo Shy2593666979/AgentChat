@@ -18,7 +18,7 @@ async def get_dialog(login_user: UserPayload = Depends(get_login_user)):
         for msg in messages:
             msg_agent = await AgentService.select_agent_by_id(agent_id=msg["agent_id"])
             msg.update(msg_agent)
-            results.extend(msg)
+            results.append(msg)
         return resp_200(data=results)
     except Exception as err:
         logger.error(err)
@@ -26,8 +26,7 @@ async def get_dialog(login_user: UserPayload = Depends(get_login_user)):
 
 
 @router.post("/dialog", response_model=UnifiedResponseModel)
-async def create_dialog(*,
-                        dialog_req: DialogCreateRequest,
+async def create_dialog(dialog_req: DialogCreateRequest = Body(),
                         login_user: UserPayload = Depends(get_login_user)):
     try:
         await DialogService.create_dialog(name=dialog_req.name, agent_id=dialog_req.agent_id,

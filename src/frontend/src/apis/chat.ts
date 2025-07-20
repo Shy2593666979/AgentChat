@@ -1,47 +1,105 @@
 // 主要负责的是与LLM进行对话的接口，LLM输入需要流式输出
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
+export interface Chat {
+  dialogId: string
+  userInput: string
+  fileUrl?: string
+}
 
-export function sendMessage(data: Chat,onmessage:any,onclose:any) {
+export interface UploadResponse {
+  code: number
+  message: string
+  data: string
+}
+
+export function sendMessage(data: Chat, onmessage: any, onclose: any) {
   const ctrl = new AbortController();
 
-
-  fetchEventSource('/api/chat', {
+  fetchEventSource('/api/v1/chat', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
     },
-
-
     body: JSON.stringify({
-      ...data,
-      detail: true,
-      stream: true,
+      ...(data.fileUrl
+        ? {
+            dialog_id: data.dialogId,
+            user_input: data.userInput,
+            file_url: data.fileUrl,
+          }
+        : {
+            dialog_id: data.dialogId,
+            user_input: data.userInput,
+          }),
     }),
     signal: ctrl.signal,
     openWhenHidden: true,
     async onopen(response: any) {
-      // console.log('onopen', response);
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
     },
     onmessage(msg: any) {
-        onmessage(msg)
+      try {
+        onmessage(msg);
+      } catch (error) {
+        console.error('处理消息时出错:', error);
+      }
     },
     onclose() {
-      onclose()
+      onclose();
     },
     onerror(err: any) {
-      // console.log('onerror', err);
+      console.error('聊天连接错误:', err);
       ctrl.abort();
       throw err;
     }
   });
+
+  return ctrl;
 }
 
+// 文件上传功能
+export async function uploadFile(file: File): Promise<UploadResponse> {
+  const formData = new FormData();
+  formData.append('file', file);
 
+  const response = await fetch('/api/v1/upload', {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+    },
+    body: formData
+  });
 
-export interface Chat {
-  dialogId: string
-  userInput: string
+  if (!response.ok) {
+    throw new Error(`上传失败: ${response.statusText}`);
+  }
+
+  return await response.json();
+}
+
+// 知识库检索功能
+export async function retrieveKnowledge(query: string, knowledgeIds: string | string[]) {
+  const response = await fetch('/api/v1/knowledge/retrieval', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+    },
+    body: JSON.stringify({
+      query,
+      knowledge_id: knowledgeIds
+    })
+  });
+
+  if (!response.ok) {
+    throw new Error(`检索失败: ${response.statusText}`);
+  }
+
+  return await response.json();
 }
 
 

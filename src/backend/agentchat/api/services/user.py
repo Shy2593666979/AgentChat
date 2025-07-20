@@ -1,12 +1,16 @@
 import json
+import random
 
 import rsa
 import hashlib
 from fastapi_jwt_auth import AuthJWT
+
+from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.services.redis import redis_client
 from agentchat.database.dao.user_role import UserRoleDao
 from agentchat.database.models.role import AdminRole
 from agentchat.api.errcode.user import UserNameAlreadyExistError
+from agentchat.settings import app_settings
 from agentchat.utils.hash import md5_hash
 from base64 import b64decode
 from fastapi import Request, Depends, HTTPException
@@ -76,6 +80,32 @@ class UserService:
         user = UserDao.add_user_and_default_role(user_name=user.user_name,
                                                  user_password=user.user_password)
         return user
+
+    @classmethod
+    def get_random_user_avatar(cls):
+        files_url = aliyun_oss.list_files_in_folder("icons/user")
+        avatars_url = []
+        for file_url in files_url:
+            avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
+        return random.choice(avatars_url)
+
+    @classmethod
+    def get_available_avatars(cls):
+        files_url = aliyun_oss.list_files_in_folder("icons/user")
+        avatars_url = []
+        for file_url in files_url:
+            avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
+        return avatars_url
+
+    @classmethod
+    def get_user_info_by_id(cls, user_id):
+        user_info = UserDao.get_user(user_id)
+        return user_info.to_dict()
+
+    @classmethod
+    def update_user_info(cls, user_id, user_avatar, user_description):
+        UserDao.update_user_info(user_id, user_avatar, user_description)
+
 
 async def get_login_user(request: Request, authorize: AuthJWT = Depends()) -> UserPayload:
     """

@@ -86,6 +86,15 @@ async def get_visible_llm(login_user: UserPayload = Depends(get_login_user)):
         logger.error(err)
         return resp_500(message=str(err))
 
+@router.get("/agent/models", response_model=UnifiedResponseModel)
+async def get_all_agent_models(login_user: UserPayload = Depends(get_login_user)):
+    try:
+        result = await LLMService.get_visible_llm(user_id=login_user.user_id)
+        return resp_200(data=result["LLM"])
+    except Exception as err:
+        logger.error(err)
+        return resp_500(message=str(err))
+
 
 @router.get('llm/schema', response_model=UnifiedResponseModel)
 async def get_llm_type(login_user: UserPayload = Depends(get_login_user)):

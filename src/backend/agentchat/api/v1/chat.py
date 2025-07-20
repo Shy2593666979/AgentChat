@@ -60,10 +60,10 @@ async def chat(*,
             else:
                 # 其他事件（如工具调用、心跳）同样按SSE格式输出
                 yield f'data: {json.dumps(event)}\n\n'
-        await HistoryService.save_chat_history(Assistant_Role, response_content, conversation_req.dialog_id)
+        # await HistoryService.save_chat_history(Assistant_Role, response_content, conversation_req.dialog_id)
 
     # 将用户问题存放到MySQL数据库
-    await HistoryService.save_chat_history(User_Role, conversation_req.user_input, conversation_req.dialog_id)
+    # await HistoryService.save_chat_history(User_Role, conversation_req.user_input, conversation_req.dialog_id)
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
 
@@ -81,7 +81,7 @@ async def upload_file(*,
         aliyun_oss.sign_url_for_get(sign_url)
         aliyun_oss.upload_file(oss_object_name, file_content)
 
-        return resp_200(message=sign_url)
+        return resp_200(sign_url)
     except Exception as err:
         return resp_500(message=str(err))
 

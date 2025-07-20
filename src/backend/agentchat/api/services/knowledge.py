@@ -1,7 +1,9 @@
 from loguru import logger
 from agentchat.config.service_config import SUCCESS_RESP, FAIL_RESP
 from agentchat.database.dao.knowledge import KnowledgeDao
+from agentchat.database.dao.knowledge_file import KnowledgeFileDao
 from agentchat.database.models.user import AdminUser
+from agentchat.utils.file_utils import format_file_size
 
 
 class KnowledgeService:
@@ -19,10 +21,19 @@ class KnowledgeService:
         try:
             # 如果是admin用户，显示全部
             if user_id == AdminUser:
-                return await cls._select_all_knowledge()
+                knowledges = await cls._select_all_knowledge()
+            else:
+                knowledges = await KnowledgeDao.get_knowledge_by_user(user_id)
+                knowledges = [knowledge.to_dict() for knowledge in knowledges]
+            for knowledge in knowledges:
+                knowledge_files = await KnowledgeFileDao.select_knowledge_file(knowledge["id"])
+                knowledge["count"] = len(knowledge_files)
+                file_sizes = 0
+                for file in knowledge_files:
+                    file_sizes += file.file_size
+                knowledge["file_size"] = format_file_size(file_sizes)
+            return knowledges
 
-            results = await KnowledgeDao.get_knowledge_by_user(user_id)
-            return [res.to_dict() for res in results]
         except Exception as err:
             raise ValueError(f'Select Knowledge By User Error: {err}')
 
@@ -50,7 +61,7 @@ class KnowledgeService:
     @classmethod
     async def update_knowledge(cls, knowledge_id, knowledge_name, knowledge_desc):
         try:
-            await KnowledgeDao.update_knowledge_by_id(knowledge_id, knowledge_name, knowledge_desc)
+            await KnowledgeDao.update_knowledge_by_id(knowledge_id, knowledge_desc, knowledge_name)
         except Exception as err:
             raise ValueError(f'Update Knowledge Error: {err}')
 

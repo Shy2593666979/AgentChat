@@ -64,7 +64,7 @@ async def insert_agent_to_mysql():
                                         llm_id=llm["llm_id"],
                                         tool_ids=[tool["tool_id"]],
                                         knowledge_ids=[],
-                                        logo_url=app_settings.logo.get("agent_url"),
+                                        logo_url=tool["logo_url"],
                                         is_custom=False,
                                         mcp_ids=[],
                                         system_prompt="")

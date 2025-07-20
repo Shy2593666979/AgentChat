@@ -20,9 +20,9 @@ class KnowledgeFileService:
         return [res.to_dict() for res in results]
 
     @classmethod
-    async def create_knowledge_file(cls, file_path, knowledge_id, user_id, oss_url):
+    async def create_knowledge_file(cls, file_name, file_path, knowledge_id, user_id, oss_url, file_size_bytes):
         knowledge_file_id = uuid4().hex
-        await KnowledgeFileDao.create_knowledge_file(knowledge_file_id, file_path, knowledge_id, user_id, oss_url)
+        await KnowledgeFileDao.create_knowledge_file(knowledge_file_id, file_name, knowledge_id, user_id, oss_url, file_size_bytes)
         try:
             # 解析状态改成 进行中
             await cls.update_parsing_status(knowledge_file_id, Status.process)

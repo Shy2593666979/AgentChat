@@ -11,6 +11,14 @@ from uuid import uuid4
 from agentchat.settings import app_settings
 from agentchat.utils.date_utils import get_beijing_date_str
 
+def format_file_size(size_bytes):
+    units = ['B', 'KB', 'MB', 'GB', 'TB']
+    unit_index = 0
+    while size_bytes >= 1024 and unit_index < len(units)-1:
+        size_bytes /= 1024
+        unit_index += 1
+    return f"{round(size_bytes, 2)}{units[unit_index]}"
+
 def load_file_to_obj(filepath):
     try:
         with open(filepath, 'r', encoding='utf-8') as file:
@@ -26,7 +34,7 @@ def get_aliyun_oss_base_path(file_name):
     # 改成文件唯一文件名称
     new_file_name = reset_file_name(file_name)
 
-    # 2024-10-26/png/a12xk25jn34kn5.png
+    # 2024-10-26/png/企业文档_a12xk25jn34kn5.png
     return f"{beijing_time}/{file_type}/{new_file_name}"
 
 def get_file_type(file_name):
@@ -35,7 +43,7 @@ def get_file_type(file_name):
 def reset_file_name(file_name):
     file_type = get_file_type(file_name)
 
-    return f"{uuid4().hex}.{file_type}"
+    return f"{os.path.splitext(file_name)[0]}_{str(uuid4().hex)[:10]}.{file_type}"
 
 async def save_upload_file(upload_file):
     # 创建临时文件夹

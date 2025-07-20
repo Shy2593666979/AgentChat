@@ -4,8 +4,6 @@ from agentchat.services.rag.embedding import get_embedding
 from agentchat.schema.search import SearchModel
 from pymilvus import connections, Collection, utility, FieldSchema, DataType, CollectionSchema
 from typing import Dict, Optional, List
-import asyncio
-from contextlib import asynccontextmanager
 
 
 class MilvusClient:

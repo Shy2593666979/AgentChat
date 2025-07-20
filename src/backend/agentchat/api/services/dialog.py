@@ -34,8 +34,8 @@ class DialogService:
     @classmethod
     async def get_agent_by_dialog_id(cls, dialog_id: str):
         try:
-            agent = await DialogDao.get_agent_by_dialog_id(dialog_id)
-            return await AgentService.select_agent_by_id(agent.agent_id)
+            dialog = await DialogDao.get_agent_by_dialog_id(dialog_id)
+            return await AgentService.select_agent_by_id(dialog.agent_id)
         except Exception as err:
             raise ValueError(f"Select Dialog Appear Error: {err}")
 
