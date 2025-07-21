@@ -404,7 +404,7 @@ const closeCreateDialog = () => {
 
         <div class="dialog-footer">
           <div class="debug-info" style="font-size: 12px; color: #666; margin-bottom: 8px;">
-            当前选中: {{ selectedAgent || '无' }}
+            当前选中: {{ selectedAgent ? agents.find(a => (a.agent_id === selectedAgent || (a as any).id === selectedAgent))?.name || selectedAgent : '无' }}
           </div>
           <button @click="closeCreateDialog" class="btn-cancel">取消</button>
           <button 

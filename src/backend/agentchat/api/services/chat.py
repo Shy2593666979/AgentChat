@@ -50,12 +50,12 @@ class StreamingAgent:
         # 流式事件队列
         self.event_queue = asyncio.Queue()
         self.step_counter_lock = asyncio.Lock()
-        self.step_counter = 0
+        self.step_counter = 1
 
-    async def emit_event(self, event_type, data: Dict[Any, Any]):
+    async def emit_event(self, data: Dict[Any, Any]):
         """发送流式事件"""
         event = {
-            "type": event_type,
+            "type": "event",
             "timestamp": time.time(),
             "data": data
         }
@@ -105,9 +105,10 @@ class StreamingAgent:
 
         async def process_mcp_agent(mcp_agent: MCPAgent):
             # 开始执行MCP Agent
-            await self.emit_event(f"Run MCP Agent: {mcp_agent.mcp_config.server_name}", {
+            await self.emit_event({
+                "status": "START",
+                "title": f"Run MCP Agent: {mcp_agent.mcp_config.server_name}",
                 "message": "开始执行MCP Agent...",
-                "status": "START"
             })
 
             await mcp_agent.init_mcp_agent()
@@ -115,7 +116,8 @@ class StreamingAgent:
             responses = await mcp_agent.ainvoke(messages)
 
             # 返回MCP Agent结果
-            await self.emit_event(f"Run MCP Agent: {mcp_agent.mcp_config.server_name}", {
+            await self.emit_event({
+                "title": f"Run MCP Agent: {mcp_agent.mcp_config.server_name}",
                 "message": "\n\n".join([response.content for response in responses]),
                 "status": "END"
             })
@@ -142,14 +144,15 @@ class StreamingAgent:
         """调用工具选择，添加流式事件"""
 
         # 发送工具分析开始事件
-        await self.emit_event("Run Select Tool", {
+        await self.emit_event({
+            "title": f"Run Select Tool_{self.step_counter}",
+            "status": "START",
             "message": "正在分析需要使用的工具...",
-            "status": "START"
         })
 
         call_tool_messages: List[BaseMessage] = []
         # 只有第一次调用工具的时候才会初始化
-        if self.step_counter == 0:
+        if self.step_counter == 1:
             tools_schema = []
             for tool in self.tools:
                 if isinstance(tool, BaseTool) and tool.args_schema:  # MCP Tool
@@ -171,9 +174,10 @@ class StreamingAgent:
 
             response.tool_calls = convert_langchain_tool_calls(response.tool_calls)
             # 发送工具选择完成事件
-            await self.emit_event("Run Select Tool", {
+            await self.emit_event({
+                "title": f"Run Select Tool_{self.step_counter}",
                 "status": "END",
-                "selected_tools": ", ".join([tool_call["name"] for tool_call in response.tool_calls])
+                "messages": ", ".join([tool_call["name"] for tool_call in response.tool_calls])
             })
 
             return AIMessage(
@@ -182,7 +186,8 @@ class StreamingAgent:
             )
         else:
             # 发送无工具可用事件
-            await self.emit_event("Run Select Tool", {
+            await self.emit_event({
+                "title": f"Run Select Tool_{self.step_counter}",
                 "status": "END",
                 "message": "没有命中可用的工具"
             })
@@ -193,11 +198,11 @@ class StreamingAgent:
         tool_calls = messages[-1].tool_calls
         tool_messages: List[BaseMessage] = []
 
-        for tool_call in tool_calls:
-            # 保证不出现竞争条件
-            async with self.step_counter_lock:
-                self.step_counter += 1
+        # 保证不出现竞争条件
+        async with self.step_counter_lock:
+            self.step_counter += 1
 
+        for tool_call in tool_calls:
             # 发送工具执行开始事件
             # await self.emit_event(f"Run Execution Tool: {tool_call["name"]}", {
             #     "status": "start",
@@ -222,11 +227,9 @@ class StreamingAgent:
                     tool_args.update(mcp_config)
 
                     # 发送MCP工具调用事件
-                    await self.emit_event(f"Run MCP Tool: {tool_name}", {
+                    await self.emit_event({
                         "status": "START",
-                        "step": self.step_counter,
-                        "tool_name": tool_name,
-                        "server_info": mcp_server,
+                        "title": f"Run MCP Tool: {tool_name}",
                         "message": f"正在调用MCP工具 {tool_name}..."
                     })
 
@@ -234,10 +237,9 @@ class StreamingAgent:
                     tool_result = await use_tool.coroutine(**tool_args)
 
                     # 发送MCP工具执行完成事件
-                    await self.emit_event(f"Run MCP Tool: {tool_name}", {
+                    await self.emit_event({
                         "status": "END",
-                        "step": self.step_counter,
-                        "tool_name": tool_name,
+                        "title": f"Run MCP Tool: {tool_name}",
                         "message": tool_result,
                     })
 
@@ -247,11 +249,10 @@ class StreamingAgent:
 
                 except Exception as err:
                     # 发送MCP工具执行错误事件
-                    await self.emit_event(f"Run MCP Tool: {tool_name}", {
+                    await self.emit_event({
                         "status": "ERROR",
                         "message": str(err),
-                        "step": self.step_counter,
-                        "tool_name": tool_name,
+                        "title": f"Run MCP Tool: {tool_name}",
                     })
 
                     logger.error(f"MCP Tool {tool_name} Error: {str(err)}")
@@ -260,20 +261,18 @@ class StreamingAgent:
             else:
                 try:
                     # 发送插件工具调用事件
-                    await self.emit_event("Run Execution Tool", {
+                    await self.emit_event({
                         "status": "START",
-                        "step": self.step_counter,
-                        "tool_name": tool_name,
+                        "title": f"Run Execution Tool: {tool_name}",
                         "message": f"正在调用插件工具 {tool_name}..."
                     })
 
                     tool_result = use_tool.func(**tool_args)
 
                     # 发送插件工具执行完成事件
-                    await self.emit_event("Run Execution Tool", {
+                    await self.emit_event({
                         "status": "END",
-                        "step": self.step_counter,
-                        "tool_name": tool_name,
+                        "title": f"Run Execution Tool: {tool_name}",
                         "message": tool_result,
                     })
 
@@ -283,10 +282,9 @@ class StreamingAgent:
 
                 except Exception as err:
                     # 发送插件工具执行错误事件
-                    await self.emit_event("plugin_tool_error", {
+                    await self.emit_event({
                         "status": "ERROR",
-                        "step": self.step_counter,
-                        "tool_name": tool_name,
+                        "title": f"Run Execution Tool: {tool_name}",
                         "message": str(err),
                     })
 
@@ -301,12 +299,10 @@ class StreamingAgent:
         knowledge_query = messages[-1].content
 
         # 发送知识库检索开始事件
-        await self.emit_event("Run Retrieval Knowledge", {
+        await self.emit_event({
+            "title": "Run Retrieval Knowledge",
             "status":"START",
             "message": "开始执行知识库检索....",
-            "query": knowledge_query,
-            "collections": self.collection_names,
-            "indexes": self.index_names
         })
 
         # Milvus和ES检索相关的知识库
@@ -315,7 +311,8 @@ class StreamingAgent:
         )
 
         # 发送知识库检索完成事件
-        await self.emit_event("knowledge_retrieval_complete", {
+        await self.emit_event({
+            "title": "Run Retrieval Knowledge",
             "message": knowledge_message[:500] + "..." if len(knowledge_message) > 500 else knowledge_message,
             "status": "END"
         })
