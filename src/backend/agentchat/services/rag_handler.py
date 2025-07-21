@@ -1,10 +1,9 @@
 from loguru import logger
 from typing import Optional
-from agentchat.services.rag.parser import doc_parser
 from agentchat.services.retrieval import MixRetrival
 from agentchat.services.rewrite.query_write import query_rewriter
 from agentchat.services.rag.es_client import client as es_client
-from agentchat.services.rag.milvus_client import client as milvus_client
+from agentchat.services.rag.vector_db import milvus_client
 from agentchat.services.rag.rerank import Reranker
 from agentchat.settings import app_settings
 

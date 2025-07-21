@@ -367,6 +367,3 @@ class MilvusClient:
     def __exit__(self, exc_type, exc_val, exc_tb):
         self.close()
 
-
-# 使用单例模式
-client = MilvusClient()

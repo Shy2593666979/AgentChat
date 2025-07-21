@@ -53,11 +53,18 @@ export interface HistoryListType {
 
 export interface MessageType {
   content: string
+  type?: string // 新增：支持消息类型
 }
 
 export interface ChatMessage {
   personMessage: MessageType
   aiMessage: MessageType
+  eventInfo?: Array<{
+    event_type: string
+    show: boolean
+    status: string
+    message: string
+  }>
 }
 
 // 知识库类型定义

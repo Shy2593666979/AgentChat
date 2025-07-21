@@ -55,7 +55,8 @@ async def chat(*,
             if event.get("type") == "response_chunk":
                 # 响应片段：用data:包裹，JSON格式，双换行结尾
                 chunk_data = {"chunk": event["data"].get("chunk")}
-                yield f'data: {json.dumps(chunk_data)}\n\n'
+                yield f'data: {json.dumps(event)}\n\n'
+                # yield f'data: {json.dumps(chunk_data)}\n\n'
                 response_content += event["data"].get("chunk")
             else:
                 # 其他事件（如工具调用、心跳）同样按SSE格式输出
