@@ -441,8 +441,9 @@ class StreamingAgent:
         mcp_agent_messages = mcp_agent_task.result() if mcp_agent_task and mcp_agent_task.done() else None
 
         # 等待图执行完成
-        results = graph_task.result() if graph_task and graph_task.done() else {"messages": []}
-        messages = results["messages"][:-1]  # 去除没有命中工具的message
+        if graph_task and graph_task.done():
+            results = graph_task.result()
+            messages = results["messages"][:-1]  # 去除没有命中工具的message
 
         # 添加MCP Agent消息
         if mcp_agent_messages:
@@ -453,13 +454,24 @@ class StreamingAgent:
             messages.append(knowledge_message)
 
         response_content = ""
-        async for chunk in self.conversation_model.astream(messages):
-            response_content += chunk.content
+        try:
+            async for chunk in self.conversation_model.astream(messages):
+                response_content += chunk.content
+                yield {
+                    "type": "response_chunk",
+                    "timestamp": time.time(),
+                    "data": {
+                        "chunk": chunk.content,
+                        "accumulated": response_content
+                    }
+                }
+        # 针对模型回复进行兜底操作，错误类型包括：敏感词，模型问题
+        except Exception as err:
             yield {
                 "type": "response_chunk",
                 "timestamp": time.time(),
                 "data": {
-                    "chunk": chunk.content,
+                    "chunk": "您的问题触及到我的知识盲区，请换个问题吧✨",
                     "accumulated": response_content
                 }
             }

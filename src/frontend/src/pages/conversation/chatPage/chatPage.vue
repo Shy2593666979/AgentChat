@@ -356,7 +356,7 @@ watch(
 
     <div class="input-area">
       <el-upload
-        action="https://your-upload-api-endpoint"
+        action="/api/v1/upload"
         :on-success="handleUploadSuccess"
         :on-error="handleUploadError"
         :show-file-list="false"

@@ -1,3 +1,5 @@
+from typing import List
+
 from agentchat.database.models.history import HistoryTable
 from sqlmodel import Session, select, delete
 from agentchat.database import engine
@@ -5,25 +7,28 @@ from agentchat.database import engine
 class HistoryDao:
 
     @classmethod
-    async def _get_history_sql(cls, role: str, content: str, dialog_id: str):
-        history = HistoryTable(content=content, role=role, dialog_id=dialog_id)
+    async def _get_history_sql(cls, role: str, content: str, events: List[dict], dialog_id: str):
+        history = HistoryTable(content=content, role=role, events=events, dialog_id=dialog_id)
         return history
 
     @classmethod
-    async def create_history(cls, role: str, content: str, dialog_id: str):
+    async def create_history(cls, role: str, content: str, events: List[dict], dialog_id: str):
         with Session(engine) as session:
-            session.add(await cls._get_history_sql(role, content, dialog_id))
+            session.add(await cls._get_history_sql(role, content, events, dialog_id))
             session.commit()
 
     @classmethod
-    async def select_history(cls, dialog_id: str, k: int):
+    async def select_history_from_time(cls, dialog_id: str, k: int):
         with Session(engine) as session:
-            sql = select(HistoryTable).where(HistoryTable.dialog_id == dialog_id)
+            sql = select(HistoryTable).where(HistoryTable.dialog_id == dialog_id).order_by(HistoryTable.create_time.desc())
             result = session.exec(sql).all()
 
             # 每次最多取当前会话的k条历史记录
             if len(result) > k:
-                result = result[-k:]
+                result = result[:k]
+            # 保持消息的时间顺序（从旧到新）
+            result.reverse()
+
             return result
 
     @classmethod

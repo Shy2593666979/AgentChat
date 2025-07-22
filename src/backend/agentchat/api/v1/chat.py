@@ -41,30 +41,32 @@ async def chat(*,
     # 整合User Input
     conversation_req.user_input = combine_user_input(conversation_req.user_input, conversation_req.file_url)
 
-    messages: List[BaseMessage] = [HumanMessage(content=conversation_req.user_input), SystemMessage(
-        content=SYSTEM_PROMPT if agent_config.system_prompt.strip() == "" else agent_config.system_prompt)]
+    messages: List[BaseMessage] = [SystemMessage(content=SYSTEM_PROMPT if agent_config.system_prompt.strip() == "" else agent_config.system_prompt)]
     if agent_config.use_embedding:
         history_messages = await HistoryService.select_history(conversation_req.dialog_id, 10)
     else:
         history_messages = await HistoryService.select_history(conversation_req.dialog_id)
     messages.extend(history_messages)
+    messages.append(HumanMessage(content=conversation_req.user_input))
 
+    events = []
     async def general_generate():
         response_content = ""
         async for event in chat_agent.ainvoke_streaming(messages):
             if event.get("type") == "response_chunk":
                 # 响应片段：用data:包裹，JSON格式，双换行结尾
-                chunk_data = {"chunk": event["data"].get("chunk")}
-                yield f'data: {json.dumps(event)}\n\n'
+                # chunk_data = {"chunk": event["data"].get("chunk")}
                 # yield f'data: {json.dumps(chunk_data)}\n\n'
+                yield f'data: {json.dumps(event)}\n\n'
                 response_content += event["data"].get("chunk")
             else:
                 # 其他事件（如工具调用、心跳）同样按SSE格式输出
+                events.append(event)
                 yield f'data: {json.dumps(event)}\n\n'
-        # await HistoryService.save_chat_history(Assistant_Role, response_content, conversation_req.dialog_id)
+        await HistoryService.save_chat_history(Assistant_Role, response_content, events, conversation_req.dialog_id, agent_config.use_embedding)
 
     # 将用户问题存放到MySQL数据库
-    # await HistoryService.save_chat_history(User_Role, conversation_req.user_input, conversation_req.dialog_id)
+    await HistoryService.save_chat_history(User_Role, conversation_req.user_input, events, conversation_req.dialog_id, agent_config.use_embedding)
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
 

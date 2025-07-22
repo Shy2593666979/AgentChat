@@ -1,8 +1,8 @@
 from sqlmodel import Field, SQLModel
-from typing import Literal, Optional
+from typing import Literal, Optional, List
 from datetime import datetime
 from uuid import uuid4
-from sqlalchemy import Text, Column, DateTime, text
+from sqlalchemy import Text, Column, DateTime, text, JSON
 import pytz
 
 from agentchat.database.models.base import SQLModelSerializable
@@ -16,6 +16,7 @@ class HistoryTable(SQLModelSerializable, table=True):
     content: str = Field(sa_column=Column(Text))
     dialog_id: str = Field(description="对话的ID")
     role: str = Literal["assistant", "system", "user"]
+    events: List[dict] = Field(default=[], sa_column=Column(JSON), description="AI回复事件信息 {'type': 'event', 'data': ....}")
     update_time: Optional[datetime] = Field(sa_column=Column(
         DateTime,
         nullable=False,

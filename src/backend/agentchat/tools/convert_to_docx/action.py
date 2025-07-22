@@ -19,13 +19,13 @@ class ConvertDocxTool(BaseTool):
     args_schema: Type[BaseModel] = ConvertDocxInput
 
     def _run(self, file_url):
-        return convert_file_to_docx(file_url)
+        return convert_to_docx(file_url)
 
 
-def convert_file_to_docx(file_url):
+def convert_to_docx(file_url: str):
     """将用户上传的文件解析成Docx"""
     object_name = get_object_name_from_aliyun_url(file_url)
-    file_name = file_url.spilt("/")[-1]
+    file_name = file_url.split("/")[-1]
     file_path = get_save_tempfile(file_name)
     aliyun_oss.download_file(object_name, file_path)
 
@@ -39,7 +39,7 @@ def convert_file_to_docx(file_url):
     output_dir = tempfile.mkdtemp()
     os.makedirs(output_dir, exist_ok=True)
 
-    local_file_path = os.path.join(output_dir, f"{os.path.splitext(file_path)}.docx")
+    local_file_path = os.path.join(output_dir, f"{os.path.splitext(file_name)[0]}.docx")
 
     try:
         cv = Converter(file_path)
@@ -57,11 +57,11 @@ def convert_file_to_docx(file_url):
     except Exception as err:
         return f'您的{os.path.basename(file_path)}文件解析失败，换个文件再来试试呢~~~'
 
-    oss_object_name = f"/convert_docx/{os.path.splitext(file_path)}.docx"
-    local_file_path = os.path.join(output_dir, f"{os.path.splitext(file_path)}.docx")
+    oss_object_name = f"convert_docx/{os.path.splitext(file_name)[0]}.docx"
+
     aliyun_oss.upload_local_file(oss_object_name, local_file_path)
 
     url = aliyun_oss.sign_url_for_get(oss_object_name)
     now_time = get_now_beijing_time(delta=1)
 
-    return f'您的{os.path.basename(file_path)}文件解析成功，下载路径为：{url}，请在{now_time} 前进行下载，超过时间就会失效~~~'
+    return f'您的{os.path.basename(file_path)}文件转换成功，[点击下载文件]({url})，请在{now_time} 前进行下载，超过时间就会失效~~~'
