@@ -69,20 +69,18 @@ async def update_agent(agent_request: UpdateAgentRequest,
         # 验证用户权限
         await AgentService.verify_user_permission(agent_request.agent_id, login_user.user_id)
 
-        if agent_request.name and AgentService.check_repeat_name(agent_request.name, login_user.user_id):
-            return resp_500(message="应用名称重复，请换一个~~~")
-
-        return await AgentService.update_agent_by_id(id=agent_request.agent_id,
-                                                     name=agent_request.name,
-                                                     description=agent_request.description,
-                                                     logo_url=agent_request.logo_url,
-                                                     knowledge_ids=agent_request.knowledge_ids,
-                                                     user_id=login_user.user_id,
-                                                     tool_ids=agent_request.tool_ids,
-                                                     llm_id=agent_request.llm_id,
-                                                     mcp_ids=agent_request.mcp_ids,
-                                                     system_prompt=agent_request.system_prompt,
-                                                     use_embedding=agent_request.use_embedding)
+        await AgentService.update_agent_by_id(id=agent_request.agent_id,
+                                              name=agent_request.name,
+                                              description=agent_request.description,
+                                              logo_url=agent_request.logo_url,
+                                              knowledge_ids=agent_request.knowledge_ids,
+                                              user_id=login_user.user_id,
+                                              tool_ids=agent_request.tool_ids,
+                                              llm_id=agent_request.llm_id,
+                                              mcp_ids=agent_request.mcp_ids,
+                                              system_prompt=agent_request.system_prompt,
+                                              use_embedding=agent_request.use_embedding)
+        return resp_200()
 
     except Exception as err:
         logger.error(err)

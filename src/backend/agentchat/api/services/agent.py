@@ -1,4 +1,5 @@
 from agentchat.database.dao.agent import AgentDao
+from agentchat.database.dao.dialog import DialogDao
 from agentchat.database.models.user import AdminUser, SystemUser
 from loguru import logger
 from typing import List
@@ -33,7 +34,7 @@ class AgentService:
                                  use_embedding: bool, mcp_ids: List[str], system_prompt: str):
         try:
             # 需要判断是否有权限，管理员随意
-            if user_id == AdminUser or user_id == cls.get_agent_user_id(agent_id=id):
+            if user_id == AdminUser or user_id == await cls.get_agent_user_id(agent_id=id):
                 await AgentDao.update_agent_by_id(id=id,
                                                   name=name,
                                                   logo_url=logo_url,
@@ -68,6 +69,7 @@ class AgentService:
     async def delete_agent_by_id(cls, id: str):
         try:
             await AgentDao.delete_agent_by_id(id=id)
+            await DialogDao.delete_from_agent_id(id)
         except Exception as err:
             raise ValueError(f"Delete Agent By Id Appear Error: {err}")
 
@@ -135,6 +137,6 @@ class AgentService:
     async def select_agent_by_id(cls, agent_id: str):
         try:
             agent = await AgentDao.select_agent_by_id(agent_id)
-            return agent.to_dict()
+            return agent.to_dict() if agent else None
         except Exception as err:
             raise ValueError(f"Select Agent By Id Appear Error: {err}")

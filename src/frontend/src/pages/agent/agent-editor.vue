@@ -22,6 +22,7 @@ import { getVisibleToolsAPI, type ToolResponse } from '../../apis/tool'
 import { getMCPServersAPI, type MCPServer } from '../../apis/mcp-server'
 import { getKnowledgeListAPI, type KnowledgeResponse } from '../../apis/knowledge'
 import { Agent, AgentFormData } from '../../type'
+import { uploadFileAPI } from '../../apis/file'
 
 const route = useRoute()
 const router = useRouter()
@@ -277,10 +278,44 @@ const applyTemplate = (template: typeof promptTemplates.value[0]) => {
   ElMessage.success(`已应用"${template.name}"模板`)
 }
 
-// 处理文件上传
-const handleFileChange: UploadProps['onChange'] = (uploadFile) => {
+// 上传相关
+const uploadLoading = ref(false)
+
+const handleFileChange: UploadProps['onChange'] = async (uploadFile) => {
   if (uploadFile.raw) {
-    formData.logo_url = URL.createObjectURL(uploadFile.raw)
+    const file = uploadFile.raw
+    // 文件大小和类型检查
+    const isLt2M = file.size / 1024 / 1024 < 2
+    if (!isLt2M) {
+      ElMessage.error('上传头像图片大小不能超过 2MB!')
+      return
+    }
+    const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
+    if (!isJpgOrPng) {
+      ElMessage.error('上传头像图片只能是 JPG/PNG 格式!')
+      return
+    }
+    
+    // 开始上传
+    uploadLoading.value = true
+    try {
+      const uploadFormData = new FormData()
+      uploadFormData.append('file', file)
+      
+      const response = await uploadFileAPI(uploadFormData)
+      
+      if (response.data.status_code === 200) {
+        formData.logo_url = response.data.data
+        ElMessage.success('头像上传成功')
+      } else {
+        ElMessage.error(response.data.status_message || '头像上传失败')
+      }
+    } catch (error) {
+      console.error('头像上传失败:', error)
+      ElMessage.error('头像上传失败')
+    } finally {
+      uploadLoading.value = false
+    }
   }
 }
 
@@ -314,11 +349,21 @@ const saveAgent = async () => {
     }
     
     if (isEditing.value) {
-      console.log('更新智能体数据:', { agent_id: editingAgentId.value, ...requestData })
-      const response = await updateAgentAPI({
+      // 确保agent_id字段存在
+      if (!editingAgentId.value) {
+        ElMessage.error('缺少智能体ID，无法更新')
+        loading.value = false
+        return
+      }
+      
+      // 将agent_id添加到请求数据中
+      const updateData = {
         agent_id: editingAgentId.value,
         ...requestData
-      })
+      }
+      
+      console.log('更新智能体数据:', updateData)
+      const response = await updateAgentAPI(updateData)
       
       if (response.data.status_code === 200) {
         ElMessage.success('智能体更新成功')
@@ -620,12 +665,12 @@ const loadAgentFromAPI = async (agentId: string) => {
     
     const response = await getAgentByIdAPI(agentId)
     if (response.data.status_code === 200 && response.data.data) {
-      const agentData = response.data.data
+      const agentData = response.data.data as any
       console.log('🔍 API返回的智能体原始数据:', agentData)
       
-      // 转换API数据为Agent类型
+      // 转换API数据为Agent类型，兼容 id 和 agent_id
       const agent: Agent = {
-        agent_id: agentData.agent_id,
+        agent_id: agentData.id || agentData.agent_id,
         name: agentData.name,
         description: agentData.description,
         logo_url: agentData.logo_url,

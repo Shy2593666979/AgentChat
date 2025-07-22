@@ -61,3 +61,10 @@ class DialogDao:
             result = session.exec(sql).first()
 
             return result
+
+    @classmethod
+    async def delete_from_agent_id(cls, agent_id):
+        with Session(engine) as session:
+            sql = delete(DialogTable).where(DialogTable.agent_id == agent_id)
+            session.exec(sql)
+            session.commit()

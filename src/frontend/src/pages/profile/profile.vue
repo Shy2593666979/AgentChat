@@ -13,6 +13,13 @@ const formData = ref({
   user_description: '该用户很懒，没有留下一片云彩'
 })
 
+// 测试按钮点击
+const testButtonClick = () => {
+  console.log('按钮被点击了！');
+  alert('按钮被点击了！');
+  confirmAvatarSelection();
+}
+
 // 页面状态
 const loading = ref(false)
 const iconsLoading = ref(false)
@@ -143,42 +150,14 @@ const handleUploadSuccess = async (response: any) => {
   const imageUrl = typeof response === 'string' ? response : response.data
   
   if (imageUrl) {
-    const userId = userStore.userInfo?.id
-    if (!userId) {
-      ElMessage.error('用户ID不存在')
-      uploading.value = false
-      return
-    }
-    
-    selectedAvatar.value = imageUrl
-    formData.value.user_avatar = imageUrl
-    
-    try {
-      // 自动保存上传的头像
-      const apiResponse = await updateUserInfoAPI(
-        userId,
-        imageUrl,
-        formData.value.user_description
-      )
-      
-      if (apiResponse.data.status_code === 200) {
-        // 更新本地用户信息
-        userStore.updateUserInfo({
-          avatar: imageUrl
-        })
-        
-        ElMessage.success('头像上传并保存成功')
-      } else {
-        ElMessage.error(apiResponse.data.status_message || '头像保存失败')
-      }
-    } catch (error) {
-      console.error('头像保存失败:', error)
-      ElMessage.error('头像保存失败')
-    }
+    // 只更新选中的头像，不立即保存到服务器
+    selectedAvatar.value = imageUrl;
+    uploading.value = false;
+    ElMessage.success('头像上传成功，请点击"确定选择"保存');
   } else {
-    ElMessage.error('上传失败，未获取到图片链接')
+    ElMessage.error('上传失败，未获取到图片链接');
+    uploading.value = false;
   }
-  uploading.value = false
 }
 
 // 上传前验证
@@ -258,6 +237,57 @@ const handleImageError = (event: Event) => {
   const target = event.target as HTMLImageElement
   target.src = '/src/assets/user.svg' // 设置默认头像
 }
+
+// 处理自定义上传
+const handleCustomUpload = async (event: Event) => {
+  const input = event.target as HTMLInputElement;
+  if (!input.files || input.files.length === 0) return;
+  
+  const file = input.files[0];
+  
+  // 验证文件类型
+  const isJPGOrPNG = file.type === 'image/jpeg' || file.type === 'image/png';
+  const isLt2M = file.size / 1024 / 1024 < 2;
+
+  if (!isJPGOrPNG) {
+    ElMessage.error('只能上传 JPG/PNG 格式的图片!');
+    return;
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB!');
+    return;
+  }
+  
+  uploading.value = true;
+  
+  try {
+    // 创建表单数据
+    const formData = new FormData();
+    formData.append('file', file);
+    
+    // 发送请求
+    const response = await fetch('/api/v1/upload', {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+      },
+      body: formData
+    });
+    
+    if (!response.ok) {
+      throw new Error('上传失败');
+    }
+    
+    const result = await response.json();
+    
+    // 处理响应
+    handleUploadSuccess(result);
+  } catch (error) {
+    console.error('上传失败:', error);
+    ElMessage.error('头像上传失败，请重试');
+    uploading.value = false;
+  }
+};
 </script>
 
 <template>
@@ -350,8 +380,9 @@ const handleImageError = (event: Event) => {
       title="选择头像"
       width="600px"
       :close-on-click-modal="false"
+      append-to-body
     >
-      <div class="avatar-selection" v-loading="iconsLoading">
+      <div class="avatar-selection">
         <!-- 当前选中头像 -->
         <div class="current-selection">
           <h4>当前选择：</h4>
@@ -401,13 +432,82 @@ const handleImageError = (event: Event) => {
         <el-button @click="showAvatarDialog = false">取消</el-button>
         <el-button 
           type="primary" 
-          @click="confirmAvatarSelection"
+          @click="testButtonClick"
           :disabled="!selectedAvatar"
         >
           确定选择
         </el-button>
       </template>
     </el-dialog>
+    
+    <!-- 自定义头像选择对话框 -->
+    <div v-if="showAvatarDialog" class="custom-dialog-overlay">
+      <div class="custom-dialog">
+        <div class="custom-dialog-header">
+          <h3>选择头像</h3>
+          <button class="close-button" @click="showAvatarDialog = false">×</button>
+        </div>
+        
+        <div class="custom-dialog-body">
+          <!-- 当前选中头像 -->
+          <div class="current-selection">
+            <h4>当前选择：</h4>
+            <div class="selected-avatar">
+              <img :src="selectedAvatar" alt="选中的头像" />
+            </div>
+          </div>
+
+          <div class="avatar-content">
+            <!-- 预设头像列表 -->
+            <div class="preset-avatars">
+              <h4>选择预设头像：</h4>
+              <div class="avatar-grid">
+                <div
+                  v-for="(icon, index) in availableIcons"
+                  :key="index"
+                  class="avatar-option"
+                  :class="{ active: selectedAvatar === icon }"
+                  @click="selectAvatar(icon)"
+                >
+                  <img :src="icon" alt="头像选项" />
+                </div>
+              </div>
+            </div>
+
+            <!-- 上传自定义头像 -->
+            <div class="upload-section">
+              <h4>上传自定义头像：</h4>
+              <div class="upload-area">
+                <label for="avatar-upload" class="upload-button">
+                  <span v-if="!uploading">点击上传头像</span>
+                  <span v-else>上传中...</span>
+                </label>
+                <input 
+                  id="avatar-upload" 
+                  type="file" 
+                  accept="image/*" 
+                  @change="handleCustomUpload" 
+                  :disabled="uploading"
+                  style="display: none;"
+                />
+                <p class="upload-tip">支持 JPG、PNG 格式，文件大小不超过 2MB</p>
+              </div>
+            </div>
+          </div>
+        </div>
+        
+        <div class="custom-dialog-footer">
+          <button class="cancel-button" @click="showAvatarDialog = false">取消</button>
+          <button 
+            class="confirm-button" 
+            @click="confirmAvatarSelection"
+            :disabled="!selectedAvatar"
+          >
+            确定选择
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -636,6 +736,204 @@ const handleImageError = (event: Event) => {
       margin-top: 8px;
       font-size: 12px;
       color: #7f8c8d;
+    }
+  }
+}
+
+// 自定义对话框样式
+.custom-dialog-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.custom-dialog {
+  background-color: white;
+  border-radius: 8px;
+  width: 700px;
+  max-width: 95%;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
+}
+
+.custom-dialog-header {
+  padding: 20px;
+  border-bottom: 1px solid #ebeef5;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #303133;
+  }
+  
+  .close-button {
+    border: none;
+    background: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #909399;
+    
+    &:hover {
+      color: #409eff;
+    }
+  }
+}
+
+.custom-dialog-body {
+  padding: 20px;
+  display: flex;
+  
+  .current-selection {
+    width: 120px;
+    margin-right: 20px;
+    text-align: center;
+    
+    h4 {
+      margin: 0 0 12px 0;
+      font-size: 16px;
+      color: #303133;
+    }
+    
+    .selected-avatar {
+      img {
+        width: 100px;
+        height: 100px;
+        border-radius: 50%;
+        object-fit: cover;
+        border: 3px solid #74b9ff;
+      }
+    }
+  }
+  
+  .avatar-content {
+    flex: 1;
+    
+    .preset-avatars {
+      margin-bottom: 20px;
+      
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 16px;
+        color: #303133;
+      }
+      
+      .avatar-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+        gap: 12px;
+        
+        .avatar-option {
+          width: 70px;
+          height: 70px;
+          cursor: pointer;
+          border: 2px solid transparent;
+          border-radius: 50%;
+          overflow: hidden;
+          transition: all 0.2s ease;
+          
+          &:hover:not(.active) {
+            border-color: #74b9ff;
+            transform: scale(1.05);
+          }
+          
+          &.active {
+            border-color: #74b9ff;
+            box-shadow: 0 0 0 2px rgba(116, 185, 255, 0.3);
+          }
+          
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+          }
+        }
+      }
+    }
+    
+    .upload-section {
+      h4 {
+        margin: 0 0 12px 0;
+        font-size: 16px;
+        color: #303133;
+      }
+      
+      .upload-area {
+        .upload-button {
+          display: inline-block;
+          padding: 10px 20px;
+          background-color: #409eff;
+          color: white;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background-color 0.3s;
+          
+          &:hover {
+            background-color: #66b1ff;
+          }
+        }
+        
+        .upload-tip {
+          margin-top: 8px;
+          font-size: 12px;
+          color: #909399;
+        }
+      }
+    }
+  }
+}
+
+.custom-dialog-footer {
+  padding: 15px 20px;
+  text-align: right;
+  border-top: 1px solid #ebeef5;
+  
+  button {
+    padding: 10px 20px;
+    font-size: 14px;
+    border-radius: 4px;
+    cursor: pointer;
+    margin-left: 10px;
+    transition: all 0.3s;
+  }
+  
+  .cancel-button {
+    border: 1px solid #dcdfe6;
+    background-color: #fff;
+    color: #606266;
+    
+    &:hover {
+      color: #409eff;
+      border-color: #c6e2ff;
+      background-color: #ecf5ff;
+    }
+  }
+  
+  .confirm-button {
+    border: 1px solid #409eff;
+    background-color: #409eff;
+    color: #fff;
+    
+    &:hover {
+      background-color: #66b1ff;
+      border-color: #66b1ff;
+    }
+    
+    &:disabled {
+      background-color: #a0cfff;
+      border-color: #a0cfff;
+      cursor: not-allowed;
     }
   }
 }

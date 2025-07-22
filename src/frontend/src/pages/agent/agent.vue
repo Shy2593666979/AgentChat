@@ -2,7 +2,6 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { showDeleteConfirm } from '../../utils/dialog'
 import { Plus, Edit, Delete, View, Search, Refresh, Tools } from '@element-plus/icons-vue'
 import { 
   getAgentsAPI, 
@@ -19,6 +18,8 @@ const loading = ref(false)
 const searchLoading = ref(false)
 const editingAgent = ref<Agent | null>(null)
 const searchKeyword = ref('')
+const showConfirmDialog = ref(false)
+const agentToDelete = ref<Agent | null>(null)
 
 
 // 转换API响应为本地Agent类型
@@ -33,7 +34,8 @@ const convertToAgent = (apiAgent: any): Agent => ({
   system_prompt: apiAgent.system_prompt,
   knowledge_ids: apiAgent.knowledge_ids || [],
   use_embedding: apiAgent.use_embedding,
-  created_time: apiAgent.create_time || apiAgent.created_time
+  created_time: apiAgent.create_time || apiAgent.created_time,
+  is_custom: apiAgent.is_custom // 新增is_custom字段
 })
 
 // 获取智能体列表
@@ -109,7 +111,8 @@ const searchAgents = async () => {
         mcp_ids: [],
         system_prompt: '',
         knowledge_ids: [],
-        use_embedding: false
+        use_embedding: false,
+        is_custom: false // 搜索结果默认为系统智能体
       }))
     } else {
       ElMessage.error(response.data.status_message || '搜索失败')
@@ -135,12 +138,22 @@ const createAgent = () => {
 
 // 编辑智能体
 const editAgent = (agent: Agent) => {
+  // 确保只能编辑自定义智能体
+  if (agent.is_custom === false) {
+    ElMessage.warning(`"${agent.name}" 是官方智能体，无法编辑。`)
+    return
+  }
+  
   router.push({
     path: '/agent/editor',
     query: { id: agent.agent_id }
   })
 }
 
+// 显示系统智能体提示
+const showSystemAgentMessage = (agent: Agent) => {
+  ElMessage.warning(`"${agent.name}" 是官方智能体，无法编辑。`)
+}
 
 
 // 处理智能体更新
@@ -149,23 +162,46 @@ const handleAgentUpdate = () => {
 }
 
 // 删除智能体
-const deleteAgent = async (agent: Agent) => {
+const deleteAgent = (agent: Agent) => {
+  // 确保只能删除自定义智能体
+  if (agent.is_custom === false) {
+    ElMessage.error('官方智能体不能删除')
+    return
+  }
+  
+  // 显示确认对话框
+  agentToDelete.value = agent
+  showConfirmDialog.value = true
+}
+
+// 确认删除
+const confirmDelete = async () => {
+  if (!agentToDelete.value) return
+  
   try {
-    await showDeleteConfirm(`确定要删除智能体 "${agent.name}" 吗？`)
+    ElMessage.info('正在删除智能体...')
     
-    const response = await deleteAgentAPI({ agent_id: agent.agent_id })
+    const response = await deleteAgentAPI({ agent_id: agentToDelete.value.agent_id })
     if (response.data.status_code === 200) {
       ElMessage.success('删除成功')
-      await fetchAgents()
+      await fetchAgents() // 刷新列表
     } else {
       ElMessage.error(response.data.status_message || '删除失败')
     }
   } catch (error) {
-    if (error !== 'cancel') {
-      console.error('删除智能体失败:', error)
-      ElMessage.error('删除智能体失败')
-    }
+    console.error('删除智能体失败:', error)
+    ElMessage.error('删除失败，请稍后重试')
+  } finally {
+    // 关闭确认对话框
+    showConfirmDialog.value = false
+    agentToDelete.value = null
   }
+}
+
+// 取消删除
+const cancelDelete = () => {
+  showConfirmDialog.value = false
+  agentToDelete.value = null
 }
 
 // 查看智能体详情
@@ -259,7 +295,20 @@ onMounted(() => {
           v-for="agent in agents" 
           :key="agent.agent_id" 
           class="agent-card"
+          :class="{'official-agent': agent.is_custom === false}"
+          @click="agent.is_custom !== false ? editAgent(agent) : showSystemAgentMessage(agent)"
         >
+          <!-- 删除按钮 - 仅对自定义智能体显示 -->
+          <div 
+            v-if="agent.is_custom !== false" 
+            class="delete-icon" 
+            @click.stop="deleteAgent(agent)" 
+            title="删除"
+          >×</div>
+          
+          <!-- 官方智能体标识 -->
+          <div v-if="agent.is_custom === false" class="official-badge">官方</div>
+          
           <div class="agent-avatar">
             <img 
               :src="agent.logo_url || '/src/assets/robot.svg'" 
@@ -275,48 +324,19 @@ onMounted(() => {
             </p>
             
             <div class="agent-meta">
-              <span class="meta-item">
-                <i class="meta-icon">🔧</i>
-                工具: {{ agent.tool_ids?.length || 0 }}
+              <span class="meta-item" title="可用工具数量">
+                <i class="meta-icon">🔨</i>
+                <span class="meta-count">{{ agent.tool_ids?.length || 0 }}</span>
               </span>
-              <span class="meta-item">
-                <i class="meta-icon">📚</i>
-                知识库: {{ agent.knowledge_ids?.length || 0 }}
+              <span class="meta-item" title="关联知识库数量">
+                <i class="meta-icon">📖</i>
+                <span class="meta-count">{{ agent.knowledge_ids?.length || 0 }}</span>
               </span>
-              <span class="meta-item">
-                <i class="meta-icon">🤖</i>
-                MCP: {{ agent.mcp_ids?.length || 0 }}
+              <span class="meta-item" title="MCP服务数量">
+                <i class="meta-icon">📡</i>
+                <span class="meta-count">{{ agent.mcp_ids?.length || 0 }}</span>
               </span>
             </div>
-            
-
-          </div>
-          
-          <div class="agent-actions">
-            <el-button 
-              size="small" 
-              :icon="View" 
-              @click="viewAgent(agent)"
-              title="查看详情"
-              plain
-            />
-            <el-button 
-              size="small" 
-              type="primary"
-              :icon="Tools" 
-              @click="editAgent(agent)"
-              title="高级编辑"
-              plain
-            />
-
-            <el-button 
-              size="small" 
-              type="danger" 
-              :icon="Delete" 
-              @click="deleteAgent(agent)"
-              title="删除"
-              plain
-            />
           </div>
         </div>
       </div>
@@ -340,6 +360,19 @@ onMounted(() => {
       </div>
     </div>
 
+    <!-- 确认删除对话框 -->
+    <div v-if="showConfirmDialog" class="custom-confirm-dialog">
+      <div class="confirm-dialog-content">
+        <h3 class="dialog-title">确认删除</h3>
+        <div class="dialog-body">
+          确定要删除智能体 "{{ agentToDelete?.name }}" 吗？
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-cancel" @click="cancelDelete">取消</button>
+          <button class="btn-confirm" @click="confirmDelete">确定</button>
+        </div>
+      </div>
+    </div>
 
   </div>
 </template>
@@ -461,22 +494,86 @@ onMounted(() => {
         background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
         border-radius: 20px;
         padding: 16px;
-        height: 160px;
+        height: 200px;
         box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
         border: 1px solid rgba(226, 232, 240, 0.8);
         transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
         position: relative;
-        overflow: hidden;
+        display: flex;
+        flex-direction: column;
+        cursor: pointer; /* Add cursor pointer for clickability */
         
         &:hover {
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
           transform: translateY(-4px);
           
-          .agent-actions {
+          .delete-icon {
             opacity: 1;
-            transform: translateY(0);
+            transform: scale(1);
           }
         }
+        
+        // 系统智能体样式
+        &.official-agent {
+          background: linear-gradient(145deg, #fffaf0 0%, #fff8e5 100%);
+          border: 1px solid rgba(255, 152, 0, 0.3);
+          
+          &:hover {
+            box-shadow: 0 8px 24px rgba(255, 152, 0, 0.15);
+          }
+          
+          .agent-name {
+            color: #d87300 !important;
+          }
+          
+          .agent-meta {
+            .meta-item {
+              background: rgba(255, 243, 224, 0.5);
+              border: 1px solid rgba(255, 152, 0, 0.1);
+            }
+          }
+        }
+        
+        .delete-icon {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background-color: #f56c6c;
+          color: white;
+          border-radius: 50%;
+          width: 24px;
+          height: 24px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 16px;
+          font-weight: bold;
+          cursor: pointer;
+          z-index: 1;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+          transition: all 0.3s ease;
+          opacity: 0;
+          transform: scale(0.8);
+
+          &:hover {
+            background-color: #ff7a7a;
+          }
+        }
+
+        .official-badge {
+          position: absolute;
+          top: 10px;
+          right: 10px;
+          background-color: #ff9800;
+          color: white;
+          padding: 4px 8px;
+          border-radius: 8px;
+          font-size: 12px;
+          font-weight: bold;
+          z-index: 1;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        }
+        
         
         .agent-avatar {
           width: 48px;
@@ -494,6 +591,11 @@ onMounted(() => {
         }
         
         .agent-info {
+          flex: 1;
+          overflow: hidden;
+          display: flex;
+          flex-direction: column;
+          
           .agent-name {
             font-size: 16px;
             font-weight: 600;
@@ -506,7 +608,7 @@ onMounted(() => {
           
           .agent-description {
             color: #64748b;
-            font-size: 12px;
+            font-size: 14px;
             line-height: 1.4;
             margin: 0 0 10px 0;
             display: -webkit-box;
@@ -514,26 +616,38 @@ onMounted(() => {
             -webkit-box-orient: vertical;
             overflow: hidden;
             min-height: 32px;
+            flex: 1;
           }
           
           .agent-meta {
             display: flex;
-            flex-wrap: wrap;
-            gap: 12px;
-            margin-bottom: 12px;
+            justify-content: space-around;
+            gap: 8px;
+            margin-top: auto;
+            padding-top: 10px;
             
             .meta-item {
               font-size: 12px;
               color: #64748b;
               display: flex;
               align-items: center;
+              justify-content: center;
               gap: 4px;
-              background: #f8fafc;
-              padding: 4px 8px;
-              border-radius: 6px;
+              background: rgba(255, 255, 255, 0.3); /* 半透明背景 */
+              padding: 6px;
+              border-radius: 8px;
+              min-width: 45px;
+              text-align: center;
+              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+              backdrop-filter: blur(2px); /* 轻微模糊效果 */
               
               .meta-icon {
                 font-size: 14px;
+              }
+              
+              .meta-count {
+                font-size: 15px;
+                font-weight: 600;
               }
             }
           }
@@ -544,18 +658,16 @@ onMounted(() => {
         }
         
         .agent-actions {
-          position: absolute;
-          top: 20px;
-          right: 20px;
           display: flex;
           gap: 8px;
-          opacity: 0;
-          transform: translateY(-10px);
-          transition: all 0.3s ease;
+          margin-top: 8px;
+          justify-content: space-between;
           
-          .el-button {
-            padding: 8px;
-            border-radius: 8px;
+          .el-button, .custom-delete-btn {
+            flex: 1;
+            text-align: center;
+            padding: 6px 0;
+            font-size: 12px;
           }
         }
       }
@@ -578,6 +690,82 @@ onMounted(() => {
   }
 }
 
+.custom-confirm-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+  .confirm-dialog-content {
+    background-color: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 350px;
+    max-width: 90%;
+
+    .dialog-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .dialog-body {
+      font-size: 16px;
+      color: #555;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .dialog-footer {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+
+      .btn-cancel, .btn-confirm {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-cancel {
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+        
+        &:hover {
+          background-color: #e5e5e5;
+        }
+      }
+
+      .btn-confirm {
+        background-color: #f56c6c;
+        color: white;
+        border: none;
+        
+        &:hover {
+          background-color: #ff8080;
+          transform: scale(1.05);
+        }
+        
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+    }
+  }
+}
 
 
 // 响应式设计

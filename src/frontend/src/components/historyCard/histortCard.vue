@@ -1,7 +1,6 @@
 <script lang="ts" setup>
 import { computed } from "vue"
 import { HistoryListType } from "../../type"
-import { Delete } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
 
 const emits = defineEmits<{
@@ -80,14 +79,10 @@ const goToChat = () => {
       <div class="card-right">
         <div class="time">{{ formattedTime }}</div>
         <div class="actions">
-          <el-button
-            type="danger"
-            :icon="Delete"
-            size="small"
-            circle
+          <span
+            class="delete-icon"
             @click="deleteCard"
-            class="delete-btn"
-          />
+          >×</span>
         </div>
       </div>
     </div>
@@ -109,10 +104,6 @@ const goToChat = () => {
     border-color: #3b82f6;
     box-shadow: 0 4px 12px rgba(59, 130, 246, 0.15);
     transform: translateY(-2px);
-
-    .card-right .actions {
-      opacity: 1;
-    }
   }
 
   .card-main {
@@ -184,13 +175,24 @@ const goToChat = () => {
       }
 
       .actions {
-        opacity: 0;
+        opacity: 1; /* 修改为始终可见 */
         transition: opacity 0.2s ease;
 
-        .delete-btn {
-          width: 24px;
-          height: 24px;
-          padding: 0;
+        .delete-icon {
+          color: #909399;
+          font-size: 18px;
+          font-weight: bold;
+          cursor: pointer;
+          width: 20px;
+          height: 20px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          transition: transform 0.2s;
+          
+          &:hover {
+            transform: scale(1.2);
+          }
         }
       }
     }

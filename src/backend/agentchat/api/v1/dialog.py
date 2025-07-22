@@ -17,6 +17,7 @@ async def get_dialog(login_user: UserPayload = Depends(get_login_user)):
         results = []
         for msg in messages:
             msg_agent = await AgentService.select_agent_by_id(agent_id=msg["agent_id"])
+
             msg.update(msg_agent)
             results.append(msg)
         return resp_200(data=results)

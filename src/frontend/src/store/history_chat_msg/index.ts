@@ -4,6 +4,17 @@ import { ChatMessage } from '../../type';
 import { getHistoryMsgAPI } from '../../apis/history';
 import { ElMessage } from 'element-plus';
 
+// 定义事件数据接口
+interface EventData {
+  data?: {
+    title?: string;
+    message?: string;
+    status?: string;
+  };
+  type?: string;
+  timestamp?: number;
+}
+
 export const useHistoryChatStore = defineStore('history_chat_msg', () => {
   const chatArr = ref<ChatMessage[]>([])
   const dialogId = ref('')
@@ -42,13 +53,46 @@ export const useHistoryChatStore = defineStore('history_chat_msg', () => {
             const lastMsg = messages[i]
             const chatMsg: ChatMessage = {
               personMessage: { content: '' },
-              aiMessage: { content: '' }
+              aiMessage: { content: '' },
+              eventInfo: []
             }
             
             if (lastMsg.role === 'user') {
               chatMsg.personMessage.content = lastMsg.content
             } else if (lastMsg.role === 'assistant') {
               chatMsg.aiMessage.content = lastMsg.content
+              
+              // 处理events字段，转换为eventInfo格式
+              if (lastMsg.events && Array.isArray(lastMsg.events)) {
+                // 使用Map来存储每个title的最终事件状态
+                const eventMap = new Map<string, any>();
+                
+                // 遍历所有事件，按title分组，并过滤掉heartbeat类型的事件
+                lastMsg.events.forEach((event: EventData) => {
+                  // 跳过heartbeat类型的事件
+                  if (event.type === 'heartbeat') return;
+                  
+                  const eventTitle = event.data?.title || event.type || '事件';
+                  const currentStatus = event.data?.status || 'END';
+                  
+                  // 如果是新事件或者当前事件是END/ERROR状态，则更新Map
+                  if (!eventMap.has(eventTitle) || 
+                      currentStatus === 'END' || 
+                      currentStatus === 'ERROR') {
+                    eventMap.set(eventTitle, event);
+                  }
+                });
+                
+                // 将Map中的事件转换为eventInfo数组
+                chatMsg.eventInfo = Array.from(eventMap.values()).map((event: EventData) => {
+                  return {
+                    event_type: event.data?.title || event.type || '事件',
+                    message: event.data?.message || JSON.stringify(event.data),
+                    status: event.data?.status || 'END',
+                    show: false // 默认折叠
+                  }
+                });
+              }
             }
             
             chatArr.value.push(chatMsg)
@@ -61,7 +105,40 @@ export const useHistoryChatStore = defineStore('history_chat_msg', () => {
           
           const chatMsg: ChatMessage = {
             personMessage: { content: userMsg.role === 'user' ? userMsg.content : '' },
-            aiMessage: { content: aiMsg.role === 'assistant' ? aiMsg.content : '' }
+            aiMessage: { content: aiMsg.role === 'assistant' ? aiMsg.content : '' },
+            eventInfo: []
+          }
+          
+          // 处理AI消息的events字段，转换为eventInfo格式
+          if (aiMsg.role === 'assistant' && aiMsg.events && Array.isArray(aiMsg.events)) {
+            // 使用Map来存储每个title的最终事件状态
+            const eventMap = new Map<string, any>();
+            
+            // 遍历所有事件，按title分组，并过滤掉heartbeat类型的事件
+            aiMsg.events.forEach((event: EventData) => {
+              // 跳过heartbeat类型的事件
+              if (event.type === 'heartbeat') return;
+              
+              const eventTitle = event.data?.title || event.type || '事件';
+              const currentStatus = event.data?.status || 'END';
+              
+              // 如果是新事件或者当前事件是END/ERROR状态，则更新Map
+              if (!eventMap.has(eventTitle) || 
+                  currentStatus === 'END' || 
+                  currentStatus === 'ERROR') {
+                eventMap.set(eventTitle, event);
+              }
+            });
+            
+            // 将Map中的事件转换为eventInfo数组
+            chatMsg.eventInfo = Array.from(eventMap.values()).map((event: EventData) => {
+              return {
+                event_type: event.data?.title || event.type || '事件',
+                message: event.data?.message || JSON.stringify(event.data),
+                status: event.data?.status || 'END',
+                show: false // 默认折叠
+              }
+            });
           }
           
           chatArr.value.push(chatMsg)

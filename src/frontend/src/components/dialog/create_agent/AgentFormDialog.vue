@@ -153,13 +153,23 @@ const handleSubmit = async () => {
     
     if (isEditing.value) {
       // 编辑智能体
-      await updateAgentAPI({
+      if (!editingAgentId.value) {
+        ElMessage.error('缺少智能体ID，无法更新')
+        loading.value = false
+        return
+      }
+      
+      const updateData = {
         agent_id: editingAgentId.value,
         ...formData
-      })
+      }
+      
+      console.log('更新智能体数据:', updateData)
+      await updateAgentAPI(updateData)
       ElMessage.success('智能体更新成功')
     } else {
       // 创建智能体
+      console.log('创建智能体数据:', formData)
       await createAgentAPI(formData)
       ElMessage.success('智能体创建成功')
     }
