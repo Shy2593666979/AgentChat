@@ -286,7 +286,7 @@ const handleUploadSuccess = async (response: any, file: any, fileList: any) => {
       }
       
       // 提示用户文件正在解析
-      ElMessage.info('文件上传成功，正在解析中，请稍候...')
+      // ElMessage.info('文件上传成功，正在解析中，请稍候...')
       
       const createData: KnowledgeFileCreateRequest = {
         knowledge_id: knowledgeId.value,

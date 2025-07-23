@@ -661,7 +661,7 @@ const validateIdMatching = () => {
 const loadAgentFromAPI = async (agentId: string) => {
   try {
     loading.value = true
-    ElMessage.info('正在加载智能体数据...')
+    // ElMessage.info('正在加载智能体数据...')
     
     const response = await getAgentByIdAPI(agentId)
     if (response.data.status_code === 200 && response.data.data) {
