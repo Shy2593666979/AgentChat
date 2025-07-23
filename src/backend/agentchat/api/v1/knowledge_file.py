@@ -61,3 +61,14 @@ async def delete_knowledge_file(knowledge_file_id: str = Body(..., embed=True),
         return resp_200()
     except Exception as err:
         return resp_500(message=str(err))
+
+@router.get("/knowledge_file/status", response_model=UnifiedResponseModel)
+async def get_knowledge_file_status(knowledge_file_id: str = Body(..., embed=True),
+                                login_user: UserPayload = Depends(get_login_user)):
+    try:
+        # 验证用户权限
+        await KnowledgeFileService.verify_user_permission(knowledge_file_id, login_user.user_id)
+        knowledge_file = await KnowledgeFileService.select_knowledge_file_by_id(knowledge_file_id)
+        return resp_200(data=knowledge_file.to_dict())
+    except Exception as err:
+        return resp_500(message=str(err))

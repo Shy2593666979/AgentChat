@@ -43,7 +43,8 @@ export function createKnowledgeFileAPI(data: KnowledgeFileCreateRequest) {
   return request<UnifiedResponse<null>>({
     url: '/api/v1/knowledge_file/create',
     method: 'POST',
-    data
+    data,
+    timeout: 60000  // 文件解析可能需要较长时间，设置为60秒
   })
 }
 

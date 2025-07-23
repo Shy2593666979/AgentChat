@@ -14,10 +14,10 @@ class Settings(BaseSettings):
     logo: dict = {}
     redis: dict = {}
     mysql: dict = {}
-    milvus: dict = {}
     rerank: dict = {}
     server: dict = {}
     split: dict = {}
+    vector_db: dict = {}
     embedding: dict = {}
     langfuse: dict = {}
     elasticsearch: dict = {}

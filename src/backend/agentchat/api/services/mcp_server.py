@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 import pytz
 
+from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.database.dao.mcp_server import MCPServerDao
 from agentchat.database.models.user import AdminUser, SystemUser
 
@@ -65,12 +66,16 @@ class MCPService:
             # 管理员可看见所有用户的MCP Server
             if user_id in (AdminUser, SystemUser):
                 all_servers = await MCPServerDao.get_all_mcp_servers()
-                return [server.to_dict() for server in all_servers]
             else:
                 personal_servers = await MCPServerDao.get_mcp_servers_from_user(user_id)
                 admin_servers = await MCPServerDao.get_mcp_servers_from_user(SystemUser)
                 all_servers = personal_servers + admin_servers
-                return [server.to_dict() for server in all_servers]
+            all_servers = [server.to_dict() for server in all_servers]
+            for server in all_servers:
+                user_config = await MCPUserConfigService.show_mcp_user_config(user_id, server["mcp_server_id"])
+                if user_config.get("config"):
+                    server["config"] = user_config.get("config")
+            return all_servers
         except Exception as err:
             raise ValueError(f"Get All Servers Error: {err}")
 

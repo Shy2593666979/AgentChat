@@ -14,7 +14,7 @@ class AgentTable(SQLModelSerializable, table=True):
     id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
     name: str = Field(default="")
     description: str = Field(default="")
-    logo_url: str = Field(default="https://agentchat.oss-cn-beijing.aliyuncs.com/icons/bot.png")
+    logo_url: str = Field(default="https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tool/bot.png")
     user_id: Optional[str] = Field(index=True)
     is_custom: bool = Field(default=True)
     system_prompt: str = Field(default="", description="Agent设定的系统提示词")

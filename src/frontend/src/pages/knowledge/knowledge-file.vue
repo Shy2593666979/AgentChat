@@ -43,6 +43,10 @@ const fileList = ref<UploadUserFile[]>([])
 let pollingTimer: NodeJS.Timeout | null = null
 const isPolling = ref(false)
 
+// 排序相关
+const sortType = ref('time') // 默认按时间排序
+const sortOrder = ref('desc') // 默认降序（最新的在前）
+
 // 检查是否有进行中的文件
 const hasProcessingFiles = computed(() => {
   return files.value.some(file => 
@@ -50,6 +54,49 @@ const hasProcessingFiles = computed(() => {
     String(file.status).includes('进行')
   )
 })
+
+// 排序后的文件列表
+const sortedFiles = computed(() => {
+  const filesCopy = [...files.value]
+  
+  return filesCopy.sort((a, b) => {
+    let result = 0
+    
+    switch (sortType.value) {
+      case 'time':
+        result = new Date(a.create_time).getTime() - new Date(b.create_time).getTime()
+        break
+      case 'name':
+        result = a.file_name.localeCompare(b.file_name, 'zh-CN')
+        break
+      case 'size':
+        result = a.file_size - b.file_size
+        break
+      case 'status':
+        // 按状态排序：进行中 > 完成 > 失败
+        const statusOrder = { 
+          '🚀 进行中': 3, 
+          '✅ 完成': 2, 
+          '❌ 失败': 1 
+        }
+        const aOrder = Object.entries(statusOrder).find(([key]) => String(a.status).includes(key.split(' ')[0]))?.[1] || 0
+        const bOrder = Object.entries(statusOrder).find(([key]) => String(b.status).includes(key.split(' ')[0]))?.[1] || 0
+        result = aOrder - bOrder
+        break
+      default:
+        result = 0
+    }
+    
+    // 应用排序顺序
+    return sortOrder.value === 'desc' ? -result : result
+  })
+})
+
+// 处理排序改变
+const handleSortChange = (event: Event) => {
+  const target = event.target as HTMLSelectElement
+  sortType.value = target.value
+}
 
 // 开始轮询
 const startPolling = () => {
@@ -231,33 +278,52 @@ const handleUploadSuccess = async (response: any, file: any, fileList: any) => {
   try {
     // 后端返回的response格式是: { status_code: 200, status_message: "success", data: "file_url" }
     if (response && response.status_code === 200 && response.data) {
+      // 找到对应的临时文件，将状态设置为解析中
+      const tempFileIndex = files.value.findIndex(f => f.file_name === file.name && f.id.startsWith('temp_'))
+      
+      if (tempFileIndex !== -1) {
+        files.value[tempFileIndex].status = KnowledgeFileStatus.PROCESS // 设置为解析中
+      }
+      
+      // 提示用户文件正在解析
+      ElMessage.info('文件上传成功，正在解析中，请稍候...')
+      
       const createData: KnowledgeFileCreateRequest = {
         knowledge_id: knowledgeId.value,
         file_url: response.data
       }
       
+      // 调用解析接口
       const apiResponse = await createKnowledgeFileAPI(createData)
+      
+      // 根据解析接口返回的状态码决定最终状态
       if (apiResponse.data.status_code === 200) {
-        ElMessage.success('文件上传成功')
+        ElMessage.success('文件解析成功')
         
         // 移除临时文件
-        const tempFileIndex = files.value.findIndex(f => f.file_name === file.name && f.id.startsWith('temp_'))
         if (tempFileIndex !== -1) {
           files.value.splice(tempFileIndex, 1)
         }
         
         // 刷新列表获取真实数据
         await fetchFiles(false)
-        fileList.value = [] // 清空上传列表
+      } else if (apiResponse.data.status_code === 500) {
+        ElMessage.error('文件解析失败: ' + apiResponse.data.status_message)
+        
+        // 解析失败，将临时文件状态改为失败
+        if (tempFileIndex !== -1) {
+          files.value[tempFileIndex].status = KnowledgeFileStatus.FAIL
+        }
       } else {
         ElMessage.error('文件处理失败: ' + apiResponse.data.status_message)
         
-        // 上传失败，将临时文件状态改为失败
-        const tempFileIndex = files.value.findIndex(f => f.file_name === file.name && f.id.startsWith('temp_'))
+        // 其他错误，将临时文件状态改为失败
         if (tempFileIndex !== -1) {
           files.value[tempFileIndex].status = KnowledgeFileStatus.FAIL
         }
       }
+      
+      fileList.value = [] // 清空上传列表
     } else {
       ElMessage.error('文件上传失败: ' + (response?.status_message || '未知错误'))
       
@@ -267,14 +333,21 @@ const handleUploadSuccess = async (response: any, file: any, fileList: any) => {
         files.value[tempFileIndex].status = KnowledgeFileStatus.FAIL
       }
     }
-  } catch (error) {
-    console.error('文件上传处理失败:', error)
-    ElMessage.error('文件上传处理失败')
+  } catch (error: any) {
+    console.error('文件解析异常:', error?.message || error)
     
-    // 处理失败，将临时文件状态改为失败
-    const tempFileIndex = files.value.findIndex(f => f.file_name === file.name && f.id.startsWith('temp_'))
-    if (tempFileIndex !== -1) {
-      files.value[tempFileIndex].status = KnowledgeFileStatus.FAIL
+    // 处理超时情况
+    if (error?.code === 'ECONNABORTED' && error?.message?.includes('timeout')) {
+      ElMessage.warning('文件解析时间较长，请稍后刷新查看结果')
+      // 不要将状态设为失败，因为后端可能还在处理中
+    } else {
+      ElMessage.error('文件解析失败: ' + (error?.message || error))
+      
+      // 其他错误才设置为失败
+      const tempFileIndex = files.value.findIndex(f => f.file_name === file.name && f.id.startsWith('temp_'))
+      if (tempFileIndex !== -1) {
+        files.value[tempFileIndex].status = KnowledgeFileStatus.FAIL
+      }
     }
   } finally {
     uploading.value = false
@@ -485,7 +558,7 @@ onUnmounted(() => {
               <span class="stat-icon processing-icon">🚀</span>
             </div>
             <div class="stat-content">
-              <div class="stat-number">{{ files.filter(f => String(f.status).includes('🚀')).length }}</div>
+              <div class="stat-number">{{ files.filter((f: KnowledgeFileResponse) => String(f.status).includes('🚀')).length }}</div>
               <div class="stat-label">处理中</div>
             </div>
           </div>
@@ -495,7 +568,7 @@ onUnmounted(() => {
               <span class="stat-icon">✅</span>
             </div>
             <div class="stat-content">
-              <div class="stat-number">{{ files.filter(f => String(f.status).includes('✅')).length }}</div>
+              <div class="stat-number">{{ files.filter((f: KnowledgeFileResponse) => String(f.status).includes('✅')).length }}</div>
               <div class="stat-label">已完成</div>
             </div>
           </div>
@@ -557,7 +630,11 @@ onUnmounted(() => {
                 <span class="sort-text">排序</span>
               </div>
               <div class="sort-dropdown">
-                <select class="sort-select">
+                <select 
+                  class="sort-select" 
+                  v-model="sortType" 
+                  @change="handleSortChange"
+                >
                   <option value="time">🕐 按时间</option>
                   <option value="name">📝 按名称</option>
                   <option value="size">📏 按大小</option>
@@ -567,6 +644,14 @@ onUnmounted(() => {
                   <span class="arrow-icon">▼</span>
                 </div>
               </div>
+              <button 
+                class="sort-order-btn" 
+                @click="sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'"
+                :title="sortOrder === 'desc' ? '点击升序排列' : '点击降序排列'"
+              >
+                <span v-if="sortOrder === 'desc'" class="sort-order-icon">⬇️</span>
+                <span v-else class="sort-order-icon">⬆️</span>
+              </button>
             </div>
           </div>
         </div>
@@ -615,7 +700,7 @@ onUnmounted(() => {
             </tr>
           </thead>
           <tbody>
-            <tr v-for="file in files" :key="file.id" class="file-row" :class="{ 'temp-file': isTempFile(file) }">
+            <tr v-for="file in sortedFiles" :key="file.id" class="file-row" :class="{ 'temp-file': isTempFile(file) }">
               <td class="col-name">
                 <div class="file-info">
                   <div class="file-icon-wrapper">
@@ -1182,6 +1267,34 @@ onUnmounted(() => {
               &:hover .dropdown-arrow .arrow-icon {
                 transform: scale(1.2);
               }
+            }
+          }
+          
+          .sort-order-btn {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+            
+            .sort-order-icon {
+              font-size: 14px;
+              filter: invert(1);
+            }
+            
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
+            }
+            
+            &:active {
+              transform: translateY(0);
             }
           }
         }

@@ -38,6 +38,7 @@ class KnowledgeFileService:
             # 解析状态改为 失败
             logger.info(f"Create Knowledge File Error: {err}")
             await cls.update_parsing_status(knowledge_file_id, Status.fail)
+            raise ValueError(f"Create Knowledge File Error: {err}")
 
     @classmethod
     async def delete_knowledge_file(cls, knowledge_file_id):

@@ -6,7 +6,7 @@ import axios from 'axios'
 
 const request = axios.create({
     baseURL:'',
-    timeout: 5000
+    timeout: 10000  // 全局超时10秒，对于耗时操作单独设置
 })
 
 // 添加请求拦截器

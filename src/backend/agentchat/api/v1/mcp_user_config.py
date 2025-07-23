@@ -40,8 +40,7 @@ async def update_mcp_user_config(*,
                                 login_user: UserPayload = Depends(get_login_user)):
     try:
         await MCPUserConfigService.update_mcp_user_config(
-            config_id=config_request.config_id,
-            mcp_server_id=config_request.mcp_server_id,
+            mcp_server_id=config_request.server_id,
             user_id=login_user.user_id,
             config=config_request.config
         )
@@ -62,12 +61,12 @@ async def delete_mcp_user_config(config_id: str = Body(embed=True, description='
 
 @router.get('/mcp_user_config', response_model=UnifiedResponseModel)
 async def get_mcp_user_config(*,
-                             mcp_server_id: str,
+                             server_id: str,
                              login_user: UserPayload = Depends(get_login_user)):
     try:
-        results = await MCPUserConfigService.get_mcp_user_config(
+        results = await MCPUserConfigService.show_mcp_user_config(
             user_id=login_user.user_id,
-            mcp_server_id=mcp_server_id
+            mcp_server_id=server_id
         )
         return resp_200(data=results)
     except Exception as err:

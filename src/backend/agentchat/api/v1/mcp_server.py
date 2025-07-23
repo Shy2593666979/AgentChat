@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import APIRouter, Query, Body, Depends
 
 from agentchat.api.services.mcp_server import MCPService
@@ -14,6 +16,7 @@ async def create_mcp_server(server_name: str = Body(..., description="MCP Server
                             url: str = Body(..., description="MCP Server 的URL"),
                             type: str = Body(..., description="MCP Server 的连接方式，SSE、Websocket"),
                             config: dict = Body(None, description="MCP Server 的配置信息"),
+                            logo_url: Optional[str] = Body("xxxx", description="MCP Server 的LOGO"),
                             login_user: UserPayload = Depends(get_login_user)):
     try:
         mcp_manager = MCPManager()
@@ -28,8 +31,9 @@ async def create_mcp_server(server_name: str = Body(..., description="MCP Server
         for key, tools in tools_params.items():
             for tool in tools:
                 tools_name_str.append(tool["name"])
+        config_enabled = True if config else False
         await MCPService.create_mcp_server(server_name, login_user.user_id, login_user.user_name,
-                                           url, type, config, tools_name_str, tools_params)
+                                           url, type, config, tools_name_str, tools_params.get(server_name), config_enabled, logo_url)
         return resp_200()
     except Exception as err:
         logger.error(err)
@@ -47,7 +51,7 @@ async def get_mcp_servers(login_user: UserPayload = Depends(get_login_user)):
 
 
 @router.delete("/mcp_server")
-async def delete_mcp_server(server_id: str = Body(..., description="MCP Server 的ID"),
+async def delete_mcp_server(server_id: str = Body(..., description="MCP Server 的ID", embed=True),
                             login_user: UserPayload = Depends(get_login_user)):
     try:
         # 验证是否有权限

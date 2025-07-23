@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Optional
+from typing import Optional, List
 
 from sqlmodel import Session, select, and_, update, desc, delete, or_
 from agentchat.database import engine
@@ -9,7 +9,7 @@ from agentchat.database.models.mcp_user_config import MCPUserConfigTable
 
 class MCPUserConfigDao:
     @classmethod
-    async def create_mcp_user_config(cls, mcp_server_id: str, user_id: str, config: Optional[dict] = None):
+    async def create_mcp_user_config(cls, mcp_server_id: str, user_id: str, config: List[dict] = None):
         """
         创建一个新的MCP用户配置记录。
         :param mcp_server_id: MCP Server ID
@@ -47,28 +47,34 @@ class MCPUserConfigDao:
             session.commit()
 
     @classmethod
-    async def update_mcp_user_config(cls, config_id: str, mcp_server_id: Optional[str] = None,
+    async def update_mcp_user_config(cls, mcp_server_id: List[dict] = None,
                                user_id: Optional[str] = None, config: Optional[dict] = None):
         """
         更新MCP用户配置记录。
-        :param config_id: 配置记录ID
         :param mcp_server_id: MCP Server ID（可选）
         :param user_id: 用户ID（可选）
         :param config: 配置信息（可选）
         :return: None
         """
         with Session(engine) as session:
-            update_values = {}
-            if mcp_server_id:
-                update_values["mcp_server_id"] = mcp_server_id
-            if user_id:
-                update_values["user_id"] = user_id
-            if config:
-                update_values["config"] = config
+            try:
+                update_values = {}
+                if config is not None:  # 更明确的判断
+                    update_values["config"] = config
 
-            sql = update(MCPUserConfigTable).where(MCPUserConfigTable.id == config_id).values(**update_values)
-            session.exec(sql)
-            session.commit()
+                # 只有当有需要更新的字段时才执行更新
+                if update_values:
+                    sql = update(MCPUserConfigTable).where(
+                        and_(
+                            MCPUserConfigTable.user_id == user_id,
+                            MCPUserConfigTable.mcp_server_id == mcp_server_id  # 修正空格问题
+                        )
+                    ).values(**update_values)
+                    session.exec(sql)
+                    session.commit()
+            except Exception as e:
+                session.rollback()  # 出错时回滚事务
+                raise e  # 重新抛出异常以便上层处理
 
     @classmethod
     async def get_mcp_user_configs(cls, user_id: str, mcp_server_id: str):

@@ -78,3 +78,64 @@ export const deleteMCPServerAPI = (server_id: string) => {
     data: { server_id }
   })
 } 
+
+// MCP用户配置相关接口
+export interface MCPUserConfigCreateRequest {
+  mcp_server_id: string
+  config: any
+}
+
+export interface MCPUserConfigUpdateRequest {
+  server_id: string
+  config: any
+}
+
+export interface MCPUserConfig {
+  config_id: string
+  mcp_server_id: string
+  user_id: string
+  config: any
+  create_time: string
+  update_time: string
+}
+
+export interface MCPUserConfigResponse {
+  status_code: number
+  status_message: string
+  data: MCPUserConfig | null
+}
+
+// 获取用户配置
+export const getMCPUserConfigAPI = (server_id: string) => {
+  return request<MCPUserConfigResponse>({
+    url: `/api/v1/mcp_user_config?server_id=${server_id}`,
+    method: 'GET'
+  })
+}
+
+// 创建用户配置
+export const createMCPUserConfigAPI = (data: MCPUserConfigCreateRequest) => {
+  return request<MCPUserConfigResponse>({
+    url: '/api/v1/mcp_user_config/create',
+    method: 'POST',
+    data
+  })
+}
+
+// 更新用户配置
+export const updateMCPUserConfigAPI = (data: MCPUserConfigUpdateRequest) => {
+  return request<MCPServerSingleResponse>({
+    url: '/api/v1/mcp_user_config/update',
+    method: 'PUT',
+    data
+  })
+}
+
+// 删除用户配置
+export const deleteMCPUserConfigAPI = (config_id: string) => {
+  return request<MCPServerSingleResponse>({
+    url: '/api/v1/mcp_user_config/delete',
+    method: 'DELETE',
+    data: { config_id }
+  })
+}

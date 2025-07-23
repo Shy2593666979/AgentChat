@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, onUnmounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import { Plus, ArrowDown, ArrowRight, Edit, Check, Close } from '@element-plus/icons-vue'
 import type { UploadProps, UploadUserFile } from 'element-plus'
@@ -81,6 +81,13 @@ const knowledgeOptions = ref([
 const open = (mode: 'create' | 'edit', agent?: Agent) => {
   visible.value = true
   isEditing.value = mode === 'edit'
+  // 阻止背景滚动
+  document.body.style.overflow = 'hidden'
+  
+  // 创建自定义遮罩层，确保覆盖所有内容
+  setTimeout(() => {
+    createCustomOverlay()
+  }, 50)
   
   if (mode === 'edit' && agent) {
     editingAgentId.value = agent.agent_id
@@ -108,9 +115,52 @@ const open = (mode: 'create' | 'edit', agent?: Agent) => {
   }
 }
 
+// 创建自定义遮罩层
+const createCustomOverlay = () => {
+  // 先移除可能存在的旧遮罩
+  removeCustomOverlay()
+  
+  // 创建新的遮罩层
+  const overlay = document.createElement('div')
+  overlay.id = 'custom-dialog-overlay'
+  overlay.style.cssText = `
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    background-color: rgba(0, 0, 0, 0.6);
+    z-index: 999999;
+    pointer-events: auto;
+    backdrop-filter: blur(4px);
+  `
+  
+  // 添加到body
+  document.body.appendChild(overlay)
+  
+  // 点击遮罩关闭弹窗
+  overlay.addEventListener('click', (e) => {
+    if (e.target === overlay) {
+      close()
+    }
+  })
+}
+
+// 移除自定义遮罩层
+const removeCustomOverlay = () => {
+  const existingOverlay = document.getElementById('custom-dialog-overlay')
+  if (existingOverlay) {
+    existingOverlay.remove()
+  }
+}
+
 // 关闭对话框
 const close = () => {
   visible.value = false
+  // 移除自定义遮罩层
+  removeCustomOverlay()
+  // 恢复背景滚动
+  document.body.style.overflow = 'auto'
   resetForm()
 }
 
@@ -133,6 +183,18 @@ const resetForm = () => {
 }
 
 // 处理文件上传
+const fileInput = ref<HTMLInputElement>()
+
+const handleFileUpload = (event: Event) => {
+  const input = event.target as HTMLInputElement
+  const file = input.files?.[0]
+  if (file) {
+    // 这里可以添加文件上传到服务器的逻辑
+    // 暂时使用本地预览URL
+    formData.logo_url = URL.createObjectURL(file)
+  }
+}
+
 const handleFileChange: UploadProps['onChange'] = (uploadFile) => {
   if (uploadFile.raw) {
     // 这里可以添加文件上传到服务器的逻辑
@@ -175,6 +237,10 @@ const handleSubmit = async () => {
     }
     
     emits('update')
+    // 移除自定义遮罩层
+    removeCustomOverlay()
+    // 恢复背景滚动
+    document.body.style.overflow = 'auto'
     close()
   } catch (error) {
     console.error('操作失败:', error)
@@ -189,273 +255,301 @@ const toggleCollapse = (key: keyof typeof collapseItems.value) => {
   collapseItems.value[key] = !collapseItems.value[key]
 }
 
+onUnmounted(() => {
+  // 组件卸载时恢复背景滚动，防止影响其他页面
+  document.body.style.overflow = 'auto'
+  // 移除自定义遮罩层
+  removeCustomOverlay()
+})
+
 defineExpose({ open, close })
 </script>
 
 <template>
-  <el-dialog
-    v-model="visible"
-    :title="isEditing ? '编辑智能体' : '创建智能体'"
-    :width="1400"
-    destroy-on-close
-    class="agent-form-dialog"
-    :show-close="false"
-  >
-    <template #header>
-      <div class="dialog-header">
-        <div class="header-left">
-          <el-icon class="header-icon"><Edit /></el-icon>
-          <span class="header-title">{{ isEditing ? "编辑助手" : "助手配置" }}</span>
-        </div>
-        <div class="header-right">
-          <el-button @click="close" :icon="Close" circle></el-button>
-        </div>
-      </div>
-    </template>
-
-    <div class="dialog-content">
-      <!-- 左侧预览面板 -->
-      <div class="left-panel">
-        <div class="assistant-preview">
-          <div class="assistant-header">
-            <div class="assistant-avatar">
-              <img v-if="formData.logo_url" :src="formData.logo_url" alt="头像" />
-              <el-icon v-else><Plus /></el-icon>
+  <!-- 使用Teleport直接渲染到body，绕过所有容器限制 -->
+  <Teleport to="body">
+    <div v-if="visible" class="custom-dialog-wrapper">
+      <!-- 自定义弹窗结构，完全脱离Element UI -->
+      <div class="custom-dialog-overlay" @click.self="close">
+        <div class="custom-dialog" @click.stop>
+          <!-- 弹窗头部 -->
+          <div class="dialog-header">
+            <div class="header-left">
+              <svg class="header-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M3 17.25V21H6.75L17.81 9.94L14.06 6.19L3 17.25Z" fill="#409eff"/>
+              </svg>
+              <span class="header-title">{{ isEditing ? "编辑助手" : "助手配置" }}</span>
             </div>
-            <div class="assistant-info">
-              <h3>{{ formData.name || '助手名称' }}</h3>
-              <p>{{ formData.description || '助手描述' }}</p>
+            <div class="header-right">
+              <button @click="close" class="close-btn">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+              </button>
             </div>
           </div>
 
-          <div class="preview-content">
-            <div class="section">
-              <h4>## 角色</h4>
-              <p>{{ formData.system_prompt || '你是一个智能助手...' }}</p>
+          <div class="dialog-content">
+            <!-- 左侧预览面板 -->
+            <div class="left-panel">
+              <div class="assistant-preview">
+                <div class="assistant-header">
+                  <div class="assistant-avatar">
+                    <img v-if="formData.logo_url" :src="formData.logo_url" alt="头像" />
+                    <svg v-else width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L13.09 8.26L19 7L18.74 13.74L24 12L17.74 16.74L19 19L13.74 18.26L12 22L10.26 16.74L5 17L5.26 10.26L2 12L8.26 7.26L7 5L12.26 5.74L12 2Z" fill="#409eff"/>
+                    </svg>
+                  </div>
+                  <div class="assistant-info">
+                    <h3>{{ formData.name || '助手名称' }}</h3>
+                    <p>{{ formData.description || '助手描述' }}</p>
+                  </div>
+                </div>
+
+                <div class="preview-content">
+                  <div class="section">
+                    <h4>## 角色</h4>
+                    <p>{{ formData.system_prompt || '你是一个智能助手...' }}</p>
+                  </div>
+
+                  <div class="section">
+                    <h4>## 技能</h4>
+                    <p>1. 理解和生成自然语言：</p>
+                    <p>- 你能够理解用户的输入，识别其意图，并生成相应的文本回答。</p>
+                    <p>- 通过上下文分析，你可以提供相关信息和建议，帮助用户更好地理解问题。</p>
+                    <br>
+                    <p>2. 执行任务和提供步骤指导：</p>
+                    <p>- 当用户需要执行特定任务时，你可以根据用户的需求，提供清晰的步骤指导。</p>
+                    <p>- 你能够将复杂的任务分解为简单易懂的步骤，确保用户能够顺利完成。</p>
+                  </div>
+
+                  <div class="section">
+                    <h4>## 限制</h4>
+                    <p>- 只讨论与文本生成和自然语言处理相关的内容，拒绝回答与这些主题无关的话题。</p>
+                    <p>- 所有的输出内容必须按照指定的格式进行组织，不能随意更改架构要求。</p>
+                  </div>
+                </div>
+              </div>
             </div>
 
-            <div class="section">
-              <h4>## 技能</h4>
-              <p>1. 理解和生成自然语言：</p>
-              <p>- 你能够理解用户的输入，识别其意图，并生成相应的文本回答。</p>
-              <p>- 通过上下文分析，你可以提供相关信息和建议，帮助用户更好地理解问题。</p>
-              <br>
-              <p>2. 执行任务和提供步骤指导：</p>
-              <p>- 当用户需要执行特定任务时，你可以根据用户的需求，提供清晰的步骤指导。</p>
-              <p>- 你能够将复杂的任务分解为简单易懂的步骤，确保用户能够顺利完成。</p>
-            </div>
+            <!-- 右侧配置面板 -->
+            <div class="right-panel">
+              <form @submit.prevent="handleSubmit" class="config-form">
+                <!-- 基础配置 -->
+                <div class="config-section">
+                  <div class="section-header" @click="toggleCollapse('basic')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path v-if="collapseItems.basic" d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path v-else d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>基础配置</span>
+                  </div>
+                  <div v-show="collapseItems.basic" class="section-content">
+                    <div class="form-group">
+                      <label>助手头像</label>
+                      <div class="avatar-upload">
+                        <input type="file" @change="handleFileUpload" accept="image/*" style="display: none" ref="fileInput">
+                        <div class="avatar-preview" @click="fileInput?.click()">
+                          <img v-if="formData.logo_url" :src="formData.logo_url" alt="头像" />
+                          <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 2L13.09 8.26L19 7L18.74 13.74L24 12L17.74 16.74L19 19L13.74 18.26L12 22L10.26 16.74L5 17L5.26 10.26L2 12L8.26 7.26L7 5L12.26 5.74L12 2Z" fill="#ddd"/>
+                          </svg>
+                        </div>
+                      </div>
+                    </div>
+                    
+                    <div class="form-group">
+                      <label>助手名称 *</label>
+                      <input v-model="formData.name" type="text" placeholder="请输入助手名称" required />
+                    </div>
+                    
+                    <div class="form-group">
+                      <label>助手描述 *</label>
+                      <textarea v-model="formData.description" rows="3" placeholder="请输入助手描述" required></textarea>
+                    </div>
+                  </div>
+                </div>
 
-            <div class="section">
-              <h4>## 限制</h4>
-              <p>- 只讨论与文本生成和自然语言处理相关的内容，拒绝回答与这些主题无关的话题。</p>
-              <p>- 所有的输出内容必须按照指定的格式进行组织，不能随意更改架构要求。</p>
-            </div>
-          </div>
-        </div>
-      </div>
+                <!-- AI模型配置 -->
+                <div class="config-section">
+                  <div class="section-header" @click="toggleCollapse('aiModel')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path v-if="collapseItems.aiModel" d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path v-else d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>AI模型配置</span>
+                  </div>
+                  <div v-show="collapseItems.aiModel" class="section-content">
+                    <div class="form-group">
+                      <label>选择模型 *</label>
+                      <select v-model="formData.llm_id" required>
+                        <option value="">请选择大模型</option>
+                        <option v-for="llm in llmOptions" :key="llm.id" :value="llm.id">
+                          {{ llm.name }}
+                        </option>
+                      </select>
+                    </div>
+                    
+                    <div class="form-group">
+                      <label>系统提示词 *</label>
+                      <textarea v-model="formData.system_prompt" rows="6" placeholder="请输入系统提示词" required></textarea>
+                    </div>
+                  </div>
+                </div>
 
-      <!-- 右侧配置面板 -->
-      <div class="right-panel">
-        <el-form ref="formRef" :model="formData" :rules="rules" class="config-form">
-          <!-- 基础配置 -->
-          <div class="config-section">
-            <div class="section-header" @click="toggleCollapse('basic')">
-              <el-icon>
-                <ArrowDown v-if="collapseItems.basic" />
-                <ArrowRight v-else />
-              </el-icon>
-              <span>基础配置</span>
-            </div>
-            <div v-show="collapseItems.basic" class="section-content">
-              <el-form-item label="助手头像">
-                <el-upload
-                  v-model:file-list="fileList"
-                  class="avatar-uploader"
-                  action="#"
-                  :show-file-list="false"
-                  :auto-upload="false"
-                  :on-change="handleFileChange"
-                  :on-remove="handleFileRemove"
+                <!-- 知识库 -->
+                <div class="config-section">
+                  <div class="section-header" @click="toggleCollapse('knowledgeBase')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path v-if="collapseItems.knowledgeBase" d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path v-else d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>知识库</span>
+                    <svg class="add-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L13.09 8.26L19 7L18.74 13.74L24 12L17.74 16.74L19 19L13.74 18.26L12 22L10.26 16.74L5 17L5.26 10.26L2 12L8.26 7.26L7 5L12.26 5.74L12 2Z" fill="#409eff"/>
+                    </svg>
+                  </div>
+                  <div v-show="collapseItems.knowledgeBase" class="section-content">
+                    <div class="form-group">
+                      <label>选择知识库</label>
+                      <div class="multi-select">
+                        <div v-for="knowledge in knowledgeOptions" :key="knowledge.id" class="checkbox-item">
+                          <input 
+                            type="checkbox" 
+                            :id="'knowledge-' + knowledge.id"
+                            :value="knowledge.id" 
+                            v-model="formData.knowledge_ids"
+                          />
+                          <label :for="'knowledge-' + knowledge.id">{{ knowledge.name }}</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 工具 -->
+                <div class="config-section">
+                  <div class="section-header" @click="toggleCollapse('tools')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path v-if="collapseItems.tools" d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path v-else d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>工具</span>
+                    <svg class="add-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L13.09 8.26L19 7L18.74 13.74L24 12L17.74 16.74L19 19L13.74 18.26L12 22L10.26 16.74L5 17L5.26 10.26L2 12L8.26 7.26L7 5L12.26 5.74L12 2Z" fill="#409eff"/>
+                    </svg>
+                  </div>
+                  <div v-show="collapseItems.tools" class="section-content">
+                    <div class="form-group">
+                      <label>选择工具</label>
+                      <div class="multi-select">
+                        <div v-for="tool in toolOptions" :key="tool.id" class="checkbox-item">
+                          <input 
+                            type="checkbox" 
+                            :id="'tool-' + tool.id"
+                            :value="tool.id" 
+                            v-model="formData.tool_ids"
+                          />
+                          <label :for="'tool-' + tool.id">{{ tool.name }}</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <!-- 技能 -->
+                <div class="config-section">
+                  <div class="section-header" @click="toggleCollapse('skills')">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path v-if="collapseItems.skills" d="M6 9L12 15L18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                      <path v-else d="M9 18L15 12L9 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    <span>技能</span>
+                    <svg class="add-icon" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                      <path d="M12 2L13.09 8.26L19 7L18.74 13.74L24 12L17.74 16.74L19 19L13.74 18.26L12 22L10.26 16.74L5 17L5.26 10.26L2 12L8.26 7.26L7 5L12.26 5.74L12 2Z" fill="#409eff"/>
+                    </svg>
+                  </div>
+                  <div v-show="collapseItems.skills" class="section-content">
+                    <div class="form-group">
+                      <label>MCP服务器</label>
+                      <div class="multi-select">
+                        <div v-for="mcp in mcpOptions" :key="mcp.id" class="checkbox-item">
+                          <input 
+                            type="checkbox" 
+                            :id="'mcp-' + mcp.id"
+                            :value="mcp.id" 
+                            v-model="formData.mcp_ids"
+                          />
+                          <label :for="'mcp-' + mcp.id">{{ mcp.name }}</label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </form>
+
+              <!-- 推荐问题 -->
+              <div class="recommended-questions">
+                <h4>推荐问题</h4>
+                <div class="question-list">
+                  <div
+                    v-for="(question, index) in recommendedQuestions"
+                    :key="index"
+                    class="question-item"
+                  >
+                    {{ question }}
+                  </div>
+                </div>
+              </div>
+
+              <!-- 操作按钮 -->
+              <div class="action-buttons">
+                <button type="button" @click="close" class="btn btn-cancel">取消</button>
+                <button 
+                  type="button" 
+                  @click="handleSubmit"
+                  :disabled="loading"
+                  class="btn btn-primary"
                 >
-                  <img v-if="formData.logo_url" :src="formData.logo_url" class="avatar" />
-                  <el-icon v-else class="avatar-uploader-icon"><Plus /></el-icon>
-                </el-upload>
-              </el-form-item>
-              
-              <el-form-item label="助手名称" prop="name">
-                <el-input v-model="formData.name" placeholder="请输入助手名称" />
-              </el-form-item>
-              
-              <el-form-item label="助手描述" prop="description">
-                <el-input
-                  v-model="formData.description"
-                  type="textarea"
-                  :rows="3"
-                  placeholder="请输入助手描述"
-                />
-              </el-form-item>
+                  <span v-if="loading" class="loading-spinner"></span>
+                  {{ isEditing ? '保存' : '创建' }}
+                </button>
+              </div>
             </div>
           </div>
-
-          <!-- AI模型配置 -->
-          <div class="config-section">
-            <div class="section-header" @click="toggleCollapse('aiModel')">
-              <el-icon>
-                <ArrowDown v-if="collapseItems.aiModel" />
-                <ArrowRight v-else />
-              </el-icon>
-              <span>AI模型配置</span>
-            </div>
-            <div v-show="collapseItems.aiModel" class="section-content">
-              <el-form-item label="选择模型" prop="llm_id">
-                <el-select v-model="formData.llm_id" placeholder="请选择大模型" style="width: 100%">
-                  <el-option
-                    v-for="llm in llmOptions"
-                    :key="llm.id"
-                    :label="llm.name"
-                    :value="llm.id"
-                  />
-                </el-select>
-              </el-form-item>
-              
-              <el-form-item label="系统提示词" prop="system_prompt">
-                <el-input
-                  v-model="formData.system_prompt"
-                  type="textarea"
-                  :rows="6"
-                  placeholder="请输入系统提示词"
-                />
-              </el-form-item>
-            </div>
-          </div>
-
-          <!-- 知识库 -->
-          <div class="config-section">
-            <div class="section-header" @click="toggleCollapse('knowledgeBase')">
-              <el-icon>
-                <ArrowDown v-if="collapseItems.knowledgeBase" />
-                <ArrowRight v-else />
-              </el-icon>
-              <span>知识库</span>
-              <el-icon class="add-icon"><Plus /></el-icon>
-            </div>
-            <div v-show="collapseItems.knowledgeBase" class="section-content">
-              <el-form-item label="选择知识库">
-                <el-select
-                  v-model="formData.knowledge_ids"
-                  multiple
-                  placeholder="请选择知识库"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="knowledge in knowledgeOptions"
-                    :key="knowledge.id"
-                    :label="knowledge.name"
-                    :value="knowledge.id"
-                  />
-                </el-select>
-              </el-form-item>
-
-            </div>
-          </div>
-
-          <!-- 工具 -->
-          <div class="config-section">
-            <div class="section-header" @click="toggleCollapse('tools')">
-              <el-icon>
-                <ArrowDown v-if="collapseItems.tools" />
-                <ArrowRight v-else />
-              </el-icon>
-              <span>工具</span>
-              <el-icon class="add-icon"><Plus /></el-icon>
-            </div>
-            <div v-show="collapseItems.tools" class="section-content">
-              <el-form-item label="选择工具">
-                <el-select
-                  v-model="formData.tool_ids"
-                  multiple
-                  placeholder="请选择工具"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="tool in toolOptions"
-                    :key="tool.id"
-                    :label="tool.name"
-                    :value="tool.id"
-                  />
-                </el-select>
-              </el-form-item>
-            </div>
-          </div>
-
-          <!-- 技能 -->
-          <div class="config-section">
-            <div class="section-header" @click="toggleCollapse('skills')">
-              <el-icon>
-                <ArrowDown v-if="collapseItems.skills" />
-                <ArrowRight v-else />
-              </el-icon>
-              <span>技能</span>
-              <el-icon class="add-icon"><Plus /></el-icon>
-            </div>
-            <div v-show="collapseItems.skills" class="section-content">
-              <el-form-item label="MCP服务器">
-                <el-select
-                  v-model="formData.mcp_ids"
-                  multiple
-                  placeholder="请选择MCP服务器"
-                  style="width: 100%"
-                >
-                  <el-option
-                    v-for="mcp in mcpOptions"
-                    :key="mcp.id"
-                    :label="mcp.name"
-                    :value="mcp.id"
-                  />
-                </el-select>
-              </el-form-item>
-            </div>
-          </div>
-        </el-form>
-
-        <!-- 推荐问题 -->
-        <div class="recommended-questions">
-          <h4>推荐问题</h4>
-          <div class="question-list">
-            <div
-              v-for="(question, index) in recommendedQuestions"
-              :key="index"
-              class="question-item"
-            >
-              {{ question }}
-            </div>
-          </div>
-        </div>
-
-        <!-- 操作按钮 -->
-        <div class="action-buttons">
-          <el-button @click="close">取消</el-button>
-          <el-button 
-            type="primary" 
-            @click="handleSubmit"
-            :loading="loading"
-            :icon="Check"
-          >
-            {{ isEditing ? '保存' : '创建' }}
-          </el-button>
         </div>
       </div>
     </div>
-  </el-dialog>
+  </Teleport>
 </template>
+
+<style lang="scss">
+// 全局样式，不使用scoped，确保能覆盖Element UI的默认样式
+.agent-form-dialog {
+  .el-dialog {
+    border-radius: 12px;
+    padding: 0;
+    z-index: 1000000 !important;
+  }
+  
+  .el-overlay {
+    display: none !important; // 隐藏Element UI自带的遮罩，使用我们的自定义遮罩
+  }
+}
+
+// 确保弹窗覆盖所有元素
+.el-dialog__wrapper {
+  z-index: 1000000 !important;
+}
+
+// 自定义遮罩层样式
+#custom-dialog-overlay {
+  z-index: 999999 !important;
+}
+</style>
 
 <style lang="scss" scoped>
 .agent-form-dialog {
-  :deep(.el-dialog) {
-    border-radius: 12px;
-    padding: 0;
-  }
-
   :deep(.el-dialog__body) {
     padding: 0;
   }
