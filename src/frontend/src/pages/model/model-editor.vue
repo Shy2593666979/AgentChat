@@ -83,6 +83,15 @@ const fetchModelDetail = async () => {
       
       const targetModel = allModels.find(model => model.llm_id === modelId)
       if (targetModel) {
+        // 检查是否为官方模型
+        if (targetModel.user_id === '0') {
+          ElMessage.warning('官方模型不可编辑，请返回模型列表')
+          setTimeout(() => {
+            router.push('/model')
+          }, 1500)
+          return
+        }
+        
         currentModel.value = targetModel
         // 填充表单
         Object.assign(editForm, {
@@ -138,6 +147,12 @@ const handleUpdate = async () => {
 // 删除模型
 const handleDelete = async () => {
   if (!currentModel.value) return
+  
+  // 检查是否为官方模型
+  if (currentModel.value.user_id === '0') {
+    ElMessage.warning('⚠️ 官方模型不可删除')
+    return
+  }
   
   try {
     await ElMessageBox.confirm(

@@ -164,7 +164,7 @@ const personQuestion = async () => {
 
     historyChatStore.chatArr.push({
       personMessage: { content: currentInput },
-      aiMessage: { content: "" },
+      aiMessage: { content: "" }, // 设置初始空内容，后续会被chunks累加
       eventInfo: [] // 初始化事件信息数组
     })
     scrollBottom()
@@ -184,12 +184,32 @@ const personQuestion = async () => {
           }
           try {
             const parsedData = JSON.parse(msg.data)
-            console.log("---------------------------")
-            console.log(parsedData.data)
+            // 移除这些可能含有敏感信息的日志
+            // console.log("---------------------------")
+            // console.log(parsedData.data)
+            
+            if (parsedData.data.tools && Array.isArray(parsedData.data.tools)) {
+              // data.value.tools = parsedData.data.tools // This line was removed from the original file
+            }
+            // 只有当不是response_chunk类型时，才设置整个content
+            if (parsedData.type !== 'response_chunk') {
+              historyChatStore.chatArr[historyChatStore.chatArr.length - 1].aiMessage.content = parsedData.data.content || ''
+            }
+            if (parsedData.data.session_id) {
+              // sessionId.value = parsedData.data.session_id // This line was removed from the original file
+              // sessionStore().updateSessionId(sessionId.value) // This line was removed from the original file
+            }
             // 处理不同类型的消息
             if (parsedData.type === 'response_chunk') {
-              historyChatStore.chatArr[historyChatStore.chatArr.length - 1].aiMessage.content += parsedData.data.chunk
+              // 累加chunk内容而不是替换
+              const lastMessage = historyChatStore.chatArr[historyChatStore.chatArr.length - 1]
+              if (!lastMessage.aiMessage.content) {
+                lastMessage.aiMessage.content = parsedData.data.chunk
+              } else {
+                lastMessage.aiMessage.content += parsedData.data.chunk
+              }
               scrollBottom()
+              // console.log('【Chunk接收】当前累加内容:', lastMessage.aiMessage.content) // 调试用
             } else if (parsedData.type === 'event') {
               // 处理事件消息
               handleEventStatus(parsedData)
@@ -239,7 +259,7 @@ const personQuestion = async () => {
 
 const stopGeneration = () => {
   if (abortCtrl.value) {
-    console.log('[stopGeneration] 用户点击暂停, abort 请求')
+    // console.log('[stopGeneration] 用户点击暂停, abort 请求')
     isCancelled.value = true
     abortCtrl.value.abort()
     const lastMessage = historyChatStore.chatArr[historyChatStore.chatArr.length - 1]
@@ -285,7 +305,8 @@ watch(
 // Watch for new messages to scroll down
 watch(
   () => historyChatStore.chatArr,
-  () => {
+  (newVal) => {
+    // console.log('【消息更新】历史消息数组更新:', JSON.stringify(newVal))
     scrollBottom()
   },
   { deep: true }

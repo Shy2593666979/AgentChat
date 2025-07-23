@@ -7,7 +7,7 @@ import { User, SwitchButton, Setting } from '@element-plus/icons-vue'
 import { useAgentCardStore } from "../store/agent_card"
 import { useUserStore } from "../store/user"
 import { getAgentsAPI } from "../apis/agent"
-import { logoutAPI } from "../apis/auth"
+import { logoutAPI, getUserInfoAPI } from "../apis/auth"
 import { Agent } from "../type"
 
 const agentCardStore = useAgentCardStore()
@@ -19,8 +19,25 @@ const current = ref(route.meta.current)
 const cardList = ref<Agent[]>([])
 
 // 初始化用户状态
-onMounted(() => {
+onMounted(async () => {
   userStore.initUserState()
+  
+  // 如果已登录但没有头像，则尝试获取用户信息
+  if (userStore.isLoggedIn && userStore.userInfo && !userStore.userInfo.avatar) {
+    try {
+      const response = await getUserInfoAPI(userStore.userInfo.id)
+      if (response.data.status_code === 200 && response.data.data) {
+        const userData = response.data.data
+        userStore.updateUserInfo({
+          avatar: userData.user_avatar || userData.avatar || '/src/assets/user.svg',
+          description: userData.user_description || userData.description
+        })
+      }
+    } catch (error) {
+      console.error('初始化时获取用户信息失败:', error)
+    }
+  }
+  
   updateList()
 })
 
@@ -119,17 +136,10 @@ watch(
                 <img
                   :src="userStore.userInfo?.avatar || '/src/assets/user.svg'"
                   alt="用户头像"
-                  style="width: 36px; height: 36px; border-radius: 50%"
+                  style="width: 40px; height: 40px; border-radius: 50%"
                   @error="handleAvatarError"
+                  referrerpolicy="no-referrer"
                 />
-              </div>
-              <div class="user-details" v-if="userStore.isLoggedIn">
-                <div class="user-name">{{ userStore.userInfo?.nickname || userStore.userInfo?.username || '用户' }}</div>
-                <div class="user-status">在线</div>
-              </div>
-              <div class="user-details" v-else>
-                <div class="user-name">访客模式</div>
-                <div class="user-status">未登录</div>
               </div>
             </div>
             <template #dropdown>
@@ -231,7 +241,7 @@ watch(
                 title="帮助文档"
               >
                 <img
-                  src="../assets/knowledge.svg"
+                  src="../assets/help.png"
                   alt="帮助文档"
                   class="help-icon"
                 />
@@ -294,40 +304,30 @@ watch(
         .user-avatar-wrapper {
           display: flex;
           align-items: center;
-          padding: 8px 12px;
-          border-radius: 25px;
-          background: rgba(255, 255, 255, 0.1);
+          padding: 4px;
+          border-radius: 50%;
+          background: rgba(255, 255, 255, 0.15);
           backdrop-filter: blur(10px);
           cursor: pointer;
           transition: all 0.3s ease;
           
           &:hover {
-            background: rgba(255, 255, 255, 0.2);
-            transform: translateY(-1px);
+            background: rgba(255, 255, 255, 0.25);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
           }
           
           .user-avatar {
-            margin-right: 12px;
-            
             img {
-              border: 2px solid rgba(255, 255, 255, 0.3);
+              border: 2px solid rgba(255, 255, 255, 0.5);
               object-fit: cover;
-            }
-          }
-          
-          .user-details {
-            .user-name {
-              color: white;
-              font-size: 14px;
-              font-weight: 500;
-              line-height: 1.2;
-              margin-bottom: 2px;
-            }
-            
-            .user-status {
-              color: rgba(255, 255, 255, 0.8);
-              font-size: 12px;
-              line-height: 1;
+              box-shadow: 0 4px 10px rgba(0, 0, 0, 0.1);
+              transition: all 0.3s ease;
+              
+              &:hover {
+                border-color: rgba(255, 255, 255, 0.8);
+                transform: scale(1.05);
+              }
             }
           }
         }
@@ -485,7 +485,8 @@ watch(
         padding: 2px;
         
         img {
-          filter: brightness(0) invert(1) contrast(2) drop-shadow(0 0 6px rgba(255, 255, 255, 0.8));
+          /* 修改过滤器，保持图标可见 */
+          filter: brightness(1) contrast(1.2) drop-shadow(0 0 3px rgba(255, 255, 255, 0.5));
           transform: scale(1.15);
           opacity: 1 !important;
         }

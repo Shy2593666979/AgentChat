@@ -2,6 +2,7 @@
 import { ref, onMounted, computed } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, View, Search, Refresh } from '@element-plus/icons-vue'
+import pluginIcon from '../../assets/plugin.svg'
 import { 
   getAllToolsAPI, 
   getOwnToolsAPI, 
@@ -302,7 +303,10 @@ onMounted(() => {
     <!-- 页面头部 -->
     <div class="page-header">
       <div class="header-left">
-        <h2>工具管理</h2>
+        <h2>
+          <img :src="pluginIcon" class="tool-icon" alt="Tool" />
+          工具管理
+        </h2>
         <p class="header-desc">管理和配置各种AI工具，提升对话体验</p>
       </div>
       <div class="header-actions">
@@ -410,11 +414,27 @@ onMounted(() => {
       <!-- 空状态 -->
       <div v-if="filteredTools.length === 0 && !loading" class="empty-state">
         <div class="empty-icon">
-          <img src="/src/assets/404.gif" alt="暂无数据" />
+          <i class="empty-icon-symbol">🛠️</i>
         </div>
-        <h3>暂无工具</h3>
-        <p v-if="searchKeyword">没有找到匹配的工具，请尝试其他关键词</p>
-        <p v-else>点击上方按钮创建第一个工具吧！</p>
+        <h3>{{ searchKeyword ? '未找到匹配工具' : '暂无工具' }}</h3>
+        <p v-if="searchKeyword">没有找到包含 "{{ searchKeyword }}" 的工具</p>
+        <p v-else>添加工具可以让您的智能体拥有更多能力</p>
+        <div class="empty-actions">
+          <el-button 
+            v-if="searchKeyword" 
+            type="primary" 
+            @click="searchKeyword = ''"
+          >
+            查看所有工具
+          </el-button>
+          <el-button 
+            v-else
+            type="primary"
+            @click="showCreateDialog = true"
+          >
+            创建工具
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -555,13 +575,26 @@ onMounted(() => {
         margin: 0 0 8px 0;
         font-size: 28px;
         font-weight: 600;
-        color: #1a1a1a;
+        color: #3a7be2; // 修改颜色为蓝色，与插件图标相似
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        background: linear-gradient(90deg, #3a7be2, #4a66b3); // 添加渐变效果
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        
+        .tool-icon {
+          width: 32px;
+          height: 32px;
+        }
       }
       
       .header-desc {
         margin: 0;
-        color: #666;
+        color: #4a66b3; // 修改描述文字颜色，与标题相协调
         font-size: 14px;
+        opacity: 0.9;
       }
     }
     
@@ -795,6 +828,51 @@ onMounted(() => {
         line-height: 1.5;
       }
     }
+  }
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  margin: 20px auto;
+  max-width: 600px;
+  
+  .empty-icon {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(64, 158, 255, 0.1);
+    border-radius: 50%;
+    margin-bottom: 20px;
+    
+    .empty-icon-symbol {
+      font-size: 60px;
+    }
+  }
+  
+  h3 {
+    font-size: 20px;
+    color: #303133;
+    margin: 0 0 16px;
+  }
+  
+  p {
+    margin: 0 0 20px;
+    font-size: 16px;
+    color: #909399;
+    max-width: 300px;
+  }
+  
+  .empty-actions {
+    display: flex;
+    gap: 12px;
   }
 }
 

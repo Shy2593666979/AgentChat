@@ -666,7 +666,7 @@ const loadAgentFromAPI = async (agentId: string) => {
     const response = await getAgentByIdAPI(agentId)
     if (response.data.status_code === 200 && response.data.data) {
       const agentData = response.data.data as any
-      console.log('🔍 API返回的智能体原始数据:', agentData)
+      // console.log('🔍 API返回的智能体原始数据:', agentData)
       
       // 转换API数据为Agent类型，兼容 id 和 agent_id
       const agent: Agent = {
@@ -683,7 +683,7 @@ const loadAgentFromAPI = async (agentId: string) => {
         created_time: new Date().toISOString()
       }
       
-      console.log('🔄 转换后的智能体数据:', agent)
+      // console.log('🔄 转换后的智能体数据:', agent)
       loadAgent(agent)
       ElMessage.success('智能体数据加载成功')
     } else {

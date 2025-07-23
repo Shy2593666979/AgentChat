@@ -23,4 +23,5 @@ load_dotenv(override=True)
 
 engine = create_engine(app_settings.mysql.get('endpoint'),
                        connect_args={"charset": "utf8mb4",
+                                     "use_unicode": True,
                                      'init_command': "SET SESSION time_zone = '+08:00'"})

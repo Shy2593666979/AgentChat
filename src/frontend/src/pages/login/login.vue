@@ -2,7 +2,7 @@
 import { ref, reactive } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { loginAPI } from '../../apis/auth'
+import { loginAPI, getUserInfoAPI } from '../../apis/auth'
 import { useUserStore } from '../../store/user'
 
 const router = useRouter()
@@ -25,21 +25,41 @@ const handleLogin = async () => {
     loading.value = true
     const response = await loginAPI(loginForm)
     
-    if (response.data.status_code === 200) {
+    // response.data结构可能是{status_code: number, data: {...}}
+    const responseData = response.data
+    if (responseData.status_code === 200) {
       ElMessage.success('登录成功')
       
       // 使用store管理用户状态
-      if (response.data.data?.access_token && response.data.data?.user_id) {
-        userStore.setUserInfo(response.data.data.access_token, {
-          id: response.data.data.user_id,
+      const userData = responseData.data || {}
+      if (userData.access_token && userData.user_id) {
+        // 先保存基础用户信息
+        userStore.setUserInfo(userData.access_token, {
+          id: userData.user_id,
           username: loginForm.username
         })
+        
+        // 立即获取完整的用户信息（包括头像等）
+        try {
+          const userInfoResponse = await getUserInfoAPI(userData.user_id)
+          const userInfoData = userInfoResponse.data
+          if (userInfoData.status_code === 200) {
+            const completeUserData = userInfoData.data || {}
+            // 更新用户信息，包含头像
+            userStore.updateUserInfo({
+              avatar: completeUserData.user_avatar || completeUserData.avatar,
+              description: completeUserData.user_description || completeUserData.description
+            })
+          }
+        } catch (error) {
+          console.error('获取用户详细信息失败:', error)
+        }
       }
       
       // 跳转到主页
       router.push('/')
     } else {
-      ElMessage.error(response.data.status_message || '登录失败')
+      ElMessage.error(responseData.status_message || '登录失败')
     }
   } catch (error: any) {
     console.error('登录错误:', error)

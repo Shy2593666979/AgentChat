@@ -8,6 +8,7 @@ import 'element-plus/es/components/form-item/style/css'
 import 'element-plus/es/components/input/style/css'
 import 'element-plus/es/components/button/style/css'
 import { Plus, Document, Folder, Edit, Delete } from '@element-plus/icons-vue'
+import knowledgeIcon from '../../assets/knowledge.svg'
 import { 
   getKnowledgeListAPI, 
   createKnowledgeAPI,
@@ -243,7 +244,10 @@ onMounted(() => {
 <template>
   <div class="knowledge-page">
     <div class="page-header">
-      <h2>知识库管理</h2>
+      <h2>
+        <img :src="knowledgeIcon" class="knowledge-icon" alt="Knowledge" />
+        知识库管理
+      </h2>
       <el-button type="primary" :icon="Plus" @click="openCreateDialog">
         创建知识库
       </el-button>
@@ -325,8 +329,14 @@ onMounted(() => {
       </div>
       
       <div v-if="knowledges.length === 0 && !loading" class="empty-state">
-        <img src="/src/assets/404.gif" alt="暂无数据" width="300" />
-        <p>暂无知识库，点击上方按钮创建第一个知识库吧！</p>
+        <div class="empty-icon">
+          <i class="empty-icon-symbol">📚</i>
+        </div>
+        <h3>暂无知识库</h3>
+        <p>您可以创建知识库来存储和管理您的文档资料</p>
+        <el-button type="primary" @click="createDialogVisible = true" class="create-btn">
+          创建知识库
+        </el-button>
       </div>
     </div>
 
@@ -457,7 +467,18 @@ onMounted(() => {
       margin: 0;
       font-size: 20px;
       font-weight: 600;
-      color: #2c3e50;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(90deg, #4880FF, #73c7ff); // 与knowledge.svg图标颜色匹配
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      
+      .knowledge-icon {
+        width: 28px;
+        height: 28px;
+      }
     }
   }
   
@@ -972,5 +993,50 @@ onMounted(() => {
   color: #606266;
   font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', monospace;
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  margin: 20px auto;
+  max-width: 600px;
+  
+  .empty-icon {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(64, 158, 255, 0.1);
+    border-radius: 50%;
+    margin-bottom: 20px;
+    
+    .empty-icon-symbol {
+      font-size: 60px;
+    }
+  }
+  
+  h3 {
+    font-size: 20px;
+    color: #303133;
+    margin: 0 0 16px;
+  }
+  
+  p {
+    margin: 0 0 20px;
+    font-size: 16px;
+    color: #909399;
+    max-width: 300px;
+  }
+  
+  .create-btn {
+    padding: 12px 24px;
+    font-size: 16px;
+  }
 }
 </style> 

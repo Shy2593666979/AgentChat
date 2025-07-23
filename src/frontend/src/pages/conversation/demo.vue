@@ -138,7 +138,7 @@ const deleteDialog = async (dialogId: string) => {
 // 选择会话
 const selectDialog = (dialogId: string) => {
   selectedDialog.value = dialogId
-  ElMessage.info('进入会话')
+  // ElMessage.info('进入会话')
 }
 
 // 清除搜索

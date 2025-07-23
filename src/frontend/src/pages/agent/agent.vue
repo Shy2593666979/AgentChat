@@ -3,6 +3,7 @@ import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Edit, Delete, View, Search, Refresh, Tools } from '@element-plus/icons-vue'
+import robotIcon from '../../assets/robot.svg'
 import { 
   getAgentsAPI, 
   deleteAgentAPI, 
@@ -42,13 +43,14 @@ const convertToAgent = (apiAgent: any): Agent => ({
 const fetchAgents = async () => {
   loading.value = true
   try {
-    console.log('开始调用智能体API...')
-    console.log('请求URL: /api/v1/agent')
-    console.log('Token:', localStorage.getItem('token'))
+    // 删除包含敏感信息的日志
+    // console.log('开始调用智能体API...')
+    // console.log('请求URL: /api/v1/agent')
+    // console.log('Token:', localStorage.getItem('token'))
     
     const response = await getAgentsAPI()
-    console.log('API响应:', response)
-    console.log('响应数据:', response.data)
+    // console.log('API响应:', response)
+    // console.log('响应数据:', response.data)
     
     // 兼容不同的后端响应格式
     const responseCode = response.data.status_code || response.data.status_code
@@ -56,10 +58,10 @@ const fetchAgents = async () => {
     const responseData = response.data.data
     
     if (responseCode === 200 || response.data.status_code === 200) {
-      console.log('API调用成功，智能体数据:', responseData)
+      // console.log('API调用成功，智能体数据:', responseData)
       if (responseData && Array.isArray(responseData)) {
         agents.value = responseData.map(convertToAgent)
-        console.log('转换后的智能体列表:', agents.value)
+        // console.log('转换后的智能体列表:', agents.value)
       } else {
         console.warn('响应数据格式异常:', responseData)
         agents.value = []
@@ -68,7 +70,7 @@ const fetchAgents = async () => {
       console.error('API返回错误:', responseMessage)
       ElMessage.error(responseMessage || '获取智能体列表失败')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('获取智能体列表失败 - 详细错误:', error)
     console.error('错误类型:', typeof error)
     console.error('错误信息:', error.message)
@@ -117,7 +119,7 @@ const searchAgents = async () => {
     } else {
       ElMessage.error(response.data.status_message || '搜索失败')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('搜索智能体失败:', error)
     ElMessage.error('搜索智能体失败')
   } finally {
@@ -188,7 +190,7 @@ const confirmDelete = async () => {
     } else {
       ElMessage.error(response.data.status_message || '删除失败')
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error('删除智能体失败:', error)
     ElMessage.error('删除失败，请稍后重试')
   } finally {
@@ -211,13 +213,9 @@ const viewAgent = (agent: Agent) => {
   console.log('查看智能体:', agent)
 }
 
-// 刷新列表
-const refreshAgents = () => {
-  if (searchKeyword.value.trim()) {
-    searchAgents()
-  } else {
-    fetchAgents()
-  }
+// 刷新智能体列表
+const refreshAgents = async () => {
+  await fetchAgents()
 }
 
 // 处理图片加载错误
@@ -237,9 +235,7 @@ onMounted(() => {
   <div class="agent-page">
     <div class="page-header">
       <div class="header-title">
-        <div class="title-icon">
-          <img src="/src/assets/robot1.svg" alt="智能体" width="40" height="40" />
-        </div>
+        <img :src="robotIcon" alt="智能体" class="title-icon" />
         <h2>智能体管理</h2>
       </div>
       <div class="header-actions">
@@ -342,21 +338,33 @@ onMounted(() => {
       </div>
       
       <div v-else-if="!loading" class="empty-state">
-        <img src="/src/assets/404.gif" alt="暂无数据" width="300" />
+        <div class="empty-icon">
+          <i class="empty-icon-symbol">🤖</i>
+        </div>
+        <h3 v-if="searchKeyword">未找到智能体</h3>
+        <h3 v-else>暂无智能体</h3>
         <p v-if="searchKeyword">
           未找到包含 "{{ searchKeyword }}" 的智能体
         </p>
         <p v-else>
-          暂无智能体，点击上方按钮创建第一个智能体吧！
+          创建您的第一个智能体，开始智能对话体验
         </p>
-        <el-button 
-          v-if="searchKeyword" 
-          type="primary" 
-          @click="clearSearch"
-          style="margin-top: 20px"
-        >
-          查看所有智能体
-        </el-button>
+        <div class="empty-actions">
+          <el-button 
+            v-if="searchKeyword" 
+            type="primary" 
+            @click="clearSearch"
+          >
+            查看所有智能体
+          </el-button>
+          <el-button 
+            v-else
+            type="primary"
+            @click="createAgent"
+          >
+            创建智能体
+          </el-button>
+        </div>
       </div>
     </div>
 
@@ -387,42 +395,31 @@ onMounted(() => {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
+    margin-bottom: 24px; // 减小了margin-bottom
     background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    padding: 32px 40px;
-    border-radius: 20px;
-    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+    padding: 20px 28px; // 减小了padding
+    border-radius: 16px; // 减小了border-radius
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06); // 减小了阴影
     border: 1px solid rgba(226, 232, 240, 0.6);
     
     .header-title {
       display: flex;
       align-items: center;
-      gap: 16px;
+      gap: 14px;
       
       .title-icon {
-        width: 56px;
-        height: 56px;
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-        border-radius: 16px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-        
-        img {
-          filter: brightness(0) invert(1);
-        }
+        width: 36px;
+        height: 36px;
       }
       
       h2 {
         margin: 0;
-        font-size: 28px;
-        font-weight: 700;
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #1B7CE4, #409eff); // 与robot.svg图标颜色匹配
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
         background-clip: text;
-        font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
       }
     }
     
@@ -802,17 +799,12 @@ onMounted(() => {
       flex-direction: column;
       gap: 16px;
       align-items: stretch;
-      padding: 24px;
+      padding: 16px; // 减小了padding
       
       .header-title {
         .title-icon {
-          width: 48px;
-          height: 48px;
-          
-          img {
-            width: 32px;
-            height: 32px;
-          }
+          width: 28px;
+          height: 28px;
         }
         
         h2 {
@@ -849,5 +841,48 @@ onMounted(() => {
   }
 }
 
-
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  margin: 20px auto;
+  max-width: 600px;
+  
+  .empty-icon {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(64, 158, 255, 0.1);
+    border-radius: 50%;
+    margin-bottom: 20px;
+    
+    .empty-icon-symbol {
+      font-size: 60px;
+    }
+  }
+  
+  h3 {
+    font-size: 20px;
+    color: #303133;
+    margin: 0 0 16px;
+  }
+  
+  p {
+    margin: 0 0 20px;
+    font-size: 16px;
+    color: #909399;
+    max-width: 300px;
+  }
+  
+  .empty-actions {
+    display: flex;
+    gap: 12px;
+  }
+}
 </style> 

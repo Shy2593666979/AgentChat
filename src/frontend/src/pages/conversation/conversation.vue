@@ -137,7 +137,7 @@ const fetchDialogs = async () => {
 onMounted(async () => {
   console.log('会话页面已加载')
   await Promise.all([fetchAgents(), fetchDialogs()])
-  ElMessage.success('页面加载成功')
+  // ElMessage.success('页面加载成功')
 })
 
 // 创建新会话
@@ -217,7 +217,7 @@ const deleteDialog = async (dialogId: string) => {
 // 选择会话
 const selectDialog = (dialogId: string) => {
   selectedDialog.value = dialogId
-  ElMessage.info('进入会话')
+  // ElMessage.info('进入会话')
 }
 
 // 打开创建对话框
@@ -231,7 +231,7 @@ const openCreateDialog = async () => {
     await fetchAgents()
   }
   
-  ElMessage.info('正在打开创建会话对话框...')
+  // ElMessage.info('正在打开创建会话对话框...')
 }
 
 // 选择智能体

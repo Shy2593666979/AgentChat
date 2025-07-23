@@ -2,7 +2,8 @@
 import { ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, Connection, Cpu, Search, Refresh } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, Connection, Cpu, Search, Refresh, Calendar, ChatDotRound, RefreshRight, Star, Link, Timer } from '@element-plus/icons-vue'
+import modelIcon from '../../assets/model.svg'
 import { 
   getVisibleLLMsAPI, 
   createLLMAPI, 
@@ -21,6 +22,7 @@ const llmTypes = ref<string[]>(['LLM', 'Embedding', 'Rerank'])
 
 // 创建对话框控制
 const createDialogVisible = ref(false)
+const createLoading = ref(false)
 
 // 表单相关
 const createForm = ref<CreateLLMRequest>({
@@ -72,7 +74,6 @@ const clearSearch = () => {
 
 // 打开创建对话框
 const openCreateDialog = () => {
-  console.log('🎯 打开创建对话框')
   createDialogVisible.value = true
   // 重置表单
   Object.assign(createForm.value, {
@@ -82,35 +83,32 @@ const openCreateDialog = () => {
     provider: '',
     llm_type: 'LLM'
   })
-  console.log('表单重置完成:', createForm.value)
 }
 
 // 创建模型
 const handleCreate = async () => {
-  console.log('🎯 按钮被点击了！')
-  
   // 检查必填字段
   if (!createForm.value.model || !createForm.value.api_key || !createForm.value.base_url || !createForm.value.provider || !createForm.value.llm_type) {
     ElMessage.error('请填写所有必填字段')
     return
   }
   
-  console.log('创建模型，表单数据:', createForm.value)
-  
+  createLoading.value = true
   try {
     const response = await createLLMAPI(createForm.value)
-    console.log('创建模型响应:', response)
     
     if (response.data.status_code === 200) {
-      ElMessage.success('🎉 创建成功')
+      ElMessage.success('创建成功')
       createDialogVisible.value = false
       fetchModels()
     } else {
-      ElMessage.error(response.data.status_message || '❌ 创建失败')
+      ElMessage.error('创建失败: ' + (response.data.status_message || '未知错误'))
     }
   } catch (error) {
     console.error('创建模型失败:', error)
-    ElMessage.error('❌ 创建失败，请检查网络连接')
+    ElMessage.error('创建失败，请检查输入并稍后重试')
+  } finally {
+    createLoading.value = false
   }
 }
 
@@ -122,39 +120,41 @@ const goToModelEditor = (model: LLMResponse) => {
   })
 }
 
-// 简单测试函数
-const simpleTest = () => {
-  console.log('🧪 简单测试被点击了！')
-  ElMessage.success('🧪 简单测试成功！')
+// 删除模型
+const deleteModel = async (model: LLMResponse) => {
+  try {
+    await ElMessageBox.confirm(
+      `确定要删除模型 "${model.model}" 吗？`,
+      '确认删除',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning'
+      }
+    )
+    
+    const response = await deleteLLMAPI({ llm_id: model.llm_id })
+    
+    if (response.data.status_code === 200) {
+      ElMessage.success('删除成功')
+      fetchModels()
+    } else {
+      ElMessage.error('删除失败: ' + (response.data.status_message || '未知错误'))
+    }
+  } catch (err) {
+    // 用户取消或其他错误
+    if (err === 'cancel') {
+      // 用户取消删除，不做任何操作
+    } else {
+      console.error('删除模型时出错:', err)
+      ElMessage.error('删除失败，请稍后重试')
+    }
+  }
 }
 
-// 删除模型
-const handleDelete = async (model: LLMResponse) => {
-  console.log('🗑️ 点击删除按钮，模型:', model)
-  
-  // 使用原生confirm但添加更美观的提示
-  const confirmed = confirm(`⚠️ 确认删除模型\n\n模型名称: ${model.model}\n提供商: ${model.provider}\n类型: ${model.llm_type}\n\n此操作不可撤销！\n\n点击"确定"删除，点击"取消"保留。`)
-  
-  if (confirmed) {
-    console.log('用户确认删除，开始调用API')
-    try {
-      const response = await deleteLLMAPI({ llm_id: model.llm_id })
-      console.log('删除API响应:', response)
-      
-      if (response.data.status_code === 200) {
-        ElMessage.success('🎉 删除成功')
-        // 重新获取模型列表
-        fetchModels()
-      } else {
-        ElMessage.error(response.data.status_message || '❌ 删除失败')
-      }
-    } catch (error) {
-      console.error('删除模型失败:', error)
-      ElMessage.error('❌ 删除失败，请检查网络连接')
-    }
-  } else {
-    console.log('用户取消删除')
-  }
+// 检查是否为官方模型
+const isOfficialModel = (model: LLMResponse): boolean => {
+  return model.user_id === '0'
 }
 
 // 测试模型连接
@@ -194,6 +194,45 @@ const formatTime = (timeStr: string) => {
   return new Date(timeStr).toLocaleDateString('zh-CN')
 }
 
+// 截断URL函数
+const truncateUrl = (url: string, maxLength: number): string => {
+  if (!url) return '';
+  if (url.length <= maxLength) return url;
+  
+  const protocol = url.includes('://') ? url.split('://')[0] + '://' : '';
+  const domainPath = url.replace(protocol, '');
+  
+  // 如果协议+3个点+最后15个字符超过了最大长度，就只显示开头和结尾
+  if (protocol.length + 3 + 15 >= maxLength) {
+    const start = protocol + domainPath.substring(0, Math.floor((maxLength - protocol.length - 3) / 2));
+    const end = domainPath.substring(domainPath.length - Math.floor((maxLength - protocol.length - 3) / 2));
+    return start + '...' + end;
+  }
+  
+  // 否则显示协议+域名开头+...+路径结尾
+  const visibleLength = maxLength - protocol.length - 3;
+  const start = domainPath.substring(0, Math.floor(visibleLength / 2));
+  const end = domainPath.substring(domainPath.length - Math.floor(visibleLength / 2));
+  
+  return protocol + start + '...' + end;
+};
+
+// 改进格式化时间函数，使其更友好
+const formatTimeFriendly = (timeStr: string) => {
+  if (!timeStr) return '-';
+  
+  try {
+    const date = new Date(timeStr);
+    const year = date.getFullYear();
+    const month = (date.getMonth() + 1).toString().padStart(2, '0');
+    const day = date.getDate().toString().padStart(2, '0');
+    
+    return `${year}/${month}/${day}`;
+  } catch(e) {
+    return timeStr;
+  }
+}
+
 onMounted(() => {
   fetchModels()
 })
@@ -203,7 +242,10 @@ onMounted(() => {
   <div class="model-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h2>🤖 模型管理</h2>
+      <h2>
+        <img :src="modelIcon" class="model-icon" alt="Model" />
+        模型管理
+      </h2>
       <div class="header-actions">
         <div class="search-box">
           <el-input
@@ -241,102 +283,117 @@ onMounted(() => {
     <!-- 模型列表 -->
     <div class="model-list" v-loading="loading">
       <div class="model-grid" v-if="models.length > 0">
+        <!-- 模型卡片，增强设计感 -->
         <div 
           v-for="model in models" 
           :key="model.llm_id" 
           class="model-card"
+          :class="[model.llm_type.toLowerCase(), isOfficialModel(model) ? 'official-model' : '']"
           @click="goToModelEditor(model)"
         >
-          <!-- 卡片顶部装饰条 -->
-          <div class="card-accent"></div>
-          
-          <!-- 模型图标和状态 -->
-          <div class="card-header">
-            <div class="model-icon">
-              <span class="icon-emoji">🤖</span>
-            </div>
-            <div class="model-status">
-              <div class="status-dot"></div>
-              <span class="status-text">✨ 在线</span>
-            </div>
+          <!-- 卡片背景装饰 -->
+          <div class="card-decoration">
+            <div class="deco-circle circle-1"></div>
+            <div class="deco-circle circle-2"></div>
+            <div class="deco-line line-1"></div>
+            <div class="deco-line line-2"></div>
+          </div>
+
+          <!-- 顶部类型标签 -->
+          <div class="model-badge">
+            <span class="badge-icon">
+              <el-icon v-if="model.llm_type === 'LLM'"><ChatDotRound /></el-icon>
+              <el-icon v-else-if="model.llm_type === 'Embedding'"><Connection /></el-icon>
+              <el-icon v-else><RefreshRight /></el-icon>
+            </span>
+            <span class="badge-text">{{ model.llm_type }}</span>
           </div>
           
-          <!-- 模型信息 -->
+          <!-- 官方标记 -->
+          <div class="official-badge" v-if="isOfficialModel(model)">
+            <el-icon><Star /></el-icon>
+            <span>官方</span>
+          </div>
+
           <div class="card-content">
-            <h3 class="model-name">
-              <span class="name-prefix">🚀</span>
-              {{ model.model }}
-            </h3>
-            <p class="model-description">🎯 AI模型配置 - 让智能对话更简单</p>
-            
-            <!-- 标签组 -->
-            <div class="model-tags">
-              <div class="tag provider-tag">
-                <span class="tag-icon">🏢</span>
-                <span class="tag-text">{{ model.provider }}</span>
+            <!-- 模型信息 -->
+            <div class="model-header">
+              <div class="model-avatar" :class="model.llm_type.toLowerCase()">
+                <span v-if="model.provider === 'OpenAI'" class="provider-icon">O</span>
+                <span v-else-if="model.provider === 'Anthropic'" class="provider-icon">A</span>
+                <span v-else-if="model.provider === 'Google'" class="provider-icon">G</span>
+                <span v-else class="provider-icon">{{ model.provider[0] }}</span>
               </div>
-              <div class="tag type-tag">
-                <span class="tag-icon">⚡</span>
-                <span class="tag-text">{{ model.llm_type }}</span>
+              
+              <div class="model-title">
+                <h3 class="model-name">{{ model.model }}</h3>
+                <div class="model-provider">{{ model.provider }}</div>
               </div>
             </div>
             
-            <!-- 模型统计信息 -->
-            <div class="model-stats">
-              <div class="stat-item">
-                <div class="stat-icon">📅</div>
-                <div class="stat-info">
-                  <span class="stat-label">🎉 创建于</span>
-                  <span class="stat-value">{{ formatTime(model.create_time) }}</span>
+            <!-- 模型详情 -->
+            <div class="model-details">
+              <!-- 优化基础URL和创建时间显示 -->
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <el-icon><Link /></el-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label url-label">
+                    <span>基础URL</span>
+                  </div>
+                  <el-tooltip 
+                    :content="model.base_url" 
+                    placement="top" 
+                    :show-after="500"
+                    effect="light"
+                    popper-class="url-tooltip"
+                  >
+                    <div class="detail-value url-value">{{ truncateUrl(model.base_url, 38) }}</div>
+                  </el-tooltip>
                 </div>
               </div>
-              <div class="stat-item">
-                <div class="stat-icon">🔄</div>
-                <div class="stat-info">
-                  <span class="stat-label">✨ 更新于</span>
-                  <span class="stat-value">{{ formatTime(model.update_time) }}</span>
+
+              <div class="detail-item">
+                <div class="detail-icon">
+                  <el-icon><Timer /></el-icon>
+                </div>
+                <div class="detail-content">
+                  <div class="detail-label date-label">
+                    <span>创建时间</span>
+                  </div>
+                  <div class="detail-value date-value">{{ formatTimeFriendly(model.create_time) }}</div>
                 </div>
               </div>
             </div>
-          </div>
-          
-          <!-- 操作按钮 -->
-          <div class="card-actions">
-            <el-button 
-              size="small" 
-              type="primary"
-              @click.stop="goToModelEditor(model)"
-              class="action-btn edit-btn"
-            >
-              <span class="btn-icon">✏️</span>
-              编辑
-            </el-button>
-            <el-button 
-              size="small" 
-              type="danger"
-              @click.stop="handleDelete(model)"
-              class="action-btn delete-btn"
-            >
-              <span class="btn-icon">🗑️</span>
-              删除
-            </el-button>
-            <!-- 测试按钮 -->
-            <el-button 
-              size="small" 
-              type="warning"
-              @click.stop="simpleTest"
-              class="action-btn test-btn"
-            >
-              <span class="btn-icon">🧪</span>
-              测试
-            </el-button>
-          </div>
-          
-          <!-- 装饰元素 -->
-          <div class="decoration-elements">
-            <div class="decoration-dot dot-1">✨</div>
-            <div class="decoration-dot dot-2">💫</div>
-            <div class="decoration-dot dot-3">⭐</div>
+            
+            <!-- 操作按钮 -->
+            <div class="card-actions">
+              <el-button 
+                size="default" 
+                :type="isOfficialModel(model) ? 'info' : 'primary'"
+                @click.stop="goToModelEditor(model)"
+                :disabled="isOfficialModel(model)"
+                :title="isOfficialModel(model) ? '官方模型不可编辑' : '编辑模型'"
+                class="action-btn edit-btn"
+                :class="{ 'disabled': isOfficialModel(model) }"
+              >
+                <el-icon><Edit /></el-icon>
+                <span>编辑</span>
+              </el-button>
+              <el-button 
+                size="default" 
+                :type="isOfficialModel(model) ? 'info' : 'danger'"
+                @click.stop="deleteModel(model)"
+                :disabled="isOfficialModel(model)"
+                :title="isOfficialModel(model) ? '官方模型不可删除' : '删除模型'"
+                class="action-btn delete-btn"
+                :class="{ 'disabled': isOfficialModel(model) }"
+              >
+                <el-icon><Delete /></el-icon>
+                <span>删除</span>
+              </el-button>
+            </div>
           </div>
         </div>
       </div>
@@ -457,27 +514,53 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .model-page {
-  padding: 20px;
-  height: 100%;
+  padding: 30px;
+  min-height: calc(100vh - 60px);
+  background-color: #f5f7fa;
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 20px;
+    margin-bottom: 32px;
+    background: linear-gradient(to right, #ffffff, #f8fafc);
+    padding: 28px;
+    border-radius: 16px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #409eff, #67c23a, #e6a23c);
+    }
     
     h2 {
-      margin: 0;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
-      color: #1e293b;
+      margin: 0;
       display: flex;
       align-items: center;
       gap: 12px;
-      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+      background: linear-gradient(90deg, #409eff, #3a7be2); // 添加渐变效果，蓝色系
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
+      
+      .model-icon {
+        width: 32px;
+        height: 32px;
+      }
+      
+      &::before {
+        content: '';
+        display: none; // 隐藏原来的表情符号
+      }
     }
     
     .header-actions {
@@ -486,92 +569,52 @@ onMounted(() => {
       gap: 16px;
       
       .search-box {
-        margin-right: 16px;
+        margin-right: 12px;
         
-        .el-input {
-          .el-input__wrapper {
-            border-radius: 12px;
-            border: 2px solid #e2e8f0;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
-            
-            &:hover {
-              border-color: #3b82f6;
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-            }
-            
-            &.is-focus {
-              border-color: #3b82f6;
-              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            }
-          }
+        :deep(.el-input__wrapper) {
+          border-radius: 8px;
+          transition: all 0.3s;
+          border: 1px solid #dcdfe6;
           
-          .el-input__inner {
-            font-size: 14px;
-            font-weight: 500;
-            
-            &::placeholder {
-              color: #94a3b8;
-              font-weight: 400;
-            }
+          &:hover {
+            border-color: #409eff;
+            box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.2);
           }
         }
       }
       
       .action-buttons {
         display: flex;
-        gap: 8px;
+        gap: 12px;
         
-        .refresh-btn {
-          transition: all 0.3s ease;
+        .el-button {
           border-radius: 8px;
+          padding: 12px 20px;
+          font-size: 14px;
           font-weight: 500;
+          transition: all 0.3s;
           
           &:hover {
-            transform: rotate(180deg);
-            background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-            border-color: #10b981;
-            color: white;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-          }
-          
-          &:active {
-            transform: rotate(180deg) scale(0.95);
-          }
-        }
-        
-        .add-btn {
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-          border: none;
-          border-radius: 8px;
-          font-weight: 600;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          position: relative;
-          overflow: hidden;
-          
-          &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-            transition: left 0.5s ease;
-          }
-          
-          &:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
             transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-            
-            &::before {
-              left: 100%;
+          }
+          
+          &.refresh-btn {
+            &:hover {
+              background-color: #67c23a;
+              border-color: #67c23a;
+              color: white;
             }
           }
           
-          &:active {
-            transform: translateY(0) scale(0.98);
+          &.add-btn {
+            background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
+            border: none;
+            box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+            
+            &:hover {
+              background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
+              box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
+            }
           }
         }
       }
@@ -579,620 +622,555 @@ onMounted(() => {
   }
   
   .model-list {
-    height: calc(100% - 80px);
+    min-height: 300px;
+    position: relative;
     
     .model-grid {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
+      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
       gap: 24px;
+    }
+    
+    .model-card {
+      background-color: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
+      overflow: hidden;
+      cursor: pointer;
+      border: 1px solid #ebeef5;
+      position: relative;
+      z-index: 1;
       
-      .model-card {
-        background: white;
-        border-radius: 20px;
-        padding: 20px;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-        border: 1px solid rgba(226, 232, 240, 0.6);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        overflow: hidden;
-        cursor: pointer;
+      &:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
         
-        &::before {
-          content: '';
-          position: absolute;
-          top: 0;
-          left: 0;
-          right: 0;
-          height: 4px;
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-          transform: scaleX(0);
-          transition: transform 0.3s ease;
+        .card-decoration {
+          .deco-circle {
+            opacity: 0.8;
+          }
+          
+          .deco-line {
+            opacity: 0.7;
+          }
         }
         
-        &:hover {
-          box-shadow: 0 12px 40px rgba(0, 0, 0, 0.15);
-          transform: translateY(-8px);
-          border-color: rgba(59, 130, 246, 0.3);
+        .model-badge {
+          transform: translateY(0) scale(1.05);
+        }
+      }
+      
+      &.official-model {
+        box-shadow: 0 8px 24px rgba(64, 158, 255, 0.15);
+        border: 1px solid rgba(64, 158, 255, 0.3);
+        
+        .card-decoration {
+          opacity: 0.8;
+        }
+      }
+      
+      &.llm {
+        border-top: 3px solid #409eff;
+      }
+      
+      &.embedding {
+        border-top: 3px solid #67c23a;
+      }
+      
+      &.rerank {
+        border-top: 3px solid #e6a23c;
+      }
+      
+      .card-decoration {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        pointer-events: none;
+        opacity: 0.3;
+        transition: opacity 0.3s;
+        z-index: -1;
+        
+        .deco-circle {
+          position: absolute;
+          border-radius: 50%;
+          opacity: 0.4;
+          transition: all 0.6s;
+          
+          &.circle-1 {
+            width: 160px;
+            height: 160px;
+            right: -60px;
+            bottom: -60px;
+            background: radial-gradient(circle, rgba(64, 158, 255, 0.2) 0%, rgba(64, 158, 255, 0) 70%);
+          }
+          
+          &.circle-2 {
+            width: 120px;
+            height: 120px;
+            top: -40px;
+            left: -40px;
+            background: radial-gradient(circle, rgba(103, 194, 58, 0.2) 0%, rgba(103, 194, 58, 0) 70%);
+          }
+        }
+        
+        .deco-line {
+          position: absolute;
+          opacity: 0.3;
+          transition: all 0.6s;
+          
+          &.line-1 {
+            height: 2px;
+            width: 100%;
+            top: 50%;
+            left: 0;
+            background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.3), transparent);
+          }
+          
+          &.line-2 {
+            width: 2px;
+            height: 100%;
+            top: 0;
+            left: 70%;
+            background: linear-gradient(180deg, transparent, rgba(103, 194, 58, 0.3), transparent);
+          }
+        }
+      }
+      
+      .model-badge {
+        position: absolute;
+        top: 20px;
+        right: 20px;
+        padding: 8px 16px;
+        background: rgba(255, 255, 255, 0.9);
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+        transition: all 0.3s;
+        backdrop-filter: blur(4px);
+        border: 1px solid rgba(235, 238, 245, 0.6);
+        z-index: 2;
+        
+        .badge-icon {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          
+          .el-icon {
+            font-size: 16px;
+            color: #409eff;
+          }
+        }
+        
+        .badge-text {
+          font-size: 14px;
+          font-weight: 600;
+          color: #303133;
+        }
+      }
+      
+      .official-badge {
+        position: absolute;
+        top: 20px;
+        left: 20px;
+        padding: 6px 12px;
+        background: #fef6e4;
+        border: 1px solid #f8d4a5;
+        border-radius: 30px;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+        z-index: 2;
+        
+        .el-icon {
+          color: #e6a23c;
+          font-size: 14px;
+        }
+        
+        span {
+          font-size: 12px;
+          font-weight: 600;
+          color: #e6a23c;
+        }
+      }
+      
+      .card-content {
+        padding: 30px 24px 24px;
+      }
+      
+      .model-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 28px;
+        
+        .model-avatar {
+          width: 60px;
+          height: 60px;
+          border-radius: 16px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          margin-right: 20px;
+          flex-shrink: 0;
+          position: relative;
+          overflow: hidden;
           
           &::before {
-            transform: scaleX(1);
-          }
-        }
-        
-        .card-accent {
-          position: absolute;
-          top: 0;
-          left: 0;
-          width: 100%;
-          height: 6px;
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-          border-top-left-radius: 20px;
-          border-top-right-radius: 20px;
-        }
-        
-        .card-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 16px;
-          
-          .model-icon {
-            width: 56px;
-            height: 56px;
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-            position: relative;
-            overflow: hidden;
-            
-            &::before {
-              content: '';
-              position: absolute;
-              top: -50%;
-              left: -50%;
-              width: 200%;
-              height: 200%;
-              background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-              animation: shimmer 3s infinite;
-            }
-            
-            .icon-emoji {
-              font-size: 28px;
-              z-index: 1;
-              position: relative;
-              animation: bounce 2s infinite;
-            }
-          }
-          
-          .model-status {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            
-            .status-dot {
-              width: 12px;
-              height: 12px;
-              background: #10b981;
-              border-radius: 50%;
-              box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-              animation: pulse 2s infinite;
-            }
-            
-            .status-text {
-              font-size: 13px;
-              color: #10b981;
-              font-weight: 600;
-            }
-          }
-        }
-        
-        .card-content {
-          .model-name {
-            font-size: 22px;
-            font-weight: 700;
-            color: #1e293b;
-            margin: 0 0 8px 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-            line-height: 1.3;
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            
-            .name-prefix {
-              font-size: 20px;
-              animation: rocket 3s infinite;
-            }
-          }
-          
-          .model-description {
-            font-size: 14px;
-            color: #64748b;
-            margin-bottom: 16px;
-            font-weight: 500;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-          }
-          
-          .model-tags {
-            display: flex;
-            gap: 12px;
-            margin-bottom: 16px;
-            flex-wrap: wrap;
-            
-            .tag {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              padding: 8px 16px;
-              border-radius: 25px;
-              font-size: 13px;
-              font-weight: 600;
-              color: white;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-              transition: all 0.3s ease;
-              
-              &:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-              }
-              
-              .tag-icon {
-                font-size: 14px;
-              }
-              
-              &.provider-tag {
-                background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-              }
-              
-              &.type-tag {
-                background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
-              }
-            }
-          }
-          
-          .model-stats {
-            display: flex;
-            gap: 24px;
-            font-size: 13px;
-            margin-bottom: 16px;
-            
-            .stat-item {
-              display: flex;
-              align-items: center;
-              gap: 10px;
-              padding: 12px 16px;
-              background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-              border-radius: 12px;
-              border: 1px solid #e2e8f0;
-              transition: all 0.3s ease;
-              
-              &:hover {
-                background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-                transform: translateY(-1px);
-              }
-              
-              .stat-icon {
-                font-size: 18px;
-              }
-              
-              .stat-info {
-                display: flex;
-                flex-direction: column;
-                gap: 2px;
-                
-                .stat-label {
-                  color: #64748b;
-                  font-size: 11px;
-                  font-weight: 500;
-                  text-transform: uppercase;
-                  letter-spacing: 0.5px;
-                }
-                
-                .stat-value {
-                  color: #334155;
-                  font-weight: 600;
-                  font-size: 13px;
-                }
-              }
-            }
-          }
-        }
-        
-        .card-actions {
-          display: flex;
-          gap: 12px;
-          margin-top: 16px;
-          padding-top: 16px;
-          border-top: 1px solid #f1f5f9;
-          position: relative;
-          z-index: 10;
-          
-          .action-btn {
-            flex: 1;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            gap: 8px;
-            padding: 12px 16px;
-            border-radius: 12px;
-            font-size: 14px;
-            font-weight: 600;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            border: 2px solid transparent;
-            position: relative;
-            overflow: hidden;
-            z-index: 10;
-            min-width: 80px;
-            min-height: 40px;
-            pointer-events: auto;
-            cursor: pointer;
-            
-            .btn-icon {
-              font-size: 16px;
-              animation: wiggle 2s infinite;
-            }
-            
-            &::before {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: -100%;
-              width: 100%;
-              height: 100%;
-              background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
-              transition: left 0.5s ease;
-            }
-            
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
-              
-              &::before {
-                left: 100%;
-              }
-            }
-            
-            &.edit-btn {
-              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-              color: white;
-              
-              &:hover {
-                background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-              }
-            }
-            
-            &.delete-btn {
-              background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
-              color: white;
-              
-              &:hover {
-                background: linear-gradient(135deg, #dc2626 0%, #b91c1c 100%);
-              }
-            }
-          }
-        }
-        
-        .decoration-elements {
+            content: '';
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
             height: 100%;
-            pointer-events: none;
-            overflow: hidden;
+            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
             z-index: 1;
+          }
+          
+          .provider-icon {
+            font-size: 28px;
+            font-weight: 700;
+            color: white;
+            z-index: 2;
+            position: relative;
+          }
+          
+          &.llm {
+            background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
+            box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
+          }
+          
+          &.embedding {
+            background: linear-gradient(135deg, #67c23a 0%, #529b2e 100%);
+            box-shadow: 0 6px 16px rgba(103, 194, 58, 0.3);
+          }
+          
+          &.rerank {
+            background: linear-gradient(135deg, #e6a23c 0%, #d9b55b 100%);
+            box-shadow: 0 6px 16px rgba(230, 162, 60, 0.3);
+          }
+        }
+        
+        .model-title {
+          .model-name {
+            font-size: 20px;
+            font-weight: 700;
+            color: #303133;
+            margin: 0 0 8px 0;
+            line-height: 1.2;
+          }
+          
+          .model-provider {
+            font-size: 15px;
+            font-weight: 500;
+            color: #606266;
+          }
+        }
+      }
+      
+      .model-details {
+        background: #f8f9fa;
+        border-radius: 12px;
+        padding: 16px;
+        margin-bottom: 24px;
+        border: 1px solid #ebeef5;
+        
+        .detail-item {
+          display: flex;
+          align-items: flex-start;
+          margin-bottom: 16px;
+          
+          &:last-child {
+            margin-bottom: 0;
+          }
+          
+          .detail-icon {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            width: 32px;
+            height: 32px;
+            border-radius: 8px;
+            background: rgba(64, 158, 255, 0.1);
+            margin-right: 16px;
+            flex-shrink: 0;
             
-            .decoration-dot {
-              position: absolute;
-              font-size: 12px;
-              opacity: 0.6;
-              animation: float 4s infinite ease-in-out;
+            .el-icon {
+              font-size: 16px;
+              color: #409eff;
+            }
+          }
+          
+          .detail-content {
+            flex: 1;
+            
+            .detail-label {
+              font-size: 13px;
+              color: #909399;
+              margin-bottom: 8px;
+              font-weight: 500;
+              display: flex;
+              align-items: center;
               
-              &.dot-1 {
-                top: 20%;
-                right: 10%;
-                animation-delay: 0s;
+              span {
+                position: relative;
+                padding: 0 4px;
+                z-index: 1;
               }
               
-              &.dot-2 {
-                top: 60%;
-                right: 15%;
-                animation-delay: 1s;
+              &.url-label span {
+                color: #409eff;
+                font-weight: 600;
+                
+                &::before {
+                  content: '';
+                  position: absolute;
+                  bottom: 0;
+                  left: 0;
+                  right: 0;
+                  height: 6px;
+                  background-color: rgba(64, 158, 255, 0.15);
+                  z-index: -1;
+                  border-radius: 3px;
+                }
               }
               
-              &.dot-3 {
-                top: 40%;
-                right: 5%;
-                animation-delay: 2s;
+              &.date-label span {
+                color: #67c23a;
+                font-weight: 600;
+                
+                &::before {
+                  content: '';
+                  position: absolute;
+                  bottom: 0;
+                  left: 0;
+                  right: 0;
+                  height: 6px;
+                  background-color: rgba(103, 194, 58, 0.15);
+                  z-index: -1;
+                  border-radius: 3px;
+                }
+              }
+            }
+            
+            .detail-value {
+              font-size: 14px;
+              font-weight: 500;
+              color: #606266;
+              word-break: break-all;
+              
+              &.url-value {
+                font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+                background: linear-gradient(to right, #409eff, #5cadff);
+                -webkit-background-clip: text;
+                -webkit-text-fill-color: transparent;
+                background-clip: text;
+                cursor: pointer;
+                position: relative;
+                display: inline-block;
+                padding: 2px 6px;
+                border-radius: 4px;
+                background-color: rgba(64, 158, 255, 0.1);
+                border: 1px dashed rgba(64, 158, 255, 0.3);
+                
+                &:hover {
+                  background-color: rgba(64, 158, 255, 0.15);
+                  border-color: rgba(64, 158, 255, 0.5);
+                }
+              }
+              
+              &.date-value {
+                font-family: 'Inter', sans-serif;
+                font-weight: 600;
+                color: #67c23a;
+                letter-spacing: 0.5px;
+                background-color: rgba(103, 194, 58, 0.1);
+                padding: 2px 10px;
+                border-radius: 12px;
+                display: inline-block;
               }
             }
           }
         }
+      }
+      
+      .card-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: 12px;
+        
+        .action-btn {
+          transition: all 0.3s;
+          border-radius: 8px;
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+          min-width: 90px;
+          justify-content: center;
+          
+          .el-icon {
+            font-size: 16px;
+          }
+          
+          &:hover:not(.disabled) {
+            transform: translateY(-3px);
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+          }
+          
+          &.edit-btn:not(.disabled) {
+            background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
+            border: none;
+            
+            &:hover {
+              background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
+            }
+          }
+          
+          &.delete-btn:not(.disabled) {
+            background: linear-gradient(135deg, #f56c6c 0%, #e45656 100%);
+            border: none;
+            
+            &:hover {
+              background: linear-gradient(135deg, #f78989 0%, #f56c6c 100%);
+            }
+          }
+          
+          &.disabled {
+            opacity: 0.7;
+            cursor: not-allowed;
+            
+            &:hover {
+              transform: none;
+              box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+            }
+          }
+        }
+      }
     }
     
     .empty-state {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      justify-content: center;
-      height: 100%;
       text-align: center;
+      padding: 80px 30px;
       background: white;
-      border-radius: 20px;
-      padding: 80px 40px;
-      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+      border-radius: 16px;
+      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
+      position: relative;
+      overflow: hidden;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 4px;
+        background: linear-gradient(90deg, #409eff, #67c23a, #e6a23c);
+      }
       
       .empty-icon {
-        font-size: 80px;
-        color: #cbd5e1;
         margin-bottom: 24px;
+        position: relative;
+        
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: -10px;
+          left: 50%;
+          transform: translateX(-50%);
+          width: 60px;
+          height: 4px;
+          background: linear-gradient(90deg, #409eff, #67c23a);
+          border-radius: 2px;
+        }
         
         .empty-emoji {
-          font-size: 80px;
-          animation: bounce 2s infinite;
+          font-size: 64px;
+          opacity: 0.8;
         }
       }
       
       h3 {
-        margin: 0 0 12px 0;
-        font-size: 24px;
+        font-size: 22px;
         font-weight: 600;
-        color: #475569;
+        color: #303133;
+        margin-bottom: 16px;
       }
       
       p {
-        margin: 0 0 32px 0;
-        color: #64748b;
         font-size: 16px;
-        line-height: 1.5;
+        color: #606266;
+        margin-bottom: 32px;
+        max-width: 500px;
+        margin-left: auto;
+        margin-right: auto;
       }
       
       .el-button {
-        padding: 16px 32px;
-        border-radius: 12px;
-        font-weight: 600;
+        padding: 12px 24px;
         font-size: 16px;
-      }
-    }
-  }
-}
-
-@keyframes pulse {
-  0%, 100% {
-    box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2);
-  }
-  50% {
-    box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.4);
-  }
-}
-
-@keyframes bounce {
-  0%, 20%, 50%, 80%, 100% {
-    transform: translateY(0);
-  }
-  40% {
-    transform: translateY(-10px);
-  }
-  60% {
-    transform: translateY(-5px);
-  }
-}
-
-@keyframes shimmer {
-  0% {
-    transform: translateX(-100%) translateY(-100%) rotate(45deg);
-  }
-  100% {
-    transform: translateX(100%) translateY(100%) rotate(45deg);
-  }
-}
-
-@keyframes rocket {
-  0%, 100% {
-    transform: translateY(0) rotate(0deg);
-  }
-  25% {
-    transform: translateY(-3px) rotate(-5deg);
-  }
-  75% {
-    transform: translateY(-3px) rotate(5deg);
-  }
-}
-
-@keyframes wiggle {
-  0%, 100% {
-    transform: rotate(0deg);
-  }
-  25% {
-    transform: rotate(-5deg);
-  }
-  75% {
-    transform: rotate(5deg);
-  }
-}
-
-@keyframes float {
-  0%, 100% {
-    transform: translateY(0px) rotate(0deg);
-  }
-  50% {
-    transform: translateY(-10px) rotate(180deg);
-  }
-}
-
-.dialog-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-  
-  .dialog-container {
-    background: white;
-    border-radius: 20px;
-    padding: 0;
-    width: 90%;
-    max-width: 500px;
-    max-height: 90vh;
-    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
-    animation: dialogSlideIn 0.3s ease-out;
-    
-    .dialog-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      padding: 24px 24px 0 24px;
-      border-bottom: 1px solid #e2e8f0;
-      margin-bottom: 20px;
-      
-      h3 {
-        margin: 0;
-        font-size: 20px;
-        font-weight: 600;
-        color: #1e293b;
-      }
-      
-      .close-btn {
-        background: none;
+        font-weight: 500;
+        border-radius: 8px;
+        background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
         border: none;
-        font-size: 24px;
-        color: #64748b;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        transition: all 0.2s ease;
+        box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
+        transition: all 0.3s;
         
         &:hover {
-          background: #f1f5f9;
-          color: #475569;
+          transform: translateY(-2px);
+          box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
+          background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
+        }
+      }
+    }
+  }
+}
+
+/* 添加URL工具提示样式 */
+:deep(.url-tooltip) {
+  max-width: 400px;
+  word-break: break-all;
+  font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+  font-size: 12px;
+  padding: 10px 14px;
+}
+
+// 响应式调整
+@media (max-width: 768px) {
+  .model-page {
+    padding: 20px;
+    
+    .page-header {
+      flex-direction: column;
+      align-items: stretch;
+      gap: 16px;
+      padding: 20px;
+      
+      h2 {
+        text-align: center;
+        justify-content: center;
+      }
+      
+      .header-actions {
+        flex-direction: column;
+        align-items: stretch;
+        
+        .search-box {
+          margin-right: 0;
+          margin-bottom: 12px;
+        }
+        
+        .action-buttons {
+          justify-content: center;
         }
       }
     }
     
-    .dialog-body {
-      padding: 0 24px 24px 24px;
-      
-      .form-item {
-        margin-bottom: 20px;
-        
-        label {
-          display: block;
-          margin-bottom: 8px;
-          font-weight: 500;
-          color: #374151;
-          font-size: 14px;
-        }
-        
-        .input-with-count {
-          position: relative;
-          
-          input {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 14px;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            
-            &:focus {
-              outline: none;
-              border-color: #3b82f6;
-              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            }
-            
-            &::placeholder {
-              color: #9ca3af;
-            }
-          }
-          
-          .char-count {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            font-size: 12px;
-            color: #9ca3af;
-          }
-        }
-        
-        .select-container {
-          select {
-            width: 100%;
-            padding: 12px 16px;
-            border: 2px solid #e2e8f0;
-            border-radius: 12px;
-            font-size: 14px;
-            background: white;
-            transition: all 0.3s ease;
-            box-sizing: border-box;
-            
-            &:focus {
-              outline: none;
-              border-color: #3b82f6;
-              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-            }
-          }
-        }
-      }
-    }
-    
-    .dialog-footer {
-      display: flex;
-      justify-content: flex-end;
-      gap: 12px;
-      padding: 20px 24px;
-      border-top: 1px solid #e2e8f0;
-      
-      button {
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-weight: 500;
-        transition: all 0.3s ease;
-        border: 2px solid transparent;
-        
-        &:first-child {
-          background: #f8fafc;
-          color: #64748b;
-          border-color: #e2e8f0;
-          
-          &:hover {
-            background: #f1f5f9;
-            border-color: #cbd5e1;
-          }
-        }
-        
-        &.primary-btn {
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-          color: white;
-          border-color: #3b82f6;
-          
-          &:hover {
-            background: linear-gradient(135deg, #2563eb 0%, #7c3aed 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-          }
-          
-          &:disabled {
-            background: #9ca3af;
-            border-color: #9ca3af;
-            cursor: not-allowed;
-            transform: none;
-            box-shadow: none;
-          }
-        }
-      }
+    .model-list .model-grid {
+      grid-template-columns: 1fr;
     }
   }
 }

@@ -1,7 +1,9 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Connection, VideoPlay, Edit, Delete, View, Tools } from '@element-plus/icons-vue'
+import * as monaco from 'monaco-editor'
+import mcpIcon from '../../assets/mcp.svg'
 import { 
   createMCPServerAPI, 
   getMCPServersAPI, 
@@ -23,6 +25,13 @@ const editingServer = ref<MCPServer | null>(null)
 const configuringServer = ref<MCPServer | null>(null)
 const selectedServerTools = ref<MCPServerTool[]>([])
 const selectedServerName = ref('')
+let jsonEditor: monaco.editor.IStandaloneCodeEditor | null = null
+
+// 配置状态
+const configStatus = reactive({
+  valid: true,
+  message: '',
+})
 
 // 表单数据
 const formData = ref<CreateMCPServerRequest>({
@@ -197,10 +206,13 @@ const updateUserConfig = async () => {
   if (!editingServer.value) return
   
   try {
+    // 获取编辑器的最新内容
+    const jsonContent = jsonEditor ? jsonEditor.getValue() : userConfigData.value
+    
     // 解析用户配置JSON
     let parsedUserConfig = {}
     try {
-      parsedUserConfig = JSON.parse(userConfigData.value.trim() || '[]')
+      parsedUserConfig = JSON.parse(jsonContent.trim() || '[]')
     } catch (error) {
       ElMessage.error('用户配置JSON格式错误')
       return
@@ -225,7 +237,7 @@ const updateUserConfig = async () => {
       return
     }
     
-    closeDialog()
+    closeConfigDialog()
     await fetchServers()
   } catch (error: any) {
     console.error('保存用户配置失败:', error)
@@ -284,31 +296,198 @@ const handleConfig = (server: MCPServer) => {
   userConfigData.value = typeof server.config === 'object' 
     ? JSON.stringify(server.config, null, 2) 
     : server.config || '[]'
+    
+  // 初始化JSON编辑器
+  nextTick(() => {
+    initJsonEditor()
+  })
+}
+
+// 初始化Monaco编辑器
+const initJsonEditor = () => {
+  const editorContainer = document.getElementById('jsonEditor')
+  if (editorContainer && !jsonEditor) {
+    // 注册JSON语言
+    monaco.languages.json.jsonDefaults.setDiagnosticsOptions({
+      validate: true,
+      schemas: [{
+        uri: 'http://myserver/mcp-config-schema.json',
+        fileMatch: ['*'],
+        schema: {
+          type: 'array',
+          items: {
+            type: 'object',
+            required: ['key', 'label', 'value'],
+            properties: {
+              key: {
+                type: 'string',
+                description: '配置项的唯一标识符'
+              },
+              label: {
+                type: 'string',
+                description: '配置项的显示名称'
+              },
+              value: {
+                description: '配置项的值'
+              }
+            }
+          }
+        }
+      }]
+    })
+    
+    // 创建编辑器
+    jsonEditor = monaco.editor.create(editorContainer, {
+      value: userConfigData.value,
+      language: 'json',
+      theme: 'vs',
+      automaticLayout: true,
+      minimap: { enabled: false },
+      lineNumbers: 'on',
+      roundedSelection: true,
+      scrollBeyondLastLine: false,
+      fontSize: 14,
+      tabSize: 2,
+      renderLineHighlight: 'all',
+      scrollbar: {
+        vertical: 'auto',
+        horizontal: 'auto',
+      }
+    })
+    
+    // 添加编辑器验证
+    jsonEditor.onDidChangeModelContent(() => {
+      validateJsonConfig()
+    })
+    
+    // 初始验证
+    validateJsonConfig()
+  }
+}
+
+// 验证JSON配置
+const validateJsonConfig = () => {
+  if (!jsonEditor) return
+  
+  const content = jsonEditor.getValue()
+  configStatus.valid = true
+  configStatus.message = ''
+  
+  try {
+    const parsed = JSON.parse(content)
+    if (!Array.isArray(parsed)) {
+      configStatus.valid = false
+      configStatus.message = '配置必须是JSON数组格式'
+      return
+    }
+    
+    // 验证每个项目结构
+    for (let i = 0; i < parsed.length; i++) {
+      const item = parsed[i]
+      if (!item.key || !item.label || item.value === undefined) {
+        configStatus.valid = false
+        configStatus.message = `第${i+1}项缺少必要字段，请确保包含key、label和value`
+        return
+      }
+    }
+  } catch (e) {
+    configStatus.valid = false
+    configStatus.message = '无效的JSON格式'
+  }
 }
 
 const closeConfigDialog = () => {
   configDialogVisible.value = false
   configuringServer.value = null
+  
+  // 销毁编辑器
+  if (jsonEditor) {
+    jsonEditor.dispose()
+    jsonEditor = null
+  }
+  
   // 恢复背景滚动
   document.body.style.overflow = 'auto'
 }
 
 // 更新个人配置
 const handleConfigSubmit = async () => {
-  if (!configuringServer.value) return
+  if (!configuringServer.value) {
+    ElMessage.error('服务器信息缺失，请重试')
+    return
+  }
+  
+  // 检查JSON是否有效
+  if (!configStatus.valid) {
+    ElMessage.error(configStatus.message || 'JSON格式无效')
+    return
+  }
   
   formLoading.value = true
   try {
-    await updateUserConfig()
-    ElMessage.success('个人配置更新成功')
-    closeConfigDialog()
-    await fetchServers()
+    // 获取编辑器的最新内容
+    const jsonContent = jsonEditor ? jsonEditor.getValue() : userConfigData.value
+    
+    // 解析用户配置JSON
+    let parsedUserConfig = {}
+    try {
+      parsedUserConfig = JSON.parse(jsonContent.trim() || '[]')
+    } catch (error) {
+      ElMessage.error('用户配置JSON格式错误: ' + (error as Error).message)
+      formLoading.value = false
+      return
+    }
+
+    // 准备请求参数
+    const requestData: MCPUserConfigUpdateRequest = {
+      server_id: configuringServer.value.mcp_server_id,
+      config: parsedUserConfig
+    }
+
+    console.log('准备发送配置更新请求:', requestData)
+    
+    // 调用API更新配置
+    const response = await updateMCPUserConfigAPI(requestData)
+    console.log('配置更新响应:', response)
+    
+    if (response.data.status_code === 200) {
+      ElMessage.success('个人配置更新成功')
+      closeConfigDialog()
+      await fetchServers()
+    } else {
+      ElMessage.error(response.data.status_message || '保存失败')
+    }
   } catch (error) {
     console.error('配置更新失败:', error)
-    ElMessage.error('配置更新失败')
+    ElMessage.error('配置更新失败: ' + (error as Error).message)
   } finally {
     formLoading.value = false
   }
+}
+
+// 插入示例配置
+const insertExampleConfig = () => {
+  if (!jsonEditor) return
+  
+  const exampleConfig = [
+    {
+      "key": "api_key",
+      "label": "API密钥",
+      "value": "your_api_key_here"
+    },
+    {
+      "key": "timeout",
+      "label": "超时时间(毫秒)",
+      "value": 30000
+    },
+    {
+      "key": "model",
+      "label": "模型名称",
+      "value": "gpt-4"
+    }
+  ]
+  
+  jsonEditor.setValue(JSON.stringify(exampleConfig, null, 2))
 }
 
 // 处理图片加载错误
@@ -331,13 +510,60 @@ onMounted(async () => {
 onUnmounted(() => {
   // 页面卸载时恢复背景滚动，防止影响其他页面
   document.body.style.overflow = 'auto'
+  
+  // 销毁编辑器
+  if (jsonEditor) {
+    jsonEditor.dispose()
+    jsonEditor = null
+  }
 })
+
+// 保存用户配置
+const saveUserConfig = async () => {
+  if (!configuringServer.value || !jsonEditor) return
+  
+  try {
+    // 更新用户配置
+    const configContent = jsonEditor.getValue()
+    
+    // 验证JSON格式
+    if (!configStatus.valid) {
+      ElMessage.error('配置格式错误，无法保存')
+      return
+    }
+    
+    // 准备请求数据
+    const requestData: MCPUserConfigUpdateRequest = {
+      mcp_server_id: configuringServer.value.mcp_server_id,
+      user_config: configContent
+    }
+    
+    // 发送请求
+    // console.log('准备发送配置更新请求:', requestData)
+    const response = await updateMCPUserConfigAPI(requestData)
+    // console.log('配置更新响应:', response)
+    
+    if (response.data.status_code === 200) {
+      ElMessage.success('配置保存成功')
+      configDialogVisible.value = false
+      await fetchServers() // 刷新列表
+    } else {
+      ElMessage.error(response.data.status_message || '保存配置失败')
+    }
+  } catch (error) {
+    console.error('保存MCP用户配置失败:', error)
+    ElMessage.error('保存失败')
+  }
+}
 </script>
 
 <template>
   <div class="mcp-server-page">
     <div class="page-header">
-      <h2>MCP Server管理</h2>
+      <h2>
+        <img :src="mcpIcon" class="mcp-icon" alt="MCP" />
+        MCP Server管理
+      </h2>
       <el-button type="primary" :icon="Plus" @click="handleCreate">
         添加服务器
       </el-button>
@@ -487,8 +713,14 @@ onUnmounted(() => {
       </el-table>
       
       <div v-if="servers.length === 0 && !loading" class="empty-state">
-        <img src="/src/assets/404.gif" alt="暂无数据" width="300" />
-        <p>暂无MCP服务器，点击上方按钮添加第一个服务器吧！</p>
+        <div class="empty-icon">
+          <i class="empty-icon-symbol">📡</i>
+        </div>
+        <h3>暂无MCP服务</h3>
+        <p>添加MCP服务器以增强智能体的能力</p>
+        <el-button type="primary" @click="handleCreate()" class="create-btn">
+          添加服务器
+        </el-button>
       </div>
     </div>
 
@@ -845,7 +1077,10 @@ onUnmounted(() => {
       <div v-if="configDialogVisible" class="modal-overlay" @click.self="closeConfigDialog">
         <div class="modal-dialog config-dialog">
           <div class="modal-header">
-            <h3>{{ configuringServer?.server_name }} - 个人配置</h3>
+            <h3>
+              <span class="config-server-name">{{ configuringServer?.server_name }}</span>
+              <span class="config-title">个人配置</span>
+            </h3>
             <button class="close-btn" @click="closeConfigDialog">
               <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                 <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -854,79 +1089,90 @@ onUnmounted(() => {
           </div>
           
           <div class="modal-body">
+            <!-- 配置指引卡片 -->
             <div class="config-info">
               <div class="info-card">
                 <div class="info-icon">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                     <circle cx="12" cy="12" r="10" stroke="#409eff" stroke-width="2"/>
                     <path d="M9 12l2 2 4-4" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
                 </div>
                 <div class="info-text">
-                  <h4>个人配置说明</h4>
-                  <p>配置您的个人参数，这些设置仅对您的账户有效，不会影响其他用户。</p>
+                  <h4>个人配置</h4>
+                  <p>为此MCP服务配置您的个人参数，这些设置将仅对您的账户有效，不会影响其他用户。</p>
                 </div>
               </div>
             </div>
             
-            <form @submit.prevent="handleConfigSubmit">
-              <div class="form-section">
-                <div class="section-title">
+            <!-- 顶部工具栏 -->
+            <div class="editor-toolbar">
+              <div class="toolbar-left">
+                <button 
+                  class="toolbar-btn" 
+                  @click="insertExampleConfig" 
+                  title="插入示例配置"
+                >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                    <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <circle cx="8.5" cy="7" r="4" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    <path d="M20 8v6M23 11h-6" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <path d="M12 5v14M5 12h14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                   </svg>
-                  <span>个人配置参数</span>
+                  <span>插入示例</span>
+                </button>
+              </div>
+              <div class="toolbar-right">
+                <span class="validation-status" :class="{ 'is-valid': configStatus.valid, 'is-invalid': !configStatus.valid }">
+                  <svg v-if="configStatus.valid" width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                  </svg>
+                  <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2"/>
+                    <path d="M12 8v4M12 16h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </svg>
+                  <span>{{ configStatus.valid ? 'JSON有效' : configStatus.message }}</span>
+                </span>
+              </div>
+            </div>
+            
+            <!-- JSON编辑器 -->
+            <div class="editor-container">
+              <div id="jsonEditor" class="json-editor"></div>
+            </div>
+            
+            <!-- 帮助说明 -->
+            <div class="config-help">
+              <h4 class="help-title">
+                <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  <circle cx="12" cy="12" r="10" stroke="#409eff" stroke-width="2"/>
+                  <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <line x1="12" y1="17" x2="12.01" y2="17" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                配置说明
+              </h4>
+              <div class="help-content">
+                <div class="help-item">
+                  <h5>配置格式</h5>
+                  <p>配置必须是有效的JSON数组格式，每个配置项包含以下必填字段：</p>
+                  <ul>
+                    <li><code>key</code>: 配置项的唯一标识符</li>
+                    <li><code>label</code>: 配置项的显示名称</li>
+                    <li><code>value</code>: 配置项的值（可以是字符串、数字或布尔值）</li>
+                  </ul>
                 </div>
-                
-                <div class="form-group">
-                  <label for="userConfig">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    配置参数 (JSON数组格式)
-                  </label>
-                  <div class="textarea-wrapper">
-                    <textarea 
-                      id="userConfig"
-                      v-model="userConfigData" 
-                      rows="12"
-                      placeholder='请输入JSON数组格式的配置信息，例如：
-
-[
-  {
-    "key": "api_key",
-    "label": "API密钥",
-    "value": "your_api_key_here"
-  },
-  {
-    "key": "timeout",
-    "label": "超时时间(毫秒)",
-    "value": "30000"
-  }
-]'
-                    ></textarea>
-                    <div class="json-indicator">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M16 3l4 4-4 4" stroke="#e67e22" stroke-width="2"/>
-                        <path d="M8 21l-4-4 4-4" stroke="#e67e22" stroke-width="2"/>
-                      </svg>
-                      <span>JSON Array</span>
-                    </div>
-                  </div>
-                  <div class="input-help">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="10" stroke="#67c23a" stroke-width="2"/>
-                      <path d="M9 12l2 2 4-4" stroke="#67c23a" stroke-width="2"/>
-                    </svg>
-                    <span>配置仅对您的账户生效，支持覆盖服务器默认配置</span>
-                  </div>
+                <div class="help-item">
+                  <h5>使用方法</h5>
+                  <p>点击"插入示例"按钮可快速添加示例配置。完成编辑后点击"保存配置"按钮进行保存。</p>
+                </div>
+                <div class="help-item">
+                  <h5>编辑器快捷键</h5>
+                  <ul class="shortcut-list">
+                    <li><span class="key">Ctrl+Space</span> 触发自动完成</li>
+                    <li><span class="key">Ctrl+S</span> 格式化文档</li>
+                    <li><span class="key">Alt+↑/↓</span> 移动行</li>
+                  </ul>
                 </div>
               </div>
-            </form>
+            </div>
           </div>
           
           <div class="modal-footer">
@@ -936,8 +1182,9 @@ onUnmounted(() => {
             <button 
               type="button" 
               @click="handleConfigSubmit"
-              :disabled="formLoading"
+              :disabled="formLoading || !configStatus.valid"
               class="btn btn-primary"
+              :title="!configStatus.valid ? configStatus.message : ''"
             >
               <span v-if="formLoading" class="loading-spinner"></span>
               保存配置
@@ -1620,40 +1867,45 @@ onUnmounted(() => {
 .mcp-server-page {
   padding: 24px;
   min-height: calc(100vh - 60px);
-  background-color: transparent;
-  position: relative;
+  background-color: #f5f7fa;
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 28px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    padding: 24px 32px;
-    border-radius: 16px;
+    background: linear-gradient(to right, #ffffff, #f8fafc);
+    padding: 24px;
+    border-radius: 12px;
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.2);
+    position: relative;
+    overflow: hidden;
+    
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #409eff, #67c23a, #e6a23c);
+    }
     
     h2 {
-      margin: 0;
-      font-size: 28px;
+      font-size: 26px;
       font-weight: 700;
-      background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      margin: 0;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: linear-gradient(90deg, #1B7CE4, #409eff); // 与mcp.svg图标颜色匹配
       -webkit-background-clip: text;
       -webkit-text-fill-color: transparent;
       background-clip: text;
-      letter-spacing: -0.02em;
-      position: relative;
       
-      &::after {
-        content: '';
-        position: absolute;
-        bottom: -4px;
-        left: 0;
-        width: 60px;
-        height: 3px;
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border-radius: 2px;
+      .mcp-icon {
+        width: 32px;
+        height: 32px;
       }
     }
     
@@ -2016,6 +2268,316 @@ onUnmounted(() => {
         font-weight: 500;
       }
     }
+  }
+}
+
+// 配置对话框样式改进
+.config-dialog {
+  max-width: 800px;
+  
+  .modal-header h3 {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    
+    .config-server-name {
+      font-weight: 700;
+      color: #1e293b;
+    }
+    
+    .config-title {
+      color: #64748b;
+      font-weight: 500;
+    }
+    
+    &::before {
+      content: '';
+      display: inline-block;
+      width: 4px;
+      height: 18px;
+      background: linear-gradient(135deg, #3b82f6 0%, #1e40af 100%);
+      border-radius: 2px;
+      margin-right: 8px;
+    }
+  }
+  
+  .config-info {
+    margin-bottom: 20px;
+    
+    .info-card {
+      background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
+      border: 1px solid #bae6fd;
+      border-radius: 12px;
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      
+      .info-icon {
+        flex-shrink: 0;
+        width: 40px;
+        height: 40px;
+        background: rgba(59, 130, 246, 0.1);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      
+      .info-text {
+        flex: 1;
+        
+        h4 {
+          margin: 0 0 6px 0;
+          font-size: 16px;
+          font-weight: 600;
+          color: #1e293b;
+        }
+        
+        p {
+          margin: 0;
+          font-size: 14px;
+          color: #64748b;
+          line-height: 1.6;
+        }
+      }
+    }
+  }
+  
+  // 编辑器工具栏
+  .editor-toolbar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-bottom: none;
+    border-top-left-radius: 8px;
+    border-top-right-radius: 8px;
+    padding: 8px 12px;
+    
+    .toolbar-btn {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      border: none;
+      background: #f1f5f9;
+      color: #475569;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      
+      &:hover {
+        background: #e2e8f0;
+        color: #334155;
+      }
+      
+      svg {
+        width: 16px;
+        height: 16px;
+      }
+    }
+    
+    .validation-status {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 13px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      
+      &.is-valid {
+        background: rgba(34, 197, 94, 0.1);
+        color: #16a34a;
+      }
+      
+      &.is-invalid {
+        background: rgba(239, 68, 68, 0.1);
+        color: #dc2626;
+      }
+    }
+  }
+  
+  // 编辑器容器
+  .editor-container {
+    height: 300px;
+    border: 1px solid #e2e8f0;
+    border-bottom-left-radius: 8px;
+    border-bottom-right-radius: 8px;
+    overflow: hidden;
+    
+    .json-editor {
+      height: 100%;
+      width: 100%;
+    }
+  }
+  
+  // 帮助说明
+  .config-help {
+    margin-top: 24px;
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    overflow: hidden;
+    
+    .help-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin: 0;
+      padding: 12px 16px;
+      background: #f1f5f9;
+      color: #1e293b;
+      font-size: 14px;
+      font-weight: 600;
+      border-bottom: 1px solid #e2e8f0;
+    }
+    
+    .help-content {
+      padding: 16px;
+      
+      .help-item {
+        margin-bottom: 16px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        h5 {
+          margin: 0 0 8px 0;
+          font-size: 14px;
+          color: #334155;
+          font-weight: 600;
+        }
+        
+        p {
+          margin: 0 0 8px 0;
+          font-size: 13px;
+          color: #475569;
+          line-height: 1.5;
+        }
+        
+        ul {
+          margin: 0;
+          padding-left: 20px;
+          
+          li {
+            font-size: 13px;
+            color: #475569;
+            margin-bottom: 4px;
+            
+            code {
+              background: #e2e8f0;
+              padding: 2px 4px;
+              border-radius: 4px;
+              color: #334155;
+              font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+              font-size: 12px;
+            }
+          }
+        }
+        
+        .shortcut-list {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+          gap: 8px;
+          list-style-type: none;
+          padding: 0;
+          
+          li {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            
+            .key {
+              background: #e2e8f0;
+              padding: 2px 6px;
+              border-radius: 4px;
+              color: #475569;
+              font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+              font-size: 12px;
+              border: 1px solid #cbd5e1;
+              box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+            }
+          }
+        }
+      }
+    }
+  }
+  
+  .modal-footer {
+    .btn-primary {
+      &:disabled {
+        opacity: 0.7;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+@media (max-width: 768px) {
+  .config-dialog {
+    .editor-container {
+      height: 250px;
+    }
+    
+    .config-help {
+      .help-content {
+        .help-item {
+          .shortcut-list {
+            grid-template-columns: 1fr;
+          }
+        }
+      }
+    }
+  }
+}
+
+/* 空状态样式 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 60px 20px;
+  text-align: center;
+  margin: 20px auto;
+  max-width: 600px;
+  
+  .empty-icon {
+    width: 120px;
+    height: 120px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(64, 158, 255, 0.1);
+    border-radius: 50%;
+    margin-bottom: 20px;
+    
+    .empty-icon-symbol {
+      font-size: 60px;
+    }
+  }
+  
+  h3 {
+    font-size: 20px;
+    color: #303133;
+    margin: 0 0 16px;
+  }
+  
+  p {
+    margin: 0 0 20px;
+    font-size: 16px;
+    color: #909399;
+    max-width: 300px;
+  }
+  
+  .create-btn {
+    padding: 12px 24px;
+    font-size: 16px;
   }
 }
 </style>
