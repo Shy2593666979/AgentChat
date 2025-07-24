@@ -10,6 +10,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from agentchat.settings import initialize_app_settings
 from agentchat.settings import app_settings
 
+import warnings
+warnings.filterwarnings("ignore")
 
 async def register_router(app: FastAPI):
     from agentchat.api.router import router

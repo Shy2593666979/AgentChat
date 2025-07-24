@@ -118,7 +118,7 @@ class StreamingAgent:
             # 返回MCP Agent结果
             await self.emit_event({
                 "title": f"Run MCP Agent: {mcp_agent.mcp_config.server_name}",
-                "message": "\n\n".join([response.content for response in responses]),
+                "message": "\n\n".join([response.content for response in responses]) if len(responses) else "该MCP Server下无可用工具",
                 "status": "END"
             })
             return responses
@@ -177,11 +177,11 @@ class StreamingAgent:
             await self.emit_event({
                 "title": f"Run Select Tool_{self.step_counter}",
                 "status": "END",
-                "messages": ", ".join([tool_call["name"] for tool_call in response.tool_calls])
+                "message": "可用工具：" + ", ".join([tool_call["name"] for tool_call in response.tool_calls])
             })
 
             return AIMessage(
-                content="命中可用工具",
+                content=response.content,
                 tool_calls=response.tool_calls,
             )
         else:
@@ -267,7 +267,8 @@ class StreamingAgent:
                         "message": f"正在调用插件工具 {tool_name}..."
                     })
 
-                    tool_result = use_tool.func(**tool_args)
+                    # 改为异步
+                    tool_result = await asyncio.to_thread(use_tool.func, **tool_args)
 
                     # 发送插件工具执行完成事件
                     await self.emit_event({
@@ -456,7 +457,7 @@ class StreamingAgent:
         # 将HumanMessage移到最后
         idx = next((i for i in reversed(range(len(messages))) if isinstance(messages[i], HumanMessage)), -1)
         messages = messages[:idx] + messages[idx + 1:] + [messages[idx]] if idx != -1 and idx != len(messages) - 1 else messages
-        
+
         
         response_content = ""
         try:

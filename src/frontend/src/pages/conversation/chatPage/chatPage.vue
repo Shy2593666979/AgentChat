@@ -42,6 +42,8 @@ const abortCtrl = ref<AbortController | null>(null)
 const isCancelled = ref(false)
 // 标记是否有正在进行的事件
 const hasActiveEvents = ref(false)
+// 保存上传文件的URL
+const fileUrl = ref("")
 
 // 事件状态管理
 const eventStatusMap = ref<Map<string, EventStatus>>(new Map())
@@ -68,6 +70,10 @@ const checkActiveEvents = (chatItem: any) => {
 const handleUploadSuccess = (response: any, file: any, fileList: any) => {
   ElMessage.success(`文件 ${file.name} 上传成功!`)
   console.log(response)
+  // 保存上传成功返回的文件URL
+  if (response && response.data) {
+    fileUrl.value = response.data
+  }
 }
 
 const handleUploadError = (error: any, file: any, fileList: any) => {
@@ -173,6 +179,11 @@ const personQuestion = async () => {
       dialogId: historyChatStore.dialogId,
       userInput: currentInput,
     }
+    
+    // 如果有上传的文件URL，添加到请求中
+    if (fileUrl.value) {
+      data.fileUrl = fileUrl.value
+    }
 
     try {
       abortCtrl.value = sendMessage(
@@ -246,6 +257,8 @@ const personQuestion = async () => {
           sendQuestion.value = true
           abortCtrl.value = null
           hasActiveEvents.value = false
+          // 清空文件URL
+          fileUrl.value = ""
         }
       )
     } catch (error) {
@@ -253,6 +266,8 @@ const personQuestion = async () => {
       sendQuestion.value = true
       abortCtrl.value = null
       hasActiveEvents.value = false
+      // 清空文件URL
+      fileUrl.value = ""
     }
   }
 }

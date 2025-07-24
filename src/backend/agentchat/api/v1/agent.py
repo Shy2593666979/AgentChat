@@ -21,6 +21,9 @@ async def create_agent(agent_request: CreateAgentRequest = Body(),
         # 判断Agent名称是否重复
         if await AgentService.check_repeat_name(name=agent_request.name, user_id=login_user.user_id):
             return resp_500(message="应用名称重复，请更换一个~~~")
+        # 为空的话换成默认的Logo
+        if agent_request.logo_url == "":
+            agent_request.logo_url = app_settings.logo["agent_url"]
 
         await AgentService.create_agent(name=agent_request.name,
                                         description=agent_request.description,

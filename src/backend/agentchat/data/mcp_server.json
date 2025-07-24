@@ -1,6 +1,6 @@
 [
   {
-    "server_name": "Gaode_Map",
+    "server_name": "高德地图",
     "url": "https://mcp.api-inference.modelscope.net/77df8a09751e4c/sse",
     "type": "sse",
     "config": {},
@@ -9,7 +9,7 @@
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/map.png"
   },
   {
-    "server_name": "Fetch",
+    "server_name": "网页爬取",
     "url": "https://mcp-5ce5b754-c359-4ea4.api-inference.modelscope.net/sse",
     "type": "sse",
     "config": {},
@@ -24,10 +24,10 @@
     "config": {},
     "params": {},
     "config_enabled": false,
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/fetch.png"
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/biying.png"
   },
   {
-    "server_name": "Lark",
+    "server_name": "飞书",
     "url": "http://47.95.23.87:8000/sse",
     "type": "sse",
     "config": [

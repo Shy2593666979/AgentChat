@@ -39,3 +39,4 @@ class MultiModels(BaseModel):
     deepseek_v3: ModelConfig = Field(default_factory=ModelConfig)
     qwen2: ModelConfig = Field(default_factory=ModelConfig)
     deepseek_r1: ModelConfig = Field(default_factory=ModelConfig)
+    text2image: ModelConfig = Field(default_factory=ModelConfig)

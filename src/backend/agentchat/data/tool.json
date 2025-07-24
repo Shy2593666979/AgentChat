@@ -30,21 +30,21 @@
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/delivery.png"
   },
   {
-    "en_name": "crawl_web",
-    "zh_name": "爬取网页",
-    "description": "帮助用户爬取给定网址的内容信息",
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png"
-  },
-  {
     "en_name": "convert_to_pdf",
-    "zh_name": "转成PDf文件",
-    "description": "帮助用户将上传的文件转成PDF文件",
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png"
+    "zh_name": "文件格式转换 (Docx -> PDF)",
+    "description": "帮助用户将上传的Docx文件转成PDF文件",
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/pdf.png"
   },
   {
     "en_name": "convert_to_docx",
-    "zh_name": "转成Docx文件",
-    "description": "帮助用户将上传的文件转成Docx文件",
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png"
+    "zh_name": "文件格式转换 (PDF -> Docx)",
+    "description": "帮助用户将上传的PDF文件转成Docx文件",
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/docx.png"
+  },
+  {
+    "en_name": "text_to_image",
+    "zh_name": "文生图",
+    "description": "将用户的图片描述生成一张照片",
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/text2image.png"
   }
 ]
