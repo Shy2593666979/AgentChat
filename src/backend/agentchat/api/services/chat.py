@@ -453,6 +453,11 @@ class StreamingAgent:
         if knowledge_message:
             messages.append(knowledge_message)
 
+        # 将HumanMessage移到最后
+        idx = next((i for i in reversed(range(len(messages))) if isinstance(messages[i], HumanMessage)), -1)
+        messages = messages[:idx] + messages[idx + 1:] + [messages[idx]] if idx != -1 and idx != len(messages) - 1 else messages
+        
+        
         response_content = ""
         try:
             async for chunk in self.conversation_model.astream(messages):
@@ -516,6 +521,11 @@ class StreamingAgent:
         # 添加知识库消息
         if knowledge_message:
             messages.append(knowledge_message)
+
+        # 将HumanMessage移到最后
+        idx = next((i for i in reversed(range(len(messages))) if isinstance(messages[i], HumanMessage)), -1)
+        messages = messages[:idx] + messages[idx + 1:] + [messages[idx]] if idx != -1 and idx != len(
+            messages) - 1 else messages
 
         # 收集完整响应
         response_content = ""

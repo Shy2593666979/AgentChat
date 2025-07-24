@@ -52,12 +52,18 @@ async def init_config():
     await init_default_agent()
     await update_system_mcp_server()
 
+def print_logo():
+    from pyfiglet import Figlet
+
+    f = Figlet(font="slant")
+    print(f.renderText("Agent Chat"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动前执行
     await init_config()
     await register_router(app)
+    print_logo()
     yield
     # 关闭时执行
     # pass

@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Plus, ArrowDown, ArrowRight, Edit, Check, Close } from "@element-plus/icons-vue"
 import type { UploadProps, UploadUserFile } from "element-plus"
 import { createAgentAPI, updateAgentAPI } from "../../../apis/agent"
+import { uploadFileAPI } from "../../../apis/file"
 import { Agent, AgentFormData } from "../../../type"
 
 const fileList = ref<UploadUserFile[]>([])
@@ -12,6 +13,7 @@ const visible = ref<boolean>(false)
 const formRef = ref()
 const eventType = ref("")
 const id = ref('')
+const uploadLoading = ref(false)
 
 const form = ref<AgentFormData>({
   name: "",
@@ -110,9 +112,44 @@ const close = () => {
   visible.value = false
 }
 
-const handleFileChange: UploadProps['onChange'] = (uploadFile) => {
+const handleFileChange: UploadProps['onChange'] = async (uploadFile) => {
   if (uploadFile.raw) {
-    form.value.logo_url = URL.createObjectURL(uploadFile.raw)
+    await uploadAvatarFile(uploadFile.raw)
+  }
+}
+
+const uploadAvatarFile = async (file: File) => {
+  // 文件大小和类型检查
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    ElMessage.error('上传头像图片大小不能超过 2MB!')
+    return
+  }
+  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
+  if (!isJpgOrPng) {
+    ElMessage.error('上传头像图片只能是 JPG/PNG 格式!')
+    return
+  }
+  
+  // 开始上传
+  uploadLoading.value = true
+  try {
+    const uploadFormData = new FormData()
+    uploadFormData.append('file', file)
+    
+    const response = await uploadFileAPI(uploadFormData)
+    
+    if (response.data.status_code === 200) {
+      form.value.logo_url = response.data.data
+      ElMessage.success('头像上传成功')
+    } else {
+      ElMessage.error(response.data.status_message || '头像上传失败')
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    ElMessage.error('头像上传失败')
+  } finally {
+    uploadLoading.value = false
   }
 }
 

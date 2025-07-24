@@ -77,17 +77,18 @@ async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID
         logger.error(err)
         return resp_500(message=str(err))
 
-
-# TODO：目前不支持修改MCP Server
 @router.put("/mcp_server")
 async def update_mcp_server(server_id: str = Body(..., description="MCP Server 的ID"),
                             server_name: str = Body(None, description="MCP Server的名称"),
                             url: str = Body(None, description="MCP Server 的URL"),
                             type: str = Body(None, description="MCP Server 的连接方式，SSE、Websocket"),
-                            config: dict = Body(None, description="MCP Server 的配置信息"),
                             login_user: UserPayload = Depends(get_login_user)):
     try:
-        if url:
+        # 验证是否有权限
+        await MCPService.verify_user_permission(server_id, login_user.user_id)
+        mcp_server = await MCPService.get_mcp_server_from_id(server_id)
+
+        if url != mcp_server["url"]:
             mcp_manager = MCPManager()
             server_info = {
                 "server_name": server_name,
@@ -100,6 +101,9 @@ async def update_mcp_server(server_id: str = Body(..., description="MCP Server �
             for key, tools in tools_params:
                 for tool in tools:
                     tools_str.append(tool["name"])
+            await MCPService.update_mcp_server(server_id, server_name, url, type, tools=tools_str, params=tools_params.get(server_name))
+        else:
+            await MCPService.update_mcp_server(server_id, server_name)
         return resp_200()
     except Exception as err:
         logger.error(err)

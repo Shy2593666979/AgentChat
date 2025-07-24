@@ -57,7 +57,8 @@ const updateList = async () => {
 
 const goCurrent = (item: string) => {
   const routes: Record<string, string> = {
-    "conversation": "/",
+    "homepage": "/homepage",
+    "conversation": "/conversation",
     "agent": "/agent",
     "mcp-server": "/mcp-server",
     "knowledge": "/knowledge",
@@ -169,6 +170,14 @@ watch(
             :default-active="current"
             text-color="#909399"
           >
+            <el-menu-item index="homepage" @click="goCurrent('homepage')">
+              <template #title>
+                <el-icon>
+                  <img src="../assets/frontpage.svg" width="22px" height="22px" />
+                </el-icon>
+                <span>首页</span>
+              </template>
+            </el-menu-item>
             <el-menu-item index="conversation" @click="goCurrent('conversation')">
               <template #title>
                 <el-icon>
@@ -458,44 +467,31 @@ watch(
     color: #475569;
     
     &:hover {
-      background: linear-gradient(135deg, rgba(59, 130, 246, 0.1) 0%, rgba(147, 51, 234, 0.1) 100%);
-      color: #3b82f6;
-      transform: translateX(6px) scale(1.02);
-      box-shadow: 0 8px 25px rgba(59, 130, 246, 0.15);
+      background: rgba(99, 102, 241, 0.05);
+      color: #6366f1;
+      transform: translateX(2px);
       
       .el-icon img {
-        filter: saturate(1.5) hue-rotate(10deg);
-        transform: scale(1.1);
-      }
-      
-      span {
-        text-shadow: 0 1px 3px rgba(59, 130, 246, 0.2);
+        transform: scale(1.05);
       }
     }
     
     &.is-active {
-      background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-      color: white;
-      transform: translateX(8px) scale(1.03);
-      box-shadow: 0 12px 32px rgba(59, 130, 246, 0.4);
+      background: #ffffff;
+      color: #6366f1;
+      box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+      border: 1px solid rgba(99, 102, 241, 0.1);
       
       .el-icon {
-        background: rgba(255, 255, 255, 0.2);
-        border-radius: 8px;
-        padding: 2px;
-        
         img {
-          /* 修改过滤器，保持图标可见 */
-          filter: brightness(1) contrast(1.2) drop-shadow(0 0 3px rgba(255, 255, 255, 0.5));
-          transform: scale(1.15);
+          filter: none;
           opacity: 1 !important;
         }
       }
       
       span {
-        font-weight: 700;
-        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        color: white !important;
+        font-weight: 600;
+        color: #6366f1 !important;
       }
     }
     

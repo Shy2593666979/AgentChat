@@ -4,6 +4,7 @@ import { ElMessage } from 'element-plus'
 import { Plus, ArrowDown, ArrowRight, Edit, Check, Close } from '@element-plus/icons-vue'
 import type { UploadProps, UploadUserFile } from 'element-plus'
 import { createAgentAPI, updateAgentAPI } from '../../../apis/agent'
+import { uploadFileAPI } from '../../../apis/file'
 import { Agent, AgentFormData } from '../../../type'
 
 const emits = defineEmits<{
@@ -16,6 +17,7 @@ const formRef = ref()
 const isEditing = ref(false)
 const editingAgentId = ref('')
 const fileList = ref<UploadUserFile[]>([])
+const uploadLoading = ref(false)
 
 const formData = reactive<AgentFormData>({
   name: '',
@@ -185,21 +187,52 @@ const resetForm = () => {
 // 处理文件上传
 const fileInput = ref<HTMLInputElement>()
 
-const handleFileUpload = (event: Event) => {
+const handleFileUpload = async (event: Event) => {
   const input = event.target as HTMLInputElement
   const file = input.files?.[0]
   if (file) {
-    // 这里可以添加文件上传到服务器的逻辑
-    // 暂时使用本地预览URL
-    formData.logo_url = URL.createObjectURL(file)
+    await uploadAvatarFile(file)
   }
 }
 
-const handleFileChange: UploadProps['onChange'] = (uploadFile) => {
+const handleFileChange: UploadProps['onChange'] = async (uploadFile) => {
   if (uploadFile.raw) {
-    // 这里可以添加文件上传到服务器的逻辑
-    // 暂时使用本地预览URL
-    formData.logo_url = URL.createObjectURL(uploadFile.raw)
+    await uploadAvatarFile(uploadFile.raw)
+  }
+}
+
+const uploadAvatarFile = async (file: File) => {
+  // 文件大小和类型检查
+  const isLt2M = file.size / 1024 / 1024 < 2
+  if (!isLt2M) {
+    ElMessage.error('上传头像图片大小不能超过 2MB!')
+    return
+  }
+  const isJpgOrPng = file.type === 'image/jpeg' || file.type === 'image/png'
+  if (!isJpgOrPng) {
+    ElMessage.error('上传头像图片只能是 JPG/PNG 格式!')
+    return
+  }
+  
+  // 开始上传
+  uploadLoading.value = true
+  try {
+    const uploadFormData = new FormData()
+    uploadFormData.append('file', file)
+    
+    const response = await uploadFileAPI(uploadFormData)
+    
+    if (response.data.status_code === 200) {
+      formData.logo_url = response.data.data
+      ElMessage.success('头像上传成功')
+    } else {
+      ElMessage.error(response.data.status_message || '头像上传失败')
+    }
+  } catch (error) {
+    console.error('头像上传失败:', error)
+    ElMessage.error('头像上传失败')
+  } finally {
+    uploadLoading.value = false
   }
 }
 
@@ -349,11 +382,18 @@ defineExpose({ open, close })
                       <label>助手头像</label>
                       <div class="avatar-upload">
                         <input type="file" @change="handleFileUpload" accept="image/*" style="display: none" ref="fileInput">
-                        <div class="avatar-preview" @click="fileInput?.click()">
-                          <img v-if="formData.logo_url" :src="formData.logo_url" alt="头像" />
-                          <svg v-else width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 2L13.09 8.26L19 7L18.74 13.74L24 12L17.74 16.74L19 19L13.74 18.26L12 22L10.26 16.74L5 17L5.26 10.26L2 12L8.26 7.26L7 5L12.26 5.74L12 2Z" fill="#ddd"/>
-                          </svg>
+                        <div class="avatar-preview" @click="!uploadLoading && fileInput?.click()" :class="{ 'uploading': uploadLoading }">
+                          <div v-if="uploadLoading" class="upload-loading">
+                            <div class="loading-spinner"></div>
+                            <span>上传中...</span>
+                          </div>
+                          <img v-else-if="formData.logo_url" :src="formData.logo_url" alt="头像" />
+                          <div v-else class="upload-placeholder">
+                            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 5v14M5 12h14" stroke="#ddd" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                            <span>点击上传头像</span>
+                          </div>
                         </div>
                       </div>
                     </div>
@@ -699,6 +739,78 @@ defineExpose({ open, close })
             }
           }
         }
+      }
+
+      .avatar-upload {
+        .avatar-preview {
+          width: 80px;
+          height: 80px;
+          border: 2px dashed #ddd;
+          border-radius: 12px;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          cursor: pointer;
+          transition: all 0.3s ease;
+          background: #fafafa;
+          position: relative;
+          
+          &:hover:not(.uploading) {
+            border-color: #409eff;
+            background: #f0f7ff;
+          }
+          
+          &.uploading {
+            cursor: not-allowed;
+            border-color: #409eff;
+            background: #f0f7ff;
+          }
+          
+          img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            border-radius: 10px;
+          }
+          
+          .upload-loading {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            
+            .loading-spinner {
+              width: 20px;
+              height: 20px;
+              border: 2px solid #f3f3f3;
+              border-top: 2px solid #409eff;
+              border-radius: 50%;
+              animation: spin 1s linear infinite;
+            }
+            
+            span {
+              font-size: 12px;
+              color: #409eff;
+            }
+          }
+          
+          .upload-placeholder {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 6px;
+            
+            span {
+              font-size: 12px;
+              color: #999;
+            }
+          }
+        }
+      }
+      
+      @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
       }
 
       .avatar-uploader {

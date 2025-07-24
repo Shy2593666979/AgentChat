@@ -47,30 +47,10 @@ const formData = reactive<AgentFormData>({
   tool_ids: [],
   llm_id: '',
   mcp_ids: [],
-  system_prompt: `你是一个智能助手 tmg-GPT，具有丰富的自然语言处理经验，擅长理解和生成文本内容。
-
-## 你的角色
-- 智能助手专家
-- 文本处理专家
-- 问题解决专家
-
-## 你的技能
-1. 理解和生成自然语言
-2. 分析复杂问题并提供解决方案
-3. 提供清晰的步骤指导
-4. 整理和总结信息
-
-## 限制条件
-- 始终保持专业和有帮助的态度
-- 提供准确可靠的信息
-- 遵循用户的具体指示`,
+  system_prompt: '',
   knowledge_ids: [],
   use_embedding: false
 })
-
-// 调试相关数据
-const currentMessage = ref('')
-const debugLoading = ref(false)
 
 // 折叠面板状态
 const collapseItems = ref({
@@ -109,70 +89,7 @@ const rules = {
   llm_id: [{ required: true, message: '请选择大模型', trigger: 'change' }]
 }
 
-// 系统提示词模板
-const promptTemplates = ref([
-  {
-    name: '通用助手',
-    content: `你是一个智能助手，具有广泛的知识和能力。
 
-## 你的角色
-- 通用智能助手
-- 知识问答专家
-- 任务执行助手
-
-## 你的能力
-1. 回答各种问题
-2. 协助完成任务
-3. 提供建议和指导
-
-## 行为准则
-- 准确可靠
-- 友善专业
-- 高效有用`
-  },
-  {
-    name: '编程助手',
-    content: `你是一个专业的编程助手，精通多种编程语言和开发技术。
-
-## 你的专长
-- 代码编写和优化
-- 技术问题解答
-- 架构设计建议
-- 调试问题分析
-
-## 技能范围
-1. 前端开发（Vue、React、Angular）
-2. 后端开发（Node.js、Python、Java）
-3. 数据库设计和优化
-4. DevOps和部署
-
-## 工作原则
-- 提供高质量代码
-- 遵循最佳实践
-- 详细解释思路`
-  },
-  {
-    name: '内容创作',
-    content: `你是一个专业的内容创作助手，擅长各种类型的文本创作。
-
-## 创作领域
-- 文章写作
-- 营销文案
-- 创意策划
-- 文档整理
-
-## 创作特点
-1. 内容原创性高
-2. 结构清晰合理
-3. 语言生动准确
-4. 符合目标受众
-
-## 质量标准
-- 逻辑清晰
-- 信息准确
-- 表达流畅`
-  }
-])
 
 
 
@@ -242,23 +159,7 @@ const loadAgent = (agent?: Agent) => {
       tool_ids: [],
       llm_id: '',
       mcp_ids: [],
-      system_prompt: `你是一个智能助手 tmg-GPT，具有丰富的自然语言处理经验，擅长理解和生成文本内容。
-
-## 你的角色
-- 智能助手专家
-- 文本处理专家
-- 问题解决专家
-
-## 你的技能
-1. 理解和生成自然语言
-2. 分析复杂问题并提供解决方案
-3. 提供清晰的步骤指导
-4. 整理和总结信息
-
-## 限制条件
-- 始终保持专业和有帮助的态度
-- 提供准确可靠的信息
-- 遵循用户的具体指示`,
+      system_prompt: '',
       knowledge_ids: [],
       use_embedding: false
     })
@@ -272,11 +173,7 @@ const toggleCollapse = (key: keyof typeof collapseItems.value) => {
   collapseItems.value[key] = !collapseItems.value[key]
 }
 
-// 应用提示词模板
-const applyTemplate = (template: typeof promptTemplates.value[0]) => {
-  formData.system_prompt = template.content
-  ElMessage.success(`已应用"${template.name}"模板`)
-}
+
 
 // 上传相关
 const uploadLoading = ref(false)
@@ -398,25 +295,7 @@ const saveAgent = async () => {
   }
 }
 
-// 发送调试消息
-const sendDebugMessage = async () => {
-  if (!currentMessage.value.trim()) return
-  
-  const userInput = currentMessage.value
-  currentMessage.value = ''
-  debugLoading.value = true
-  
-  try {
-    // 模拟AI回复
-    setTimeout(() => {
-      ElMessage.success('消息已发送（模拟）')
-      debugLoading.value = false
-    }, 1000)
-  } catch (error) {
-    ElMessage.error('调试消息发送失败')
-    debugLoading.value = false
-  }
-}
+
 
 
 
@@ -493,8 +372,7 @@ const loadToolOptions = async () => {
       
       toolOptions.value = rawData.map(tool => ({
         ...tool,
-        name: tool.zh_name || tool.en_name,
-        icon: getToolIcon(tool.zh_name || tool.en_name)
+        name: tool.zh_name || tool.en_name
       }))
       
       console.log(`✅ 成功加载 ${toolOptions.value.length} 个工具`)
@@ -527,8 +405,7 @@ const loadMCPOptions = async () => {
     
     mcpOptions.value = mcpData.map(mcp => ({
       ...mcp,
-      name: mcp.server_name,
-      icon: getMCPIcon(mcp.server_name)
+      name: mcp.server_name
     }))
     console.log(`✅ 成功加载 ${mcpOptions.value.length} 个MCP服务器`)
   } catch (error) {
@@ -563,43 +440,7 @@ const loadKnowledgeOptions = async () => {
   }
 }
 
-// 获取工具图标
-const getToolIcon = (toolName: string): string => {
-  const iconMap: { [key: string]: string } = {
-    '搜索': '🔍',
-    '代码': '💻',
-    '图片': '🎨',
-    '天气': '🌤️',
-    '邮件': '📧',
-    '翻译': '🌐',
-    '计算': '🧮'
-  }
-  
-  for (const [key, icon] of Object.entries(iconMap)) {
-    if (toolName.includes(key)) {
-      return icon
-    }
-  }
-  return '🔧'
-}
 
-// 获取MCP图标
-const getMCPIcon = (mcpName: string): string => {
-  const iconMap: { [key: string]: string } = {
-    '天气': '🌤️',
-    '邮件': '📧',
-    '日历': '📅',
-    '文件': '📁',
-    '数据库': '🗄️'
-  }
-  
-  for (const [key, icon] of Object.entries(iconMap)) {
-    if (mcpName.includes(key)) {
-      return icon
-    }
-  }
-  return '🤖'
-}
 
 // 获取知识库图标
 const getKnowledgeIcon = (knowledgeName: string): string => {
@@ -814,7 +655,6 @@ defineExpose({ loadAgent })
           <span class="header-title">{{ isEditing ? '编辑智能体' : '创建智能体' }}</span>
           <div class="header-tags">
             <el-tag v-if="formData.name" type="primary" size="small" effect="dark">{{ formData.name }}</el-tag>
-            <el-tag v-if="isEditing" type="success" size="small" effect="dark">ID: {{ editingAgentId }}</el-tag>
           </div>
         </div>
       </div>
@@ -836,22 +676,7 @@ defineExpose({ loadAgent })
             <span class="panel-title">系统提示词</span>
             <span class="panel-subtitle">定义智能体的角色和行为</span>
           </div>
-          <div class="header-actions">
-            <el-dropdown trigger="click">
-              <el-button size="small" type="primary" :icon="Plus" class="template-btn">模板</el-button>
-              <template #dropdown>
-                <el-dropdown-menu>
-                  <el-dropdown-item 
-                    v-for="template in promptTemplates" 
-                    :key="template.name"
-                    @click="applyTemplate(template)"
-                  >
-                    {{ template.name }}
-                  </el-dropdown-item>
-                </el-dropdown-menu>
-              </template>
-            </el-dropdown>
-          </div>
+
         </div>
         
         <div class="panel-content">
@@ -959,17 +784,28 @@ defineExpose({ loadAgent })
                 <el-form-item label="模型" prop="llm_id">
                   <el-select 
                     v-model="formData.llm_id" 
-                    placeholder="选择大语言模型"
+                    placeholder="🔍 搜索或选择大语言模型"
                     :loading="dataLoading.llm"
                     class="form-select"
+                    filterable
+                    clearable
+                    reserve-keyword
                   >
+                    <template #prefix>
+                      <span v-if="dataLoading.llm" style="color: #1d4ed8; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
+                      <span v-else style="color: #1d4ed8; font-size: 12px; font-weight: 600;">🤖 {{ llmOptions.length }}个模型</span>
+                    </template>
                     <el-option
                       v-for="llm in llmOptions"
                       :key="llm.llm_id"
                       :label="llm.name"
                       :value="llm.llm_id"
                     >
-                      <span>{{ llm.name }} ({{ llm.llm_type }})</span>
+                      <div class="custom-option">
+                        <span class="option-icon">🤖</span>
+                        <span class="option-name">{{ llm.name }}</span>
+                        <span class="option-badge ai-badge">AI</span>
+                      </div>
                     </el-option>
                   </el-select>
                 </el-form-item>
@@ -995,13 +831,18 @@ defineExpose({ loadAgent })
                   <el-select
                     v-model="formData.knowledge_ids"
                     multiple
-                    placeholder="选择知识库"
+                    placeholder="🔍 搜索或选择知识库"
                     class="form-select"
                     :loading="dataLoading.knowledge"
+                    filterable
+                    clearable
+                    collapse-tags
+                    collapse-tags-tooltip
+                    :max-collapse-tags="2"
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.knowledge" style="color: #909399; font-size: 12px;">加载中...</span>
-                      <span v-else style="color: #909399; font-size: 12px;">{{ knowledgeOptions.length }}个</span>
+                      <span v-if="dataLoading.knowledge" style="color: #15803d; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
+                      <span v-else style="color: #15803d; font-size: 12px; font-weight: 600;">📚 {{ knowledgeOptions.length }}个知识库</span>
                     </template>
                     <el-option
                       v-for="knowledge in knowledgeOptions"
@@ -1009,7 +850,11 @@ defineExpose({ loadAgent })
                       :label="knowledge.name"
                       :value="knowledge.knowledge_id"
                     >
-                      <span>{{ knowledge.icon }} {{ knowledge.name }}</span>
+                      <div class="custom-option">
+                        <span class="option-icon">{{ knowledge.icon || '📚' }}</span>
+                        <span class="option-name">{{ knowledge.name }}</span>
+                        <span class="option-badge kb-badge">KB</span>
+                      </div>
                     </el-option>
                   </el-select>
                 </el-form-item>
@@ -1035,13 +880,18 @@ defineExpose({ loadAgent })
                   <el-select
                     v-model="formData.tool_ids"
                     multiple
-                    placeholder="选择工具"
+                    placeholder="🔍 搜索或选择工具"
                     class="form-select"
                     :loading="dataLoading.tool"
+                    filterable
+                    clearable
+                    collapse-tags
+                    collapse-tags-tooltip
+                    :max-collapse-tags="3"
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.tool" style="color: #909399; font-size: 12px;">加载中...</span>
-                      <span v-else style="color: #909399; font-size: 12px;">{{ toolOptions.length }}个</span>
+                      <span v-if="dataLoading.tool" style="color: #c2410c; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
+                      <span v-else style="color: #c2410c; font-size: 12px; font-weight: 600;">🔧 {{ toolOptions.length }}个工具</span>
                     </template>
                     <el-option
                       v-for="tool in toolOptions"
@@ -1049,7 +899,11 @@ defineExpose({ loadAgent })
                       :label="tool.name"
                       :value="tool.tool_id"
                     >
-                      <span>{{ tool.icon }} {{ tool.name }}</span>
+                      <div class="custom-option">
+                        <img :src="tool.logo_url || '/src/assets/tool/default.png'" class="option-logo" :alt="tool.name" />
+                        <span class="option-name">{{ tool.name }}</span>
+                        <span class="option-badge tool-badge">TOOL</span>
+                      </div>
                     </el-option>
                   </el-select>
                 </el-form-item>
@@ -1075,21 +929,30 @@ defineExpose({ loadAgent })
                   <el-select
                     v-model="formData.mcp_ids"
                     multiple
-                    placeholder="选择MCP服务器"
+                    placeholder="🔍 搜索或选择MCP服务器"
                     class="form-select"
                     :loading="dataLoading.mcp"
+                    filterable
+                    clearable
+                    collapse-tags
+                    collapse-tags-tooltip
+                    :max-collapse-tags="2"
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.mcp" style="color: #909399; font-size: 12px;">加载中...</span>
-                      <span v-else style="color: #909399; font-size: 12px;">{{ mcpOptions.length }}个</span>
+                      <span v-if="dataLoading.mcp" style="color: #7c2d12; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
+                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;">⚡ {{ mcpOptions.length }}个服务</span>
                     </template>
-                    <el-option
+                                        <el-option
                       v-for="mcp in mcpOptions"
                       :key="mcp.mcp_server_id"
                       :label="mcp.name"
                       :value="mcp.mcp_server_id"
                     >
-                      <span>{{ mcp.icon }} {{ mcp.name }}</span>
+                      <div class="custom-option">
+                        <img :src="mcp.logo_url || '/src/assets/robot.svg'" class="option-logo" :alt="mcp.name" />
+                        <span class="option-name">{{ mcp.name }}</span>
+                        <span class="option-badge mcp-badge">MCP</span>
+                      </div>
                     </el-option>
                   </el-select>
                 </el-form-item>
@@ -1099,69 +962,7 @@ defineExpose({ loadAgent })
         </div>
       </div>
 
-      <!-- 右侧：调试面板 -->
-      <div class="right-panel">
-        <div class="panel-header">
-          <div class="header-content">
-            <el-icon class="panel-icon"><ChatDotRound /></el-icon>
-            <span class="panel-title">智能体预览</span>
-            <span class="panel-subtitle">测试智能体功能</span>
-          </div>
-        </div>
-        
-        <div class="panel-content">
-          <!-- 智能体信息卡片 -->
-          <div class="agent-preview-card" v-if="formData.name">
-            <div class="agent-avatar">
-              <img :src="formData.logo_url || '/src/assets/robot.svg'" :alt="formData.name" />
-            </div>
-            <div class="agent-info">
-              <h4>{{ formData.name }}</h4>
-              <p>{{ formData.description || '暂无描述' }}</p>
-              <div class="agent-stats">
-                <span class="stat-item">
-                  <i class="stat-icon">🔧</i>
-                  {{ formData.tool_ids.length }} 工具
-                </span>
-                <span class="stat-item">
-                  <i class="stat-icon">📚</i>
-                  {{ formData.knowledge_ids.length }} 知识库
-                </span>
-                <span class="stat-item">
-                  <i class="stat-icon">🤖</i>
-                  {{ formData.mcp_ids.length }} MCP
-                </span>
-              </div>
-            </div>
-          </div>
 
-          <!-- 输入框 -->
-          <div class="chat-input-section">
-            <div class="input-wrapper">
-              <el-input
-                v-model="currentMessage"
-                type="textarea"
-                :rows="8"
-                placeholder="输入消息测试智能体... (Ctrl+Enter 发送)"
-                @keydown.ctrl.enter="sendDebugMessage"
-                class="message-input"
-              />
-              <div class="input-actions">
-                <el-button
-                  type="primary"
-                  :icon="VideoPlay"
-                  @click="sendDebugMessage"
-                  :loading="debugLoading"
-                  :disabled="!currentMessage.trim()"
-                  class="send-btn"
-                >
-                  {{ debugLoading ? '发送中...' : '发送' }}
-                </el-button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   </div>
 </template>
@@ -1171,16 +972,32 @@ defineExpose({ loadAgent })
   height: 100vh;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+  background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #f3f4f6 100%);
+  position: relative;
+  
+  &::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 300px;
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
+    opacity: 0.03;
+    z-index: 0;
+  }
 
   .editor-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 20px 32px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.8);
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    padding: 24px 40px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.3);
+    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
+    position: relative;
+    z-index: 10;
 
     .header-left {
       display: flex;
@@ -1188,14 +1005,20 @@ defineExpose({ loadAgent })
       gap: 16px;
 
       .back-btn {
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         border: none;
         color: white;
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
         
         &:hover {
-          transform: translateX(-2px);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.4);
+          transform: translateX(-3px) translateY(-1px);
+          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
+          background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+        }
+        
+        &:active {
+          transform: translateX(-1px) translateY(0px);
         }
       }
 
@@ -1205,17 +1028,20 @@ defineExpose({ loadAgent })
         gap: 12px;
 
         .header-icon {
-          color: #3b82f6;
-          font-size: 24px;
+          color: #6366f1;
+          font-size: 26px;
+          filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
         }
 
         .header-title {
-          font-size: 20px;
+          font-size: 22px;
           font-weight: 700;
-          background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
           -webkit-background-clip: text;
           -webkit-text-fill-color: transparent;
           background-clip: text;
+          letter-spacing: -0.025em;
+          text-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);
         }
 
         .header-tags {
@@ -1230,26 +1056,42 @@ defineExpose({ loadAgent })
       gap: 12px;
 
       .cancel-btn {
-        border: 1px solid #e2e8f0;
+        border: 1px solid rgba(226, 232, 240, 0.8);
         color: #64748b;
-        background: white;
-        transition: all 0.3s ease;
+        background: rgba(255, 255, 255, 0.9);
+        backdrop-filter: blur(10px);
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 12px;
+        padding: 12px 24px;
+        font-weight: 500;
         
         &:hover {
-          border-color: #3b82f6;
-          color: #3b82f6;
+          border-color: #6366f1;
+          color: #6366f1;
+          background: rgba(255, 255, 255, 1);
+          box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
+          transform: translateY(-1px);
         }
       }
 
       .save-btn {
-        background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
+        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
         border: none;
         font-weight: 600;
-        transition: all 0.3s ease;
+        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        border-radius: 12px;
+        padding: 12px 28px;
+        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
         
         &:hover {
           transform: translateY(-2px);
-          box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+          box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
+          background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
+        }
+        
+        &:active {
+          transform: translateY(-1px);
+          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
         }
       }
     }
@@ -1259,26 +1101,54 @@ defineExpose({ loadAgent })
     display: flex;
     flex: 1;
     overflow: hidden;
-    gap: 2px;
-    padding: 2px;
+    gap: 24px;
+    padding: 24px 40px 40px;
+    position: relative;
+    z-index: 5;
 
     .left-panel,
-    .center-panel,
-    .right-panel {
+    .center-panel {
       display: flex;
       flex-direction: column;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      background: rgba(255, 255, 255, 0.9);
+      backdrop-filter: blur(20px);
+      border: 1px solid rgba(255, 255, 255, 0.2);
+      border-radius: 24px;
+      box-shadow: 
+        0 8px 32px rgba(99, 102, 241, 0.1),
+        0 1px 3px rgba(0, 0, 0, 0.05),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5);
       overflow: hidden;
+      position: relative;
+      
+      &::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: 1px;
+        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+      }
 
       .panel-header {
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 20px 24px;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border-bottom: 1px solid rgba(226, 232, 240, 0.6);
+        padding: 24px 28px;
+        background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+        border-bottom: 1px solid rgba(226, 232, 240, 0.3);
+        position: relative;
+        
+        &::after {
+          content: '';
+          position: absolute;
+          bottom: 0;
+          left: 24px;
+          right: 24px;
+          height: 1px;
+          background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
+        }
 
         .header-content {
           display: flex;
@@ -1286,65 +1156,71 @@ defineExpose({ loadAgent })
           gap: 4px;
 
           .panel-icon {
-            color: #3b82f6;
-            font-size: 20px;
+            color: #6366f1;
+            font-size: 22px;
             margin-bottom: 4px;
+            filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.15));
           }
 
           .panel-title {
-            font-size: 16px;
-            font-weight: 600;
+            font-size: 18px;
+            font-weight: 700;
             color: #1e293b;
+            letter-spacing: -0.025em;
           }
 
           .panel-subtitle {
-            font-size: 12px;
+            font-size: 13px;
             color: #64748b;
+            font-weight: 500;
+            margin-top: 2px;
           }
         }
 
-        .header-actions {
-          .template-btn {
-            background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-            border: none;
-            font-weight: 500;
-            transition: all 0.3s ease;
-            
-            &:hover {
-              transform: translateY(-1px);
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
-            }
-          }
-        }
+
       }
 
       .panel-content {
         flex: 1;
         overflow-y: auto;
-        padding: 24px;
+        padding: 28px;
+        background: rgba(255, 255, 255, 0.02);
       }
     }
 
     .left-panel {
-      width: 35%;
+      width: 50%;
 
       .prompt-editor-wrapper {
         .prompt-editor {
           :deep(.el-textarea__inner) {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-            line-height: 1.6;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'SF Mono', monospace;
+            line-height: 1.7;
             font-size: 14px;
             resize: none;
-            border: 1px solid #e2e8f0;
-            border-radius: 12px;
-            padding: 16px;
-            background: #fafbfc;
-            transition: all 0.3s ease;
+            border: 1px solid rgba(226, 232, 240, 0.5);
+            border-radius: 16px;
+            padding: 20px;
+            background: rgba(248, 250, 252, 0.8);
+            backdrop-filter: blur(10px);
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+              0 2px 8px rgba(0, 0, 0, 0.02),
+              inset 0 1px 0 rgba(255, 255, 255, 0.5);
             
             &:focus {
-              border-color: #3b82f6;
-              background: white;
-              box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+              border-color: #6366f1;
+              background: rgba(255, 255, 255, 0.95);
+              box-shadow: 
+                0 0 0 4px rgba(99, 102, 241, 0.1),
+                0 8px 24px rgba(99, 102, 241, 0.08),
+                inset 0 1px 0 rgba(255, 255, 255, 0.8);
+              transform: translateY(-1px);
+            }
+            
+            &:hover {
+              border-color: rgba(99, 102, 241, 0.3);
+              background: rgba(255, 255, 255, 0.8);
             }
           }
         }
@@ -1352,11 +1228,15 @@ defineExpose({ loadAgent })
         .prompt-info {
           display: flex;
           justify-content: space-between;
-          margin-top: 16px;
-          padding: 12px 16px;
-          background: #f8fafc;
-          border-radius: 8px;
-          border: 1px solid #e2e8f0;
+          margin-top: 20px;
+          padding: 16px 20px;
+          background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+          border-radius: 12px;
+          border: 1px solid rgba(226, 232, 240, 0.4);
+          backdrop-filter: blur(10px);
+          box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.02),
+            inset 0 1px 0 rgba(255, 255, 255, 0.6);
 
           .info-item {
             display: flex;
@@ -1380,33 +1260,57 @@ defineExpose({ loadAgent })
     }
 
     .center-panel {
-      width: 30%;
+      width: 50%;
 
       .config-form {
         .config-section {
-          margin-bottom: 20px;
-          border: 1px solid #e2e8f0;
-          border-radius: 12px;
+          margin-bottom: 24px;
+          border: 1px solid rgba(226, 232, 240, 0.4);
+          border-radius: 16px;
           overflow: hidden;
-          transition: all 0.3s ease;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          background: rgba(255, 255, 255, 0.3);
+          backdrop-filter: blur(10px);
+          box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.02),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
           &:hover {
-            border-color: #3b82f6;
-            box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+            border-color: rgba(99, 102, 241, 0.4);
+            box-shadow: 
+              0 8px 24px rgba(99, 102, 241, 0.08),
+              0 2px 8px rgba(0, 0, 0, 0.04),
+              inset 0 1px 0 rgba(255, 255, 255, 0.7);
+            transform: translateY(-1px);
           }
 
           .section-header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 16px 20px;
-            background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
+            padding: 18px 24px;
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.6) 0%, rgba(241, 245, 249, 0.6) 100%);
             cursor: pointer;
             user-select: none;
-            transition: all 0.3s ease;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            position: relative;
+            
+            &::after {
+              content: '';
+              position: absolute;
+              bottom: 0;
+              left: 20px;
+              right: 20px;
+              height: 1px;
+              background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.15), transparent);
+            }
 
             &:hover {
-              background: linear-gradient(135deg, #eff6ff 0%, #dbeafe 100%);
+              background: linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, rgba(219, 234, 254, 0.8) 100%);
+              
+              &::after {
+                background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
+              }
             }
 
             .section-title {
@@ -1415,14 +1319,17 @@ defineExpose({ loadAgent })
               gap: 12px;
 
               .section-icon {
-                color: #3b82f6;
-                font-size: 16px;
+                color: #6366f1;
+                font-size: 18px;
+                filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.2));
+                transition: all 0.3s ease;
               }
 
               span {
-                font-weight: 600;
+                font-weight: 700;
                 color: #1e293b;
-                font-size: 14px;
+                font-size: 15px;
+                letter-spacing: -0.025em;
               }
             }
 
@@ -1434,8 +1341,9 @@ defineExpose({ loadAgent })
           }
 
           .section-content {
-            padding: 20px;
-            background: white;
+            padding: 24px;
+            background: rgba(255, 255, 255, 0.5);
+            backdrop-filter: blur(5px);
 
             .el-form-item {
               margin-bottom: 20px;
@@ -1451,24 +1359,30 @@ defineExpose({ loadAgent })
       .avatar-item {
         .avatar-uploader {
           :deep(.el-upload) {
-            border: 2px dashed #e2e8f0;
-            border-radius: 12px;
+            border: 2px dashed rgba(226, 232, 240, 0.6);
+            border-radius: 16px;
             cursor: pointer;
             position: relative;
             overflow: hidden;
-            transition: all 0.3s ease;
-            width: 80px;
-            height: 80px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            width: 88px;
+            height: 88px;
             display: flex;
             align-items: center;
             justify-content: center;
-            background: #f8fafc;
+            background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
+            backdrop-filter: blur(10px);
+            box-shadow: 
+              0 2px 8px rgba(0, 0, 0, 0.02),
+              inset 0 1px 0 rgba(255, 255, 255, 0.5);
 
             &:hover {
-              border-color: #3b82f6;
-              background: #eff6ff;
-              transform: translateY(-2px);
-              box-shadow: 0 4px 12px rgba(59, 130, 246, 0.2);
+              border-color: rgba(99, 102, 241, 0.5);
+              background: linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(219, 234, 254, 0.9) 100%);
+              transform: translateY(-3px) scale(1.02);
+              box-shadow: 
+                0 8px 24px rgba(99, 102, 241, 0.15),
+                inset 0 1px 0 rgba(255, 255, 255, 0.7);
             }
           }
 
@@ -1483,24 +1397,29 @@ defineExpose({ loadAgent })
               width: 100%;
               height: 100%;
               object-fit: cover;
-              border-radius: 10px;
+              border-radius: 14px;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
             }
 
             .avatar-placeholder {
               display: flex;
               flex-direction: column;
               align-items: center;
-              gap: 8px;
+              gap: 6px;
 
               .avatar-icon {
-                font-size: 24px;
-                color: #64748b;
+                font-size: 28px;
+                color: #6366f1;
+                filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
+                transition: all 0.3s ease;
               }
 
               .avatar-text {
-                font-size: 12px;
+                font-size: 11px;
                 color: #64748b;
-                font-weight: 500;
+                font-weight: 600;
+                letter-spacing: 0.025em;
+                text-transform: uppercase;
               }
             }
           }
@@ -1511,20 +1430,33 @@ defineExpose({ loadAgent })
       .form-textarea,
       .form-select {
         :deep(.el-input__wrapper) {
-          border: 1px solid #e2e8f0;
-          border-radius: 8px;
-          background: #fafbfc;
-          transition: all 0.3s ease;
-          box-shadow: none;
+          border: 1px solid rgba(226, 232, 240, 0.5);
+          border-radius: 12px;
+          background: rgba(248, 250, 252, 0.8);
+          backdrop-filter: blur(10px);
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          box-shadow: 
+            0 1px 3px rgba(0, 0, 0, 0.02),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5);
+          min-height: 48px;
 
           &:hover {
-            border-color: #3b82f6;
+            border-color: rgba(99, 102, 241, 0.4);
+            background: rgba(255, 255, 255, 0.9);
+            transform: translateY(-1px);
+            box-shadow: 
+              0 4px 12px rgba(99, 102, 241, 0.05),
+              inset 0 1px 0 rgba(255, 255, 255, 0.7);
           }
 
           &.is-focus {
-            border-color: #3b82f6;
-            background: white;
-            box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+            border-color: #6366f1;
+            background: rgba(255, 255, 255, 0.95);
+            box-shadow: 
+              0 0 0 4px rgba(99, 102, 241, 0.1),
+              0 8px 24px rgba(99, 102, 241, 0.08),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
           }
         }
 
@@ -1532,156 +1464,64 @@ defineExpose({ loadAgent })
           border: none;
           background: transparent;
           font-size: 14px;
-          line-height: 1.6;
+          line-height: 1.7;
+          padding: 16px;
         }
-      }
-
-
-    }
-
-    .right-panel {
-      width: 35%;
-
-      .panel-content {
-        display: flex;
-        flex-direction: column;
-        height: 100%;
-        gap: 20px;
-      }
-
-      .agent-preview-card {
-        display: flex;
-        align-items: center;
-        padding: 20px;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          border-color: #3b82f6;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
+        
+        :deep(.el-input__inner) {
+          font-size: 14px;
+          font-weight: 500;
+          color: #1e293b;
+          padding: 0 16px;
         }
-
-        .agent-avatar {
-          width: 60px;
-          height: 60px;
-          margin-right: 16px;
-          border-radius: 12px;
-          overflow: hidden;
-          border: 2px solid #e2e8f0;
-
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
+        
+        // 优化选择器特有的样式
+        :deep(.el-input__suffix) {
+          right: 12px;
+          
+          .el-select__caret {
+            color: #6366f1;
+            font-size: 16px;
+            transition: all 0.3s ease;
+            
+            &.is-reverse {
+              transform: rotate(180deg);
+            }
           }
         }
-
-        .agent-info {
-          flex: 1;
-
-          h4 {
-            margin: 0 0 6px 0;
-            font-size: 18px;
-            color: #1e293b;
-            font-weight: 600;
-          }
-
-          p {
-            margin: 0 0 12px 0;
-            font-size: 14px;
-            color: #64748b;
-            line-height: 1.5;
-          }
-
-          .agent-stats {
-            display: flex;
-            gap: 16px;
+        
+        // 多选标签优化
+        :deep(.el-select__tags) {
+          flex-wrap: wrap;
+          gap: 4px;
+          padding: 6px 12px;
+          
+          .el-tag {
+            background: #eff6ff;
+            border: 1px solid #bfdbfe;
+            border-radius: 6px;
+            color: #1d4ed8;
             font-size: 12px;
-
-            .stat-item {
-              display: flex;
-              align-items: center;
-              padding: 6px 10px;
-              background: white;
-              border-radius: 6px;
-              border: 1px solid #e2e8f0;
-              color: #64748b;
-              font-weight: 500;
-
-              .stat-icon {
-                margin-right: 6px;
-                font-size: 14px;
-              }
-            }
-          }
-        }
-      }
-
-
-
-      .chat-input-section {
-        flex: 1;
-        display: flex;
-        flex-direction: column;
-        background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-        border: 1px solid #e2e8f0;
-        border-radius: 12px;
-        padding: 20px;
-        transition: all 0.3s ease;
-
-        &:hover {
-          border-color: #3b82f6;
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-        }
-
-        .input-wrapper {
-          display: flex;
-          flex-direction: column;
-          gap: 16px;
-          height: 100%;
-
-          .message-input {
-            flex: 1;
-            :deep(.el-textarea__inner) {
-              font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-              line-height: 1.6;
-              font-size: 14px;
-              resize: none;
-              border: 1px solid #e2e8f0;
-              border-radius: 8px;
-              padding: 16px;
-              background: white;
-              transition: all 0.3s ease;
-              
-              &:focus {
-                border-color: #3b82f6;
-                box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
-              }
-            }
-          }
-
-          .input-actions {
-            display: flex;
-            justify-content: flex-end;
-
-            .send-btn {
-              background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%);
-              border: none;
-              font-weight: 600;
-              padding: 12px 24px;
-              border-radius: 8px;
-              transition: all 0.3s ease;
+            font-weight: 500;
+            padding: 2px 6px;
+            margin: 0;
+            height: auto;
+            line-height: 1.4;
+            
+            .el-tag__close {
+              color: #1d4ed8;
+              font-size: 12px;
+              margin-left: 4px;
               
               &:hover {
-                transform: translateY(-2px);
-                box-shadow: 0 8px 20px rgba(59, 130, 246, 0.4);
+                color: #dc2626;
               }
             }
           }
         }
       }
+
+
     }
   }
 }
@@ -1692,13 +1532,10 @@ defineExpose({ loadAgent })
 @media (max-width: 1400px) {
   .agent-editor .editor-body {
     .left-panel {
-      width: 38%;
+      width: 50%;
     }
     .center-panel {
-      width: 32%;
-    }
-    .right-panel {
-      width: 30%;
+      width: 50%;
     }
   }
 }
@@ -1710,8 +1547,7 @@ defineExpose({ loadAgent })
     padding: 16px;
     
     .left-panel,
-    .center-panel,
-    .right-panel {
+    .center-panel {
       width: 100%;
       height: auto;
       min-height: 400px;
@@ -1748,8 +1584,7 @@ defineExpose({ loadAgent })
       padding: 12px;
       
       .left-panel,
-      .center-panel,
-      .right-panel {
+      .center-panel {
         .panel-header {
           padding: 16px;
         }
@@ -1760,5 +1595,109 @@ defineExpose({ loadAgent })
       }
     }
   }
+}
+
+// 简化清晰的下拉菜单样式
+:global(.el-select-dropdown) {
+  background: white !important;
+  border: 1px solid #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+  padding: 6px !important;
+  margin-top: 4px !important;
+  
+  .el-select-dropdown__item {
+    border-radius: 8px !important;
+    padding: 8px 12px !important;
+    margin: 2px 0 !important;
+    font-size: 14px !important;
+    color: #374151 !important;
+    transition: all 0.2s ease !important;
+    background: transparent !important;
+    
+    &:hover {
+      background: #f3f4f6 !important;
+      color: #111827 !important;
+    }
+    
+    &.selected {
+      background: #eff6ff !important;
+      color: #2563eb !important;
+      font-weight: 600 !important;
+    }
+  }
+  
+  .el-select-dropdown__empty {
+    color: #6b7280 !important;
+    font-size: 14px !important;
+    padding: 20px !important;
+    text-align: center !important;
+  }
+}
+
+// 简化的选项样式
+.custom-option {
+  display: flex !important;
+  align-items: center !important;
+  gap: 12px !important;
+  width: 100% !important;
+  padding: 4px 0 !important;
+  
+  .option-logo {
+    width: 20px !important;
+    height: 20px !important;
+    flex-shrink: 0 !important;
+    border-radius: 4px !important;
+    object-fit: cover !important;
+  }
+  
+  .option-name {
+    flex: 1 !important;
+    font-weight: 500 !important;
+    color: #111827 !important;
+    font-size: 14px !important;
+    white-space: nowrap !important;
+    overflow: hidden !important;
+    text-overflow: ellipsis !important;
+  }
+  
+  .option-badge {
+    flex-shrink: 0 !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 10px !important;
+    font-weight: 600 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.5px !important;
+    
+    &.ai-badge {
+      background: #dbeafe !important;
+      color: #1d4ed8 !important;
+    }
+    
+    &.kb-badge {
+      background: #dcfce7 !important;
+      color: #15803d !important;
+    }
+    
+    &.tool-badge {
+      background: #fed7aa !important;
+      color: #c2410c !important;
+    }
+    
+    &.mcp-badge {
+      background: #e9d5ff !important;
+      color: #7c2d12 !important;
+    }
+  }
+}
+
+// 多选标签样式优化
+:global(.el-tag.el-tag--info) {
+  background: #eff6ff !important;
+  border: 1px solid #bfdbfe !important;
+  color: #1d4ed8 !important;
+  font-weight: 500 !important;
+  border-radius: 6px !important;
 }
 </style> 

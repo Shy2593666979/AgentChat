@@ -18,6 +18,7 @@ import Tool from '../pages/tool'
 import Model from '../pages/model'
 import ModelEditor from '../pages/model/model-editor.vue'
 import Profile from '../pages/profile'
+import Homepage from '../pages/homepage'
 
 const routes = [
   {
@@ -38,13 +39,21 @@ const routes = [
   },
   {
     path: '/',
-    redirect: '/conversation/',
+    redirect: '/homepage',
     name: 'index',
     component: Index,
     meta: {
       requiresAuth: true
     },
     children: [
+      {
+        path: '/homepage',
+        name: 'homepage',
+        component: Homepage,
+        meta: {
+          current: 'homepage'
+        }
+      },
       {
         path: '/conversation',
         name: 'conversation',
