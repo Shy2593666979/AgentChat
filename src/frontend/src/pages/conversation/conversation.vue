@@ -7,8 +7,10 @@ import { createDialogAPI, getDialogListAPI, deleteDialogAPI } from "../../apis/h
 import type { AgentResponse, ApiResponse } from "../../apis/agent"
 import type { HistoryListType, DialogCreateType } from "../../type"
 import histortCard from '../../components/historyCard/histortCard.vue'
+import { useHistoryChatStore } from "../../store/history_chat_msg"
 
 const router = useRouter()
+const historyChatStore = useHistoryChatStore()
 const searchKeyword = ref('')
 const selectedDialog = ref('')
 const showCreateDialog = ref(false)
@@ -123,6 +125,28 @@ const fetchDialogs = async () => {
         return processedDialog
       })
       console.log('对话列表获取成功:', dialogs.value)
+      
+      // 如果会话列表不为空且当前路由是默认页面，立即自动打开第一个会话
+      if (dialogs.value.length > 0 && router.currentRoute.value.name === 'defaultPage') {
+        const firstDialog = dialogs.value[0]
+        console.log('立即自动打开第一个会话:', firstDialog.dialogId, firstDialog.name)
+        
+        // 设置选中的会话
+        selectedDialog.value = firstDialog.dialogId
+        
+        // 设置聊天store的状态
+        historyChatStore.dialogId = firstDialog.dialogId
+        historyChatStore.name = firstDialog.name
+        historyChatStore.logo = firstDialog.logo
+        
+        // 立即跳转到聊天页面
+        router.push({
+          path: '/conversation/chatPage',
+          query: {
+            dialog_id: firstDialog.dialogId
+          }
+        })
+      }
     } else {
       ElMessage.error(`获取对话列表失败: ${response.data.status_message}`)
     }
@@ -136,7 +160,17 @@ const fetchDialogs = async () => {
 
 onMounted(async () => {
   console.log('会话页面已加载')
-  await Promise.all([fetchAgents(), fetchDialogs()])
+  // 如果当前是会话主页面，先获取对话列表检查是否需要跳转
+  if (router.currentRoute.value.path === '/conversation') {
+    await fetchDialogs()
+    // 如果没有自动跳转（说明没有会话），再获取智能体列表
+    if (router.currentRoute.value.name === 'defaultPage') {
+      await fetchAgents()
+    }
+  } else {
+    // 如果是其他子页面，正常加载
+    await Promise.all([fetchAgents(), fetchDialogs()])
+  }
   // ElMessage.success('页面加载成功')
 })
 
@@ -171,11 +205,30 @@ const createDialog = async () => {
       const response = await createDialogAPI(dialogData)
       if (response.data.status_code === 200) {
         ElMessage.success('会话创建成功')
+        
+        // 获取新创建的会话ID
+        const dialogId = response.data.data.dialog_id
+        console.log('获取到的 dialogId:', dialogId)
+        console.log('完整的 response.data.data:', response.data.data)
+        
         // 重新获取对话列表
         await fetchDialogs()
         showCreateDialog.value = false
         selectedAgent.value = ''
         agentSearchKeyword.value = ''
+        
+        // 跳转到新创建的会话页面
+        if (dialogId) {
+          console.log('准备跳转到会话页面，dialogId:', dialogId)
+          router.push({
+            path: '/conversation/chatPage',
+            query: {
+              dialog_id: dialogId
+            }
+          })
+        } else {
+          console.error('dialogId 为空，无法跳转')
+        }
       } else {
         ElMessage.error(`创建会话失败: ${response.data.status_message}`)
       }
@@ -216,8 +269,27 @@ const deleteDialog = async (dialogId: string) => {
 
 // 选择会话
 const selectDialog = (dialogId: string) => {
+  const dialog = dialogs.value.find(d => d.dialogId === dialogId)
+  if (!dialog) {
+    console.error('未找到会话:', dialogId)
+    return
+  }
+  
+  console.log('选择会话:', dialogId, dialog.name)
   selectedDialog.value = dialogId
-  // ElMessage.info('进入会话')
+  
+  // 设置聊天store的状态
+  historyChatStore.dialogId = dialogId
+  historyChatStore.name = dialog.name
+  historyChatStore.logo = dialog.logo
+  
+  // 跳转到聊天页面
+  router.push({
+    path: '/conversation/chatPage',
+    query: {
+      dialog_id: dialogId
+    }
+  })
 }
 
 // 打开创建对话框
@@ -325,7 +397,7 @@ const closeCreateDialog = () => {
           :key="dialog.dialogId"
           :item="dialog"
           :class="{ active: selectedDialog === dialog.dialogId }"
-          @click="selectDialog(dialog.dialogId)"
+          @select="selectDialog(dialog.dialogId)"
           @delete="deleteDialog(dialog.dialogId)"
         />
       </div>

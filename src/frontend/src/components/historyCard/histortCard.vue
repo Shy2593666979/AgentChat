@@ -1,17 +1,15 @@
 <script lang="ts" setup>
 import { computed } from "vue"
 import { HistoryListType } from "../../type"
-import { useRouter } from 'vue-router'
 
 const emits = defineEmits<{
     (event:'delete'):void
+    (event:'select'):void
 }>();
 
 const props = defineProps<{
     item:HistoryListType
 }>();
-
-const router = useRouter()
 
 // 格式化时间显示
 const formattedTime = computed(() => {
@@ -42,22 +40,15 @@ const deleteCard = (event: Event) => {
   emits('delete')
 }
 
-// 跳转到聊天页面
-const goToChat = () => {
+// 选择会话
+const selectCard = () => {
   console.log('【historyCard】点击了会话卡片，item:', props.item)
-  
-  if (props.item.dialogId) {
-    console.log('【historyCard】准备跳转到聊天页面，dialogId:', props.item.dialogId)
-    router.push({ path: '/conversation/chatPage', query: { dialog_id: props.item.dialogId } })
-  } else {
-    console.error('【historyCard】会话卡片缺少 dialogId 字段，无法跳转')
-    console.error('【historyCard】当前item的所有字段:', Object.keys(props.item))
-  }
+  emits('select')
 }
 </script>
 
 <template>
-  <div class="history-card" @click="goToChat">
+  <div class="history-card" @click="selectCard">
     <!-- 卡片主体 -->
     <div class="card-main">
       <!-- 左侧图标和标题 -->

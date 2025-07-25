@@ -296,10 +296,26 @@ const toggleEventInfo = (event: EventInfo) => {
 // Load history on mount
 onMounted(() => {
   const dialog_id = route.query.dialog_id
+  const message = route.query.message
+  
   if (dialog_id) {
     historyChatStore.dialogId = dialog_id as string
     historyChatStore.HistoryChat(dialog_id as string).then(() => {
         scrollBottom()
+        
+        // 如果有来自首页的搜索消息，自动发送
+        if (message && typeof message === 'string') {
+          searchInput.value = message
+          nextTick(() => {
+            personQuestion()
+          })
+        }
+    })
+  } else if (message && typeof message === 'string') {
+    // 新会话，直接发送首页的搜索消息
+    searchInput.value = message
+    nextTick(() => {
+      personQuestion()
     })
   }
 })
@@ -312,6 +328,15 @@ watch(
       historyChatStore.dialogId = newVal as string
       historyChatStore.HistoryChat(newVal as string).then(() => {
         scrollBottom()
+        
+        // 如果有来自首页的搜索消息，自动发送
+        const message = route.query.message
+        if (message && typeof message === 'string') {
+          searchInput.value = message
+          nextTick(() => {
+            personQuestion()
+          })
+        }
       })
     }
   }

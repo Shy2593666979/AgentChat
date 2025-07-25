@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from "vue"
+import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from "element-plus"
 import { Plus, Search, Delete, Star, Close } from '@element-plus/icons-vue'
+
+const router = useRouter()
 
 // 模拟数据
 const mockAgents = ref([
@@ -104,6 +107,14 @@ const createDialog = () => {
     showCreateDialog.value = false
     selectedAgent.value = ''
     ElMessage.success('会话创建成功')
+    
+    // 跳转到新创建的会话页面
+    router.push({
+      path: '/conversation/chatPage',
+      query: {
+        dialog_id: newDialog.dialogId
+      }
+    })
   }
 }
 

@@ -16,6 +16,8 @@ class DialogDao:
             dialog = await cls._get_dialog_sql(name, agent_id, agent_type, user_id)
             session.add(dialog)
             session.commit()
+            session.refresh(dialog)  # 确保获取数据库生成的字段
+            return dialog
 
     @classmethod
     async def select_dialog(cls, dialog_id: str):

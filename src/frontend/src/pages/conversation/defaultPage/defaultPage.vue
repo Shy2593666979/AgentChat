@@ -9,6 +9,7 @@ import { useHistoryChatStore } from "../../../store/history_chat_msg"
 import { useHistoryListStore } from "../../../store/history_list/index"
 import { useRouter } from "vue-router"
 import { ElMessage } from "element-plus"
+import { getDialogListAPI } from "../../../apis/history"
 
 const router = useRouter()
 const historyListStore = useHistoryListStore()
@@ -16,6 +17,7 @@ const historyChatStore = useHistoryChatStore()
 const searchInput = ref("")
 const CardList = ref<Agent[]>([])
 const loading = ref(false)
+const shouldShow = ref(false) // 控制是否显示页面内容
 
 // 过滤后的智能体列表
 const filteredAgents = computed(() => {
@@ -29,6 +31,20 @@ const filteredAgents = computed(() => {
 })
 
 onMounted(async () => {
+  // 先检查是否有会话记录
+  try {
+    const response = await getDialogListAPI()
+    if (response.data.status_code === 200 && response.data.data && response.data.data.length > 0) {
+      // 有会话记录，不显示此页面，等待父组件跳转
+      console.log('检测到有会话记录，不显示默认页面')
+      return
+    }
+  } catch (error) {
+    console.error('检查会话记录失败:', error)
+  }
+  
+  // 没有会话记录，显示页面并加载智能体
+  shouldShow.value = true
   await loadAgents()
 })
 
@@ -49,8 +65,12 @@ const gochat = async (item: Agent) => {
   try {
     historyChatStore.name = item.name
     historyChatStore.logo = item.logo_url
-    const list = await createDialogAPI({ agent: item.name })
-    historyChatStore.dialogId = list.data.data.dialogId
+    const list = await createDialogAPI({ 
+      name: `与${item.name}的对话`,
+      agent_id: item.agent_id,
+      agent_type: "Agent"
+    })
+    historyChatStore.dialogId = list.data.data.dialog_id
     historyChatStore.clear()
     await historyListStore.getList()
     router.push("/conversation/chatPage")
@@ -95,7 +115,8 @@ const clearSearch = () => {
 </script>
 
 <template>
-  <div class="default-page">
+  <!-- 只有确认没有会话记录时才显示页面内容 -->
+  <div v-if="shouldShow" class="default-page">
     <!-- 头部区域 -->
     <div class="header-section">
       <div class="welcome-content">
@@ -203,6 +224,7 @@ const clearSearch = () => {
       </div>
     </div>
   </div>
+  <!-- 如果有会话记录，不显示任何内容，等待跳转 -->
 </template>
 
 <style lang="scss" scoped>

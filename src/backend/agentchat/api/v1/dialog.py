@@ -30,9 +30,10 @@ async def get_dialog(login_user: UserPayload = Depends(get_login_user)):
 async def create_dialog(dialog_req: DialogCreateRequest = Body(),
                         login_user: UserPayload = Depends(get_login_user)):
     try:
-        await DialogService.create_dialog(name=dialog_req.name, agent_id=dialog_req.agent_id,
-                                          agent_type=dialog_req.agent_type, user_id=login_user.user_id)
-        return resp_200()
+        dialog = await DialogService.create_dialog(name=dialog_req.name, agent_id=dialog_req.agent_id,
+                                                   agent_type=dialog_req.agent_type, user_id=login_user.user_id)
+        print(dialog)
+        return resp_200(dialog)
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))

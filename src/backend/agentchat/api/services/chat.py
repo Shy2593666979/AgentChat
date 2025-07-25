@@ -52,6 +52,9 @@ class StreamingAgent:
         self.step_counter_lock = asyncio.Lock()
         self.step_counter = 1
 
+        # 记录工具调用次数
+        self.tool_call_count: dict[str, int] = {}
+
     async def emit_event(self, data: Dict[Any, Any]):
         """发送流式事件"""
         event = {
@@ -173,11 +176,13 @@ class StreamingAgent:
             openai_tool_calls = response.tool_calls
 
             response.tool_calls = convert_langchain_tool_calls(response.tool_calls)
+
+            tool_call_names = [tool_call["name"] for tool_call in response.tool_calls]
             # 发送工具选择完成事件
             await self.emit_event({
                 "title": f"Run Select Tool_{self.step_counter}",
                 "status": "END",
-                "message": "可用工具：" + ", ".join([tool_call["name"] for tool_call in response.tool_calls])
+                "message": "可用工具：" + ", ".join(set(tool_call_names))
             })
 
             return AIMessage(
@@ -260,10 +265,14 @@ class StreamingAgent:
                         ToolMessage(content=str(err), name=tool_name + "_mcp", tool_call_id=tool_call_id))
             else:
                 try:
+                    # 给加个后缀保证事件消息不卡掉
+                    suffix = " " * self.tool_call_count.get(tool_name, 0)
+                    self.tool_call_count[tool_name] = self.tool_call_count.get(tool_name, 0) + 1
+
                     # 发送插件工具调用事件
                     await self.emit_event({
                         "status": "START",
-                        "title": f"Run Execution Tool: {tool_name}",
+                        "title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": f"正在调用插件工具 {tool_name}..."
                     })
 
@@ -273,7 +282,7 @@ class StreamingAgent:
                     # 发送插件工具执行完成事件
                     await self.emit_event({
                         "status": "END",
-                        "title": f"Run Execution Tool: {tool_name}",
+                        "title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": tool_result,
                     })
 
@@ -285,7 +294,7 @@ class StreamingAgent:
                     # 发送插件工具执行错误事件
                     await self.emit_event({
                         "status": "ERROR",
-                        "title": f"Run Execution Tool: {tool_name}",
+                        "title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": str(err),
                     })
 
@@ -454,11 +463,6 @@ class StreamingAgent:
         if knowledge_message:
             messages.append(knowledge_message)
 
-        # 将HumanMessage移到最后
-        idx = next((i for i in reversed(range(len(messages))) if isinstance(messages[i], HumanMessage)), -1)
-        messages = messages[:idx] + messages[idx + 1:] + [messages[idx]] if idx != -1 and idx != len(messages) - 1 else messages
-
-        
         response_content = ""
         try:
             async for chunk in self.conversation_model.astream(messages):
@@ -473,6 +477,7 @@ class StreamingAgent:
                 }
         # 针对模型回复进行兜底操作，错误类型包括：敏感词，模型问题
         except Exception as err:
+            logger.error(f"LLM Model Error: {err}")
             yield {
                 "type": "response_chunk",
                 "timestamp": time.time(),
@@ -522,11 +527,6 @@ class StreamingAgent:
         # 添加知识库消息
         if knowledge_message:
             messages.append(knowledge_message)
-
-        # 将HumanMessage移到最后
-        idx = next((i for i in reversed(range(len(messages))) if isinstance(messages[i], HumanMessage)), -1)
-        messages = messages[:idx] + messages[idx + 1:] + [messages[idx]] if idx != -1 and idx != len(
-            messages) - 1 else messages
 
         # 收集完整响应
         response_content = ""

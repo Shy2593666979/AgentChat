@@ -6,10 +6,10 @@
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/email.png"
   },
   {
-    "en_name": "google_search",
-    "zh_name": "Google搜索",
-    "description": "帮助用户去Google搜索相关信息",
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/google.png"
+    "en_name": "tavily_search",
+    "zh_name": "联网搜索",
+    "description": "帮助用户在互联网上搜索相关信息",
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/web_search.png"
   },
   {
     "en_name": "get_arxiv",

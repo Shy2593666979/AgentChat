@@ -46,7 +46,8 @@ async def chat(*,
         history_messages = await HistoryService.select_history(conversation_req.dialog_id, 10)
     else:
         history_messages = await HistoryService.select_history(conversation_req.dialog_id)
-    messages.extend(history_messages)
+    # messages.extend(history_messages)
+    messages[0].content = SYSTEM_PROMPT.format(history=str(history_messages))
     messages.append(HumanMessage(content=conversation_req.user_input))
 
     events = []

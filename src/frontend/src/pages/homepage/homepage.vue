@@ -1,6 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
+import { createDialogAPI } from '../../apis/history'
+import { ElMessage } from 'element-plus'
 
+const router = useRouter()
 const searchQuery = ref('')
 const activeMode = ref('tool')
 const deepSearchEnabled = ref(false)
@@ -44,15 +48,55 @@ const examples = [
   }
 ]
 
-const handleSearch = () => {
+const handleSearch = async () => {
   if (searchQuery.value.trim()) {
-    console.log('搜索:', searchQuery.value, '模式:', activeMode.value, '深度搜索:', deepSearchEnabled.value)
-    // 这里可以添加搜索逻辑
+    try {
+      // 根据选择的模式创建对应的对话
+      const dialogData = {
+        name: `${getModeDisplayName(activeMode.value)}对话`,
+        agent_id: "default", // 使用默认智能体
+        agent_type: "Agent"
+      }
+      
+      const response = await createDialogAPI(dialogData)
+      
+      if (response.data.status_code === 200) {
+        const dialogId = response.data.data.dialog_id
+        
+        // 跳转到新创建的会话页面
+        router.push({
+          path: '/conversation/chatPage',
+          query: {
+            dialog_id: dialogId,
+            message: searchQuery.value,
+            mode: activeMode.value,
+            deepSearch: deepSearchEnabled.value.toString()
+          }
+        })
+        
+        ElMessage.success('会话创建成功')
+      } else {
+        ElMessage.error('创建会话失败')
+      }
+    } catch (error) {
+      console.error('创建会话失败:', error)
+      ElMessage.error('创建会话失败，请重试')
+    }
   }
 }
 
 const handleModeChange = (mode: string) => {
   activeMode.value = mode
+}
+
+const getModeDisplayName = (mode: string) => {
+  const modeMap: Record<string, string> = {
+    'tool': '工具模式',
+    'mcp': 'MCP模式',
+    'agent': '智能体模式',
+    'knowledge': '知识库模式'
+  }
+  return modeMap[mode] || '默认模式'
 }
 
 const toggleDeepSearch = () => {
@@ -68,9 +112,40 @@ const handleKeydown = (event: KeyboardEvent) => {
   // Shift+Enter 换行（默认行为，不需要处理）
 }
 
-const handleExampleClick = (example: any) => {
-  searchQuery.value = example.description
-  handleSearch()
+const handleExampleClick = async (example: any) => {
+  try {
+    // 根据选择的模式创建对应的对话
+    const dialogData = {
+      name: `${example.title}`,
+      agent_id: "default", // 使用默认智能体
+      agent_type: "Agent"
+    }
+    
+    const response = await createDialogAPI(dialogData)
+    
+         if (response.data.status_code === 200) {
+       const dialogId = response.data.data.dialog_id
+      
+      // 跳转到新创建的会话页面
+      router.push({
+        path: '/conversation/chatPage',
+        query: {
+          dialog_id: dialogId,
+          message: example.description,
+          mode: activeMode.value,
+          deepSearch: deepSearchEnabled.value.toString(),
+          example: 'true'
+        }
+      })
+      
+      ElMessage.success('会话创建成功')
+    } else {
+      ElMessage.error('创建会话失败')
+    }
+  } catch (error) {
+    console.error('创建会话失败:', error)
+    ElMessage.error('创建会话失败，请重试')
+  }
 }
 </script>
 

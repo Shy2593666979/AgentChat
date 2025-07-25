@@ -11,7 +11,8 @@ class DialogService:
     @classmethod
     async def create_dialog(cls, name: str, agent_id: str, agent_type: str, user_id: str):
         try:
-            await DialogDao.create_dialog(name, agent_id, agent_type, user_id)
+            dialog = await DialogDao.create_dialog(name, agent_id, agent_type, user_id)
+            return dialog.to_dict()
         except Exception as err:
             raise ValueError(f"Add Dialog Appear Error: {err}")
 
@@ -56,7 +57,7 @@ class DialogService:
 
     @classmethod
     async def verify_user_permission(cls, dialog_id, user_id):
-        dialog = await cls.get_agent_by_dialog_id(dialog_id)
-        if user_id not in (AdminUser, dialog["user_id"]):
+        dialog = await DialogDao.get_agent_by_dialog_id(dialog_id)
+        if user_id not in (AdminUser, dialog.user_id):
             raise ValueError(f"没有权限访问")
 
