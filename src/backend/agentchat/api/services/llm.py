@@ -127,6 +127,20 @@ class LLMService:
         except Exception as err:
             raise ValueError(f'Get LLM Type Appear Err: {err}')
 
+    @classmethod
+    async def get_llm_id_from_name(cls, llm_name, user_id):
+        try:
+            llm = await LLMDao.get_llm_id_from_name(llm_name, user_id)
+            if llm:
+                return llm.llm_id
+            else:
+                llm = await LLMDao.get_llm_id_from_name(llm_name, SystemUser)
+                return llm.llm_id
+        except Exception as err:
+            raise ValueError(f'Get LLM ID Err: {err}')
+
+
+
 # 2024-630---->2025-630版本（已退休）❌
 
 # Function_Call_provider = ['OpenAI', 'Anthropic', 'Gemini', 'Mistral', 'DeepSeek', '智谱AI']

@@ -25,7 +25,7 @@ def convert_to_pdf(input_path):
         # 获取输出目录
         output_dir = os.path.dirname(output_path)
         if not output_dir:
-            output_dir = '.'
+            output_dir = '../rag'
             
         # 构建LibreOffice命令
         cmd = [

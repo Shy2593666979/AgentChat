@@ -83,3 +83,11 @@ class LLMDao:
             sql = select(LLMTable).where(LLMTable.llm_type == llm_type)
             result = session.exec(sql).all()
             return result
+
+    @classmethod
+    async def get_llm_id_from_name(cls, llm_name, user_id):
+        with Session(engine) as session:
+            sql = select(LLMTable).where(and_(LLMTable.model == llm_name,
+                                              LLMTable.user_id == user_id))
+            result = session.exec(sql)
+            return result.first()

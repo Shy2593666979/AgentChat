@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from sqlmodel import Session, select, update, desc, delete, or_, func
+from sqlmodel import Session, select, update, desc, delete, or_, func, and_
 from agentchat.database import engine
 from agentchat.database.models.mcp_server import MCPServerStdioTable, MCPServerTable
 
@@ -82,3 +82,11 @@ class MCPServerDao:
             sql = select(MCPServerTable)
             results = session.exec(sql)
             return results.all()
+
+    @classmethod
+    async def get_mcp_server_ids_from_name(cls, mcp_servers_name, user_id):
+        with Session(engine) as session:
+            sql = select(MCPServerTable).where(and_(MCPServerTable.server_name.in_(mcp_servers_name),
+                                                    MCPServerTable.user_id == user_id))
+            result = session.exec(sql)
+            return result.all()

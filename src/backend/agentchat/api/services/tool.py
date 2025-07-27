@@ -101,3 +101,14 @@ class ToolService:
             return tool.tool_id
         except Exception as err:
             raise ValueError(f'Get Id by tool name appear Error: {err}')
+
+
+    @classmethod
+    async def get_tool_ids_from_name(cls, tool_names: List[str], user_id):
+        try:
+            tools = await ToolDao.get_tool_ids_from_name(tool_names, user_id)
+            # 加上系统自带的
+            tools.extend(await ToolDao.get_tool_ids_from_name(tool_names, SystemUser))
+            return [tool.tool_id for tool in tools]
+        except Exception as err:
+            raise ValueError(f'Get Tool ID tool name appear Error: {err}')

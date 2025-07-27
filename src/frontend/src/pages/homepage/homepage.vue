@@ -1,8 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { createDialogAPI } from '../../apis/history'
-import { ElMessage } from 'element-plus'
 
 const router = useRouter()
 const searchQuery = ref('')
@@ -50,38 +48,13 @@ const examples = [
 
 const handleSearch = async () => {
   if (searchQuery.value.trim()) {
-    try {
-      // 根据选择的模式创建对应的对话
-      const dialogData = {
-        name: `${getModeDisplayName(activeMode.value)}对话`,
-        agent_id: "default", // 使用默认智能体
-        agent_type: "Agent"
+    // 直接跳转到Mars对话页面，并传递用户输入
+    router.push({
+      path: '/mars',
+      query: {
+        message: searchQuery.value
       }
-      
-      const response = await createDialogAPI(dialogData)
-      
-      if (response.data.status_code === 200) {
-        const dialogId = response.data.data.dialog_id
-        
-        // 跳转到新创建的会话页面
-        router.push({
-          path: '/conversation/chatPage',
-          query: {
-            dialog_id: dialogId,
-            message: searchQuery.value,
-            mode: activeMode.value,
-            deepSearch: deepSearchEnabled.value.toString()
-          }
-        })
-        
-        ElMessage.success('会话创建成功')
-      } else {
-        ElMessage.error('创建会话失败')
-      }
-    } catch (error) {
-      console.error('创建会话失败:', error)
-      ElMessage.error('创建会话失败，请重试')
-    }
+    })
   }
 }
 
@@ -113,39 +86,13 @@ const handleKeydown = (event: KeyboardEvent) => {
 }
 
 const handleExampleClick = async (example: any) => {
-  try {
-    // 根据选择的模式创建对应的对话
-    const dialogData = {
-      name: `${example.title}`,
-      agent_id: "default", // 使用默认智能体
-      agent_type: "Agent"
+  // 直接跳转到Mars对话页面，并传递示例描述
+  router.push({
+    path: '/mars',
+    query: {
+      message: example.description
     }
-    
-    const response = await createDialogAPI(dialogData)
-    
-         if (response.data.status_code === 200) {
-       const dialogId = response.data.data.dialog_id
-      
-      // 跳转到新创建的会话页面
-      router.push({
-        path: '/conversation/chatPage',
-        query: {
-          dialog_id: dialogId,
-          message: example.description,
-          mode: activeMode.value,
-          deepSearch: deepSearchEnabled.value.toString(),
-          example: 'true'
-        }
-      })
-      
-      ElMessage.success('会话创建成功')
-    } else {
-      ElMessage.error('创建会话失败')
-    }
-  } catch (error) {
-    console.error('创建会话失败:', error)
-    ElMessage.error('创建会话失败，请重试')
-  }
+  })
 }
 </script>
 
@@ -330,6 +277,8 @@ const handleExampleClick = async (example: any) => {
        }
      }
   }
+  
+
 }
 
 .search-section {
@@ -683,6 +632,8 @@ const handleExampleClick = async (example: any) => {
         font-size: 36px;
       }
     }
+    
+
   }
   
      .search-section {

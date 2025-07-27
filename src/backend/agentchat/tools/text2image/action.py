@@ -50,7 +50,7 @@ def text_to_image(user_prompt):
                 if response.status_code == 200:
                     aliyun_oss.upload_file(oss_object_name, response.content)
                     logger.info(f"图片 {file_name} 已成功上传到OSS")
-                    return f"您的图片已经生成完毕，图片链接为：{app_settings.aliyun_oss["base_url"]}/{oss_object_name}"
+                    return f"您的图片已经生成完毕，图片链接为：![图片]({app_settings.aliyun_oss["base_url"]}/{oss_object_name})"
                 else:
                     logger.error(f"获取图片 {result.url} 失败，状态码: {response.status_code}")
                     raise ValueError(f"获取图片 {result.url} 失败，状态码: {response.status_code}")

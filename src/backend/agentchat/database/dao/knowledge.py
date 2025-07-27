@@ -1,7 +1,7 @@
 from agentchat.database import engine
 from datetime import datetime, timedelta
 from agentchat.database.models.knowledge import KnowledgeTable
-from sqlmodel import Session, select, delete, update
+from sqlmodel import Session, select, delete, update, and_
 
 
 class KnowledgeDao:
@@ -53,3 +53,11 @@ class KnowledgeDao:
             sql = select(KnowledgeTable).where(KnowledgeTable.id == knowledge_id)
             result = session.exec(sql).first()
             return result
+
+    @classmethod
+    async def get_knowledge_ids_from_name(cls, knowledges_name, user_id):
+        with Session(engine) as session:
+            sql = select(KnowledgeTable).where(and_(KnowledgeTable.name.in_(knowledges_name),
+                                                    KnowledgeTable.user_id == user_id))
+            result = session.exec(sql)
+            return result.all()

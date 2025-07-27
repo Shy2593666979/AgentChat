@@ -126,7 +126,7 @@ watch(
             style="width: 32px; height: 32px"
           />
         </div>
-        <div class="item-name">{{ itemName }}</div>
+        <div class="item-name" data-text="智言平台">{{ itemName }}</div>
       </div>
       <div class="right">
         <!-- 用户信息区域 -->
@@ -295,13 +295,45 @@ watch(
         margin-right: 12px;
         
         img {
-          filter: brightness(0) invert(1);
+          /* 增加图标对比度和可见性 */
+          filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5)) brightness(1.2) contrast(1.2);
+          transition: all 0.3s ease;
         }
       }
       
       .item-name {
-        font-size: 20px;
-        letter-spacing: 1px;
+        font-size: 22px;
+        letter-spacing: 2px;
+        background: linear-gradient(120deg, #f9f0ff, #fff, #e0f7fa, #fff6e5, #fff);
+        background-size: 300% auto;
+        background-clip: text;
+        -webkit-background-clip: text;
+        color: transparent;
+        /* 移除阴影效果 */
+        font-weight: 600;
+        animation: shine-rainbow 6s ease-in-out infinite;
+        /* 改为正常字体 */
+        font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+        position: relative;
+        padding: 0 5px;
+        
+        &::before {
+          content: attr(data-text);
+          position: absolute;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          z-index: -1;
+          background: none;
+          /* 移除阴影效果 */
+        }
+      }
+      
+      @keyframes shine-rainbow {
+        0% { background-position: 0% center; filter: hue-rotate(0deg); }
+        50% { background-position: 100% center; filter: hue-rotate(10deg); }
+        100% { background-position: 0% center; filter: hue-rotate(0deg); }
       }
     }
 

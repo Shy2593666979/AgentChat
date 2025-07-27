@@ -86,3 +86,11 @@ class ToolDao:
                                                    ToolTable.user_id == '0')))
             tool = session.exec(sql).first()
             return tool
+
+    @classmethod
+    async def get_tool_ids_from_name(cls, tool_names: List[str], user_id):
+        with Session(engine) as session:
+            sql = select(ToolTable).where(and_(ToolTable.en_name.in_(tool_names),
+                                               ToolTable.user_id == user_id))
+            tools = session.exec(sql)
+            return tools.all()

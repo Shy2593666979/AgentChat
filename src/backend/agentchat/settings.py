@@ -26,6 +26,7 @@ class Settings(BaseSettings):
     tool_weather: dict = {}
     tool_tavily: dict = {}
     whitelist_paths: list = []
+    mars: dict = {}
 
     multi_models: MultiModels = MultiModels()
 

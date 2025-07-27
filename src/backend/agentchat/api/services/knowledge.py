@@ -1,3 +1,5 @@
+from typing import List
+
 from loguru import logger
 from agentchat.config.service_config import SUCCESS_RESP, FAIL_RESP
 from agentchat.database.dao.knowledge import KnowledgeDao
@@ -72,3 +74,12 @@ class KnowledgeService:
             return knowledge.user_id
         except Exception as err:
             raise ValueError(f'Select user id error :{err}')
+
+    @classmethod
+    async def get_knowledge_ids_from_name(cls, knowledges_name: List[str], user_id):
+        try:
+            knowledges = await KnowledgeDao.get_knowledge_ids_from_name(knowledges_name, user_id)
+            return [knowledge.id for knowledge in knowledges]
+        except Exception as err:
+            raise ValueError(f"Get knowledges id form name error:{err}")
+

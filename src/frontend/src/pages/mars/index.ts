@@ -1,0 +1,1 @@
+export { default } from './mars-chat.vue' 

@@ -117,3 +117,13 @@ class MCPService:
             return tools_info
         except Exception as err:
             raise ValueError(f"Get MCP Tools Info Error:{err}")
+
+    @classmethod
+    async def get_mcp_server_ids_from_name(cls, mcp_servers_name, user_id):
+        try:
+            mcp_servers = await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, user_id)
+            mcp_servers.extend(await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, SystemUser))
+            return [mcp_server.mcp_server_id for mcp_server in mcp_servers]
+        except Exception as err:
+            raise ValueError(f"Get MCP Server Ids Error:{err}")
+

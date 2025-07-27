@@ -19,6 +19,7 @@ import Model from '../pages/model'
 import ModelEditor from '../pages/model/model-editor.vue'
 import Profile from '../pages/profile'
 import Homepage from '../pages/homepage'
+import MarsChat from '../pages/mars'
 
 const routes = [
   {
@@ -161,6 +162,14 @@ const routes = [
           current: 'profile'
         },
         component: Profile,
+      },
+      {
+        path: '/mars',
+        name: 'mars',
+        meta: {
+          current: 'mars'
+        },
+        component: MarsChat,
       }
     ]
   },

@@ -181,7 +181,7 @@ const confirmDelete = async () => {
   if (!agentToDelete.value) return
   
   try {
-    ElMessage.info('正在删除智能体...')
+    //ElMessage.info('正在删除智能体...')
     
     const response = await deleteAgentAPI({ agent_id: agentToDelete.value.agent_id })
     if (response.data.status_code === 200) {
