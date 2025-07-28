@@ -102,5 +102,45 @@ export async function retrieveKnowledge(query: string, knowledgeIds: string | st
   return await response.json();
 }
 
+// Mars示例功能
+export function sendMarsExample(exampleId: number, onmessage: any, onclose: any) {
+  const ctrl = new AbortController();
+
+  fetchEventSource('/api/v1/mars/example', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+    },
+    body: JSON.stringify({
+      example_id: exampleId
+    }),
+    signal: ctrl.signal,
+    openWhenHidden: true,
+    async onopen(response: any) {
+      if (response.status !== 200) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+    },
+    onmessage(msg: any) {
+      try {
+        onmessage(msg);
+      } catch (error) {
+        console.error('处理消息时出错:', error);
+      }
+    },
+    onclose() {
+      onclose();
+    },
+    onerror(err: any) {
+      console.error('Mars示例连接错误:', err);
+      ctrl.abort();
+      throw err;
+    }
+  });
+
+  return ctrl;
+}
+
 
 

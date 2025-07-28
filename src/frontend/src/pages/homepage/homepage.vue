@@ -4,7 +4,7 @@ import { useRouter } from 'vue-router'
 
 const router = useRouter()
 const searchQuery = ref('')
-const activeMode = ref('tool')
+// 模式选择已移除
 const deepSearchEnabled = ref(false)
 
 // 检测是否为Mac系统
@@ -12,31 +12,26 @@ const isMac = computed(() => {
   return typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0
 })
 
-const modes = [
-  { key: 'tool', label: '工具模式', color: '#52c41a', icon: '🔧' },
-  { key: 'mcp', label: 'MCP模式', color: '#1890ff', icon: '🔗' },
-  { key: 'agent', label: '智能体模式', color: '#fa8c16', icon: '🤖' },
-  { key: 'knowledge', label: '知识库模式', color: '#f5222d', icon: '📚' }
-]
+const modes: {key: string, label: string, color: string, icon: string}[] = []
 
 const examples = [
   {
-    title: '多工具协作任务',
-    category: '工具模式',
-    description: '使用多个工具配合完成复杂任务，如搜索+分析+生成报告',
+    title: '自动构建智能体',
+    category: '自动模式',
+    description: '使用多个工具相互配合完成自动构建智能体的任务',
     action: '开始使用 →'
   },
   {
-    title: 'MCP服务器集成',
-    category: 'MCP模式',
-    description: '连接外部MCP服务器，扩展系统能力和数据源',
-    action: '连接服务 →'
+    title: '深度搜索',
+    category: '搜索模式',
+    description: '连接外部资源，扩展系统能力和数据源',
+    action: '开始使用 →'
   },
   {
-    title: '智能体自动化',
-    category: '智能体模式',
-    description: '使用专业智能体处理特定领域的复杂任务',
-    action: '选择智能体 →'
+    title: 'AI日报',
+    category: '生成模式',
+    description: '对最近的AI新闻进行整理总结，可生成下载下载链接',
+    action: '开始使用 →'
   },
   {
     title: '知识库问答',
@@ -58,19 +53,7 @@ const handleSearch = async () => {
   }
 }
 
-const handleModeChange = (mode: string) => {
-  activeMode.value = mode
-}
-
-const getModeDisplayName = (mode: string) => {
-  const modeMap: Record<string, string> = {
-    'tool': '工具模式',
-    'mcp': 'MCP模式',
-    'agent': '智能体模式',
-    'knowledge': '知识库模式'
-  }
-  return modeMap[mode] || '默认模式'
-}
+// 模式相关函数已移除
 
 const toggleDeepSearch = () => {
   deepSearchEnabled.value = !deepSearchEnabled.value
@@ -85,12 +68,15 @@ const handleKeydown = (event: KeyboardEvent) => {
   // Shift+Enter 换行（默认行为，不需要处理）
 }
 
-const handleExampleClick = async (example: any) => {
-  // 直接跳转到Mars对话页面，并传递示例描述
+const handleExampleClick = async (example: any, index: number) => {
+  // 根据索引确定example_id (索引从0开始，而example_id从1开始)
+  const example_id = index + 1
+  
+  // 直接跳转到Mars对话页面，并传递example_id
   router.push({
     path: '/mars',
     query: {
-      message: example.description
+      example_id: example_id
     }
   })
 }
@@ -142,19 +128,7 @@ const handleExampleClick = async (example: any) => {
            </div>
         </div>
 
-        <!-- 模式选择 -->
-        <div class="mode-selector">
-          <div
-            v-for="mode in modes"
-            :key="mode.key"
-            :class="['mode-item', { active: activeMode === mode.key }]"
-            :style="{ '--mode-color': mode.color }"
-            @click="handleModeChange(mode.key)"
-          >
-            <span class="mode-icon">{{ mode.icon }}</span>
-            <span class="mode-label">{{ mode.label }}</span>
-          </div>
-        </div>
+        <!-- 模式选择已移除 -->
       </div>
     </div>
 
@@ -162,7 +136,7 @@ const handleExampleClick = async (example: any) => {
     <div class="examples-section">
       <h2 class="section-title">
         优秀案例
-        <span class="section-subtitle">和 Mars 一起提升工作效率</span>
+        <span class="section-subtitle">    </span>
       </h2>
 
       <div class="examples-grid">
@@ -170,7 +144,7 @@ const handleExampleClick = async (example: any) => {
           v-for="(example, index) in examples"
           :key="index"
           class="example-card"
-          @click="handleExampleClick(example)"
+          @click="handleExampleClick(example, index)"
         >
           <div class="example-header">
             <h3 class="example-title">{{ example.title }}</h3>
@@ -221,27 +195,27 @@ const handleExampleClick = async (example: any) => {
 .homepage {
   min-height: 100vh;
   background: #ffffff;
-  padding: 40px 20px;
+  padding: 10px 15px; /* 进一步减少填充 */
   overflow-y: auto;
 }
 
 .logo-section {
   text-align: center;
-  margin-bottom: 60px;
+  margin-bottom: 30px; /* 增加顶部Logo与搜索框的间距 */
   
   .logo-container {
     display: inline-flex;
     align-items: center;
-    gap: 16px;
+    gap: 16px; /* 增加间距 */
     
     .logo {
-      width: 64px;
-      height: 64px;
-      filter: drop-shadow(0 4px 12px rgba(0, 0, 0, 0.15));
+      width: 60px; /* 增大logo尺寸 */
+      height: 60px; /* 增大logo尺寸 */
+      filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.18));
     }
     
          .brand-name {
-       font-size: 48px;
+       font-size: 48px; /* 增大品牌名称字体大小 */
        font-weight: 800;
        background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #8b5cf6 60%, #6366f1 100%);
        -webkit-background-clip: text;
@@ -282,27 +256,27 @@ const handleExampleClick = async (example: any) => {
 }
 
 .search-section {
-  max-width: 800px;
-  margin: 0 auto 80px;
+  max-width: 750px; /* 进一步增加最大宽度 */
+  margin: 0 auto 28px; /* 进一步增加搜索框与优秀案例之间的间距 */
   
      .search-container {
      background: #ffffff;
-     border-radius: 24px;
-     padding: 48px;
-     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08);
+     border-radius: 22px; /* 增加圆角 */
+     padding: 32px; /* 进一步增加内部填充 */
+     box-shadow: 0 12px 40px rgba(0, 0, 0, 0.08); /* 增强阴影效果 */
      border: 1px solid #f1f5f9;
    }
   
   .search-box {
-    margin-bottom: 32px;
+    margin-bottom: 18px; /* 增加搜索框内部元素间距 */
     
          .search-input-wrapper {
        background: #f8f9fa;
-       border-radius: 20px;
-       padding: 12px;
-       border: 2px solid #e9ecef;
+       border-radius: 16px; /* 减小圆角 */
+       padding: 14px; /* 进一步增加内边距 */
+       border: 1px solid #e9ecef; /* 减小边框 */
        transition: all 0.3s ease;
-       min-height: 120px;
+       min-height: 160px; /* 进一步增加输入框高度，充分利用底部留白 */
        width: 100%;
        display: block;
        position: relative;
@@ -316,14 +290,14 @@ const handleExampleClick = async (example: any) => {
          width: 100%;
          border: none;
          background: transparent;
-         padding: 12px 16px 48px 16px;
-         font-size: 18px;
+         padding: 12px 18px 45px 18px; /* 进一步增加内边距 */
+         font-size: 19px; /* 进一步增加字体大小 */
          outline: none;
          color: #333;
-         line-height: 1.5;
+         line-height: 1.6; /* 增加行高 */
          resize: none;
          font-family: inherit;
-         min-height: 90px;
+         min-height: 130px; /* 进一步增加最小高度 */
          box-sizing: border-box;
          
          &::placeholder {
@@ -335,45 +309,7 @@ const handleExampleClick = async (example: any) => {
     }
   }
   
-  .mode-selector {
-    display: flex;
-    gap: 16px;
-    justify-content: center;
-    flex-wrap: wrap;
-    
-    .mode-item {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      padding: 12px 20px;
-      background: #f8f9fa;
-      border: 2px solid #e9ecef;
-      border-radius: 12px;
-      cursor: pointer;
-      transition: all 0.3s ease;
-      font-weight: 500;
-      
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-      }
-      
-      &.active {
-        background: var(--mode-color);
-        color: white;
-        border-color: var(--mode-color);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
-      }
-      
-      .mode-icon {
-        font-size: 18px;
-      }
-      
-      .mode-label {
-        font-size: 14px;
-      }
-    }
-  }
+  /* 模式选择器样式已移除 */
   
   .search-controls {
     position: absolute;
@@ -468,41 +404,42 @@ const handleExampleClick = async (example: any) => {
 }
 
 .examples-section {
-  max-width: 1200px;
+  max-width: 1100px; /* 减小最大宽度 */
   margin: 0 auto;
+  padding-top: 5px; /* 减少顶部填充 */
   
   .section-title {
     text-align: center;
-    font-size: 32px;
+    font-size: 24px; /* 进一步减小标题字体大小 */
     font-weight: 700;
     color: #333333;
-    margin-bottom: 16px;
+    margin-bottom: 5px; /* 进一步减少标题底部间距 */
     
     .section-subtitle {
       display: block;
-      font-size: 16px;
+      font-size: 14px; /* 减小副标题字体大小 */
       font-weight: 400;
       color: #666666;
-      margin-top: 8px;
+      margin-top: 4px; /* 减少上边距 */
     }
   }
   
   .examples-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-    gap: 24px;
-    margin-top: 40px;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); /* 稍微增加卡片最小宽度 */
+    gap: 18px; /* 增加卡片间距 */
+    margin-top: 12px; /* 增加顶部间距 */
     
          .example-card {
        background: #ffffff;
-       border-radius: 20px;
-       padding: 24px;
+       border-radius: 12px; /* 进一步减小圆角 */
+       padding: 15px; /* 进一步减少内部填充 */
        cursor: pointer;
        transition: all 0.3s ease;
        border: 1px solid #f1f5f9;
        position: relative;
        overflow: hidden;
-       box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+       box-shadow: 0 3px 8px rgba(0, 0, 0, 0.03); /* 减轻阴影 */
        
        &:hover {
          transform: translateY(-8px);
@@ -514,10 +451,10 @@ const handleExampleClick = async (example: any) => {
         display: flex;
         justify-content: space-between;
         align-items: flex-start;
-        margin-bottom: 12px;
+        margin-bottom: 8px; /* 减少底部间距 */
         
         .example-title {
-          font-size: 18px;
+          font-size: 16px; /* 减小标题字体大小 */
           font-weight: 600;
           color: #333;
           margin: 0;
@@ -538,23 +475,23 @@ const handleExampleClick = async (example: any) => {
       
       .example-description {
         color: #666;
-        line-height: 1.6;
-        margin-bottom: 16px;
-        font-size: 14px;
+        line-height: 1.4; /* 减小行高 */
+        margin-bottom: 10px; /* 减少底部间距 */
+        font-size: 13px; /* 减小字体大小 */
       }
       
              .example-action {
          color: #6366f1;
          font-weight: 500;
-         font-size: 14px;
-         margin-bottom: 20px;
+         font-size: 13px; /* 减小字体大小 */
+         margin-bottom: 12px; /* 减少底部间距 */
        }
       
       .example-preview {
-        height: 80px;
-        border-radius: 8px;
+        height: 60px; /* 进一步减少预览区域高度 */
+        border-radius: 6px; /* 减小圆角 */
         background: #f8f9fa;
-        padding: 12px;
+        padding: 8px; /* 进一步减少内部填充 */
         
         .code-preview {
           .code-lines {

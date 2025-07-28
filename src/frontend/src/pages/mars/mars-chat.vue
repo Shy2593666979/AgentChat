@@ -3,12 +3,14 @@
     <!-- AI输出展示区域 -->
     <div class="mars-output-container" ref="outputContainer">
       <!-- 加载状态 -->
-      <div v-if="isLoading && !aiContent" class="mars-loading-state">
+      <div v-if="isLoading && !aiContent" class="mars-content">
         <div class="mars-chat-message">
           <div class="mars-ai-avatar">
             <img src="../../assets/robot.svg" alt="AI Assistant" class="avatar-img" />
           </div>
-          <div class="mars-loading-text">Mars Agent 正在处理您的请求...</div>
+          <div class="mars-loading-dialog">
+            <div class="mars-loading-spinner"></div>
+          </div>
         </div>
       </div>
 
@@ -30,8 +32,7 @@
         <!-- 生成状态指示器 -->
         <div v-if="isLoading" class="mars-generating">
           <div class="mars-generating-indicator">
-            <span class="mars-generating-dot"></span>
-            正在生成中...
+            <div class="mars-generating-spinner"></div>
           </div>
         </div>
       </div>
@@ -66,7 +67,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed, onMounted } from 'vue'
+import { ref, nextTick, computed, onMounted, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { ElMessage } from 'element-plus'
@@ -83,14 +84,32 @@ const errorMessage = ref('')
 const abortController = ref<AbortController | null>(null)
 const outputContainer = ref<HTMLElement>()
 
-// 滚动到底部
+// 滚动到底部 - 使用更可靠的方法
 const scrollToBottom = () => {
-  nextTick(() => {
-    if (outputContainer.value) {
-      outputContainer.value.scrollTop = outputContainer.value.scrollHeight
-    }
-  })
+  console.log('执行滚动到底部')
+  // 使用多个延迟时间来确保滚动生效
+  const scrollWithDelay = (delay: number) => {
+    setTimeout(() => {
+      if (outputContainer.value) {
+        console.log(`尝试滚动 (${delay}ms):`, outputContainer.value.scrollHeight)
+        outputContainer.value.scrollTop = outputContainer.value.scrollHeight
+      }
+    }, delay)
+  }
+  
+  // 立即滚动一次
+  if (outputContainer.value) {
+    outputContainer.value.scrollTop = outputContainer.value.scrollHeight
+  }
+  
+  // 然后在不同的延迟时间再次尝试滚动，确保DOM已更新
+  scrollWithDelay(50)
+  scrollWithDelay(100)
+  scrollWithDelay(200)
+  scrollWithDelay(500)
 }
+
+
 
 // 返回首页
 const backToHome = () => {
@@ -148,13 +167,13 @@ const sendMessage = async (userMessage: string) => {
           
           console.log('去掉前缀后的数据:', rawData)
           
-          // 尝试解析JSON
+          // 方法1: 尝试直接替换单引号为双引号并解析JSON
           try {
             const jsonString = rawData.replace(/'/g, '"')
             const parsedData = JSON.parse(jsonString)
             
             const chunkData = parsedData.data || ''
-            console.log(`类型: ${parsedData.type}, 内容: "${chunkData}"`)
+            console.log(`方法1成功 - 类型: ${parsedData.type}, 内容: "${chunkData}"`)
             
             // 直接追加到AI内容中
             if (chunkData !== undefined && chunkData !== null) {
@@ -162,11 +181,52 @@ const sendMessage = async (userMessage: string) => {
               console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
               scrollToBottom()
             }
-          } catch (parseError) {
-            console.error('JSON解析失败:', parseError)
-            // 如果解析失败，直接添加原始数据
-            aiContent.value += rawData
-            scrollToBottom()
+          } catch (parseError1) {
+            console.error('方法1 JSON解析失败:', parseError1)
+            
+            // 方法2: 尝试使用eval解析
+            try {
+              // @ts-ignore
+              const evalData = eval('(' + rawData + ')')
+              if (evalData && evalData.data) {
+                const chunkData = evalData.data
+                console.log(`方法2成功 - 使用eval解析:`, chunkData)
+                aiContent.value += chunkData
+                console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
+                scrollToBottom()
+              } else {
+                throw new Error('Eval解析后无法获取data字段')
+              }
+            } catch (evalError) {
+              console.error('方法2 Eval解析失败:', evalError)
+              
+              // 方法3: 尝试修复JSON格式后再解析
+              try {
+                // 尝试处理嵌套引号问题
+                const fixedJson = rawData
+                  .replace(/'/g, '"')                   // 替换所有单引号为双引号
+                  .replace(/"\s*([^"]*?)\s*":/g, '"$1":') // 修复键名格式
+                  .replace(/:\s*"([^"]*?)"/g, ':"$1"')    // 修复值格式
+                
+                const parsedData = JSON.parse(fixedJson)
+                if (parsedData && parsedData.data) {
+                  const chunkData = parsedData.data
+                  console.log(`方法3成功 - 修复后JSON解析:`, chunkData)
+                  aiContent.value += chunkData
+                  console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
+                  scrollToBottom()
+                } else {
+                  throw new Error('修复JSON后无法获取data字段')
+                }
+              } catch (parseError3) {
+                console.error('方法3 修复JSON解析失败:', parseError3)
+                
+                // 所有方法都失败，直接添加原始数据
+                console.log('所有解析方法都失败，直接添加原始数据')
+                aiContent.value += rawData
+                scrollToBottom()
+              }
+            }
           }
         } catch (error) {
           console.error('处理Mars消息时出错:', error)
@@ -196,78 +256,257 @@ const sendMessage = async (userMessage: string) => {
   }
 }
 
+// 监听AI内容变化，自动滚动
+watch(aiContent, () => {
+  console.log('AI内容变化，触发滚动')
+  scrollToBottom()
+}, { flush: 'post' })
+
+// 监听加载状态变化，自动滚动
+watch(isLoading, (newVal) => {
+  if (newVal) {
+    console.log('开始加载，触发滚动')
+    scrollToBottom()
+  } else {
+    // 当加载结束时，滚动到底部
+    console.log('加载结束，触发滚动')
+    scrollToBottom()
+  }
+}, { flush: 'post' })
+
+// 创建DOM变化观察器，监听内容变化并滚动
+const createContentObserver = () => {
+  if (!outputContainer.value) return null
+  
+  const observer = new MutationObserver((mutations) => {
+    console.log('检测到DOM变化，触发滚动')
+    scrollToBottom()
+  })
+  
+  observer.observe(outputContainer.value, {
+    childList: true,
+    subtree: true,
+    characterData: true
+  })
+  
+  return observer
+}
+
+// 发送示例请求
+const sendExampleRequest = async (exampleId: number) => {
+  if (isLoading.value) return
+  
+  // 重置状态
+  aiContent.value = ''
+  hasError.value = false
+  errorMessage.value = ''
+  isLoading.value = true
+  abortController.value = new AbortController()
+
+  try {
+    await fetchEventSource('/api/v1/mars/example', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
+      },
+      body: JSON.stringify({
+        example_id: exampleId
+      }),
+      signal: abortController.value.signal,
+      openWhenHidden: true,
+      async onopen(response) {
+        if (response.status !== 200) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`)
+        }
+      },
+      onmessage: msg => {
+        try {
+          console.log('=== Mars示例消息处理开始 ===')
+          console.log('原始消息数据长度:', msg.data.length)
+          console.log('原始消息数据:', msg.data.substring(0, 200) + (msg.data.length > 200 ? '...' : ''))
+          
+          // 处理SSE格式的数据，去掉 "data: " 前缀
+          let rawData = msg.data.trim()
+          
+          if (!rawData) return
+          
+          // 去掉 "data: " 前缀（如果存在）
+          if (rawData.startsWith('data: ')) {
+            rawData = rawData.substring(6).trim()
+          }
+          
+          console.log('去掉前缀后的数据:', rawData)
+          
+          // 使用相同的解析逻辑处理示例数据
+          // 方法1: 尝试直接替换单引号为双引号并解析JSON
+          try {
+            const jsonString = rawData.replace(/'/g, '"')
+            const parsedData = JSON.parse(jsonString)
+            
+            const chunkData = parsedData.data || ''
+            console.log(`方法1成功 - 类型: ${parsedData.type}, 内容: "${chunkData}"`)
+            
+            // 直接追加到AI内容中
+            if (chunkData !== undefined && chunkData !== null) {
+              aiContent.value += chunkData
+              console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
+              scrollToBottom()
+            }
+          } catch (parseError1) {
+            console.error('方法1 JSON解析失败:', parseError1)
+            
+            // 方法2: 尝试使用eval解析
+            try {
+              // @ts-ignore
+              const evalData = eval('(' + rawData + ')')
+              if (evalData && evalData.data) {
+                const chunkData = evalData.data
+                console.log(`方法2成功 - 使用eval解析:`, chunkData)
+                aiContent.value += chunkData
+                console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
+                scrollToBottom()
+              } else {
+                throw new Error('Eval解析后无法获取data字段')
+              }
+            } catch (evalError) {
+              console.error('方法2 Eval解析失败:', evalError)
+              
+              // 方法3: 尝试修复JSON格式后再解析
+              try {
+                // 尝试处理嵌套引号问题
+                const fixedJson = rawData
+                  .replace(/'/g, '"')                   // 替换所有单引号为双引号
+                  .replace(/"\s*([^"]*?)\s*":/g, '"$1":') // 修复键名格式
+                  .replace(/:\s*"([^"]*?)"/g, ':"$1"')    // 修复值格式
+                
+                const parsedData = JSON.parse(fixedJson)
+                if (parsedData && parsedData.data) {
+                  const chunkData = parsedData.data
+                  console.log(`方法3成功 - 修复后JSON解析:`, chunkData)
+                  aiContent.value += chunkData
+                  console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
+                  scrollToBottom()
+                } else {
+                  throw new Error('修复JSON后无法获取data字段')
+                }
+              } catch (parseError3) {
+                console.error('方法3 修复JSON解析失败:', parseError3)
+                
+                // 所有方法都失败，直接添加原始数据
+                console.log('所有解析方法都失败，直接添加原始数据')
+                aiContent.value += rawData
+                scrollToBottom()
+              }
+            }
+          }
+        } catch (error) {
+          console.error('处理Mars示例消息时出错:', error)
+          hasError.value = true
+          errorMessage.value = '处理响应时出现错误'
+        }
+      },
+      onclose() {
+        isLoading.value = false
+        abortController.value = null
+      },
+      onerror(err) {
+        console.error('Mars示例连接错误:', err)
+        isLoading.value = false
+        abortController.value = null
+        ElMessage.error('连接错误，请重试')
+        throw err
+      }
+    })
+  } catch (error) {
+    console.error('Mars示例请求失败:', error)
+    isLoading.value = false
+    abortController.value = null
+    hasError.value = true
+    errorMessage.value = '示例请求失败，请重试'
+    ElMessage.error('示例请求失败，请重试')
+  }
+}
+
 // 页面加载时的初始化
 onMounted(() => {
-  // 检查是否有来自首页的消息
+  // 创建内容观察器
+  const observer = createContentObserver()
+  
+  // 检查URL参数
   const messageFromHome = route.query.message
-  if (messageFromHome && typeof messageFromHome === 'string') {
-    // 清除URL中的message参数，保持URL简洁
-    router.replace({
-      path: '/mars',
-      query: {}  // 清空所有query参数
-    })
-    
-    // 自动发送消息
-    nextTick(() => {
+  const exampleId = route.query.example_id
+  
+  // 清除URL中的参数，保持URL简洁
+  router.replace({
+    path: route.path,
+    query: {}  // 清空所有query参数
+  })
+  
+  // 根据参数类型执行不同的操作
+  nextTick(() => {
+    // 优先处理示例ID
+    if (exampleId && typeof exampleId === 'string') {
+      const id = parseInt(exampleId)
+      if (!isNaN(id)) {
+        sendExampleRequest(id)
+      }
+    } 
+    // 如果没有示例ID但有消息，则发送消息
+    else if (messageFromHome && typeof messageFromHome === 'string') {
       sendMessage(messageFromHome)
-    })
-  }
+    }
+  })
 })
 </script>
 
 <style lang="scss" scoped>
 .mars-output-page {
-  min-height: 100vh;
+  height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
   display: flex;
   flex-direction: column;
   padding: 0;
+  overflow: hidden; /* 防止整个页面出现滚动条 */
 }
 
 .mars-output-container {
   flex: 1;
   width: 100%;
   background: white;
-  overflow: hidden;
+  overflow-y: auto; /* 只在内容超出时显示垂直滚动条 */
+  overflow-x: hidden; /* 隐藏水平滚动条 */
   display: flex;
   flex-direction: column;
+  
+  /* 隐藏右侧滚动条但保留滚动功能 */
+  &::-webkit-scrollbar {
+    width: 0;
+    display: none;
+  }
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE and Edge */
 }
 
-// 加载状态样式
-.mars-loading-state {
-  flex: 1;
+// 加载对话框样式
+.mars-loading-dialog {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 16px 20px;
+  border: 1px solid #e9ecef;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
   display: flex;
-  flex-direction: column;
   align-items: center;
-  justify-content: center;
-  padding: 60px 40px;
-  text-align: center;
-  
-  .mars-chat-message {
-    display: flex;
-    align-items: center;
-    gap: 12px;
+  gap: 12px;
+  min-width: 120px;
     
-    .mars-ai-avatar {
-      width: 40px;
-      height: 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      
-      .avatar-img {
-        width: 40px;
-        height: 40px;
-      }
-    }
-    
-    .mars-loading-text {
-      font-size: 18px;
-      color: #666;
-      margin-bottom: 24px;
-      font-weight: 500;
-    }
+  .mars-loading-spinner {
+    width: 20px;
+    height: 20px;
+    border: 2px solid #e9ecef;
+    border-top: 2px solid #666;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
   }
 }
 
@@ -275,9 +514,8 @@ onMounted(() => {
 
 // AI内容展示样式
 .mars-content {
-  flex: 1;
   padding: 20px;
-  overflow-y: auto;
+  width: 100%;
   
   .mars-chat-message {
     display: flex;
@@ -306,25 +544,25 @@ onMounted(() => {
   }
   
   .mars-generating {
-    margin-top: 24px;
-    padding: 16px;
+    margin-top: 16px;
+    padding: 12px 16px;
     background: #f8f9fa;
     border-radius: 12px;
-    border-left: 4px solid #722ed1;
+    border: 1px solid #e9ecef;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     
     .mars-generating-indicator {
       display: flex;
       align-items: center;
-      gap: 8px;
-      color: #666;
-      font-size: 14px;
+      justify-content: center;
       
-      .mars-generating-dot {
-        width: 8px;
-        height: 8px;
+      .mars-generating-spinner {
+        width: 20px;
+        height: 20px;
+        border: 2px solid #e9ecef;
+        border-top: 2px solid #666;
         border-radius: 50%;
-        background: #722ed1;
-        animation: pulse 1.5s ease-in-out infinite;
+        animation: spin 1s linear infinite;
       }
     }
   }
@@ -439,26 +677,7 @@ onMounted(() => {
   }
 }
 
-// 滚动条样式
-.mars-content {
-  &::-webkit-scrollbar {
-    width: 6px;
-  }
-  
-  &::-webkit-scrollbar-track {
-    background: #f1f1f1;
-    border-radius: 3px;
-  }
-  
-  &::-webkit-scrollbar-thumb {
-    background: #c1c1c1;
-    border-radius: 3px;
-    
-    &:hover {
-      background: #a8a8a8;
-    }
-  }
-}
+// 移除滚动条样式，使用上面定义的隐藏滚动条
 
 .mars-response-content {
   // Markdown预览组件的样式调整
@@ -556,6 +775,11 @@ onMounted(() => {
   50% { opacity: 0.5; }
 }
 
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
 // 删除输入相关样式，现在只是输出页面
 
 @media (max-width: 768px) {
@@ -582,7 +806,6 @@ onMounted(() => {
     }
   }
   
-  .mars-loading-state,
   .mars-error-state,
   .mars-empty-state {
     padding: 40px 20px;
@@ -598,6 +821,32 @@ onMounted(() => {
          }
        }
      }
+  }
+  
+    .mars-content {
+    .mars-chat-message {
+      .mars-loading-dialog {
+        padding: 12px 16px;
+        min-width: 100px;
+        
+        .mars-loading-spinner {
+          width: 16px;
+          height: 16px;
+          border-top: 2px solid #666;
+        }
+      }
+    }
+    
+    .mars-generating {
+      padding: 10px 12px;
+      
+      .mars-generating-indicator {
+        .mars-generating-spinner {
+          width: 16px;
+          height: 16px;
+        }
+      }
+    }
   }
 }
 </style> 
