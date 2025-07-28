@@ -1,16 +1,20 @@
 import asyncio
+import random
 import time
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 
 from agentchat.core.models.manager import ModelManager
-from agentchat.services.mars.ai_news.crawl_news import crawl_today_ai_news, crawl_single_ai_news
+from agentchat.services.mars.ai_news.crawl_news import crawl_today_ai_news, crawl_single_ai_news, \
+    sync_crawl_with_selenium
+from agentchat.settings import app_settings
 
 NEWS_PROMPT = """
 【系统角色】
 你是专业的日报生成助手，仅返回 Markdown 文本，禁止任何额外解释。
 
 【任务指令】
-1. 根据用户随后提供的原始信息，总结今日工作要点，形成一份日报。
+1. 根据用户随后提供的原始信息，总结今日工作要点，形成一份详细的日报。
 2. 自动提取关键主题，生成形如 `# YYYY-MM-DD AI日报` 的一级标题（日期取今天：{today}）。
 3. 正文使用二级及以下标题对内容进行结构化呈现，可包含列表、表格、代码块等 Markdown 元素。
 4. 无需寒暄、无需开头结尾说明，直接输出最终 Markdown。
@@ -19,8 +23,21 @@ NEWS_PROMPT = """
 {news_content}
 """
 
+def yield_message_chunk(message):
+    start = 0
+    message_length = len(message)
+    while start < message_length:
+        # 随机生成1-3之间的长度
+        chunk_length = random.randint(1, 3)
+        # 防止最后一段超出字符串长度
+        end = min(start + chunk_length, message_length)
+        # 截取片段并返回
+        yield message[start:end]
+        # 移动起始位置
+        start = end
+
 async def crawl_detail_ai_news():
-    _, links = await crawl_today_ai_news()
+    _, links = crawl_today_ai_news()
 
     total_news_content = ""
     # for link in links[:10]:
@@ -44,7 +61,11 @@ async def crawl_detail_ai_news():
     return response
 
 async def yield_crawl_detail_ai_news():
-    _, links = await crawl_today_ai_news()
+    # loop = asyncio.get_running_loop()
+    # with ThreadPoolExecutor(max_workers=1) as executor:
+    #     result = await loop.run_in_executor(executor, crawl_today_ai_news, None)
+
+    _, links = sync_crawl_with_selenium(app_settings.mars["daily_url"])
 
     total_news_content = ""
     yield {
@@ -56,14 +77,23 @@ async def yield_crawl_detail_ai_news():
             "status": "START"
         }
     }
-    for link in links[:10]:
+    for idx, link in enumerate(links[:10]):
         title, content = await crawl_single_ai_news(link)
         yield {
             "type": "tool_chunk",
             "time": time.time(),
-            "data": f"\n 标题：{title}\n内容:{content[:100]}...\n"
+            "data": f"\n ## {idx+1}. [标题：{title}]({link}) \n"
         }
-        total_news_content += f"\n 标题：{title}\n内容:{content}\n"
+        # 改成流式输出，每次1字符
+        for chunk in yield_message_chunk(content):
+            yield {
+                "type": "tool_chunk",
+                "time": time.time(),
+                "data": chunk
+            }
+            await asyncio.sleep(0.02)
+
+        total_news_content += f"\n {idx+1}. 标题：{title}\n内容:{content}\n"
 
     yield {
         "type": "event",

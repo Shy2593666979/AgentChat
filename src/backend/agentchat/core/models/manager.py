@@ -1,7 +1,9 @@
 from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
+from openai import AsyncOpenAI
 
 from agentchat.core.models.models import ToolCallModel
+from agentchat.core.models.reason_model import ReasoningModel
 from agentchat.settings import app_settings
 
 
@@ -23,10 +25,15 @@ class ModelManager:
                           base_url=app_settings.multi_models.qwen2.base_url)
 
     @classmethod
-    def get_reasoning_model(cls) -> BaseChatModel:
-        return ChatOpenAI(model=app_settings.multi_models.deepseek_r1.model_name,
-                          api_key=app_settings.multi_models.deepseek_r1.api_key,
-                          base_url=app_settings.multi_models.deepseek_r1.base_url)
+    def get_reasoning_model(cls) -> ReasoningModel:
+        return ReasoningModel(model_name=app_settings.multi_models.deepseek_r1.model_name,
+                              api_key=app_settings.multi_models.deepseek_r1.api_key,
+                              base_url=app_settings.multi_models.deepseek_r1.base_url)
+        # return AsyncOpenAI(api_key=app_settings.multi_models.deepseek_r1.api_key,
+        #                    base_url=app_settings.multi_models.deepseek_r1.base_url)
+        # return ChatOpenAI(model=app_settings.multi_models.deepseek_r1.model_name,
+        #                   api_key=app_settings.multi_models.deepseek_r1.api_key,
+        #                   base_url=app_settings.multi_models.deepseek_r1.base_url)
 
     @classmethod
     def get_qwen_vl_model(cls) -> BaseChatModel:

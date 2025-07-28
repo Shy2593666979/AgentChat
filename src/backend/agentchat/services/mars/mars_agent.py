@@ -15,6 +15,7 @@ from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.chat_prompt import DEFAULT_CALL_PROMPT
 from agentchat.services.mars.mars_tools import Mars_Call_Tool
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
+from agentchat.settings import app_settings
 
 
 class MarsConfig(BaseModel):
@@ -63,6 +64,7 @@ class MarsAgent:
     #     pass
 
     async def set_mars_tools(self) -> List[BaseTool]:
+        # TODO：因为Tool必须绑定func，但不用，加个test函数
         def test_func():
             pass
 
@@ -117,7 +119,7 @@ class MarsAgent:
         else:
             return AIMessage(content="没有命中可用的工具")
 
-    async def execute_tool_message(self, messages: List[ToolMessage]):
+    async def execute_tool_message(self, messages: List[BaseMessage]):
         """执行工具，添加流式事件"""
         tool_calls = messages[-1].tool_calls
 
@@ -151,15 +153,32 @@ class MarsAgent:
         # 推理模型先行分析用户的需求
 
         reasoning_content = ""
-        async for chunk in self.reasoning_model.astream(messages):
-            print(chunk)
-            if chunk.content != "":
+
+        response = await self.reasoning_model.astream(messages)
+        async for chunk in response:
+            delta = chunk.choices[0].delta
+            if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
                 yield {
                     "type": "reasoning_chunk",
                     "time": time.time(),
-                    "data": chunk.content
+                    "data": delta.reasoning_content
                 }
-                reasoning_content += chunk.content
+                reasoning_content += delta.reasoning_content
+            if hasattr(delta, "content") and delta.content:
+                yield {
+                    "type": "response_chunk",
+                    "time": time.time(),
+                    "data": delta.content
+                }
+        # async for chunk in self.reasoning_model.astream(messages):
+        #     print(chunk)
+        #     if chunk.content != "":
+        #         yield {
+        #             "type": "reasoning_chunk",
+        #             "time": time.time(),
+        #             "data": chunk.content
+        #         }
+        #         reasoning_content += chunk.content
 
 
         call_tool_message = await self.call_tools_messages(messages)
