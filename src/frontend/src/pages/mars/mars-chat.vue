@@ -9,30 +9,49 @@
             <img src="../../assets/robot.svg" alt="AI Assistant" class="avatar-img" />
           </div>
           <div class="mars-loading-dialog">
-            <div class="mars-loading-spinner"></div>
+            <span class="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
           </div>
         </div>
       </div>
 
       <!-- AI回复内容 -->
-      <div v-if="aiContent" class="mars-content">
+      <div v-if="chatSegments.length > 0" class="mars-content">
         <div class="mars-chat-message">
           <div class="mars-ai-avatar">
             <img src="../../assets/robot.svg" alt="AI Assistant" class="avatar-img" />
           </div>
           <div class="mars-response">
-            <MdPreview 
-              editorId="mars-output" 
-              :modelValue="aiContent"
-              :showCodeRowNumber="true"
-            />
-          </div>
-        </div>
-        
-        <!-- 生成状态指示器 -->
-        <div v-if="isLoading" class="mars-generating">
-          <div class="mars-generating-indicator">
-            <div class="mars-generating-spinner"></div>
+            <div v-for="(segment, index) in chatSegments" :key="index">
+              <div v-if="segment.type === 'reasoning_chunk'" class="thinking-segment">
+                <div class="thinking-header" @click="toggleCollapse(segment)">
+                  深度思考
+                  <span class="collapse-icon">{{ segment.isCollapsed ? '&#x25B6;' : '&#x25BC;' }}</span>
+                </div>
+                <div v-show="!segment.isCollapsed" class="thinking-content">
+                  <MdPreview
+                    :editorId="`mars-output-${index}`"
+                    :modelValue="segment.content"
+                    :showCodeRowNumber="true"
+                  />
+                </div>
+              </div>
+              <div v-else class="answer-segment">
+                <MdPreview
+                  :editorId="`mars-output-${index}`"
+                  :modelValue="segment.content"
+                  :showCodeRowNumber="true"
+                />
+              </div>
+            </div>
+            <span v-if="isLoading && showTypingIndicator" class="typing-dots">
+              <span></span>
+              <span></span>
+              <span></span>
+            </span>
           </div>
         </div>
       </div>
@@ -51,7 +70,7 @@
       </div>
 
       <!-- 空状态（如果没有从首页传入消息） -->
-      <div v-if="!aiContent && !isLoading && !hasError" class="mars-empty-state">
+      <div v-if="chatSegments.length === 0 && !isLoading && !hasError" class="mars-empty-state">
         <div class="mars-chat-message">
           <div class="mars-ai-avatar">
             <img src="../../assets/robot.svg" alt="AI Assistant" class="avatar-img" />
@@ -77,12 +96,16 @@ import 'md-editor-v3/lib/style.css'
 // 响应式数据
 const route = useRoute()
 const router = useRouter()
-const aiContent = ref('')
+const chatSegments = ref<{ type: string; content: string, isCollapsed?: boolean }[]>([])
 const isLoading = ref(false)
 const hasError = ref(false)
 const errorMessage = ref('')
 const abortController = ref<AbortController | null>(null)
 const outputContainer = ref<HTMLElement>()
+const showTypingIndicator = ref(false)
+const typingTimer = ref<NodeJS.Timeout | null>(null)
+
+const aiContent = computed(() => chatSegments.value.map(s => s.content).join(''))
 
 // 滚动到底部 - 使用更可靠的方法
 const scrollToBottom = () => {
@@ -121,16 +144,32 @@ const retryFromHome = () => {
   router.push('/')
 }
 
+const toggleCollapse = (segment: { isCollapsed?: boolean }) => {
+  segment.isCollapsed = !segment.isCollapsed
+}
+
+const getSegmentClass = (segment: { type: string, content: string }) => {
+  if (segment.type === 'reasoning_chunk') {
+    return 'thinking-segment'
+  }
+  return 'answer-segment'
+}
+
 // 发送消息
 const sendMessage = async (userMessage: string) => {
   if (!userMessage.trim() || isLoading.value) return
   
   // 重置状态
-  aiContent.value = ''
+  chatSegments.value = []
   hasError.value = false
   errorMessage.value = ''
   isLoading.value = true
+  showTypingIndicator.value = false
+  if (typingTimer.value) clearTimeout(typingTimer.value)
   abortController.value = new AbortController()
+
+  // 设置初始计时器
+  startTypingTimer()
 
   try {
     await fetchEventSource('/api/v1/mars/chat', {
@@ -150,6 +189,8 @@ const sendMessage = async (userMessage: string) => {
         }
       },
       onmessage(msg) {
+        if (typingTimer.value) clearTimeout(typingTimer.value)
+        showTypingIndicator.value = false
         try {
           console.log('=== Mars消息处理开始 ===')
           console.log('原始消息数据长度:', msg.data.length)
@@ -167,20 +208,15 @@ const sendMessage = async (userMessage: string) => {
           
           console.log('去掉前缀后的数据:', rawData)
           
+          let parsedData
+          let parseSuccess = false
+
           // 方法1: 尝试直接替换单引号为双引号并解析JSON
           try {
             const jsonString = rawData.replace(/'/g, '"')
-            const parsedData = JSON.parse(jsonString)
-            
-            const chunkData = parsedData.data || ''
-            console.log(`方法1成功 - 类型: ${parsedData.type}, 内容: "${chunkData}"`)
-            
-            // 直接追加到AI内容中
-            if (chunkData !== undefined && chunkData !== null) {
-              aiContent.value += chunkData
-              console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-              scrollToBottom()
-            }
+            parsedData = JSON.parse(jsonString)
+            console.log(`方法1成功 - 类型: ${parsedData.type}, 内容: "${parsedData.data || ''}"`)
+            parseSuccess = true
           } catch (parseError1) {
             console.error('方法1 JSON解析失败:', parseError1)
             
@@ -188,15 +224,12 @@ const sendMessage = async (userMessage: string) => {
             try {
               // @ts-ignore
               const evalData = eval('(' + rawData + ')')
-              if (evalData && evalData.data) {
-                const chunkData = evalData.data
-                console.log(`方法2成功 - 使用eval解析:`, chunkData)
-                aiContent.value += chunkData
-                console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-                scrollToBottom()
-              } else {
+              parsedData = evalData
+              if (!parsedData.data) {
                 throw new Error('Eval解析后无法获取data字段')
               }
+              console.log(`方法2成功 - 使用eval解析:`, parsedData.data)
+              parseSuccess = true
             } catch (evalError) {
               console.error('方法2 Eval解析失败:', evalError)
               
@@ -208,25 +241,49 @@ const sendMessage = async (userMessage: string) => {
                   .replace(/"\s*([^"]*?)\s*":/g, '"$1":') // 修复键名格式
                   .replace(/:\s*"([^"]*?)"/g, ':"$1"')    // 修复值格式
                 
-                const parsedData = JSON.parse(fixedJson)
-                if (parsedData && parsedData.data) {
-                  const chunkData = parsedData.data
-                  console.log(`方法3成功 - 修复后JSON解析:`, chunkData)
-                  aiContent.value += chunkData
-                  console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-                  scrollToBottom()
-                } else {
+                parsedData = JSON.parse(fixedJson)
+                if (!parsedData.data) {
                   throw new Error('修复JSON后无法获取data字段')
                 }
+                console.log(`方法3成功 - 修复后JSON解析:`, parsedData.data)
+                parseSuccess = true
               } catch (parseError3) {
                 console.error('方法3 修复JSON解析失败:', parseError3)
-                
-                // 所有方法都失败，直接添加原始数据
-                console.log('所有解析方法都失败，直接添加原始数据')
-                aiContent.value += rawData
-                scrollToBottom()
               }
             }
+          }
+
+          if (parseSuccess && parsedData) {
+            const type = parsedData.type || 'answer'
+            const chunkData = parsedData.data || ''
+
+            if (chunkData !== undefined && chunkData !== null) {
+              if (chatSegments.value.length > 0 && chatSegments.value[chatSegments.value.length - 1].type === type) {
+                chatSegments.value[chatSegments.value.length - 1].content += chunkData
+              } else {
+                const newSegment: { type: string, content: string, isCollapsed?: boolean } = { type: type, content: chunkData }
+                if (type === 'reasoning_chunk') {
+                  newSegment.isCollapsed = false;
+                }
+                chatSegments.value.push(newSegment)
+              }
+              console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
+              scrollToBottom()
+              
+              // 重新启动计时器，以便在下一次数据延迟时显示...
+              if (isLoading.value) {
+                startTypingTimer()
+              }
+            }
+          } else {
+            // 所有方法都失败，直接添加原始数据
+            console.log('所有解析方法都失败，直接添加原始数据')
+            if (chatSegments.value.length > 0 && chatSegments.value[chatSegments.value.length - 1].type === 'raw') {
+              chatSegments.value[chatSegments.value.length - 1].content += rawData
+            } else {
+              chatSegments.value.push({ type: 'raw', content: rawData })
+            }
+            scrollToBottom()
           }
         } catch (error) {
           console.error('处理Mars消息时出错:', error)
@@ -237,11 +294,15 @@ const sendMessage = async (userMessage: string) => {
       onclose() {
         isLoading.value = false
         abortController.value = null
+        if (typingTimer.value) clearTimeout(typingTimer.value)
+        showTypingIndicator.value = false
       },
       onerror(err) {
         console.error('Mars聊天连接错误:', err)
         isLoading.value = false
         abortController.value = null
+        if (typingTimer.value) clearTimeout(typingTimer.value)
+        showTypingIndicator.value = false
         ElMessage.error('连接错误，请重试')
         throw err
       }
@@ -297,11 +358,16 @@ const sendExampleRequest = async (exampleId: number) => {
   if (isLoading.value) return
   
   // 重置状态
-  aiContent.value = ''
+  chatSegments.value = []
   hasError.value = false
   errorMessage.value = ''
   isLoading.value = true
+  showTypingIndicator.value = false
+  if (typingTimer.value) clearTimeout(typingTimer.value)
   abortController.value = new AbortController()
+
+  // 设置初始计时器
+  startTypingTimer()
 
   try {
     await fetchEventSource('/api/v1/mars/example', {
@@ -321,6 +387,8 @@ const sendExampleRequest = async (exampleId: number) => {
         }
       },
       onmessage: msg => {
+        if (typingTimer.value) clearTimeout(typingTimer.value)
+        showTypingIndicator.value = false
         try {
           console.log('=== Mars示例消息处理开始 ===')
           console.log('原始消息数据长度:', msg.data.length)
@@ -338,21 +406,15 @@ const sendExampleRequest = async (exampleId: number) => {
           
           console.log('去掉前缀后的数据:', rawData)
           
-          // 使用相同的解析逻辑处理示例数据
+          let parsedData
+          let parseSuccess = false
+
           // 方法1: 尝试直接替换单引号为双引号并解析JSON
           try {
             const jsonString = rawData.replace(/'/g, '"')
-            const parsedData = JSON.parse(jsonString)
-            
-            const chunkData = parsedData.data || ''
-            console.log(`方法1成功 - 类型: ${parsedData.type}, 内容: "${chunkData}"`)
-            
-            // 直接追加到AI内容中
-            if (chunkData !== undefined && chunkData !== null) {
-              aiContent.value += chunkData
-              console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-              scrollToBottom()
-            }
+            parsedData = JSON.parse(jsonString)
+            console.log(`方法1成功 - 类型: ${parsedData.type}, 内容: "${parsedData.data || ''}"`)
+            parseSuccess = true
           } catch (parseError1) {
             console.error('方法1 JSON解析失败:', parseError1)
             
@@ -360,15 +422,12 @@ const sendExampleRequest = async (exampleId: number) => {
             try {
               // @ts-ignore
               const evalData = eval('(' + rawData + ')')
-              if (evalData && evalData.data) {
-                const chunkData = evalData.data
-                console.log(`方法2成功 - 使用eval解析:`, chunkData)
-                aiContent.value += chunkData
-                console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-                scrollToBottom()
-              } else {
+              parsedData = evalData
+              if (!parsedData.data) {
                 throw new Error('Eval解析后无法获取data字段')
               }
+              console.log(`方法2成功 - 使用eval解析:`, parsedData.data)
+              parseSuccess = true
             } catch (evalError) {
               console.error('方法2 Eval解析失败:', evalError)
               
@@ -380,25 +439,49 @@ const sendExampleRequest = async (exampleId: number) => {
                   .replace(/"\s*([^"]*?)\s*":/g, '"$1":') // 修复键名格式
                   .replace(/:\s*"([^"]*?)"/g, ':"$1"')    // 修复值格式
                 
-                const parsedData = JSON.parse(fixedJson)
-                if (parsedData && parsedData.data) {
-                  const chunkData = parsedData.data
-                  console.log(`方法3成功 - 修复后JSON解析:`, chunkData)
-                  aiContent.value += chunkData
-                  console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-                  scrollToBottom()
-                } else {
+                parsedData = JSON.parse(fixedJson)
+                if (!parsedData.data) {
                   throw new Error('修复JSON后无法获取data字段')
                 }
+                console.log(`方法3成功 - 修复后JSON解析:`, parsedData.data)
+                parseSuccess = true
               } catch (parseError3) {
                 console.error('方法3 修复JSON解析失败:', parseError3)
-                
-                // 所有方法都失败，直接添加原始数据
-                console.log('所有解析方法都失败，直接添加原始数据')
-                aiContent.value += rawData
-                scrollToBottom()
               }
             }
+          }
+
+          if (parseSuccess && parsedData) {
+            const type = parsedData.type || 'answer'
+            const chunkData = parsedData.data || ''
+
+            if (chunkData !== undefined && chunkData !== null) {
+              if (chatSegments.value.length > 0 && chatSegments.value[chatSegments.value.length - 1].type === type) {
+                chatSegments.value[chatSegments.value.length - 1].content += chunkData
+              } else {
+                const newSegment: { type: string, content: string, isCollapsed?: boolean } = { type: type, content: chunkData }
+                if (type === 'reasoning_chunk') {
+                  newSegment.isCollapsed = false;
+                }
+                chatSegments.value.push(newSegment)
+              }
+              console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
+              scrollToBottom()
+              
+              // 重新启动计时器，以便在下一次数据延迟时显示...
+              if (isLoading.value) {
+                startTypingTimer()
+              }
+            }
+          } else {
+            // 所有方法都失败，直接添加原始数据
+            console.log('所有解析方法都失败，直接添加原始数据')
+            if (chatSegments.value.length > 0 && chatSegments.value[chatSegments.value.length - 1].type === 'raw') {
+              chatSegments.value[chatSegments.value.length - 1].content += rawData
+            } else {
+              chatSegments.value.push({ type: 'raw', content: rawData })
+            }
+            scrollToBottom()
           }
         } catch (error) {
           console.error('处理Mars示例消息时出错:', error)
@@ -409,11 +492,15 @@ const sendExampleRequest = async (exampleId: number) => {
       onclose() {
         isLoading.value = false
         abortController.value = null
+        if (typingTimer.value) clearTimeout(typingTimer.value)
+        showTypingIndicator.value = false
       },
       onerror(err) {
         console.error('Mars示例连接错误:', err)
         isLoading.value = false
         abortController.value = null
+        if (typingTimer.value) clearTimeout(typingTimer.value)
+        showTypingIndicator.value = false
         ElMessage.error('连接错误，请重试')
         throw err
       }
@@ -426,6 +513,17 @@ const sendExampleRequest = async (exampleId: number) => {
     errorMessage.value = '示例请求失败，请重试'
     ElMessage.error('示例请求失败，请重试')
   }
+}
+
+// 添加启动计时器的辅助函数
+const startTypingTimer = () => {
+  if (typingTimer.value) clearTimeout(typingTimer.value)
+  typingTimer.value = setTimeout(() => {
+    if (isLoading.value) {
+      showTypingIndicator.value = true
+      scrollToBottom()
+    }
+  }, 1000) // 1秒延迟
 }
 
 // 页面加载时的初始化
@@ -488,6 +586,88 @@ onMounted(() => {
   -ms-overflow-style: none; /* IE and Edge */
 }
 
+.typing-dots {
+  display: inline-flex;
+  gap: 4px;
+  vertical-align: middle;
+}
+
+.typing-dots span {
+  width: 8px;
+  height: 8px;
+  background-color: #666;
+  border-radius: 50%;
+  animation: typing-blink 1.4s infinite both;
+}
+
+.typing-dots span:nth-child(2) {
+  animation-delay: 0.2s;
+}
+
+.typing-dots span:nth-child(3) {
+  animation-delay: 0.4s;
+}
+
+@keyframes typing-blink {
+  0% {
+    opacity: 0.2;
+  }
+  20% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0.2;
+  }
+}
+
+.thinking-segment {
+  background-color: #f9f9f9;
+  border: 1px solid #e0e0e0;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1), 0 2px 6px rgba(0, 0, 0, 0.04);
+  transition: all 0.3s ease;
+}
+
+.thinking-header {
+  padding: 12px 16px;
+  font-weight: 600;
+  color: #333;
+  cursor: pointer;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.collapse-icon {
+  font-size: 14px;
+  transition: transform 0.3s ease;
+}
+
+.thinking-content {
+  padding: 16px;
+  border-top: none;
+}
+
+.thinking-content :deep(.md-editor-preview) p,
+.thinking-content :deep(.md-editor-preview) li,
+.thinking-content :deep(.md-editor-preview) ul,
+.thinking-content :deep(.md-editor-preview) ol,
+.thinking-content :deep(.md-editor-preview) h1,
+.thinking-content :deep(.md-editor-preview) h2,
+.thinking-content :deep(.md-editor-preview) h3,
+.thinking-content :deep(.md-editor-preview) h4,
+.thinking-content :deep(.md-editor-preview) h5,
+.thinking-content :deep(.md-editor-preview) h6 {
+  color: #495057 !important;
+}
+
+.answer-segment {
+  /* No specific styles needed unless for spacing/debugging */
+  margin-bottom: 10px;
+}
+
 // 加载对话框样式
 .mars-loading-dialog {
   background: #f8f9fa;
@@ -499,15 +679,6 @@ onMounted(() => {
   align-items: center;
   gap: 12px;
   min-width: 120px;
-    
-  .mars-loading-spinner {
-    width: 20px;
-    height: 20px;
-    border: 2px solid #e9ecef;
-    border-top: 2px solid #666;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-  }
 }
 
 
@@ -543,6 +714,7 @@ onMounted(() => {
     }
   }
   
+  /*
   .mars-generating {
     margin-top: 16px;
     padding: 12px 16px;
@@ -566,6 +738,7 @@ onMounted(() => {
       }
     }
   }
+  */
 }
 
 // 错误状态样式
@@ -837,6 +1010,7 @@ onMounted(() => {
       }
     }
     
+    /*
     .mars-generating {
       padding: 10px 12px;
       
@@ -847,6 +1021,7 @@ onMounted(() => {
         }
       }
     }
+    */
   }
 }
 </style> 

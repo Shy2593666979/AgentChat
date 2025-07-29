@@ -23,13 +23,10 @@ query_writer_instructions = """您的目标是生成复杂多样的网络搜索�
 
 示例:
 
-主题: 去年苹果股票收入增长还是购买iPhone的人数增长更多
-```json
 {{
     "rationale": "为了准确回答这个比较增长的问题，我们需要有关苹果股票表现和iPhone销售指标的具体数据点。这些查询针对所需的精确财务信息：公司收入趋势、特定产品的销售数量以及同一财政期间的股票价格变动，以便直接比较。",
     "query": ["苹果2024财年总收入增长", "iPhone 2024财年销售量增长", "苹果2024财年股票价格增长"],
 }}
-```
 
 上下文: {research_topic}"""
 
@@ -65,7 +62,6 @@ reflection_instructions = """您是一位专家研究助手，正在分析关于
    - "follow_up_queries": 编写解决此缺口的具体问题
 
 示例:
-```json
 {{
     "is_sufficient": true, // 或false
     "knowledge_gap": "摘要缺少有关性能指标和基准的信息", // 如果is_sufficient为true则为""

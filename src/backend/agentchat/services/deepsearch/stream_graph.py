@@ -116,7 +116,7 @@ class StreamingGraph:
         for chunk in self.conversation_model.stream(formatted_prompt):
             content += chunk.content
             # 流式输出每个chunk
-            stream_output("generate_query", chunk.content, "streaming")
+            # stream_output("generate_query", chunk.content, "streaming")
 
         # 解析JSON响应
         try:
@@ -300,7 +300,7 @@ class StreamingGraph:
 
     def finalize_answer(self, state: OverallState, config: RunnableConfig):
         """LangGraph节点，完成研究摘要。"""
-        stream_output("finalize_answer", "开始生成最终答案", "start")
+        stream_output("finalize_answer", "开始生成最终答案\n", "start")
 
         # 格式化提示词
         current_date = get_current_date()
