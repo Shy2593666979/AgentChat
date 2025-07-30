@@ -50,7 +50,7 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 
 ### 🌟 核心亮点
 
-- 🤖 **多模型支持**: 集成OpenAI、Anthropic、Google等主流大语言模型
+- 🤖 **多模型支持**: 集成OpenAI、DeepSeek、Qwen等主流大语言模型
 - 🧠 **智能Agent**: 支持多Agent协作，具备推理和决策能力
 - 📚 **知识库检索**: RAG技术实现精准知识检索和问答
 - 🔧 **工具生态**: 内置多种实用工具，支持自定义扩展
@@ -574,21 +574,7 @@ npm run dev
 
 <table>
 <tr>
-<td width="33%">
-
-#### 🏠 **单机部署**
-*适合个人使用和小团队*
-
-- 💻 **资源需求**: 4GB RAM, 2核CPU
-- 🐳 **部署方式**: Docker Compose
-- 📊 **并发支持**: 10-50用户
-- ⚡ **启动时间**: 2-5分钟
-
-```bash
-docker-compose up -d
-```
-
-</td>
+  
 <td width="33%">
 
 
@@ -760,26 +746,32 @@ class LoadConfig(BaseModel):
 
 <div align="center">
 
-# 🌟 **感谢支持 AgentChat！**
+## 🌟 **感谢支持 AgentChat！**
 
 ### 如果这个项目对你有帮助，请给我们一个 ⭐️
 
 *让更多的人发现这个项目，一起构建AI的未来！*
 
----
+*Made with ❤ by the AgentChat Author MingGuang Tian*
 
-## 💖 **致谢**
 
-**特别感谢所有贡献者和支持者**
-
-Made with ❤️ by Author  **MingGuang Tian**
-
-![GitHub stars](https://img.shields.io/github/stars/Shy2593666979/AgentChat?style=social)
-![GitHub forks](https://img.shields.io/github/forks/Shy2593666979/AgentChat?style=social)
-![GitHub watchers](https://img.shields.io/github/watchers/Shy2593666979/AgentChat?style=social)
-
----
-
-**🚀 [开始使用 AgentChat](#🚀-快速开始) | 📖 [查看文档](#📖-文档) | 🤝 [参与贡献](#🤝-贡献指南)**
+<picture>
+  <source
+    media="(prefers-color-scheme: dark)"
+    srcset="
+      https://api.star-history.com/svg?repos=Shy2593666979/AgentChat&type=Date&theme=dark
+    "
+  />
+  <source
+    media="(prefers-color-scheme: light)"
+    srcset="
+      https://api.star-history.com/svg?repos=Shy2593666979/AgentChat&type=Date
+    "
+  />
+  <img
+    alt="Star History Chart"
+    src="https://api.star-history.com/svg?repos=Shy2593666979/AgentChat&type=Date"
+  />
+</picture>
 
 </div>
