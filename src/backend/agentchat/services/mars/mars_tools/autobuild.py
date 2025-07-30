@@ -9,6 +9,8 @@ from agentchat.api.services.tool import ToolService
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.agent import AgentService
+from agentchat.core.models.manager import ModelManager
+from agentchat.prompts.mars import Mars_Autobuild_Answer_Prompt
 from agentchat.settings import app_settings
 
 def return_chunk_format(type: str, data: Union[str, dict]):
@@ -66,7 +68,7 @@ async def construct_auto_build_prompt(user_id: Optional[str]) -> str:
     )
 
     # 格式化各类资源信息
-    llms_info = "\n".join([f"{idx+1}. 模型名称: {llm.model}, 提供商: {llm.provider}"
+    llms_info = "\n".join([f"{idx+1}. 模型名称: {llm["model"]}, 提供商: {llm["provider"]}"
                            for idx, llm in enumerate(llms_result.get("LLM", []))])
 
     tools_info = "\n".join([f"{idx+1}. 插件工具名称: {tool['en_name']}, 工具描述: {tool['description']}"
@@ -164,18 +166,23 @@ async def auto_build_agent(
         agent_message = f"创建智能体失败,请根据该原因进行修改, 失败原因:{err}"
         logger.error(agent_message)
     finally:
+        conversation_model = ModelManager.get_conversation_model()
+        agent_content = Mars_Autobuild_Answer_Prompt.format(agent_info=f"模型：{llm_name}\n 工具: {tools_name}\n MCP 服务: {mcp_servers_name}\n 知识库: {knowledges_name}", agent_message=agent_message)
+        async for chunk in conversation_model.astream(agent_content):
+            yield return_chunk_format("response_chunk", chunk.content)
+
         # 按1-3个字符长度拆分字符串形成流式输出的效果
-        start = 0
-        message_length = len(agent_message)
-        while start < message_length:
-            # 随机生成1-3之间的长度
-            chunk_length = random.randint(1, 3)
-            # 防止最后一段超出字符串长度
-            end = min(start + chunk_length, message_length)
-            # 截取片段并返回
-            yield return_chunk_format("response_chunk", agent_message[start:end])
-            # 移动起始位置
-            start = end
+        # start = 0
+        # message_length = len(agent_message)
+        # while start < message_length:
+        #     # 随机生成1-3之间的长度
+        #     chunk_length = random.randint(1, 3)
+        #     # 防止最后一段超出字符串长度
+        #     end = min(start + chunk_length, message_length)
+        #     # 截取片段并返回
+        #     yield return_chunk_format("response_chunk", agent_message[start:end])
+        #     # 移动起始位置
+        #     start = end
 
 # Return 版本
 #

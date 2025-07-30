@@ -138,6 +138,8 @@ class MarsAgent:
             tool_args.update({"user_id": self.mars_config.user_id})
 
             async for chunk in use_tool.coroutine(**tool_args):
+                # TODO: 将chunk类型改成统一的response_chunk
+                chunk["type"] = "response_chunk"
                 yield chunk
 
 
@@ -152,33 +154,24 @@ class MarsAgent:
 
         # 推理模型先行分析用户的需求
 
-        reasoning_content = ""
-
-        response = await self.reasoning_model.astream(messages)
-        async for chunk in response:
-            delta = chunk.choices[0].delta
-            if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
-                yield {
-                    "type": "reasoning_chunk",
-                    "time": time.time(),
-                    "data": delta.reasoning_content
-                }
-                reasoning_content += delta.reasoning_content
-            if hasattr(delta, "content") and delta.content:
-                yield {
-                    "type": "response_chunk",
-                    "time": time.time(),
-                    "data": delta.content
-                }
-        # async for chunk in self.reasoning_model.astream(messages):
-        #     print(chunk)
-        #     if chunk.content != "":
+        # reasoning_content = ""
+        #
+        # response = await self.reasoning_model.astream(messages)
+        # async for chunk in response:
+        #     delta = chunk.choices[0].delta
+        #     if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
         #         yield {
         #             "type": "reasoning_chunk",
         #             "time": time.time(),
-        #             "data": chunk.content
+        #             "data": delta.reasoning_content
         #         }
-        #         reasoning_content += chunk.content
+        #         reasoning_content += delta.reasoning_content
+        #     if hasattr(delta, "content") and delta.content:
+        #         yield {
+        #             "type": "response_chunk",
+        #             "time": time.time(),
+        #             "data": delta.content
+        #         }
 
 
         call_tool_message = await self.call_tools_messages(messages)

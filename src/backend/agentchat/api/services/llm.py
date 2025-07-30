@@ -54,13 +54,13 @@ class LLMService:
             llm_data = await LLMDao.get_llm_by_user(user_id)
             result = []
             for data in llm_data:
-                result.append(data)
+                result.append(data.to_dict())
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                resp_llm[res.llm_type].append(res)
+                resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
         except Exception as err:
@@ -73,13 +73,13 @@ class LLMService:
             system_data = await LLMDao.get_llm_by_user(SystemUser)
             result = []
             for data in (user_data + system_data):
-                result.append(data)
+                result.append(data.to_dict())
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                resp_llm[res.llm_type].append(res)
+                resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
         except Exception as err:
@@ -91,13 +91,13 @@ class LLMService:
             llm_data = await LLMDao.get_all_llm()
             result = []
             for data in llm_data:
-                result.append(data)
+                result.append(data.to_dict())
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                resp_llm[res.llm_type].append(res)
+                resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
         except Exception as err:
