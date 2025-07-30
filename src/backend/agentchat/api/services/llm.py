@@ -60,6 +60,7 @@ class LLMService:
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
+                res["api_key"] = "************"
                 resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
@@ -79,6 +80,7 @@ class LLMService:
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
+                res["api_key"] = "************"
                 resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
@@ -97,6 +99,7 @@ class LLMService:
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
+                res["api_key"] = "************"
                 resp_llm[res["llm_type"]].append(res)
 
             return resp_llm

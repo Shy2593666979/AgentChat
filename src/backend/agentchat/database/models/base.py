@@ -29,7 +29,7 @@ class SQLModelSerializable(SQLModel):
     model_config = ConfigDict(from_attributes=True)
 
     # 使用ClassVar标注类变量，不会被视为模型字段
-    hide_fields: ClassVar[list[str]] = ["api_key"]
+    hide_fields: ClassVar[list[str]] = [] # "api_key"
 
     def to_dict(self):
         result = self.model_dump(exclude=self.hide_fields)

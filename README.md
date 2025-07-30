@@ -1,147 +1,406 @@
-<!-- START doctoc generated TOC please keep comment here to allow auto update -->
-<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
-![2a9a914f959cbe8efb9b1a5037ad866](https://github.com/user-attachments/assets/9a90b82e-1076-4b26-96ef-3da1eb3a04b0)
+# 🤖 AgentChat - 智能对话系统
 
-- [欢迎来到 智言平台](#%E6%AC%A2%E8%BF%8E%E6%9D%A5%E5%88%B0-%E6%99%BA%E8%A8%80%E5%B9%B3%E5%8F%B0)
-  - [成果图](#%E6%88%90%E6%9E%9C%E5%9B%BE)
-    - [智言平台首页](#%E6%99%BA%E8%A8%80%E5%B9%B3%E5%8F%B0%E9%A6%96%E9%A1%B5)
-    - [使用GoogleAgent、WeatherAgent、DeliveryAgent、ArxivAgent](#%E4%BD%BF%E7%94%A8googleagentweatheragentdeliveryagentarxivagent)
-    - [支持用户自定义工具](#%E6%94%AF%E6%8C%81%E7%94%A8%E6%88%B7%E8%87%AA%E5%AE%9A%E4%B9%89%E5%B7%A5%E5%85%B7)
-    - [小彩蛋(先明说我是IKUN) 🤔🤔🤔](#%E5%B0%8F%E5%BD%A9%E8%9B%8B%E5%85%88%E6%98%8E%E8%AF%B4%E6%88%91%E6%98%AFikun-)
-- [项目应用](#%E9%A1%B9%E7%9B%AE%E5%BA%94%E7%94%A8)
-- [快速开始](#%E5%BF%AB%E9%80%9F%E5%BC%80%E5%A7%8B)
-    - [一、配置文件](#%E4%B8%80%E9%85%8D%E7%BD%AE%E6%96%87%E4%BB%B6)
-    - [二、启动后端](#%E4%BA%8C%E5%90%AF%E5%8A%A8%E5%90%8E%E7%AB%AF)
-    - [三、启动前端](#%E4%B8%89%E5%90%AF%E5%8A%A8%E5%89%8D%E7%AB%AF)
-  - [使用Docker 快速启动](#%E4%BD%BF%E7%94%A8docker-%E5%BF%AB%E9%80%9F%E5%90%AF%E5%8A%A8)
+<div align="center">
 
-<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+![AgentChat Logo](https://github.com/user-attachments/assets/9a90b82e-1076-4b26-96ef-3da1eb3a04b0)
 
-# 欢迎来到 AgentChat
+[![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
+[![Vue Version](https://img.shields.io/badge/vue-3.4+-green.svg)](https://vuejs.org)
+[![FastAPI](https://img.shields.io/badge/fastapi-0.115+-red.svg)](https://fastapi.tiangolo.com)
+[![License](https://img.shields.io/badge/license-MIT-yellow.svg)](LICENSE)
 
-AgentChat 是一个开源的智能体交流与开发平台，让更多的AIGC爱好者更好的了解Agent
+*一个基于大语言模型的智能对话系统，支持多Agent协作、知识库检索、工具调用等功能*
 
-## 成果图（V1.0， V2.0前端页面还没做好）
-### 智言平台首页
-![1725542910516](https://github.com/user-attachments/assets/9036192a-8d19-4c3f-86d9-98f2b057b6b3)
+[🚀 快速开始](#快速开始) • [💡 功能特性](#功能特性) • [🛠 技术栈](#技术栈) • [📦 部署](#部署) • [📖 文档](#文档)
 
-### 使用GoogleAgent、WeatherAgent、DeliveryAgent、ArxivAgent
+</div>
+
+---
+
+## 📋 目录
+
+- [🎯 项目简介](#项目简介)
+- [✨ 功能展示](#功能展示)
+- [💡 功能特性](#功能特性)
+- [🛠 技术栈](#技术栈)
+- [📁 项目结构](#项目结构)
+- [🚀 快速开始](#快速开始)
+- [📦 部署](#部署)
+- [📖 文档](#文档)
+- [🔧 开发指南](#开发指南)
+- [🤝 贡献指南](#贡献指南)
+- [📄 许可证](#许可证)
+
+---
+
+## 🎯 项目简介
+
+AgentChat 是一个现代化的智能对话系统，基于大语言模型构建，提供了丰富的AI对话功能。系统采用前后端分离架构，支持多种AI模型、知识库检索、工具调用、MCP服务器集成等高级功能。
+
+### 🌟 核心亮点
+
+- 🤖 **多模型支持**: 集成OpenAI、Anthropic、Google等主流大语言模型
+- 🧠 **智能Agent**: 支持多Agent协作，具备推理和决策能力
+- 📚 **知识库检索**: RAG技术实现精准知识检索和问答
+- 🔧 **工具生态**: 内置多种实用工具，支持自定义扩展
+- 🌐 **MCP集成**: 支持Model Context Protocol服务器
+- 💬 **实时对话**: 流式响应，提供流畅的对话体验
+- 🎨 **现代界面**: 基于Vue 3和Element Plus的美观UI
+
+---
+
+## ✨ 功能展示
+
+### 🏠 智言平台首页
+![智言平台首页](https://github.com/user-attachments/assets/9036192a-8d19-4c3f-86d9-98f2b057b6b3)
+
+### 🤖 多Agent协作演示
 
 <table>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/932a0263-6949-413c-ae06-2afd92b92eef" alt="Image 1" width="1000"></td>
-    <td><img src="https://github.com/user-attachments/assets/263870c0-f6a9-437c-a289-13763804b3ee" alt="Image 2" width="1000"></td>
+    <td><img src="https://github.com/user-attachments/assets/932a0263-6949-413c-ae06-2afd92b92eef" alt="Google搜索Agent" width="500"></td>
+    <td><img src="https://github.com/user-attachments/assets/263870c0-f6a9-437c-a289-13763804b3ee" alt="天气查询Agent" width="500"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>🔍 Google搜索Agent</b></td>
+    <td align="center"><b>🌤️ 天气查询Agent</b></td>
   </tr>
 </table>
 
 <table>
   <tr>
-    <td><img src="https://github.com/user-attachments/assets/1b295f35-f122-400c-8351-e5b3e3f65663" alt="Image 1" width="1000"></td>
-    <td><img src="https://github.com/user-attachments/assets/059d4711-10af-40ea-8707-fd9967aa26a9" alt="Image 3" width="1000"></td>
+    <td><img src="https://github.com/user-attachments/assets/1b295f35-f122-400c-8351-e5b3e3f65663" alt="快递查询Agent" width="500"></td>
+    <td><img src="https://github.com/user-attachments/assets/059d4711-10af-40ea-8707-fd9967aa26a9" alt="ArXiv论文Agent" width="500"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>📦 快递查询Agent</b></td>
+    <td align="center"><b>📰 ArXiv论文Agent</b></td>
   </tr>
 </table>
 
+### 🔧 自定义工具支持
+![自定义工具](https://github.com/user-attachments/assets/beb54a14-521a-41fd-9941-ad82262276ff)
 
+### 🎨 小彩蛋 - IKUN主题
+<table>
+  <tr>
+    <td><img src="https://github.com/user-attachments/assets/3e4201c2-0f2b-4f9f-906c-a09e49aea9b8" alt="加载动画" width="300"></td>
+    <td><img src="https://github.com/user-attachments/assets/16e8a37b-32c2-4124-b6cf-151335482937" alt="IKUN主题" width="300"></td>
+  </tr>
+  <tr>
+    <td align="center"><b>⏳ 加载动画</b></td>
+    <td align="center"><b>🐔 IKUN主题</b></td>
+  </tr>
+</table>
 
-### 支持用户自定义工具
-用户需要输入openai 的参数格式，以及自定义代码（显得比较不是那么智能，后续会更改😔）
-![1725543216627](https://github.com/user-attachments/assets/beb54a14-521a-41fd-9941-ad82262276ff)
+---
 
-### 小彩蛋(先明说我是IKUN) 🤔🤔🤔
-加载图标：
+## 💡 功能特性
 
-![image](https://github.com/user-attachments/assets/3e4201c2-0f2b-4f9f-906c-a09e49aea9b8)
+### 🤖 AI对话功能
+- ✅ 多种大语言模型支持（OpenAI、Anthropic、Qwen等）
+- ✅ 流式响应，实时显示生成内容
+- ✅ 上下文记忆，支持长对话
+- ✅ 思考过程可视化（深度思考面板）
+- ✅ 对话历史管理
 
-![kunkun](https://github.com/user-attachments/assets/16e8a37b-32c2-4124-b6cf-151335482937)
+### 🧠 智能Agent系统
+- ✅ 多Agent协作框架
+- ✅ 自动任务分解和执行
+- ✅ Agent能力配置和管理
+- ✅ 工作流编排
 
+### 📚 知识库管理
+- ✅ 多格式文档上传（PDF、Word、Excel、Markdown、TXT等）
+- ✅ 智能文档解析和分块
+- ✅ 向量化存储和检索
+- ✅ 知识库问答（RAG）
 
-# 项目应用
+### 🔧 内置工具集
+- 📧 **邮件发送**: 自动发送邮件给指定收件人
+- 🔍 **智能搜索**: Google搜索、Tavily搜索，获取最新信息
+- 🌤️ **天气查询**: 查询指定地区的当前天气和预报
+- 📰 **论文检索**: ArXiv论文搜索和摘要提取
+- 📦 **快递追踪**: 根据快递公司和单号查询物流信息
+- 📄 **文档处理**: PDF/Word转换、文档解析
+- 🖼️ **多媒体**: 图片生成、图文转换
+- 📊 **数据处理**: Excel处理、数据分析
 
-使用 智言应用平台，可以构建各类更丰富的Agents供我们使用
+### 🌐 MCP服务器
+- ✅ MCP协议支持
+- ✅ 自定义MCP服务器集成
+- ✅ 天气、ArXiv等内置服务
 
-默认提供的Agent
+### 👤 用户管理
+- ✅ 用户注册和登录
+- ✅ JWT身份验证
+- ✅ 个人配置管理
+- ✅ 权限控制
 
-- 📧 根据我们想要的收件人以及邮件信息进行自动发送
-- 🌏 帮助我们搜索更加有效的信息，更容易理解
-- 🌥️ 帮助我们查给定地区的当前天气以及预报天气
-- 📃 帮助我们查找一些顶尖论文
-- 📦 根据快递公司和单号查找快递的信息
-- 📂 根据用户提供的文档路径进行加载到知识库进行检索，支持.pdf .docx .xlsx .md .txt文档加载
+---
 
-# 快速开始
+## 🛠 技术栈
 
-### 一、配置文件
+### 后端技术
+- **框架**: FastAPI (Python 3.12+)
+- **AI集成**: LangChain, OpenAI, Anthropic
+- **数据库**: MySQL 8.0, Redis 7.0
+- **向量数据库**: ChromaDB, Milvus
+- **搜索引擎**: Elasticsearch
+- **文档处理**: PyMuPDF, Unstructured
+- **异步任务**: Celery
+- **部署**: Docker, Gunicorn, Uvicorn
 
-**1.配置LangFuse**
+### 前端技术
+- **框架**: Vue 3.4+ (Composition API)
+- **UI组件**: Element Plus
+- **状态管理**: Pinia
+- **路由**: Vue Router 4
+- **构建工具**: Vite 5
+- **开发语言**: TypeScript
+- **样式**: SCSS
+- **Markdown**: md-editor-v3
 
-首先在`chat/config/langfuse_config.py` 中修改LangFuse的API KEY
+### 开发工具
+- **包管理**: Poetry (后端), npm (前端)
+- **代码格式**: Black, Prettier
+- **类型检查**: mypy, TypeScript
+- **容器化**: Docker, Docker Compose
 
-默认的连接是LangFuse官网，如果连接不通的话也可以使用docker 将LangFuse部署在本地
+---
 
-**2.配置LLM**
+## 📁 项目结构
 
-在`chat/config/llm_config.py`中修改LLMs的API KEY 和 BASE_URL，目前仅支持function call的LLMs
-
-例如：通义千问官网的qwen-plus...  openai的GPT-3.5....
-
-**3.配置MySQL**
-
-在`chat/config/service_config.py`中修改成自己的MySQL地址和Redis的地址
-
-### 二、启动后端
-
-**1.安装依赖**
-
-`pip install -r requirement.txt`
-
-**2.启动**
-
-在DeepSleep\src\backend目录下执行启动命令
-
-```shell
-uvicorn agentchat.main:app --port 7860 --host 0.0.0.0
+```
+AgentChat/
+├── 📁 src/
+│   ├── 📁 backend/                 # 后端代码
+│   │   └── 📁 agentchat/
+│   │       ├── 📁 api/             # API路由
+│   │       │   ├── 📁 v1/          # v1版本API
+│   │       │   └── 📁 services/    # 服务层API
+│   │       ├── 📁 core/            # 核心模块
+│   │       │   └── 📁 models/      # AI模型管理
+│   │       ├── 📁 database/        # 数据库模型
+│   │       │   ├── 📁 dao/         # 数据访问层
+│   │       │   └── 📁 models/      # 数据模型
+│   │       ├── 📁 services/        # 业务服务
+│   │       │   ├── 📁 rag/         # RAG检索服务
+│   │       │   ├── 📁 mars/        # Mars智能体服务
+│   │       │   └── 📁 mcp/         # MCP服务器
+│   │       ├── 📁 tools/           # 工具集成
+│   │       │   ├── 📁 arxiv/       # ArXiv工具
+│   │       │   ├── 📁 delivery/    # 快递查询工具
+│   │       │   └── 📁 web_search/  # 网络搜索工具
+│   │       ├── 📁 mcp_servers/     # MCP服务器
+│   │       ├── 📁 prompts/         # 提示词模板
+│   │       └── 📁 utils/           # 工具函数
+│   └── 📁 frontend/                # 前端代码
+│       └── 📁 src/
+│           ├── 📁 pages/           # 页面组件
+│           │   ├── 📁 agent/       # Agent管理页面
+│           │   ├── 📁 conversation/# 对话页面
+│           │   ├── 📁 knowledge/   # 知识库页面
+│           │   └── 📁 mars/        # Mars对话页面
+│           ├── 📁 components/      # 通用组件
+│           ├── 📁 apis/            # API接口
+│           ├── 📁 store/           # 状态管理
+│           └── 📁 utils/           # 工具函数
+├── 📁 docker/                      # Docker配置
+├── 📁 docs/                        # 项目文档
+├── 📄 pyproject.toml              # Python项目配置
+├── 📄 requirements.txt            # Python依赖
+└── 📄 README.md                   # 项目说明
 ```
 
-### 三、启动前端
+---
 
-**1.进入到前端的文件夹下**
+## 🚀 快速开始
 
-**2.下载依赖文件**
-```shell
+### 📋 环境要求
+
+- **Python**: 3.12+
+- **Node.js**: 18+
+- **MySQL**: 8.0+
+- **Redis**: 7.0+
+- **Docker**: 20.10+ (可选)
+
+### 🔧 本地开发
+
+#### 1. 克隆项目
+
+```bash
+git clone https://github.com/your-username/AgentChat.git
+cd AgentChat
+```
+
+#### 2. 后端环境配置
+
+```bash
+# 安装Poetry（如果未安装）
+curl -sSL https://install.python-poetry.org | python3 -
+
+# 安装依赖
+cd src/backend
+poetry install
+# 或使用pip
+pip install -r requirements.txt
+
+# 激活虚拟环境（Poetry）
+poetry shell
+```
+
+#### 3. 配置文件设置
+
+**配置LLM模型**
+在 `src/backend/agentchat/config.yaml` 中配置你的API密钥：
+
+```yaml
+# AI模型配置
+models:
+  openai:
+    api_key: "your-openai-api-key"
+    base_url: "https://api.openai.com/v1"
+  anthropic:
+    api_key: "your-anthropic-api-key"
+  qwen:
+    api_key: "your-qwen-api-key"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+
+# 数据库配置
+database:
+  mysql:
+    host: localhost
+    port: 3306
+    user: root
+    password: 123456
+    database: agentchat
+  redis:
+    host: localhost
+    port: 6379
+```
+
+#### 4. 数据库初始化
+
+```bash
+# 启动MySQL和Redis（使用Docker）
+cd docker
+docker-compose up -d mysql redis
+
+# 或手动启动本地服务
+# MySQL: 创建数据库 agentchat
+# Redis: 启动Redis服务
+
+# 初始化数据库
+cd ../src/backend
+python -m agentchat.database.init_data
+```
+
+#### 5. 启动后端服务
+
+```bash
+cd src/backend
+uvicorn agentchat.main:app --port 8000 --host 0.0.0.0 --reload
+```
+
+#### 6. 前端环境配置
+
+```bash
+# 安装依赖
+cd src/frontend
 npm install
-```
-**3.启动前端服务**
-```
+
+# 启动开发服务器
 npm run dev
 ```
 
-## 使用Docker 快速启动
+#### 7. 访问应用
 
-使用Docker的话就少了配置MySQL数据库步骤
+- **前端界面**: http://localhost:8090
+- **后端API**: http://localhost:8000
+- **API文档**: http://localhost:8000/docs
 
-**1.进入docker文件**
+---
 
-**2.执行Docker命令**
+## 📦 部署
 
-`docker-compose up --build `
+### 🐳 Docker部署（推荐）
 
-**3.用上述启动后端、前端的方式进行启动整体项目**
+#### 完整部署
 
-**4.更新配置文件后重新启动**
+```bash
+# 克隆项目
+git clone https://github.com/Shy2593666979/AgentChat.git
+cd AgentChat
 
-## 启动事项
+# 配置环境变量
+cp src/backend/agentchat/config.yaml.example src/backend/agentchat/config.yaml
+# 编辑配置文件，填入你的API密钥
 
-## 启动需要注意事项
+# 构建并启动所有服务
+cd docker
+docker-compose up --build -d
 
-因为fast-jwt-auth版本很多年没有再更新，所以其中使用的pydantic版本较低。
-但是像该项目中的Langchain、MCP都需要升级pydantic >= 2。
-当前也没什么好的办法，所以建议将虚拟环境中的fastapi-jwt-auth的SDK中config.py文件进行更改
+# 查看服务状态
+docker-compose ps
 
-例如在我电脑中，需要更改的文件就是
+# 查看日志
+docker-compose logs -f app
+```
 
-`D:\conda\envs\agentchat\Lib\site-packages\fastapi_jwt_auth\config.py` 
+#### 仅启动数据库服务
 
-更改成以下代码：
+```bash
+cd docker
+docker-compose up -d mysql redis
+```
+
+
+
+---
+
+## 📖 文档
+
+### 📚 API文档
+- [API Documentation v3.0](docs/API_Documentation_v3.0.md) - 最新API文档
+- [API Documentation v2.0](docs/API_Documentation_v2.0.md) - v2.0版本文档
+- [API Documentation v1.0](docs/API_Documentation_v1.0.md) - v1.0版本文档
+
+### 🔧 开发文档
+- **在线API文档**: 启动后端服务后访问 `/docs`
+- **前端调试指南**: [src/frontend/DEBUGGING_GUIDE.md](src/frontend/DEBUGGING_GUIDE.md)
+
+### 📋 配置指南
+
+#### 向量数据库配置
+- **Milvus**: [安装指南](https://milvus.io/docs/zh/install_standalone-windows.md)
+- **ChromaDB**: 项目中已集成，无需额外配置
+
+#### 模型服务配置
+- **Rerank模型**: [阿里云模型服务](https://help.aliyun.com/zh/model-studio/text-rerank-api)
+- **Embedding模型**: [OpenAI兼容接口](https://help.aliyun.com/zh/model-studio/embedding-interfaces-compatible-with-openai)
+
+#### 搜索引擎配置
+- **Elasticsearch**: [IK分词器](https://release.infinilabs.com/analysis-ik/stable/)
+
+---
+
+## 🔧 开发指南
+
+### ⚠️ 重要提示
+
+由于 `fastapi-jwt-auth` 库使用较旧版本的 Pydantic，而项目中的 LangChain、MCP 等组件需要 Pydantic >= 2，需要手动修改库文件：
+
+找到你的虚拟环境中的文件：
+```
+/path/to/your/env/lib/python3.x/site-packages/fastapi_jwt_auth/config.py
+```
+
+替换为以下内容：
+
+<details>
+<summary>点击展开配置代码</summary>
+
 ```python
 from datetime import timedelta
 from typing import Optional, Union, Sequence, List
@@ -170,86 +429,54 @@ class LoadConfig(BaseModel):
     authjwt_header_type: Optional[StrictStr] = "Bearer"
     authjwt_access_token_expires: Optional[Union[StrictBool,StrictInt,timedelta]] = timedelta(minutes=15)
     authjwt_refresh_token_expires: Optional[Union[StrictBool,StrictInt,timedelta]] = timedelta(days=30)
-    # # option for create cookies
-    authjwt_access_cookie_key: Optional[StrictStr] = "access_token_cookie"
-    authjwt_refresh_cookie_key: Optional[StrictStr] = "refresh_token_cookie"
-    authjwt_access_cookie_path: Optional[StrictStr] = "/"
-    authjwt_refresh_cookie_path: Optional[StrictStr] = "/"
-    authjwt_cookie_max_age: Optional[StrictInt] = None
-    authjwt_cookie_domain: Optional[StrictStr] = None
-    authjwt_cookie_secure: Optional[StrictBool] = False
-    authjwt_cookie_samesite: Optional[StrictStr] = None
-    # # option for double submit csrf protection
-    authjwt_cookie_csrf_protect: Optional[StrictBool] = True
-    authjwt_access_csrf_cookie_key: Optional[StrictStr] = "csrf_access_token"
-    authjwt_refresh_csrf_cookie_key: Optional[StrictStr] = "csrf_refresh_token"
-    authjwt_access_csrf_cookie_path: Optional[StrictStr] = "/"
-    authjwt_refresh_csrf_cookie_path: Optional[StrictStr] = "/"
-    authjwt_access_csrf_header_name: Optional[StrictStr] = "X-CSRF-Token"
-    authjwt_refresh_csrf_header_name: Optional[StrictStr] = "X-CSRF-Token"
-    authjwt_csrf_methods: Optional[List[StrictStr]] = ['POST','PUT','PATCH','DELETE']
-
+    
+    # 其他配置项...
+    
     @validator('authjwt_access_token_expires')
     def validate_access_token_expires(cls, v):
         if v is True:
             raise ValueError("The 'authjwt_access_token_expires' only accept value False (bool)")
         return v
 
-    @validator('authjwt_refresh_token_expires')
-    def validate_refresh_token_expires(cls, v):
-        if v is True:
-            raise ValueError("The 'authjwt_refresh_token_expires' only accept value False (bool)")
-        return v
-
-    @validator('authjwt_denylist_token_checks', each_item=True)
-    def validate_denylist_token_checks(cls, v):
-        if v not in ['access','refresh']:
-            raise ValueError("The 'authjwt_denylist_token_checks' must be between 'access' or 'refresh'")
-        return v
-
-    @validator('authjwt_token_location', each_item=True)
-    def validate_token_location(cls, v):
-        if v not in ['headers','cookies']:
-            raise ValueError("The 'authjwt_token_location' must be between 'headers' or 'cookies'")
-        return v
-
-    @validator('authjwt_cookie_samesite')
-    def validate_cookie_samesite(cls, v):
-        if v not in ['strict','lax','none']:
-            raise ValueError("The 'authjwt_cookie_samesite' must be between 'strict', 'lax', 'none'")
-        return v
-
-    @validator('authjwt_csrf_methods', each_item=True)
-    def validate_csrf_methods(cls, v):
-        if v.upper() not in ["GET", "HEAD", "POST", "PUT", "DELETE", "PATCH"]:
-            raise ValueError("The 'authjwt_csrf_methods' must be between http request methods")
-        return v.upper()
-
+    # 其他验证器...
+    
     class Config:
         str_min_length = 1
         str_strip_whitespace = True
 ```
 
-## 向量库安装
+</details>
 
-https://milvus.io/docs/zh/install_standalone-windows.md
 
-## Rerank模型示例
+## 🤝 贡献指南
 
-https://help.aliyun.com/zh/model-studio/text-rerank-api
+我们欢迎所有形式的贡献！
 
-## Embedding模型示例
+### 🐛 报告Bug
+1. 在GitHub Issues中搜索是否已存在相同问题
+2. 创建新Issue，详细描述问题
+3. 提供复现步骤和环境信息
 
-https://help.aliyun.com/zh/model-studio/embedding-interfaces-compatible-with-openai
+### 💡 提出功能建议
+1. 在GitHub Issues中创建Feature Request
+2. 详细描述功能需求和使用场景
+3. 讨论实现方案
 
-## Rerank模型示例
 
-https://help.aliyun.com/zh/model-studio/text-rerank-api
+---
 
-## Embedding模型示例
 
-https://help.aliyun.com/zh/model-studio/embedding-interfaces-compatible-with-openai
+## 📄 许可证
 
-## Elasticsearch-Analysis-IK分词器
+本项目采用 [MIT License](LICENSE) 许可证。
 
-https://release.infinilabs.com/analysis-ik/stable/
+---
+
+
+<div align="center">
+
+**如果这个项目对你有帮助，请给它一个 ⭐️**
+
+*Made with ❤️ by the AgentChat Author MingGuang Tian*
+
+</div>

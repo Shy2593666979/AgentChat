@@ -32,13 +32,13 @@
                   <span class="collapse-icon">{{ segment.isCollapsed ? '&#x25B6;' : '&#x25BC;' }}</span>
                 </div>
                 <div v-show="!segment.isCollapsed" class="thinking-content">
-                  <MdPreview
+            <MdPreview 
                     :editorId="`mars-output-${index}`"
                     :modelValue="segment.content"
-                    :showCodeRowNumber="true"
-                  />
-                </div>
-              </div>
+              :showCodeRowNumber="true"
+            />
+          </div>
+        </div>
               <div v-else class="answer-segment">
                 <MdPreview
                   :editorId="`mars-output-${index}`"
@@ -210,7 +210,7 @@ const sendMessage = async (userMessage: string) => {
           
           let parsedData
           let parseSuccess = false
-
+          
           // 方法1: 尝试直接替换单引号为双引号并解析JSON
           try {
             const jsonString = rawData.replace(/'/g, '"')
@@ -268,7 +268,7 @@ const sendMessage = async (userMessage: string) => {
                 chatSegments.value.push(newSegment)
               }
               console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-              scrollToBottom()
+                scrollToBottom()
               
               // 重新启动计时器，以便在下一次数据延迟时显示...
               if (isLoading.value) {
@@ -466,7 +466,7 @@ const sendExampleRequest = async (exampleId: number) => {
                 chatSegments.value.push(newSegment)
               }
               console.log('添加内容:', `"${chunkData}"`, '当前总长度:', aiContent.value.length)
-              scrollToBottom()
+                scrollToBottom()
               
               // 重新启动计时器，以便在下一次数据延迟时显示...
               if (isLoading.value) {
