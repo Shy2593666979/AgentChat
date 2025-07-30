@@ -1,8 +1,8 @@
-# 🤖 AgentChat - 智能对话系统
 
 <div align="center">
 
-![AgentChat Logo](https://github.com/user-attachments/assets/9a90b82e-1076-4b26-96ef-3da1eb3a04b0)
+<img width="649" height="209" alt="image-Photoroom (2)" src="https://github.com/user-attachments/assets/2e19a214-a87d-473f-a4fd-ee879f4e7149" />
+
 
 [![Python Version](https://img.shields.io/badge/python-3.12+-blue.svg)](https://python.org)
 [![Vue Version](https://img.shields.io/badge/vue-3.4+-green.svg)](https://vuejs.org)
@@ -52,48 +52,53 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 ## ✨ 功能展示
 
 ### 🏠 智言平台首页
-![智言平台首页](https://github.com/user-attachments/assets/9036192a-8d19-4c3f-86d9-98f2b057b6b3)
+<img width="1920" height="922" alt="d66191fe5a094da3989d7ad45f314ab" src="https://github.com/user-attachments/assets/8f326b6b-8987-493a-828c-fb8cf0a49ddf" />
 
-### 🤖 多Agent协作演示
+### 智言平台登录页
 
-<table>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/932a0263-6949-413c-ae06-2afd92b92eef" alt="Google搜索Agent" width="500"></td>
-    <td><img src="https://github.com/user-attachments/assets/263870c0-f6a9-437c-a289-13763804b3ee" alt="天气查询Agent" width="500"></td>
-  </tr>
-  <tr>
-    <td align="center"><b>🔍 Google搜索Agent</b></td>
-    <td align="center"><b>🌤️ 天气查询Agent</b></td>
-  </tr>
-</table>
+<img width="1920" height="922" alt="8f0a3a34e6a4a147800d3b931f299c2" src="https://github.com/user-attachments/assets/18f79604-0631-483f-b1eb-8831bf329063" />
 
-<table>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/1b295f35-f122-400c-8351-e5b3e3f65663" alt="快递查询Agent" width="500"></td>
-    <td><img src="https://github.com/user-attachments/assets/059d4711-10af-40ea-8707-fd9967aa26a9" alt="ArXiv论文Agent" width="500"></td>
-  </tr>
-  <tr>
-    <td align="center"><b>📦 快递查询Agent</b></td>
-    <td align="center"><b>📰 ArXiv论文Agent</b></td>
-  </tr>
-</table>
 
-### 🔧 自定义工具支持
-![自定义工具](https://github.com/user-attachments/assets/beb54a14-521a-41fd-9941-ad82262276ff)
+### 智能体页面
+<img width="1920" height="922" alt="55e38b2c651a4dc4c81e01f73cf2202" src="https://github.com/user-attachments/assets/e58f120e-2e53-4041-b3f8-2243083dccf3" />
 
-### 🎨 小彩蛋 - IKUN主题
-<table>
-  <tr>
-    <td><img src="https://github.com/user-attachments/assets/3e4201c2-0f2b-4f9f-906c-a09e49aea9b8" alt="加载动画" width="300"></td>
-    <td><img src="https://github.com/user-attachments/assets/16e8a37b-32c2-4124-b6cf-151335482937" alt="IKUN主题" width="300"></td>
-  </tr>
-  <tr>
-    <td align="center"><b>⏳ 加载动画</b></td>
-    <td align="center"><b>🐔 IKUN主题</b></td>
-  </tr>
-</table>
 
----
+#### 使用天气查询Agent
+
+<img width="1920" height="922" alt="5fbfdfefce4f61a05d61675aca9b9a3" src="https://github.com/user-attachments/assets/7774b08b-15af-4407-9b8f-4499777e6cf7" />
+
+#### 使用文生图Agent
+
+<img width="1920" height="922" alt="84a8c857d506e714b9b4c75826afafd" src="https://github.com/user-attachments/assets/ad8de033-b397-472b-8aca-1a3befd99dec" />
+
+### 平台已接入MCP
+
+用户可根据自己的需求进行上传自己的MCP服务
+<img width="1920" height="922" alt="f852b494270ab83cd1da8f168af3627" src="https://github.com/user-attachments/assets/7a9f4588-1098-4388-85d9-78a1a4130ec3" />
+
+### 知识库管理页面
+
+用户可自行创建知识库， 为自己的Agent增加更多外部知识
+<img width="1920" height="922" alt="4d31fece6ad6faba4f07d56d129882e" src="https://github.com/user-attachments/assets/471ad0d3-e99b-4da0-9338-4fae41eaad68" />
+
+### 知识库文件解析页面
+
+知识库文件解析，支持PDF、Markdown、Docx、Txt等常见文件的解析
+
+<img width="1920" height="922" alt="2e0609b32bebb158221ac95ad67bd6c" src="https://github.com/user-attachments/assets/0d030916-b6e2-482c-b828-b760fc574cae" />
+
+### 工具管理
+
+目前仅支持使用官方工具，后续支持用户自定义工具类型.....
+
+<img width="1920" height="922" alt="8284f57595350ab98e2f1cc8559f619" src="https://github.com/user-attachments/assets/70fe68ce-56e0-44be-b78a-817ed32d4708" />
+
+### 模型管理
+
+用户可以增添模型，让自己的Agent能够更好的输出
+
+<img width="1920" height="922" alt="08ec01e8f6a843dce562f61a3d1f0a9" src="https://github.com/user-attachments/assets/41a49873-f758-49f2-86a4-1a1a57677018" />
+
 
 ## 💡 功能特性
 
