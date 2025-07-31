@@ -92,7 +92,7 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 #### 🌤️ 天气查询Agent
 *实时天气信息查询和预报*
 
-<img width="400" height="240" alt="天气查询Agent" src="https://github.com/user-attachments/assets/7774b08b-15af-4407-9b8f-4499777e6cf7" />
+<img width="400" height="240" alt="天气查询Agent" src="https://github.com/user-attachments/assets/91a95c2b-f194-4c25-ba0f-f8cb393cba50" />
 
 </td>
 <td width="50%">
@@ -100,7 +100,8 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 #### 🎨 文生图Agent
 *AI驱动的图像生成服务*
 
-<img width="400" height="240" alt="文生图Agent" src="https://github.com/user-attachments/assets/ad8de033-b397-472b-8aca-1a3befd99dec" />
+<img width="400" height="240" alt="文生图Agent" src="https://github.com/user-attachments/assets/58194798-5c3e-4d7d-895c-944b6665e5a6" />
+
 
 </td>
 </tr>
