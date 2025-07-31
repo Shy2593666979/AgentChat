@@ -94,3 +94,10 @@ class ToolDao:
                                                ToolTable.user_id == user_id))
             tools = session.exec(sql)
             return tools.all()
+
+    @classmethod
+    async def get_zh_name_from_en_name(cls, en_name):
+        with Session(engine) as session:
+            sql = select(ToolTable).where(ToolTable.en_name == en_name)
+            tool = session.exec(sql)
+            return tool.first()

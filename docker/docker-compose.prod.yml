@@ -1,5 +1,5 @@
 # 🏭 AgentChat 生产环境 Docker Compose 配置
-version: '3.8'
+version: '2.0'
 
 services:
   # 🔧 后端生产环境覆盖配置

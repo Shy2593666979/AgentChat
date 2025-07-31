@@ -146,9 +146,12 @@ class StreamingAgent:
     async def call_tools_messages(self, messages: List[BaseMessage]) -> AIMessage:
         """调用工具选择，添加流式事件"""
 
+        select_tool_message = "开始选择可用工具" if self.step_counter == 1 else "是否需要继续调用工具"
         # 发送工具分析开始事件
         await self.emit_event({
-            "title": f"Run Select Tool_{self.step_counter}",
+            #"title": f"Run Select Tool_{self.step_counter}",
+            #"title": f"第{self.step_counter}次挑选可用工具",
+            "title": select_tool_message,
             "status": "START",
             "message": "正在分析需要使用的工具...",
         })
@@ -180,7 +183,9 @@ class StreamingAgent:
             tool_call_names = [tool_call["name"] for tool_call in response.tool_calls]
             # 发送工具选择完成事件
             await self.emit_event({
-                "title": f"Run Select Tool_{self.step_counter}",
+                #"title": f"Run Select Tool_{self.step_counter}",
+                #"title": f"第{self.step_counter}次挑选可用工具",
+                "title": select_tool_message,
                 "status": "END",
                 "message": "可用工具：" + ", ".join(set(tool_call_names))
             })
@@ -192,7 +197,9 @@ class StreamingAgent:
         else:
             # 发送无工具可用事件
             await self.emit_event({
-                "title": f"Run Select Tool_{self.step_counter}",
+                #"title": f"Run Select Tool_{self.step_counter}",
+                #"title": f"第{self.step_counter}次挑选可用工具",
+                "title": select_tool_message,
                 "status": "END",
                 "message": "没有命中可用的工具"
             })
@@ -264,6 +271,8 @@ class StreamingAgent:
                     tool_messages.append(
                         ToolMessage(content=str(err), name=tool_name + "_mcp", tool_call_id=tool_call_id))
             else:
+                tool_zh_name = await ToolService.convert_zh_name_from_en_name(tool_name)
+
                 try:
                     # 给加个后缀保证事件消息不卡掉
                     suffix = " " * self.tool_call_count.get(tool_name, 0)
@@ -272,8 +281,9 @@ class StreamingAgent:
                     # 发送插件工具调用事件
                     await self.emit_event({
                         "status": "START",
-                        "title": f"Run Execution Tool: {tool_name}{suffix}",
-                        "message": f"正在调用插件工具 {tool_name}..."
+                        "title": f"执行可用工具: {tool_zh_name}{suffix}",
+                        #"title": f"Run Execution Tool: {tool_name}{suffix}",
+                        "message": f"正在调用插件工具 {tool_zh_name}..."
                     })
 
                     # 改为异步
@@ -282,7 +292,8 @@ class StreamingAgent:
                     # 发送插件工具执行完成事件
                     await self.emit_event({
                         "status": "END",
-                        "title": f"Run Execution Tool: {tool_name}{suffix}",
+                        "title": f"执行可用工具: {tool_zh_name}{suffix}",
+                        #"title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": tool_result,
                     })
 
@@ -294,7 +305,8 @@ class StreamingAgent:
                     # 发送插件工具执行错误事件
                     await self.emit_event({
                         "status": "ERROR",
-                        "title": f"Run Execution Tool: {tool_name}{suffix}",
+                        "title": f"执行可用工具: {tool_zh_name}{suffix}",
+                        #"title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": str(err),
                     })
 

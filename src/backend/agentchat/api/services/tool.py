@@ -112,3 +112,13 @@ class ToolService:
             return [tool.tool_id for tool in tools]
         except Exception as err:
             raise ValueError(f'Get Tool ID tool name appear Error: {err}')
+
+    @classmethod
+    async def convert_zh_name_from_en_name(cls, en_name: str):
+        try:
+            tool = await ToolDao.get_zh_name_from_en_name(en_name)
+            if tool:
+                return tool.zh_name
+            return None
+        except Exception as err:
+            raise ValueError(f"Convert Zh name Error:{err}")

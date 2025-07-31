@@ -18,6 +18,11 @@ async def register_router(app: FastAPI):
     app.mount("/img", StaticFiles(directory="agentchat/data/img"), name="img")
     app.include_router(router)
 
+    # 健康探针
+    @app.get("/health")
+    def check_health():
+        return {'status': 'OK'}
+
 
 def register_middleware(app: FastAPI):
     origins = [

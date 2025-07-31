@@ -22,6 +22,8 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 engine = create_engine(app_settings.mysql.get('endpoint'),
+                       pool_pre_ping=True, # 连接前检查其有效性
+                       pool_recycle=3600, # 每隔1小时进行重连一次
                        connect_args={"charset": "utf8mb4",
                                      "use_unicode": True,
                                      'init_command': "SET SESSION time_zone = '+08:00'"})
