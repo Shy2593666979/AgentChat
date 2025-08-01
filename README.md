@@ -110,6 +110,15 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 
 <div align="center">
 
+<div align="center">
+
+### 🔁智能体工具多轮调用
+
+平台中智能体支持工具多轮调用（指的是根据工具C依赖工具B结果，执行工具B依赖工具A结果，所以调用工具的顺序是 A --> B --> C）
+<img width="800" height="450" alt="dc426a1b220af20a06b068a4ffc2bb10" src="https://github.com/user-attachments/assets/029c70ce-e5fa-4f2c-926a-a5dfd719e237" />
+
+<div align="center">
+
 ### 🔌 MCP服务器集成
 *支持Model Context Protocol，可上传自定义MCP服务*
 
