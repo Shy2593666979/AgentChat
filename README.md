@@ -714,6 +714,11 @@ class LoadConfig(BaseModel):
 
 </details>
 
+其实找起来挺麻烦的，所以提供了一个直接修改源代码的脚本
+```python
+python scripts/fix_fastapi_jwt_auth.py # 进行脚本修复(前提是需要将依赖包安装完整)
+```
+
 
 ## 🤝 贡献指南
 

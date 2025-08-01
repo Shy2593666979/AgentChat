@@ -68,15 +68,15 @@ async def yield_crawl_detail_ai_news():
     _, links = sync_crawl_with_selenium(app_settings.mars["daily_url"])
 
     total_news_content = ""
-    yield {
-        "type": "event",
-        "time": time.time(),
-        "data": {
-            "title": "抓取AI信息",
-            "message": "开始抓取网络中有关AI的信息",
-            "status": "START"
-        }
-    }
+    # yield {
+    #     "type": "event",
+    #     "time": time.time(),
+    #     "data": {
+    #         "title": "抓取AI信息",
+    #         "message": "开始抓取网络中有关AI的信息",
+    #         "status": "START"
+    #     }
+    # }
     for idx, link in enumerate(links[:10]):
         title, content = await crawl_single_ai_news(link)
         yield {
@@ -95,15 +95,15 @@ async def yield_crawl_detail_ai_news():
 
         total_news_content += f"\n {idx+1}. 标题：{title}\n内容:{content}\n"
 
-    yield {
-        "type": "event",
-        "time": time.time(),
-        "data": {
-            "title": "抓取AI信息",
-            "message": "开始抓取网络中有关AI的信息",
-            "status": "END"
-        }
-    }
+    # yield {
+    #     "type": "event",
+    #     "time": time.time(),
+    #     "data": {
+    #         "title": "抓取AI信息",
+    #         "message": "开始抓取网络中有关AI的信息",
+    #         "status": "END"
+    #     }
+    # }
 
     yield {
             "type": "tool_chunk",

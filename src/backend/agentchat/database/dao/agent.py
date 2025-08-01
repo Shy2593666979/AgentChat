@@ -129,11 +129,11 @@ class AgentDao:
                 update_values['tool_ids'] = tool_ids
             if knowledge_ids is not None:
                 update_values['knowledge_ids'] = knowledge_ids
-            if use_embedding:
+            if use_embedding is not None:
                 update_values['use_embedding'] = use_embedding
-            if mcp_ids:
+            if mcp_ids is not None:
                 update_values["mcp_ids"] = mcp_ids
-            if system_prompt:
+            if system_prompt is not None:
                 update_values["system_prompt"] = system_prompt
             if logo_url is not None:
                 update_values['logo_url'] = logo_url

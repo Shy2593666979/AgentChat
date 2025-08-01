@@ -80,9 +80,11 @@ class MCPAgent:
             self.tool_invocation_model.bind_tools(tools_schema)
 
             system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
+            # MCP Agent 单独的Prompt，不受历史记录影响
             call_tool_messages.append(system_message)
-
-        call_tool_messages.extend(messages)
+            call_tool_messages.append(messages[-1])
+        else:
+            call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
         # 判断是否有工具可调用
@@ -122,14 +124,14 @@ class MCPAgent:
                 tool_result = await mcp_tool.coroutine(**tool_args)
 
                 tool_messages.append(
-                    ToolMessage(content=tool_result, name=tool_name + "_mcp", tool_call_id=tool_call_id))
+                    ToolMessage(content=tool_result, name=tool_name, tool_call_id=tool_call_id))
                 logger.info(f"MCP Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
 
             except Exception as err:
                 # 发送MCP工具执行错误事件
                 logger.error(f"MCP Tool {tool_name} Error: {str(err)}")
                 tool_messages.append(
-                    ToolMessage(content=str(err), name=tool_name + "_mcp", tool_call_id=tool_call_id))
+                    ToolMessage(content=str(err), name=tool_name, tool_call_id=tool_call_id))
 
         return tool_messages
 

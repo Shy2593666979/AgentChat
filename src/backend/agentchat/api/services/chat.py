@@ -110,7 +110,7 @@ class StreamingAgent:
             # 开始执行MCP Agent
             await self.emit_event({
                 "status": "START",
-                "title": f"Run MCP Agent: {mcp_agent.mcp_config.server_name}",
+                "title": f"执行 MCP Agent: {mcp_agent.mcp_config.server_name}",
                 "message": "开始执行MCP Agent...",
             })
 
@@ -120,8 +120,8 @@ class StreamingAgent:
 
             # 返回MCP Agent结果
             await self.emit_event({
-                "title": f"Run MCP Agent: {mcp_agent.mcp_config.server_name}",
-                "message": "\n\n".join([response.content for response in responses]) if len(responses) else "该MCP Server下无可用工具",
+                "title": f"执行 MCP Agent: {mcp_agent.mcp_config.server_name}",
+                "message": "\n\n".join([response.content for response in responses if isinstance(response, ToolMessage)]) if len(responses) else "该MCP Server下无可用工具",
                 "status": "END"
             })
             return responses
@@ -146,7 +146,7 @@ class StreamingAgent:
     async def call_tools_messages(self, messages: List[BaseMessage]) -> AIMessage:
         """调用工具选择，添加流式事件"""
 
-        select_tool_message = "开始选择可用工具" if self.step_counter == 1 else "是否需要继续调用工具"
+        select_tool_message = "开始选择可用工具" if self.step_counter == 1 else f"是否需要继续调用工具{' ' * self.step_counter}"
         # 发送工具分析开始事件
         await self.emit_event({
             #"title": f"Run Select Tool_{self.step_counter}",

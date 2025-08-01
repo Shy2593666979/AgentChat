@@ -8,8 +8,8 @@ from typing import Dict, Optional, List
 
 class MilvusLiteClient:
     def __init__(self, **kwargs):
-        self.milvus_host = app_settings.milvus.get('host')
-        self.milvus_port = app_settings.milvus.get('port')
+        self.milvus_host = app_settings.vector_db.get('host')
+        self.milvus_port = app_settings.vector_db.get('port')
         self.collections: Dict[str, Collection] = {}
         self.loaded_collections: set = set()  # 跟踪已加载的集合
 

@@ -38,6 +38,8 @@ async def chat(*,
     chat_agent = StreamingAgent(agent_config)
     await chat_agent.init_agent()
 
+    # 保存用户的原始问题，存到数据库中
+    original_user_input = conversation_req.user_input
     # 整合User Input
     conversation_req.user_input = combine_user_input(conversation_req.user_input, conversation_req.file_url)
 
@@ -47,6 +49,7 @@ async def chat(*,
     else:
         history_messages = await HistoryService.select_history(conversation_req.dialog_id)
     # messages.extend(history_messages)
+    # 历史记录融入系统提示词中
     messages[0].content = SYSTEM_PROMPT.format(history=str(history_messages))
     messages.append(HumanMessage(content=conversation_req.user_input))
 
@@ -67,7 +70,7 @@ async def chat(*,
         await HistoryService.save_chat_history(Assistant_Role, response_content, events, conversation_req.dialog_id, agent_config.use_embedding)
 
     # 将用户问题存放到MySQL数据库
-    await HistoryService.save_chat_history(User_Role, conversation_req.user_input, events, conversation_req.dialog_id, agent_config.use_embedding)
+    await HistoryService.save_chat_history(User_Role, original_user_input, events, conversation_req.dialog_id, agent_config.use_embedding)
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
 
