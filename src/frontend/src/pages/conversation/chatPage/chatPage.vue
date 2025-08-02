@@ -42,8 +42,9 @@ const abortCtrl = ref<AbortController | null>(null)
 const isCancelled = ref(false)
 // 标记是否有正在进行的事件
 const hasActiveEvents = ref(false)
-// 保存上传文件的URL
+// 保存上传文件的URL和文件名
 const fileUrl = ref("")
+const fileName = ref("")
 
 // 事件状态管理
 const eventStatusMap = ref<Map<string, EventStatus>>(new Map())
@@ -70,15 +71,23 @@ const checkActiveEvents = (chatItem: any) => {
 const handleUploadSuccess = (response: any, file: any, fileList: any) => {
   ElMessage.success(`文件 ${file.name} 上传成功!`)
   console.log(response)
-  // 保存上传成功返回的文件URL
+  // 保存上传成功返回的文件URL和文件名
   if (response && response.data) {
     fileUrl.value = response.data
+    fileName.value = file.name
   }
 }
 
 const handleUploadError = (error: any, file: any, fileList: any) => {
   ElMessage.error(`文件 ${file.name} 上传失败.`)
   console.error(error)
+}
+
+// 取消上传的文件
+const cancelUploadedFile = () => {
+  fileUrl.value = ""
+  fileName.value = ""
+  ElMessage.info('已取消选择的文件')
 }
 
 // Function to scroll to the bottom of the chat
@@ -257,8 +266,9 @@ const personQuestion = async () => {
           sendQuestion.value = true
           abortCtrl.value = null
           hasActiveEvents.value = false
-          // 清空文件URL
+          // 清空文件URL和文件名
           fileUrl.value = ""
+          fileName.value = ""
         }
       )
     } catch (error) {
@@ -266,8 +276,9 @@ const personQuestion = async () => {
       sendQuestion.value = true
       abortCtrl.value = null
       hasActiveEvents.value = false
-      // 清空文件URL
+      // 清空文件URL和文件名
       fileUrl.value = ""
+      fileName.value = ""
     }
   }
 }
@@ -421,19 +432,29 @@ watch(
         :on-success="handleUploadSuccess"
         :on-error="handleUploadError"
         :show-file-list="false"
+        :disabled="!!fileUrl"
       >
-        <el-button circle class="action-btn">
+        <el-button circle class="action-btn" :class="{ 'file-uploaded': fileUrl }">
           <el-icon><UploadFilled /></el-icon>
         </el-button>
       </el-upload>
-      <el-input
-        v-model="searchInput"
-        type="textarea"
-        :autosize="{ minRows: 1, maxRows: 4 }"
-        placeholder="请输入您的问题..."
-        @keydown.enter.exact.prevent="personQuestion"
-        class="message-input"
-      />
+      <div class="input-wrapper">
+        <!-- 已上传文件显示 -->
+        <div v-if="fileUrl" class="uploaded-file-tag">
+          <span class="file-name">📎 {{ fileName }}</span>
+          <el-button size="small" type="danger" text @click="cancelUploadedFile" class="cancel-btn">
+            <el-icon><Close /></el-icon>
+          </el-button>
+        </div>
+        <el-input
+          v-model="searchInput"
+          type="textarea"
+          :autosize="{ minRows: 1, maxRows: 4 }"
+          placeholder="请输入您的问题..."
+          @keydown.enter.exact.prevent="personQuestion"
+          class="message-input"
+        />
+      </div>
       <el-button
         @click="sendQuestion ? personQuestion() : stopGeneration()"
         type="primary"
@@ -649,13 +670,68 @@ watch(
     width: 48px;
     height: 48px;
     font-size: 24px;
+    transition: all 0.3s ease;
     &:hover {
       background-color: #e6e8eb;
+    }
+    &.file-uploaded {
+      background-color: #67c23a;
+      color: white;
+      &:hover {
+        background-color: #5daf34;
+      }
+    }
+    &:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+  }
+
+  .input-wrapper {
+    flex-grow: 1;
+    position: relative;
+  }
+
+  .uploaded-file-tag {
+    position: absolute;
+    top: -28px;
+    left: 0;
+    display: flex;
+    align-items: center;
+    padding: 4px 8px;
+    background-color: #f0f9ff;
+    border: 1px solid #b3d8ff;
+    border-radius: 12px;
+    font-size: 12px;
+    z-index: 10;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+
+    .file-name {
+      color: #409eff;
+      margin-right: 6px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      max-width: 150px;
+      font-weight: 500;
+    }
+
+    .cancel-btn {
+      padding: 0;
+      width: 16px;
+      height: 16px;
+      min-height: 16px;
+      font-size: 10px;
+      margin-left: 4px;
+      
+      &:hover {
+        background-color: rgba(245, 108, 108, 0.1);
+      }
     }
   }
 
   .message-input {
-    flex-grow: 1;
+    width: 100%;
     :deep(.el-textarea__inner) {
       border-radius: 20px;
       background-color: #f0f2f5;

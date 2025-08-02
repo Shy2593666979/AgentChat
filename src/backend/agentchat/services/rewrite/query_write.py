@@ -8,9 +8,9 @@ from agentchat.prompts.user import user_query_write
 
 class QueryRewrite:
     def __init__(self):
-        self.client = AsyncChatClient(model_name=app_settings.multi_models.qwen2.model_name,
-                                      api_key=app_settings.multi_models.qwen2.api_key,
-                                      base_url=app_settings.multi_models.qwen2.base_url)
+        self.client = AsyncChatClient(model_name=app_settings.multi_models.conversation_model.model_name,
+                                      api_key=app_settings.multi_models.conversation_model.api_key,
+                                      base_url=app_settings.multi_models.conversation_model.base_url)
 
     async def rewrite(self, user_input):
         rewrite_prompt = user_query_write.format(user_input=user_input)

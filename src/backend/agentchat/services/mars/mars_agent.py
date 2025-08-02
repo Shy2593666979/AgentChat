@@ -145,41 +145,106 @@ class MarsAgent:
 
 
     async def ainvoke_stream(self, messages: List[BaseMessage]):
+        # 用于中断推理模型输出的事件
+        reasoning_interrupt = asyncio.Event()
+        # 用于存放Mars Agent输出的队列
+        mars_output_queue = asyncio.Queue()
 
-        # await self.emit_event({
-        #     "title": "开始模型推理",
-        #     "status": "START",
-        #     "message": "接下来我要认真分析用户的需求......"
-        # })
+        async def run_mars_agent():
+            """
+            运行Mars Agent，执行工具调用并将其输出放入队列。
+            """
+            try:
+                # 1. 判断是否需要调用工具
+                call_tool_message = await self.call_tools_messages(messages)
+                if not call_tool_message.tool_calls:
+                    # 如果没有工具调用，放入None作为结束信号并直接返回
+                    await mars_output_queue.put(None)
+                    return
 
-        # 推理模型先行分析用户的需求
+                messages.append(call_tool_message)
 
-        # reasoning_content = ""
-        #
-        # response = await self.reasoning_model.astream(messages)
-        # async for chunk in response:
-        #     delta = chunk.choices[0].delta
-        #     if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
-        #         yield {
-        #             "type": "reasoning_chunk",
-        #             "time": time.time(),
-        #             "data": delta.reasoning_content
-        #         }
-        #         reasoning_content += delta.reasoning_content
-        #     if hasattr(delta, "content") and delta.content:
-        #         yield {
-        #             "type": "response_chunk",
-        #             "time": time.time(),
-        #             "data": delta.content
-        #         }
+                # 2. 执行工具并处理输出
+                first_chunk = True
+                async for chunk in self.execute_tool_message(messages):
+                    if first_chunk:
+                        # 当第一个工具输出产生时，设置中断事件
+                        reasoning_interrupt.set()
+                        # 短暂等待，以确保推理任务有时间响应中断信号
+                        await asyncio.sleep(0.01)
+                        first_chunk = False
+                    # 将工具的输出块放入队列
+                    await mars_output_queue.put(chunk)
+                
+                # 所有工具输出处理完毕，放入None作为结束信号
+                await mars_output_queue.put(None)
+            except Exception as e:
+                logger.error(f"Mars Agent 执行出错: {e}")
+                # 即使出错也要确保放入结束信号
+                await mars_output_queue.put(None)
+
+        async def run_reasoning_model():
+            """
+            运行推理模型，流式输出思考过程，并随时响应中断事件。
+            """
+            try:
+                response = await self.reasoning_model.astream(messages)
+                async for chunk in response:
+                    # 在每次输出前检查是否需要中断
+                    if reasoning_interrupt.is_set():
+                        break
+
+                    delta = chunk.choices[0].delta
+                    if hasattr(delta, "reasoning_content") and delta.reasoning_content is not None:
+                        yield {
+                            "type": "reasoning_chunk",
+                            "time": time.time(),
+                            "data": delta.reasoning_content
+                        }
+
+                    if hasattr(delta, "content") and delta.content:
+                        yield {
+                            "type": "response_chunk",
+                            "time": time.time(),
+                            "data": delta.content
+                        }
+            except Exception as e:
+                logger.error(f"推理模型流式输出错误: {e}")
+
+        # --- 主执行流程 ---
+
+        # 1. 立即返回初始信息
+        yield {
+            "type": "response_chunk",
+            "time": time.time(),
+            "data": "#### 现在开始，我会边梳理思路边完成这项任务\n"
+        }
+
+        # 2. 在后台启动Mars Agent任务
+        mars_task = asyncio.create_task(run_mars_agent())
+
+        # 3. 首先，流式输出推理模型的思考过程，直到被中断
+        async for reasoning_chunk in run_reasoning_model():
+            yield reasoning_chunk
+
+        # 4. Mars Agent有消息时告诉用户开始执行工具
+        yield {
+            "type": "response_chunk",
+            "time": time.time(),
+            "data": "#### 任务已经完成，我开始为你输出结果 😊\n"
+        }
+
+        # 5. 推理过程结束后，开始处理并输出Mars Agent的结果
+        while True:
+            mars_chunk = await mars_output_queue.get()
+            if mars_chunk is None:  # 收到结束信号
+                break
+            yield mars_chunk
+
+        # 6. 确保Mars Agent任务已彻底完成
+        await mars_task
 
 
-        call_tool_message = await self.call_tools_messages(messages)
-
-        messages.append(call_tool_message)
-
-        async for chunk in self.execute_tool_message(messages):
-            yield chunk
 
 
 

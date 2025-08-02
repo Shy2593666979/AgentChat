@@ -20,7 +20,7 @@ async def deep_search(user_input: str, user_id: Optional[str] = None):
 
     stream_graph = StreamingGraph()
 
-    for chunk in stream_graph.run_with_streaming(messages):
+    async for chunk in stream_graph.run_with_streaming(messages):
         chunk_type = chunk.get('type', 'unknown')
         node = chunk.get('node', 'unknown')
         content = chunk.get('content', '')

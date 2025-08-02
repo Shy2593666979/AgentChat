@@ -72,9 +72,9 @@ async def insert_agent_to_mysql():
 
 # 认定OS下有一个默认LLM API KEY
 async def insert_llm_to_mysql():
-    api_key = app_settings.multi_models.qwen2.api_key
-    base_url = app_settings.multi_models.qwen2.base_url
-    model = app_settings.multi_models.qwen2.model_name
+    api_key = app_settings.multi_models.conversation_model.api_key
+    base_url = app_settings.multi_models.conversation_model.base_url
+    model = app_settings.multi_models.conversation_model.model_name
     llm_type = 'LLM'
     provider = 'Qwen'
 

@@ -53,13 +53,13 @@ async def chat_mars_example(example_id: int = Body(..., description="例子ID", 
 
     user_input = ""
     if example_id == MarsExampleEnum.Autobuild_Agent:
-        user_input = "帮我生成一个智能体，它可以给我预报每天的天气情况，名称跟描述的话请你给他起一个吧"
+        user_input = "帮我生成一个智能体，它可以给我预报每天的天气情况并且可以帮我生成图片，名称跟描述的话请你给他起一个吧"
     elif example_id == MarsExampleEnum.AI_News:
         user_input = "请帮我生成一份今天的AI日报，然后总结之后提供给我一个下载链接"
     elif example_id == MarsExampleEnum.Query_Knowledge:
         user_input = "请你帮我查询我所有的知识库，然后告诉我知识库中都是什么信息，最好还有图表展示什么的。"
     elif example_id == MarsExampleEnum.Deep_Search:
-        user_input = "使用深度搜索查一下河南大学"
+        user_input = "使用深度搜索查泰山游玩攻略"
 
     messages: List[BaseMessage] = [SystemMessage(content=Mars_System_Prompt),
                                    HumanMessage(content=user_input)]

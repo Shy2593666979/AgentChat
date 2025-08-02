@@ -27,8 +27,8 @@ def yield_message_chunk(message):
     start = 0
     message_length = len(message)
     while start < message_length:
-        # 随机生成1-3之间的长度
-        chunk_length = random.randint(1, 3)
+        # 随机生成1-5之间的长度
+        chunk_length = random.randint(1, 5)
         # 防止最后一段超出字符串长度
         end = min(start + chunk_length, message_length)
         # 截取片段并返回

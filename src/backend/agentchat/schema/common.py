@@ -35,8 +35,11 @@ class MultiModels(BaseModel):
         # 允许从dict额外属性创建模型
         extra = "allow"
 
+    reasoning_model: ModelConfig = Field(default_factory=ModelConfig)
+    conversation_model: ModelConfig = Field(default_factory=ModelConfig)
+    tool_call_model: ModelConfig = Field(default_factory=ModelConfig)
     qwen_vl: ModelConfig = Field(default_factory=ModelConfig)
-    deepseek_v3: ModelConfig = Field(default_factory=ModelConfig)
-    qwen2: ModelConfig = Field(default_factory=ModelConfig)
-    deepseek_r1: ModelConfig = Field(default_factory=ModelConfig)
     text2image: ModelConfig = Field(default_factory=ModelConfig)
+    # deepseek_v3: ModelConfig = Field(default_factory=ModelConfig)
+    # qwen2: ModelConfig = Field(default_factory=ModelConfig)
+    # deepseek_r1: ModelConfig = Field(default_factory=ModelConfig)

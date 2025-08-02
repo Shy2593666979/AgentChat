@@ -244,7 +244,7 @@ watch(
                 />
               </a>
               <a
-                href="https://uawlh9wstr9.feishu.cn/docx/U3l4dvtC6oPrVwx61zIcrmD0nvf"
+                href="https://uawlh9wstr9.feishu.cn/wiki/QOaLwMDtBiiduWk4YtAcavEsnne?from=from_copylink"
                 target="_blank"
                 class="help-link"
                 title="帮助文档"
