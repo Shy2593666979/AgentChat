@@ -1,6 +1,6 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
@@ -10,11 +10,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from agentchat.settings import initialize_app_settings
 from agentchat.settings import app_settings
 
+import warnings
+warnings.filterwarnings("ignore")
 
 async def register_router(app: FastAPI):
     from agentchat.api.router import router
     app.mount("/img", StaticFiles(directory="agentchat/data/img"), name="img")
     app.include_router(router)
+
+    # 健康探针
+    @app.get("/health")
+    def check_health():
+        return {'status': 'OK'}
 
 
 def register_middleware(app: FastAPI):
@@ -29,6 +36,17 @@ def register_middleware(app: FastAPI):
         allow_headers=['*'],
     )
 
+    # 全局中间件：标记白名单请求
+    @app.middleware("http")
+    def mark_whitelist_paths(request: Request, call_next):
+        # 检查请求路径是否以任何白名单前缀开头
+        request.state.is_whitelisted = any(
+            request.url.path.startswith(prefix) for prefix in app_settings.whitelist_paths
+        )
+        # 检查请求路径以具体白名单匹配
+        # request.state.is_whitelisted = request.url.path in app_settings.whitelist_paths
+        return call_next(request)
+
     return app
 
 
@@ -36,19 +54,27 @@ async def init_config():
     await initialize_app_settings()
 
     # 必须放到init settings 之后 import
-    from agentchat.database.init_data import init_database, init_default_agent
+    from agentchat.database.init_data import init_database, init_default_agent, update_system_mcp_server
     await init_database()
     await init_default_agent()
+    await update_system_mcp_server()
 
+def print_logo():
+    from pyfiglet import Figlet
+
+    f = Figlet(font="slant")
+    print(f.renderText("Agent Chat"))
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     # 启动前执行
     await init_config()
     await register_router(app)
+    print_logo()
     yield
     # 关闭时执行
     # pass
+
 
 def create_app():
     app = FastAPI(title=app_settings.server.get('project_name') or "AgentChat",
@@ -58,7 +84,6 @@ def create_app():
     app = register_middleware(app)
 
     from agentchat.api.JWT import Settings
-
 
     # 配置 AuthJWT
     @AuthJWT.load_config
@@ -78,16 +103,10 @@ def create_app():
 
 app = create_app()  # 不需要使用 await
 
-
-def main():
-    import uvicorn
-    uvicorn.run("main:app",
-                host=app_settings.server.get('host'),
-                port=app_settings.server.get('port'))
-
-
 if __name__ == "__main__":
-    main()
+    import uvicorn
+
+    uvicorn.run("agentchat.main:app", host="0.0.0.0", port=7860)
 
 # from fastapi import FastAPI
 # from fastapi.staticfiles import StaticFiles

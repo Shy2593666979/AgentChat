@@ -19,32 +19,32 @@ class LLMService:
             raise ValueError(f'Create LLM Appear Err: {err}')
 
     @classmethod
-    async def delete_llm(cls, user_id: str, llm_id: str):
+    async def delete_llm(cls, llm_id: str):
         try:
-            if user_id == AdminUser or user_id == cls.get_user_id_by_llm(llm_id):
-                await LLMDao.delete_llm(llm_id=llm_id)
-            else:
-                raise ValueError(f'No Permission Exec')
+            await LLMDao.delete_llm(llm_id=llm_id)
         except Exception as err:
             raise ValueError(f'Delete LLM Appear Err: {err}')
+
+    @classmethod
+    async def verify_user_permission(cls, llm_id, user_id):
+        if user_id == AdminUser or user_id == await cls.get_user_id_by_llm(llm_id):
+            pass
+        else:
+            raise ValueError(f"没有权限访问")
 
     @classmethod
     async def get_user_id_by_llm(cls, llm_id: str):
         try:
             llm = await LLMDao.get_user_id_by_llm(llm_id)
-            return llm[0].user_id
+            return llm.user_id
         except Exception as err:
             raise ValueError(f'Get User Id By LLM Appear Err: {err}')
 
     @classmethod
-    async def update_llm(cls, user_id: str, llm_id: str, model: str,
-                         base_url: str, api_key: str, provider: str, llm_type: str):
+    async def update_llm(cls, llm_id: str, model: str, base_url: str, api_key: str, provider: str, llm_type: str):
         try:
-            if user_id == AdminUser or user_id == cls.get_user_id_by_llm(llm_id):
-                await LLMDao.update_llm(llm_id=llm_id, model=model, llm_type=llm_type,
-                                        base_url=base_url, api_key=api_key, provider=provider)
-            else:
-                raise ValueError(f'No Permission Exec')
+            await LLMDao.update_llm(llm_id=llm_id, model=model, llm_type=llm_type,
+                                    base_url=base_url, api_key=api_key, provider=provider)
         except Exception as err:
             raise ValueError(f'Update LLM Appear Err: {err}')
 
@@ -54,13 +54,14 @@ class LLMService:
             llm_data = await LLMDao.get_llm_by_user(user_id)
             result = []
             for data in llm_data:
-                result.append(data[0])
+                result.append(data.to_dict())
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                resp_llm[res.llm_type].append(res)
+                res["api_key"] = "************"
+                resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
         except Exception as err:
@@ -73,13 +74,14 @@ class LLMService:
             system_data = await LLMDao.get_llm_by_user(SystemUser)
             result = []
             for data in (user_data + system_data):
-                result.append(data[0])
+                result.append(data.to_dict())
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                resp_llm[res.llm_type].append(res)
+                res["api_key"] = "************"
+                resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
         except Exception as err:
@@ -91,13 +93,14 @@ class LLMService:
             llm_data = await LLMDao.get_all_llm()
             result = []
             for data in llm_data:
-                result.append(data[0])
+                result.append(data.to_dict())
             # 按照LLM的种类进行单独返回数据
             resp_llm = {}
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                resp_llm[res.llm_type].append(res)
+                res["api_key"] = "************"
+                resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
         except Exception as err:
@@ -107,7 +110,7 @@ class LLMService:
     async def get_llm_by_id(cls, llm_id: str):
         try:
             llms = await LLMDao.get_llm_by_id(llm_id)
-            return [llm[0].to_dict() for llm in llms]
+            return llms.to_dict()
         except Exception as err:
             raise ValueError(f'Get LLM By Id Appear Err: {err}')
 
@@ -115,7 +118,7 @@ class LLMService:
     async def get_one_llm(cls):
         try:
             llms = await LLMDao.get_all_llm()
-            return [llm[0].to_dict() for llm in llms][0]
+            return llms[0].to_dict()
         except Exception as err:
             raise ValueError(f'Get One LLM Appear Err: {err}')
 
@@ -123,9 +126,23 @@ class LLMService:
     async def get_llm_type(cls):
         try:
             llms = await LLMDao.get_llm_by_type(llm_type='LLM')
-            return [llm[0].to_dict() for llm in llms]
+            return [llm.to_dict() for llm in llms]
         except Exception as err:
             raise ValueError(f'Get LLM Type Appear Err: {err}')
+
+    @classmethod
+    async def get_llm_id_from_name(cls, llm_name, user_id):
+        try:
+            llm = await LLMDao.get_llm_id_from_name(llm_name, user_id)
+            if llm:
+                return llm.llm_id
+            else:
+                llm = await LLMDao.get_llm_id_from_name(llm_name, SystemUser)
+                return llm.llm_id
+        except Exception as err:
+            raise ValueError(f'Get LLM ID Err: {err}')
+
+
 
 # 2024-630---->2025-630版本（已退休）❌
 

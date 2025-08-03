@@ -1,8 +1,7 @@
 from datetime import datetime
 
 from agentchat.database.models.tool import ToolTable
-from sqlmodel import Session
-from sqlalchemy import select, and_, update, desc, delete, or_
+from sqlmodel import Session, select, and_, update, desc, delete, or_
 from typing import List
 from agentchat.database import engine
 
@@ -37,9 +36,7 @@ class ToolDao:
     async def update_tool_by_id(cls, tool_id: str, zh_name: str, en_name: str,
                                 description: str, logo_url: str):
         with Session(engine) as session:
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if zh_name:
                 update_values['zh_name'] = zh_name
             if en_name:
@@ -89,3 +86,18 @@ class ToolDao:
                                                    ToolTable.user_id == '0')))
             tool = session.exec(sql).first()
             return tool
+
+    @classmethod
+    async def get_tool_ids_from_name(cls, tool_names: List[str], user_id):
+        with Session(engine) as session:
+            sql = select(ToolTable).where(and_(ToolTable.en_name.in_(tool_names),
+                                               ToolTable.user_id == user_id))
+            tools = session.exec(sql)
+            return tools.all()
+
+    @classmethod
+    async def get_zh_name_from_en_name(cls, en_name):
+        with Session(engine) as session:
+            sql = select(ToolTable).where(ToolTable.en_name == en_name)
+            tool = session.exec(sql)
+            return tool.first()

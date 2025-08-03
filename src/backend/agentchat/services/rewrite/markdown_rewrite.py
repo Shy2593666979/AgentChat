@@ -8,11 +8,13 @@ from openai import AsyncOpenAI
 from urllib.parse import urljoin
 from agentchat.settings import app_settings
 
+
 class MarkdownRewrite:
     def __init__(self, **kwargs):
 
         # LLM 的配置可以放到配置文件config中
-        self.client = AsyncOpenAI(api_key=app_settings.qw_vl.get("api_key"), base_url=app_settings.qw_vl.get("endpoint"))
+        self.client = AsyncOpenAI(api_key=app_settings.multi_models.qwen_vl.api_key,
+                                  base_url=app_settings.multi_models.qwen_vl.base_url)
 
     async def _get_image_dict(self, markdown_path):
         # 获取Md文件的上层目录路径
@@ -37,40 +39,51 @@ class MarkdownRewrite:
         image_type = image_path.split('.')[-1]
         base64_image = await MarkdownRewrite.encode_image(image_path)
         completion = await self.client.chat.completions.create(
-            model=app_settings.qw_vl.get("model_name"),
+            model=app_settings.multi_models.qwen_vl.model_name,
             messages=[
-                    {
-                        "role": "system",
-                        "content": [{"type": "text", "text": "You are a helpful assistant."}]},
-                    {
-                        "role": "user",
-                        "content": [
-                            {
-                                "type": "image_url",
-                                # 需要注意，传入BASE64，图像格式（即image/{format}）需要与支持的图片列表中的Content Type保持一致。"f"是字符串格式化的方法。
-                                # PNG图像：  f"data:image/png;base64,{base64_image}"
-                                # JPEG图像： f"data:image/jpeg;base64,{base64_image}"
-                                # WEBP图像： f"data:image/webp;base64,{base64_image}"
-                                "image_url": {"url": f"data:image/{image_type};base64,{base64_image}"},
-                            },
-                            {"type": "text", "text": "图中描绘的是什么景象?"},
-                        ],
-                    }
-                ],
-            )
+                {
+                    "role": "system",
+                    "content": [{"type": "text", "text": "You are a helpful assistant."}]},
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "image_url",
+                            # 需要注意，传入BASE64，图像格式（即image/{format}）需要与支持的图片列表中的Content Type保持一致。"f"是字符串格式化的方法。
+                            # PNG图像：  f"data:image/png;base64,{base64_image}"
+                            # JPEG图像： f"data:image/jpeg;base64,{base64_image}"
+                            # WEBP图像： f"data:image/webp;base64,{base64_image}"
+                            "image_url": {"url": f"data:image/{image_type};base64,{base64_image}"},
+                        },
+                        {"type": "text", "text": "图中描绘的是什么景象? 要求：1.字数不超过100字。2.直接输出图片描述文本"},
+                    ],
+                }
+            ],
+        )
         logger.debug(f"{image_path} 中的描述信息为 {completion.choices[0].message.content}")
         return completion.choices[0].message.content
 
     async def async_request_vl(self, image, image_path):
-        loop = asyncio.get_event_loop()
-        result = await loop.run_in_executor(None, self.request_vl, image_path)
+        result = await self.request_vl(image_path)
         return image, result
 
     async def get_image_description(self, image_path_dict):
+        # 创建信号量，限制并发数为5
+        semaphore = asyncio.Semaphore(3)
+
+        async def limited_request(image, image_path):
+            async with semaphore:  # 使用信号量控制并发
+                return await self.async_request_vl(image, image_path)
+
+        # 创建任务列表
+        tasks = [limited_request(image, image_path)
+                 for image, image_path in image_path_dict.items()]
+        results = await asyncio.gather(*tasks, return_exceptions=True)
+
         # 获得每张图片的描述信息
         # 采用的是异步调用，只需要一次请求模型的时间
-        tasks = [self.async_request_vl(image, image_path) for image, image_path in image_path_dict.items()]
-        results = await asyncio.gather(*tasks, return_exceptions=True)
+        # tasks = [self.async_request_vl(image, image_path) for image, image_path in image_path_dict.items()]
+        # results = await asyncio.gather(*tasks, return_exceptions=True)
 
         image_desc_dict = {}
         for result in results:
@@ -82,10 +95,10 @@ class MarkdownRewrite:
             image_desc_dict[image] = desc
         return image_desc_dict
 
-
     async def process_markdown(self, markdown_text, image_oss_dict, image_desc_dict):
         # 正则表达式匹配Markdown中的图片链接格式
         pattern = r"!\[.*?\]\((.*?)\)"
+
         # 替换函数，在每个匹配的图片链接前加上提示文字
         def replace_image(match):
             alt_text = match.group(0)  # 提取图片的alt文本
@@ -121,5 +134,3 @@ class MarkdownRewrite:
 
 
 markdown_rewriter = MarkdownRewrite()
-
-

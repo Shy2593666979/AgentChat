@@ -1,14 +1,12 @@
 from typing import List
 from uuid import uuid4
 
-from langchain_core.messages import BaseMessage, HumanMessage, AIMessage
+from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 
 from agentchat.api.services.dialog import DialogService
 from agentchat.database.dao.history import HistoryDao
-from agentchat.schema.message import Message
-from loguru import logger
 from agentchat.services.rag.es_client import client as es_client
-from agentchat.services.rag.milvus_client import client as milvus_client
+from agentchat.services.rag.vector_db import milvus_client
 from agentchat.schema.chunk import ChunkModel
 from agentchat.utils.helpers import get_now_beijing_time
 
@@ -19,22 +17,22 @@ User_Role = "user"
 class HistoryService:
 
     @classmethod
-    async def create_history(cls, role: str, content: str, dialog_id: str):
+    async def create_history(cls, role: str, content: str, events: List[dict], dialog_id: str):
         try:
-            await HistoryDao.create_history(role, content, dialog_id)
+            await HistoryDao.create_history(role, content, events, dialog_id)
         except Exception as err:
             raise ValueError(f"Add history data appear error: {err}")
 
     @classmethod
-    async def select_history(cls, dialog_id: str, top_k: int = 5) -> List[BaseMessage] | None:
+    async def select_history(cls, dialog_id: str, top_k: int = 4) -> List[BaseMessage] | None:
         try:
-            result = await HistoryDao.select_history(dialog_id, top_k)
+            result = await HistoryDao.select_history_from_time(dialog_id, top_k)
             messages: List[BaseMessage] = []
             for data in result:
-                if data[0].role == Assistant_Role:
-                    messages.append(AIMessage(content=data[0].content))
-                elif data[0].role == User_Role:
-                    messages.append(AIMessage(content=data[0].content))
+                if data.role == Assistant_Role:
+                    messages.append(AIMessage(content=data.content))
+                elif data.role == User_Role:
+                    messages.append(HumanMessage(content=data.content))
             return messages
         except Exception as err:
             raise ValueError(f"Select history is appear error: {err}")
@@ -47,7 +45,7 @@ class HistoryService:
     async def get_dialog_history(cls, dialog_id: str):
         try:
             results = await HistoryDao.get_dialog_history(dialog_id)
-            return [res[0].to_dict() for res in results]
+            return [res.to_dict() for res in results]
         except Exception as err:
             raise ValueError(f"Get dialog history is appear error: {err}")
 
@@ -77,13 +75,13 @@ class HistoryService:
 
     # 历史记录都存milvus 和 es一份，开启RAG召回历史记录
     @classmethod
-    async def save_chat_history(cls, role, content, knowledge_id):
-        documents = f"{role}: \n {content}"
+    async def save_chat_history(cls, role, content, events, dialog_id, embedding_enable: bool=False):
+        await cls.create_history(role, content, events, dialog_id)
 
-        await cls.create_history(role, content, knowledge_id)
+        if embedding_enable:
+            documents = f"{role}: \n {content}"
+            await cls.save_es_documents(dialog_id, documents)
+            await cls.save_milvus_documents(dialog_id, documents)
 
-        await cls.save_es_documents(knowledge_id, documents)
-        await cls.save_milvus_documents(knowledge_id, documents)
-
-        # 更新对话窗口的最近使用时间
-        await DialogService.update_dialog_time(dialog_id=knowledge_id)
+            # 更新对话窗口的最近使用时间
+            await DialogService.update_dialog_time(dialog_id=dialog_id)

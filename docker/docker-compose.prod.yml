@@ -1,0 +1,52 @@
+# 🏭 AgentChat 生产环境 Docker Compose 配置
+version: '2.0'
+
+services:
+  # 🔧 后端生产环境覆盖配置
+  backend:
+    restart: always
+    environment:
+      APP_ENV: production
+      LOG_LEVEL: warning
+      DEBUG: false
+      HOT_RELOAD: false
+    command: ["gunicorn", "agentchat.main:app", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "--bind", "0.0.0.0:7860"]
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:7860/health"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 40s
+
+  # 🎨 前端生产环境配置
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.frontend.prod
+    restart: always
+    environment:
+      NODE_ENV: production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8090"]
+      interval: 60s
+      timeout: 30s
+      retries: 3
+      start_period: 30s
+
+  # 🗄️ MySQL生产环境配置
+  mysql:
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+    command: >
+      --default-authentication-plugin=mysql_native_password
+      --innodb-buffer-pool-size=1G
+      --max-connections=1000
+      --query-cache-type=1
+      --query-cache-size=256M
+
+  # 💾 Redis生产环境配置  
+  redis:
+    restart: always
+    command: redis-server --appendonly yes --maxmemory 512mb --maxmemory-policy allkeys-lru

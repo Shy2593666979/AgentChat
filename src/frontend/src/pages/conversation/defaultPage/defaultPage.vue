@@ -1,155 +1,452 @@
 <script setup lang="ts">
-import { Search } from "@element-plus/icons-vue"
+import { Search, Plus, Star } from "@element-plus/icons-vue"
 import CommonCard from "../../../components/commonCard"
-import { ref, onMounted } from "vue"
-import {
-  createDialogAPI,
-  getAgentListAPI,
-  searchAgentAPI,
-} from "../../../apis/history"
-import { CardListType } from "../../../type"
+import { ref, onMounted, computed } from "vue"
+import { createDialogAPI } from "../../../apis/history"
+import { getAgentsAPI, searchAgentsAPI } from "../../../apis/agent"
+import { Agent } from "../../../type"
 import { useHistoryChatStore } from "../../../store/history_chat_msg"
 import { useHistoryListStore } from "../../../store/history_list/index"
 import { useRouter } from "vue-router"
+import { ElMessage } from "element-plus"
+import { getDialogListAPI } from "../../../apis/history"
 
 const router = useRouter()
 const historyListStore = useHistoryListStore()
 const historyChatStore = useHistoryChatStore()
 const searchInput = ref("")
-const CardList = ref<CardListType[]>([
-  {
-    id: "",
-    name: "",
-    description: "",
-    logo: "",
-    code: "",
-    createTime: "",
-    isCustom: false,
-    parameter: "",
-    type: "",
-  },
-])
+const CardList = ref<Agent[]>([])
+const loading = ref(false)
+const shouldShow = ref(false) // 控制是否显示页面内容
 
-onMounted(async () => {
-  const list = await getAgentListAPI()
-  CardList.value = list.data.data
+// 过滤后的智能体列表
+const filteredAgents = computed(() => {
+  if (!searchInput.value) {
+    return CardList.value
+  }
+  return CardList.value.filter(agent => 
+    agent.name.toLowerCase().includes(searchInput.value.toLowerCase()) ||
+    agent.description.toLowerCase().includes(searchInput.value.toLowerCase())
+  )
 })
 
-const gochat = async (item: CardListType) => {
-  historyChatStore.name = item.name
-  historyChatStore.logo = item.logo
-  const list = await createDialogAPI({ agent: (item as CardListType).name })
-  historyChatStore.dialogId = list.data.data.dialogId
-  historyChatStore.clear()
-  historyListStore.getList()
-  router.push("/conversation/chatPage")
+onMounted(async () => {
+  // 先检查是否有会话记录
+  try {
+    const response = await getDialogListAPI()
+    if (response.data.status_code === 200 && response.data.data && response.data.data.length > 0) {
+      // 有会话记录，不显示此页面，等待父组件跳转
+      console.log('检测到有会话记录，不显示默认页面')
+      return
+    }
+  } catch (error) {
+    console.error('检查会话记录失败:', error)
+  }
+  
+  // 没有会话记录，显示页面并加载智能体
+  shouldShow.value = true
+  await loadAgents()
+})
+
+const loadAgents = async () => {
+  try {
+    loading.value = true
+    const response = await getAgentsAPI()
+    CardList.value = response.data.data
+  } catch (error) {
+    console.error('获取智能体列表失败:', error)
+    ElMessage.error('获取智能体列表失败')
+  } finally {
+    loading.value = false
+  }
+}
+
+const gochat = async (item: Agent) => {
+  try {
+    historyChatStore.name = item.name
+    historyChatStore.logo = item.logo_url
+    const list = await createDialogAPI({ 
+      name: `与${item.name}的对话`,
+      agent_id: item.agent_id,
+      agent_type: "Agent"
+    })
+    historyChatStore.dialogId = list.data.data.dialog_id
+    historyChatStore.clear()
+    await historyListStore.getList()
+    router.push("/conversation/chatPage")
+    ElMessage.success('会话创建成功')
+  } catch (error) {
+    ElMessage.error('创建会话失败')
+  }
 }
 
 const searchAgent = async () => {
   if (searchInput.value) {
-    const formData = new FormData()
-    formData.append("name", searchInput.value)
-    const list = await searchAgentAPI(formData)
-    CardList.value = list.data.data
+    try {
+      loading.value = true
+      const response = await searchAgentsAPI({ name: searchInput.value })
+      CardList.value = response.data.data.map(item => ({
+        agent_id: item.agent_id,
+        name: item.name,
+        description: item.description,
+        logo_url: item.logo_url,
+        tool_ids: [],
+        llm_id: '',
+        mcp_ids: [],
+        system_prompt: '',
+        knowledge_ids: [],
+        use_embedding: false
+      }))
+    } catch (error) {
+      console.error('搜索智能体失败:', error)
+      ElMessage.error('搜索失败')
+    } finally {
+      loading.value = false
+    }
   } else {
-    const list = await getAgentListAPI()
-    CardList.value = list.data.data
+    await loadAgents()
   }
+}
+
+const clearSearch = () => {
+  searchInput.value = ''
+  loadAgents()
 }
 </script>
 
 <template>
-  <div class="default-page">
-    <div class="title">
-      <div class="title-img">
-        <img
-          src="../../../assets/robot.svg"
-          style="width: 80px; height: 80px"
-        />
+  <!-- 只有确认没有会话记录时才显示页面内容 -->
+  <div v-if="shouldShow" class="default-page">
+    <!-- 头部区域 -->
+    <div class="header-section">
+      <div class="welcome-content">
+        <div class="welcome-icon">
+          <el-icon size="48" color="#3b82f6">
+            <Star />
+          </el-icon>
+        </div>
+        <div class="welcome-text">
+          <h1 class="title">
+            欢迎使用 <span class="highlight">智言</span> 平台
+          </h1>
+          <p class="subtitle">
+            选择您需要的智能体，开始智能对话之旅
+          </p>
+        </div>
       </div>
-      <div class="title-text"><span style="color: blue">智言</span>平台</div>
     </div>
-    <div class="search">
-      <div class="mt-4">
+
+    <!-- 搜索区域 -->
+    <div class="search-section">
+      <div class="search-container">
         <el-input
           v-model="searchInput"
-          style="max-width: 600px"
-          placeholder="请搜索功能"
-          class="input-with-select"
+          placeholder="搜索智能体功能..."
+          class="search-input"
+          size="large"
           @keydown.enter="searchAgent"
+          clearable
+          @clear="clearSearch"
         >
-          <template #prepend>
-            <el-button :icon="Search" @click="searchAgent" />
+          <template #prefix>
+            <el-icon><Search /></el-icon>
+          </template>
+          <template #append>
+            <el-button 
+              type="primary" 
+              @click="searchAgent"
+              :loading="loading"
+            >
+              搜索
+            </el-button>
           </template>
         </el-input>
       </div>
     </div>
-    <el-scrollbar>
-      <div
-        class="item-card"
-        v-if="Array.isArray(CardList) && CardList.length > 0"
-      >
-        <div v-for="item in CardList">
+
+    <!-- 智能体列表区域 -->
+    <div class="agents-section">
+      <div class="section-header">
+        <div class="header-left">
+          <h2 class="section-title">可用智能体</h2>
+          <span class="agent-count">({{ filteredAgents.length }})</span>
+        </div>
+        <div class="header-right">
+          <el-button 
+            type="primary" 
+            :icon="Plus"
+            @click="loadAgents"
+            :loading="loading"
+          >
+            刷新列表
+          </el-button>
+        </div>
+      </div>
+
+      <!-- 加载状态 -->
+      <div v-if="loading" class="loading-state">
+        <el-skeleton :rows="6" animated />
+      </div>
+
+      <!-- 空状态 -->
+      <div v-else-if="filteredAgents.length === 0" class="empty-state">
+        <div class="empty-icon">🤖</div>
+        <div class="empty-title">
+          {{ searchInput ? '没有找到相关智能体' : '暂无可用智能体' }}
+        </div>
+        <div class="empty-description">
+          {{ searchInput ? '请尝试其他关键词' : '请联系管理员添加智能体' }}
+        </div>
+        <el-button 
+          v-if="searchInput" 
+          type="primary" 
+          @click="clearSearch"
+        >
+          清除搜索
+        </el-button>
+      </div>
+
+      <!-- 智能体网格 -->
+      <div v-else class="agents-grid">
+        <div 
+          v-for="item in filteredAgents" 
+          :key="item.agent_id"
+          class="agent-item"
+        >
           <CommonCard
-            class="card"
-            :key="item.id"
+            class="agent-card"
             :title="item.name"
             :detail="item.description"
-            :imgUrl="item.logo"
+            :imgUrl="item.logo_url"
             @click="gochat(item)"
-          ></CommonCard>
+          />
         </div>
       </div>
-      <div v-else>
-        <div class="item-img">
-          <img src="../../../assets/404.gif" width="600px" />
-        </div>
-      </div>
-    </el-scrollbar>
+    </div>
   </div>
+  <!-- 如果有会话记录，不显示任何内容，等待跳转 -->
 </template>
 
 <style lang="scss" scoped>
 .default-page {
   display: flex;
   flex-direction: column;
-  width: 100%;
   height: 100%;
-  .title {
-    display: flex;
-    margin: 10px auto;
-    font-size: 35px;
-    font-weight: 600;
-    align-items: center;
-    font-family: "Microsoft YaHei";
-    justify-content: center;
-    .title-img {
-      margin-right: 20px;
+  padding: 24px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  min-height: 100vh;
+
+  .header-section {
+    text-align: center;
+    margin-bottom: 40px;
+
+    .welcome-content {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 20px;
+
+      .welcome-icon {
+        background: rgba(255, 255, 255, 0.1);
+        border-radius: 50%;
+        padding: 20px;
+        backdrop-filter: blur(10px);
+      }
+
+      .welcome-text {
+        .title {
+          font-size: 2.5rem;
+          font-weight: 700;
+          color: white;
+          margin: 0 0 12px 0;
+          text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+
+          .highlight {
+            color: #fbbf24;
+            text-shadow: 0 2px 4px rgba(251, 191, 36, 0.3);
+          }
+        }
+
+        .subtitle {
+          font-size: 1.1rem;
+          color: rgba(255, 255, 255, 0.9);
+          margin: 0;
+          font-weight: 400;
+        }
+      }
     }
   }
 
-  .search {
-    display: flex;
-    margin: 0px auto;
-  }
-  .item-card {
-    width: 80%;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: 33% 33% 33%;
-    margin-top: 10px;
-    .card:hover {
-      background-color: #ecebeb;
+  .search-section {
+    margin-bottom: 40px;
+
+    .search-container {
+      max-width: 600px;
+      margin: 0 auto;
+
+      .search-input {
+        :deep(.el-input__wrapper) {
+          border-radius: 12px;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+          background: rgba(255, 255, 255, 0.95);
+          backdrop-filter: blur(10px);
+          
+          &:hover {
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
+          }
+          
+          &.is-focus {
+            box-shadow: 0 0 0 2px #3b82f6;
+          }
+        }
+
+        :deep(.el-input-group__append) {
+          .el-button {
+            border-radius: 0 12px 12px 0;
+            border: none;
+            background: #3b82f6;
+            
+            &:hover {
+              background: #2563eb;
+            }
+          }
+        }
+      }
     }
   }
-  .item-img {
-    margin: 0 auto;
-    width: 600px;
-  }
 
-  :deep(.el-input__wrapper) {
-    width: 685px;
-    height: 40px;
+  .agents-section {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 20px;
+    padding: 32px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+
+    .section-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 24px;
+
+      .header-left {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+
+        .section-title {
+          font-size: 1.5rem;
+          font-weight: 600;
+          color: #1f2937;
+          margin: 0;
+        }
+
+        .agent-count {
+          font-size: 0.9rem;
+          color: #6b7280;
+          background: #f3f4f6;
+          padding: 4px 8px;
+          border-radius: 12px;
+        }
+      }
+    }
+
+    .loading-state {
+      padding: 40px 0;
+    }
+
+    .empty-state {
+      text-align: center;
+      padding: 60px 20px;
+      color: #6b7280;
+
+      .empty-icon {
+        font-size: 4rem;
+        margin-bottom: 16px;
+      }
+
+      .empty-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        margin-bottom: 8px;
+        color: #374151;
+      }
+
+      .empty-description {
+        font-size: 0.9rem;
+        margin-bottom: 24px;
+      }
+    }
+
+    .agents-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+      gap: 24px;
+
+      .agent-item {
+        .agent-card {
+          transition: all 0.3s ease;
+          border-radius: 16px;
+          overflow: hidden;
+          box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+
+          &:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+          }
+        }
+      }
+    }
+  }
+}
+
+// 响应式设计
+@media (max-width: 768px) {
+  .default-page {
+    padding: 16px;
+
+    .header-section {
+      .welcome-content {
+        .welcome-text {
+          .title {
+            font-size: 2rem;
+          }
+
+          .subtitle {
+            font-size: 1rem;
+          }
+        }
+      }
+    }
+
+    .agents-section {
+      padding: 20px;
+
+      .section-header {
+        flex-direction: column;
+        gap: 16px;
+        align-items: flex-start;
+      }
+
+      .agents-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+      }
+    }
+  }
+}
+
+@media (max-width: 480px) {
+  .default-page {
+    .header-section {
+      .welcome-content {
+        .welcome-text {
+          .title {
+            font-size: 1.5rem;
+          }
+        }
+      }
+    }
   }
 }
 </style>

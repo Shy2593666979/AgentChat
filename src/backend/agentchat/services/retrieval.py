@@ -1,6 +1,5 @@
 from agentchat.services.rag.es_client import client as es_client
-from agentchat.services.rag.milvus_client import client as milvus_client
-from agentchat.services.rewrite.query_write import query_rewriter
+from agentchat.services.rag.vector_db import milvus_client
 
 
 class MixRetrival:

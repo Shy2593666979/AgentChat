@@ -7,3 +7,5 @@ __pycache__/
 chat.html
 
 .env
+
+chroma_db/

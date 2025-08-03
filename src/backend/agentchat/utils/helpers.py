@@ -7,6 +7,13 @@ from loguru import  logger
 from agentchat.settings import app_settings
 from datetime import datetime, timedelta, timezone
 
+
+def fix_json_text(text: str):
+    """
+    Json字符串不允许出现 ' 单引号
+    修复Json字符串"""
+    return text.replace("'", '"')
+
 def get_cache_key(client_id, chat_id):
     return f'{client_id}_{chat_id}'
 
@@ -15,6 +22,12 @@ def check_or_create(path):
         pass
     else:
         os.makedirs(path)
+
+def combine_user_input(user_input, file_url):
+    if file_url:
+        return f"{user_input}, 上传的文件链接：{file_url}"
+    else:
+        return user_input
 
 def init_dir(path):
     try:

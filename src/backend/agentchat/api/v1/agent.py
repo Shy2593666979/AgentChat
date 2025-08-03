@@ -15,12 +15,15 @@ router = APIRouter()
 
 
 @router.post("/agent", response_model=UnifiedResponseModel)
-async def create_agent(agent_request: CreateAgentRequest,
+async def create_agent(agent_request: CreateAgentRequest = Body(),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
         # 判断Agent名称是否重复
         if await AgentService.check_repeat_name(name=agent_request.name, user_id=login_user.user_id):
-            return resp_500(message="Agent Name Repeated, Please Change it")
+            return resp_500(message="应用名称重复，请更换一个~~~")
+        # 为空的话换成默认的Logo
+        if agent_request.logo_url == "":
+            agent_request.logo_url = app_settings.logo["agent_url"]
 
         await AgentService.create_agent(name=agent_request.name,
                                         description=agent_request.description,
@@ -52,7 +55,11 @@ async def get_agent(login_user: UserPayload = Depends(get_login_user)):
 async def delete_agent(agent_id: str = Body(..., description="删除的Agent ID", embed=True),
                        login_user: UserPayload = Depends(get_login_user)):
     try:
-        return await AgentService.delete_agent_by_id(id=agent_id, user_id=login_user.user_id)
+        # 验证用户权限
+        await AgentService.verify_user_permission(agent_id, login_user.user_id)
+
+        await AgentService.delete_agent_by_id(agent_id)
+        return resp_200()
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))
@@ -62,20 +69,21 @@ async def delete_agent(agent_id: str = Body(..., description="删除的Agent ID"
 async def update_agent(agent_request: UpdateAgentRequest,
                        login_user: UserPayload = Depends(get_login_user)):
     try:
-        if agent_request.name and AgentService.check_repeat_name(agent_request.name, login_user.user_id):
-            return resp_500(message="Agent Name Repeated, Please Update !")
+        # 验证用户权限
+        await AgentService.verify_user_permission(agent_request.agent_id, login_user.user_id)
 
-        return await AgentService.update_agent_by_id(id=agent_request.agent_id,
-                                                     name=agent_request.name,
-                                                     description=agent_request.description,
-                                                     logo_url=agent_request.logo_url,
-                                                     knowledge_ids=agent_request.knowledge_ids,
-                                                     user_id=login_user.user_id,
-                                                     tool_ids=agent_request.tool_ids,
-                                                     llm_id=agent_request.llm_id,
-                                                     mcp_ids=agent_request.mcp_ids,
-                                                     system_prompt=agent_request.system_prompt,
-                                                     use_embedding=agent_request.use_embedding)
+        await AgentService.update_agent_by_id(id=agent_request.agent_id,
+                                              name=agent_request.name,
+                                              description=agent_request.description,
+                                              logo_url=agent_request.logo_url,
+                                              knowledge_ids=agent_request.knowledge_ids,
+                                              user_id=login_user.user_id,
+                                              tool_ids=agent_request.tool_ids,
+                                              llm_id=agent_request.llm_id,
+                                              mcp_ids=agent_request.mcp_ids,
+                                              system_prompt=agent_request.system_prompt,
+                                              use_embedding=agent_request.use_embedding)
+        return resp_200()
 
     except Exception as err:
         logger.error(err)

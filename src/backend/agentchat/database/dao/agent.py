@@ -2,9 +2,7 @@ from datetime import datetime
 
 from typing import List
 from agentchat.database.models.agent import AgentTable
-from sqlmodel import Session
-from sqlalchemy import select, and_, update, desc, delete
-from agentchat.utils.helpers import delete_img
+from sqlmodel import Session, select, and_, update, desc, delete
 from agentchat.database import engine
 
 
@@ -120,10 +118,7 @@ class AgentDao:
                                  mcp_ids: List[str],
                                  system_prompt):
         with Session(engine) as session:
-            # 构建 update 语句
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if name is not None:
                 update_values['name'] = name
             if description is not None:
@@ -134,11 +129,11 @@ class AgentDao:
                 update_values['tool_ids'] = tool_ids
             if knowledge_ids is not None:
                 update_values['knowledge_ids'] = knowledge_ids
-            if use_embedding:
+            if use_embedding is not None:
                 update_values['use_embedding'] = use_embedding
-            if mcp_ids:
+            if mcp_ids is not None:
                 update_values["mcp_ids"] = mcp_ids
-            if system_prompt:
+            if system_prompt is not None:
                 update_values["system_prompt"] = system_prompt
             if logo_url is not None:
                 update_values['logo_url'] = logo_url

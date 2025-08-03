@@ -1,3 +1,6 @@
+from typing import Optional
+
+from sqlalchemy import DateTime, text, Column
 from sqlmodel import SQLModel, Field
 from datetime import datetime
 from uuid import uuid4
@@ -16,6 +19,21 @@ class LLMTable(SQLModelSerializable, table=True):
     api_key: str = Field(description='大模型的api key')
     provider: str = Field(description='大模型的提供商')
     user_id: str = Field(description='大模型创建者的ID')
-    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
+    update_time: Optional[datetime] = Field(sa_column=Column(
+        DateTime,
+        nullable=False,
+        server_default=text('CURRENT_TIMESTAMP'),
+        onupdate=text('CURRENT_TIMESTAMP')
+    ),
+        description="修改时间"
+    )
+    create_time: Optional[datetime] = Field(
+        sa_column=Column(
+            DateTime,
+            nullable=False,
+            server_default=text('CURRENT_TIMESTAMP')
+        ),
+        description="创建时间"
+    )
 
 

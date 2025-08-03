@@ -50,13 +50,13 @@ class PDFParser:
         return await markdown_parser.parse_into_chunks(file_id, markdown_file, knowledge_id)
 
     async def upload_file_to_oss(self, file_path):
-        async with aiofiles.open(file_path, "r") as file:
+        async with aiofiles.open(file_path, "rb") as file:
             file_content = await file.read()
-            oss_base_path = get_aliyun_oss_base_path(os.path.basename(file_path))
-            sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_base_path)
+            oss_object_name = get_aliyun_oss_base_path(os.path.basename(file_path))
+            sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_object_name)
 
             aliyun_oss.sign_url_for_get(sign_url)
-            aliyun_oss.upload_file(sign_url, file_content)
+            aliyun_oss.upload_file(oss_object_name, file_content)
             return sign_url
 
     async def upload_folder_to_oss(self, file_dir):

@@ -1,15 +1,19 @@
 import json
+import random
 
 import rsa
 import hashlib
 from fastapi_jwt_auth import AuthJWT
+
+from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.services.redis import redis_client
 from agentchat.database.dao.user_role import UserRoleDao
 from agentchat.database.models.role import AdminRole
 from agentchat.api.errcode.user import UserNameAlreadyExistError
+from agentchat.settings import app_settings
 from agentchat.utils.hash import md5_hash
 from base64 import b64decode
-from fastapi import Request, Depends
+from fastapi import Request, Depends, HTTPException
 from agentchat.database.models.user import UserTable
 from agentchat.database.dao.user import UserDao
 from agentchat.utils.constants import RSA_KEY
@@ -77,17 +81,47 @@ class UserService:
                                                  user_password=user.user_password)
         return user
 
-async def get_login_user(authorize: AuthJWT = Depends()) -> UserPayload:
+    @classmethod
+    def get_random_user_avatar(cls):
+        files_url = aliyun_oss.list_files_in_folder("icons/user")
+        avatars_url = []
+        for file_url in files_url:
+            avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
+        return random.choice(avatars_url)
+
+    @classmethod
+    def get_available_avatars(cls):
+        files_url = aliyun_oss.list_files_in_folder("icons/user")
+        avatars_url = []
+        for file_url in files_url:
+            avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
+        return avatars_url
+
+    @classmethod
+    def get_user_info_by_id(cls, user_id):
+        user_info = UserDao.get_user(user_id)
+        return user_info.to_dict()
+
+    @classmethod
+    def update_user_info(cls, user_id, user_avatar, user_description):
+        UserDao.update_user_info(user_id, user_avatar, user_description)
+
+
+async def get_login_user(request: Request, authorize: AuthJWT = Depends()) -> UserPayload:
     """
     获取当前登录的用户
     """
-    # 校验是否过期，过期则直接返回http 状态码的 401
-    authorize.jwt_required()
+    if request.state.is_whitelisted:
+        # 白名单路径：直接返回Admin
+        return UserPayload(user_id="1", user_name="Admin")
 
-    current_user = json.loads(authorize.get_jwt_subject())
-    user = UserPayload(**current_user)
-
-    return user
+    # 非白名单路径：执行 JWT 验证
+    try:
+        authorize.jwt_required()
+        current_user = json.loads(authorize.get_jwt_subject())
+        return UserPayload(**current_user)
+    except Exception as e:
+        raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
 def get_user_role(db_user: UserTable):
     # 查询用户的角色列表

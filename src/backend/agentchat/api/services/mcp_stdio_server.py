@@ -14,7 +14,7 @@ class MCPServerService:
         mcp_servers = MCPServerStdioDao.get_mcp_servers(user_id)
         results = []
         for server in mcp_servers:
-            results.append(server[0])
+            results.append(server)
         return results
 
     @classmethod
@@ -39,9 +39,9 @@ class MCPServerService:
     @classmethod
     def get_mcp_server_user(cls, mcp_server_id):
         mcp_server = MCPServerStdioDao.get_mcp_server_by_id(mcp_server_id)
-        return mcp_server[0].user_id
+        return mcp_server.user_id
 
     @classmethod
     def get_mcp_server_from_id(cls, server_id):
         mcp_server = MCPServerStdioDao.get_mcp_server_by_id(server_id)
-        return mcp_server[0].to_dict()
+        return mcp_server.to_dict()

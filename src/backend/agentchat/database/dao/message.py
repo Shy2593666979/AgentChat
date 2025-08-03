@@ -1,6 +1,5 @@
 from agentchat.database.models.message import MessageDownTable, MessageLikeTable
-from sqlmodel import Session
-from sqlalchemy import select
+from sqlmodel import Session, select
 from agentchat.database import engine
 
 class MessageLikeDao:

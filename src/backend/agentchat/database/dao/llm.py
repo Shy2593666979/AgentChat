@@ -1,6 +1,4 @@
-from sqlmodel import Session
-from sqlalchemy import select, and_, update, desc, delete
-from typing import List
+from sqlmodel import Session, select, and_, update, desc, delete
 from agentchat.database import engine
 from agentchat.database.models.llm import LLMTable
 from datetime import datetime
@@ -35,9 +33,7 @@ class LLMDao:
     async def update_llm(cls, llm_id: str, base_url: str, llm_type: str,
                          model: str, api_key: str, provider: str):
         with Session(engine) as session:
-            update_values = {
-                'create_time': datetime.utcnow()
-            }
+            update_values = {}
             if base_url:
                 update_values['base_url'] = base_url
             if model:
@@ -64,7 +60,7 @@ class LLMDao:
     async def get_llm_by_id(cls, llm_id: str):
         with Session(engine) as session:
             sql = select(LLMTable).where(LLMTable.llm_id == llm_id)
-            result = session.exec(sql).all()
+            result = session.exec(sql).first()
             return result
 
     @classmethod
@@ -87,3 +83,11 @@ class LLMDao:
             sql = select(LLMTable).where(LLMTable.llm_type == llm_type)
             result = session.exec(sql).all()
             return result
+
+    @classmethod
+    async def get_llm_id_from_name(cls, llm_name, user_id):
+        with Session(engine) as session:
+            sql = select(LLMTable).where(and_(LLMTable.model == llm_name,
+                                              LLMTable.user_id == user_id))
+            result = session.exec(sql)
+            return result.first()

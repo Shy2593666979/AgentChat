@@ -36,8 +36,11 @@ async def update_knowledge(*,
                            knowledge_req: KnowledgeUpdateRequest,
                            login_user: UserPayload = Depends(get_login_user)):
     try:
+        # 验证用户权限
+        await KnowledgeService.verify_user_permission(knowledge_req.knowledge_id, login_user.user_id)
+
         await KnowledgeService.update_knowledge(knowledge_req.knowledge_id, knowledge_req.knowledge_name,
-                                                knowledge_req.knowledge_desc, login_user.user_id)
+                                                knowledge_req.knowledge_desc)
         return resp_200()
     except Exception as err:
         logger.error(err)
@@ -48,7 +51,10 @@ async def update_knowledge(*,
 async def delete_knowledge(knowledge_id: str = Body(embed=True),
                            login_user: UserPayload = Depends(get_login_user)):
     try:
-        await KnowledgeService.delete_knowledge(knowledge_id, login_user.user_id)
+        # 验证用户权限
+        await KnowledgeService.verify_user_permission(knowledge_id, login_user.user_id)
+
+        await KnowledgeService.delete_knowledge(knowledge_id)
         return resp_200()
     except Exception as err:
         logger.error(err)

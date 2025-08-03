@@ -1,6 +1,5 @@
 from agentchat.database.models.dialog import DialogTable
-from sqlmodel import Session
-from sqlalchemy import select, update, desc, delete
+from sqlmodel import Session, select, update, desc, delete
 from agentchat.database import engine
 from datetime import datetime
 
@@ -17,6 +16,8 @@ class DialogDao:
             dialog = await cls._get_dialog_sql(name, agent_id, agent_type, user_id)
             session.add(dialog)
             session.commit()
+            session.refresh(dialog)  # 确保获取数据库生成的字段
+            return dialog
 
     @classmethod
     async def select_dialog(cls, dialog_id: str):
@@ -62,3 +63,10 @@ class DialogDao:
             result = session.exec(sql).first()
 
             return result
+
+    @classmethod
+    async def delete_from_agent_id(cls, agent_id):
+        with Session(engine) as session:
+            sql = delete(DialogTable).where(DialogTable.agent_id == agent_id)
+            session.exec(sql)
+            session.commit()

@@ -1,0 +1,27 @@
+# 🌐 Node.js 18+ 基础镜像
+FROM node:18-alpine as frontend-base
+
+# 🔧 设置工作目录
+WORKDIR /app
+
+# 📦 设置npm镜像源（加速下载）
+RUN npm config set registry https://registry.npmmirror.com
+
+# 📋 复制package文件
+COPY src/frontend/package*.json ./
+
+# 🚀 安装依赖
+RUN npm install
+
+# 📁 复制前端代码
+COPY src/frontend/ .
+
+# 🌍 设置环境变量
+ENV NODE_ENV=development
+ENV VITE_API_BASE_URL=http://localhost:7860
+
+# 🚀 暴露端口
+EXPOSE 8090
+
+# 🏃‍♂️ 启动开发服务器
+CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0", "--port", "8090"]

@@ -1,8 +1,7 @@
 from typing import List
 from sqlmodel import Session
 from agentchat.database import engine
-from sqlalchemy import func, delete, and_
-from sqlmodel import select
+from sqlmodel import select, func, delete, and_
 from agentchat.database.models.role import RoleBase, Role, AdminRole, RoleCreate
 
 
@@ -65,7 +64,7 @@ class RoleDao(RoleBase):
         """
         删除分组下所有的角色，清理用户对应的角色
         """
-        from database.models.user_role import UserRole
+        from agentchat.database.models.user_role import UserRole
         with Session(engine) as session:
             # 清理对应的用户
             all_user = select(UserRole, Role).join(

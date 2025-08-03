@@ -35,6 +35,7 @@ def get_weather(location: str):
         city = result.get('forecasts')[0].get("city")  # 获取城市
         message_result = []
         data = result.get('forecasts')[0].get("casts")
+
         for item in data:
             date = item.get('date')  # 获取日期
             day_temp = item.get('daytemp')  # 白天温度
@@ -48,7 +49,7 @@ def get_weather(location: str):
         final_result = WEATHER_PROMPT.format(city, message_result[0], message_result[1:])
         return final_result
     except Exception as err:
-        logger.error(f'call weather tool appear Err: {err}')
+        logger.error(f'Call Weather Tool Err: {err}')
         return str(err)
 
 

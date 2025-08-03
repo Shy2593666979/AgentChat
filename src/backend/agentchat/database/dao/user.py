@@ -1,7 +1,7 @@
+
 from agentchat.database.models.user import UserTable
 from typing import List
-from sqlalchemy import select, func
-from sqlmodel import Session
+from sqlmodel import Session, select, func, update
 from agentchat.database import engine
 
 class UserDao:
@@ -61,25 +61,25 @@ class UserDao:
             session.commit()
 
     @classmethod
-    def add_user_and_default_role(cls, user_name: str, user_email: str, user_password: str):
+    def add_user_and_default_role(cls, user_name: str, user_email: str, user_password: str, user_avatar: str):
         """
         新增用户，并添加默认角色
         用户的ID以此递增
         """
         user_number = len(cls.get_user_number()) + 1
         with Session(engine) as session:
-            session.add(UserTable(user_id=str(user_number), user_name=user_name,
+            session.add(UserTable(user_id=str(user_number), user_name=user_name, user_avatar=user_avatar,
                                   user_email=user_email, user_password=user_password))
             session.commit()
 
     @classmethod
     def add_user_and_admin_role(cls, user_id: str, user_name: str,
-                                user_email: str, user_password: str):
+                                user_email: str, user_password: str, user_avatar: str):
         """
         新增用户，并添加超级管理员角色
         """
         with Session(engine) as session:
-            session.add(UserTable(user_email=user_email, user_id=user_id,
+            session.add(UserTable(user_email=user_email, user_id=user_id, user_avatar=user_avatar,
                                   user_name=user_name, user_password=user_password))
             session.commit()
 
@@ -105,3 +105,15 @@ class UserDao:
         with Session(engine) as session:
             statement = select(UserTable)
             return session.exec(statement).all()
+
+    @classmethod
+    def update_user_info(cls, user_id, user_avatar, user_description):
+        with Session(engine) as session:
+            update_values = {}
+            if user_avatar:
+                update_values["user_avatar"] = user_avatar
+            if user_description:
+                update_values["user_description"] = user_description
+            statement = update(UserTable).where(UserTable.user_id == user_id).values(**update_values)
+            session.exec(statement)
+            session.commit()

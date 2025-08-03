@@ -18,7 +18,7 @@ class MessageLikeService:
             data = MessageLikeDao.get_message_like()
             result = []
             for item in data:
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f"get message like is appear error: {err}")
@@ -39,7 +39,7 @@ class MessageDownService:
             data = MessageDownDao.get_message_down()
             result = []
             for item in data:
-                result.append(item[0])
+                result.append(item)
             return result
         except Exception as err:
             logger.error(f"get message down is appear error: {err}")
