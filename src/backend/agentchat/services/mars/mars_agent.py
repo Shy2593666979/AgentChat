@@ -2,6 +2,7 @@ import asyncio
 import inspect
 import json
 import time
+import typing
 from typing import List, Dict, Any
 
 from langchain_core.messages import BaseMessage, SystemMessage, ToolCall, AIMessage, ToolMessage
@@ -9,7 +10,7 @@ from langchain_core.tools import Tool, BaseTool
 from loguru import logger
 from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion_message_tool_call import Function
-from pydantic import BaseModel
+from pydantic import BaseModel, create_model, Field
 
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.chat_prompt import DEFAULT_CALL_PROMPT
@@ -217,7 +218,7 @@ class MarsAgent:
         yield {
             "type": "response_chunk",
             "time": time.time(),
-            "data": "#### 现在开始，我会边梳理思路边完成这项任务\n"
+            "data": "#### 现在开始，我会边梳理思路边完成这项任务😊\n"
         }
 
         # 2. 在后台启动Mars Agent任务
@@ -231,7 +232,7 @@ class MarsAgent:
         yield {
             "type": "response_chunk",
             "time": time.time(),
-            "data": "#### 任务已经完成，我开始为你输出结果 😊\n"
+            "data": "#### 任务已经完成，我开始为你输出结果 ✅\n"
         }
 
         # 5. 推理过程结束后，开始处理并输出Mars Agent的结果
@@ -260,15 +261,6 @@ def convert_langchain_tool_calls(tool_calls: List[ChatCompletionMessageToolCall]
     return langchain_tool_calls
 
 
-def mcp_tool_to_args_schema(name, description, args_schema) -> dict:
-    return {
-        "type": "function",
-        "function": {
-            "name": name,
-            "description": description,
-            "parameters": args_schema
-        }
-    }
 
 
 # 将函数转成function schema格式
@@ -284,49 +276,20 @@ def function_to_args_schema(func) -> dict:
     Returns:
         A dictionary representing the function's signature in JSON format.
     """
-    type_map = {
-        str: "string",
-        int: "integer",
-        float: "number",
-        bool: "boolean",
-        list: "array",
-        dict: "object",
-        type(None): "null",
+    sig = inspect.signature(func)
+    fields = {
+        name: (param.annotation, ... if param.default is inspect.Parameter.empty else param.default)
+        for name, param in sig.parameters.items()
     }
-
-    try:
-        signature = inspect.signature(func)
-    except ValueError as e:
-        raise ValueError(
-            f"Failed to get signature for function {func.__name__}: {str(e)}"
-        )
-
-    parameters = {}
-    for param in signature.parameters.values():
-        try:
-            param_type = type_map.get(param.annotation, "string")
-        except KeyError as e:
-            raise KeyError(
-                f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
-            )
-        parameters[param.name] = {"schema": param_type}
-
-    required = [
-        param.name
-        for param in signature.parameters.values()
-        if param.default == inspect._empty
-    ]
+    model = create_model(func.__name__, **fields)
+    schema = model.model_json_schema()
 
     return {
         "type": "function",
         "function": {
             "name": func.__name__,
             "description": func.__doc__ or "",
-            "parameters": {
-                "type": "object",
-                "properties": parameters,
-                "required": required,
-            },
+            "parameters": schema
         },
     }
 
