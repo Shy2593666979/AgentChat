@@ -16,6 +16,7 @@ from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.chat_prompt import DEFAULT_CALL_PROMPT
 from agentchat.services.mcp.manager import MCPManager
+from agentchat.utils.helpers import fix_json_text
 
 
 class MCPConfig(BaseModel):
@@ -205,7 +206,7 @@ def convert_langchain_tool_calls(tool_calls: List[ChatCompletionMessageToolCall]
 
     for tool_call in tool_calls:
         langchain_tool_calls.append(
-            ToolCall(id=tool_call.id, args=json.loads(tool_call.function.arguments), name=tool_call.function.name))
+            ToolCall(id=tool_call.id, args=json.loads(fix_json_text(tool_call.function.arguments)), name=tool_call.function.name))
 
     return langchain_tool_calls
 
