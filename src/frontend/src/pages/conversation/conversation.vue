@@ -220,6 +220,15 @@ const createDialog = async () => {
         // 跳转到新创建的会话页面
         if (dialogId) {
           console.log('准备跳转到会话页面，dialogId:', dialogId)
+          
+          // 更新选中的会话状态
+          selectedDialog.value = dialogId
+          
+          // 设置聊天store的状态
+          historyChatStore.dialogId = dialogId
+          historyChatStore.name = dialogData.name
+          historyChatStore.logo = agent.logo_url || 'https://via.placeholder.com/40x40/3b82f6/ffffff?text=AI'
+          
           router.push({
             path: '/conversation/chatPage',
             query: {
