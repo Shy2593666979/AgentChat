@@ -1,5 +1,23 @@
 <template>
   <div class="mars-output-page">
+    <!-- 离开页面提醒弹窗 -->
+    <div v-if="showLeaveModal" class="leave-modal-overlay" @click="handleOverlayClick">
+      <div class="leave-modal">
+        <div class="leave-modal-header">
+          <h3>离开页面提醒</h3>
+        </div>
+        <div class="leave-modal-body">
+          <p>🔔 Mars Agent 不会保存您的聊天记录</p>
+          <p>离开此页面后，当前对话内容将无法找回。</p>
+          <p>确定要离开吗？</p>
+        </div>
+        <div class="leave-modal-footer">
+          <button class="modal-btn cancel-btn" @click="cancelLeave">取消</button>
+          <button class="modal-btn confirm-btn" @click="confirmLeave">确定离开</button>
+        </div>
+      </div>
+    </div>
+    
     <!-- AI输出展示区域 -->
     <div class="mars-output-container" ref="outputContainer">
       <!-- 加载状态 -->
@@ -86,8 +104,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref, nextTick, computed, onMounted, watch } from 'vue'
-import { useRoute, useRouter } from 'vue-router'
+import { ref, nextTick, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRoute, useRouter, onBeforeRouteLeave } from 'vue-router'
 import { fetchEventSource } from '@microsoft/fetch-event-source'
 import { ElMessage } from 'element-plus'
 import { MdPreview } from 'md-editor-v3'
@@ -105,7 +123,16 @@ const outputContainer = ref<HTMLElement>()
 const showTypingIndicator = ref(false)
 const typingTimer = ref<NodeJS.Timeout | null>(null)
 
+// 离开页面提醒相关
+const showLeaveModal = ref(false)
+let pendingNavigation: (() => void) | null = null
+
 const aiContent = computed(() => chatSegments.value.map(s => s.content).join(''))
+
+// 检查是否有聊天内容
+const hasContent = computed(() => {
+  return chatSegments.value.length > 0 && aiContent.value.trim().length > 0
+})
 
 // 滚动到底部 - 使用更可靠的方法
 const scrollToBottom = () => {
@@ -134,26 +161,57 @@ const scrollToBottom = () => {
 
 
 
+// 处理离开页面的逻辑
+const handleLeave = (next: () => void) => {
+  if (hasContent.value) {
+    pendingNavigation = next
+    showLeaveModal.value = true
+  } else {
+    next()
+  }
+}
+
+// 取消离开
+const cancelLeave = () => {
+  showLeaveModal.value = false
+  pendingNavigation = null
+}
+
+// 确认离开
+const confirmLeave = () => {
+  showLeaveModal.value = false
+  if (pendingNavigation) {
+    pendingNavigation()
+    pendingNavigation = null
+  }
+}
+
+// 点击遮罩层关闭弹窗
+const handleOverlayClick = (event: Event) => {
+  if (event.target === event.currentTarget) {
+    cancelLeave()
+  }
+}
+
 // 返回首页
 const backToHome = () => {
-  router.push('/')
+  handleLeave(() => {
+    router.push('/')
+  })
 }
 
 // 重试 - 返回首页
 const retryFromHome = () => {
-  router.push('/')
+  handleLeave(() => {
+    router.push('/')
+  })
 }
 
 const toggleCollapse = (segment: { isCollapsed?: boolean }) => {
   segment.isCollapsed = !segment.isCollapsed
 }
 
-const getSegmentClass = (segment: { type: string, content: string }) => {
-  if (segment.type === 'reasoning_chunk') {
-    return 'thinking-segment'
-  }
-  return 'answer-segment'
-}
+
 
 // 发送消息
 const sendMessage = async (userMessage: string) => {
@@ -339,7 +397,7 @@ watch(isLoading, (newVal) => {
 const createContentObserver = () => {
   if (!outputContainer.value) return null
   
-  const observer = new MutationObserver((mutations) => {
+  const observer = new MutationObserver((_mutations) => {
     console.log('检测到DOM变化，触发滚动')
     scrollToBottom()
   })
@@ -526,10 +584,32 @@ const startTypingTimer = () => {
   }, 1000) // 1秒延迟
 }
 
+// 组件内路由守卫
+onBeforeRouteLeave((_to, _from, next) => {
+  if (hasContent.value) {
+    handleLeave(() => {
+      next()
+    })
+  } else {
+    next()
+  }
+})
+
 // 页面加载时的初始化
 onMounted(() => {
   // 创建内容观察器
-  const observer = createContentObserver()
+  createContentObserver()
+  
+  // 添加浏览器前进后退监听
+  const handleBeforeUnload = (event: BeforeUnloadEvent) => {
+    if (hasContent.value) {
+      event.preventDefault()
+      event.returnValue = 'Mars Agent 不会保存您的聊天记录，离开后将无法找回。确定要离开吗？'
+      return event.returnValue
+    }
+  }
+  
+  window.addEventListener('beforeunload', handleBeforeUnload)
   
   // 检查URL参数
   const messageFromHome = route.query.message
@@ -555,10 +635,125 @@ onMounted(() => {
       sendMessage(messageFromHome)
     }
   })
+  
+  // 清理函数
+  onBeforeUnmount(() => {
+    window.removeEventListener('beforeunload', handleBeforeUnload)
+  })
 })
 </script>
 
 <style lang="scss" scoped>
+// 离开页面提醒弹窗样式
+.leave-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.leave-modal {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+  max-width: 420px;
+  width: 90%;
+  max-height: 80vh;
+  overflow: hidden;
+  animation: modalSlideIn 0.3s ease-out;
+}
+
+@keyframes modalSlideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-30px) scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.leave-modal-header {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid #e9ecef;
+  
+  h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+  }
+}
+
+.leave-modal-body {
+  padding: 20px 24px;
+  
+  p {
+    margin: 0 0 12px 0;
+    line-height: 1.6;
+    color: #555;
+    
+    &:first-child {
+      font-weight: 600;
+      color: #4a90e2;
+    }
+    
+    &:last-child {
+      margin-bottom: 0;
+      font-weight: 500;
+      color: #333;
+    }
+  }
+}
+
+.leave-modal-footer {
+  padding: 16px 24px 20px;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
+  border-top: 1px solid #e9ecef;
+}
+
+.modal-btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 80px;
+  
+  &.cancel-btn {
+    background: #f8f9fa;
+    color: #666;
+    border: 1px solid #e9ecef;
+    
+    &:hover {
+      background: #e9ecef;
+      color: #333;
+    }
+  }
+  
+  &.confirm-btn {
+    background: #4a90e2;
+    color: white;
+    
+    &:hover {
+      background: #357abd;
+      transform: translateY(-2px);
+      box-shadow: 0 4px 12px rgba(74, 144, 226, 0.3);
+    }
+  }
+}
+
 .mars-output-page {
   height: 100vh;
   background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);

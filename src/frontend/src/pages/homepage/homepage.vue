@@ -94,7 +94,7 @@ const handleExampleClick = async (example: any, index: number) => {
                      <div class="search-input-wrapper">
              <textarea
                v-model="searchQuery"
-               placeholder="Mars Agent会完成你的任务输出报告。"
+               placeholder="Mars Agent会完成你的任务并输出结果。"
                class="search-input"
                @keydown="handleKeydown"
                rows="3"
