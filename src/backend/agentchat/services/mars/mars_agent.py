@@ -151,6 +151,7 @@ class MarsAgent:
         # 用于存放Mars Agent输出的队列
         mars_output_queue = asyncio.Queue()
 
+
         async def run_mars_agent():
             """
             运行Mars Agent，执行工具调用并将其输出放入队列。
@@ -167,6 +168,12 @@ class MarsAgent:
 
                 # 2. 执行工具并处理输出
                 first_chunk = True
+                mars_task_first_chunk = {
+                    "type": "response_chunk",
+                    "time": time.time(),
+                    "data": "#### 任务已经完成，我开始为你输出结果 ✅\n"
+                }
+
                 async for chunk in self.execute_tool_message(messages):
                     if first_chunk:
                         # 当第一个工具输出产生时，设置中断事件
@@ -174,6 +181,9 @@ class MarsAgent:
                         # 短暂等待，以确保推理任务有时间响应中断信号
                         await asyncio.sleep(0.01)
                         first_chunk = False
+                        # 发送暂停推理，开始任务回复的信息
+                        await mars_output_queue.put(mars_task_first_chunk)
+
                     # 将工具的输出块放入队列
                     await mars_output_queue.put(chunk)
                 
@@ -228,25 +238,15 @@ class MarsAgent:
         async for reasoning_chunk in run_reasoning_model():
             yield reasoning_chunk
 
-        # 4. Mars Agent有消息时告诉用户开始执行工具
-        yield {
-            "type": "response_chunk",
-            "time": time.time(),
-            "data": "#### 任务已经完成，我开始为你输出结果 ✅\n"
-        }
-
-        # 5. 推理过程结束后，开始处理并输出Mars Agent的结果
+        # 4. 推理过程结束后，开始处理并输出Mars Agent的结果
         while True:
             mars_chunk = await mars_output_queue.get()
             if mars_chunk is None:  # 收到结束信号
                 break
             yield mars_chunk
 
-        # 6. 确保Mars Agent任务已彻底完成
+        # 5. 确保Mars Agent任务已彻底完成
         await mars_task
-
-
-
 
 
 
