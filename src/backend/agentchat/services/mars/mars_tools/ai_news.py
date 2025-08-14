@@ -88,7 +88,7 @@ async def crawl_ai_news(user_input: str,
                 raise
 
         html_content = create_html_report(sample_date, sample_content)
-        hti = Html2Image()
+        hti = Html2Image(custom_flags=['--no-sandbox', '--disable-setuid-sandbox'])
 
         png_save_name = f'{sample_date}.png'
 
@@ -109,7 +109,7 @@ async def crawl_ai_news(user_input: str,
         yield {
             "type": "tool_chunk",
             "time": time.time(),
-            "data": "### 图片已经生成完毕, 请点击或下载查看"
+            "data": "\n ### 图片已经生成完毕, 请点击或下载查看✅ \n"
         }
         yield {
             "type": "tool_chunk",
