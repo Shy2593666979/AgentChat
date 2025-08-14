@@ -60,7 +60,7 @@ async def crawl_detail_ai_news():
 
     return response
 
-async def yield_crawl_detail_ai_news():
+async def yield_crawl_detail_ai_news(output_detail: bool):
     # loop = asyncio.get_running_loop()
     # with ThreadPoolExecutor(max_workers=1) as executor:
     #     result = await loop.run_in_executor(executor, crawl_today_ai_news, None)
@@ -79,19 +79,22 @@ async def yield_crawl_detail_ai_news():
     # }
     for idx, link in enumerate(links[:10]):
         title, content = await crawl_single_ai_news(link)
-        yield {
-            "type": "tool_chunk",
-            "time": time.time(),
-            "data": f"\n ## {idx+1}. [标题：{title}]({link}) \n"
-        }
-        # 改成流式输出，每次1字符
-        for chunk in yield_message_chunk(content):
+        # 只有用户特地指定了要详细输出才开始输出
+        if output_detail:
             yield {
                 "type": "tool_chunk",
                 "time": time.time(),
-                "data": chunk
+                "data": f"\n ## {idx + 1}. [标题：{title}]({link}) \n"
             }
-            await asyncio.sleep(0.02)
+
+            # 改成流式输出，每次1字符
+            for chunk in yield_message_chunk(content):
+                yield {
+                    "type": "tool_chunk",
+                    "time": time.time(),
+                    "data": chunk
+                }
+                await asyncio.sleep(0.02)
 
         total_news_content += f"\n {idx+1}. 标题：{title}\n内容:{content}\n"
 
@@ -108,7 +111,7 @@ async def yield_crawl_detail_ai_news():
     yield {
             "type": "tool_chunk",
             "time": time.time(),
-            "data": "\nAI信息已经抓取完毕, 接下来我要开始生成一份完整的AI日报内容\n"
+            "data": "### AI新闻已经总结完毕, 接下来我要开始生成一份完整的AI日报内容\n"
         }
     message = NEWS_PROMPT.format(today=date.today(), news_content=total_news_content)
 
@@ -120,3 +123,9 @@ async def yield_crawl_detail_ai_news():
             "time": time.time(),
             "data": chunk.content
         }
+
+    yield {
+        "type": "final_chunk",
+        "time": time.time(),
+        "data": total_news_content
+    }
