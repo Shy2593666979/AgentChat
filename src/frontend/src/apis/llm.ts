@@ -97,8 +97,6 @@ export function updateLLMAPI(data: UpdateLLMRequest) {
 
 // 删除大模型
 export function deleteLLMAPI(data: { llm_id: string }) {
-  console.log('调用删除API，参数:', data)
-  console.log('请求URL:', '/api/v1/llm/delete')
   return request<ApiResponse<null>>({
     url: '/api/v1/llm/delete',
     method: 'DELETE',

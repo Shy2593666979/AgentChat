@@ -60,7 +60,9 @@ class LLMService:
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                res["api_key"] = "************"
+                # 针对官网的API KEY进行隐藏
+                if res["user_id"] == SystemUser:
+                    res["api_key"] = "************"
                 resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
@@ -80,7 +82,9 @@ class LLMService:
             for llm_type in LLM_Types:
                 resp_llm[llm_type] = []
             for res in result:
-                res["api_key"] = "************"
+                # 针对官网的API KEY进行隐藏
+                if res["user_id"] == SystemUser:
+                    res["api_key"] = "************"
                 resp_llm[res["llm_type"]].append(res)
 
             return resp_llm
@@ -88,7 +92,7 @@ class LLMService:
             raise ValueError(f'Get Visible LLM Appear Err: {err}')
 
     @classmethod
-    async def get_all_llm(cls):
+    async def get_all_llm(cls, user_id: str = None):
         try:
             llm_data = await LLMDao.get_all_llm()
             result = []

@@ -60,7 +60,7 @@ async def update_llm(*,
 @router.get('/llm/all', response_model=UnifiedResponseModel)
 async def get_all_llm(login_user: UserPayload = Depends(get_login_user)):
     try:
-        result = await LLMService.get_all_llm()
+        result = await LLMService.get_all_llm(login_user.user_id)
         return resp_200(data=result)
     except Exception as err:
         logger.error(err)
