@@ -23,7 +23,7 @@
   <a href="#💡-功能特性">💡 功能特性</a> •
   <a href="#🛠-技术栈">🛠 技术栈</a> •
   <a href="#📦-部署">📦 部署</a> •
-  <a href="#📖-文档">📖 文档</a>
+  <a href="#📖-文档">📖 文档</a> •
   <a href="https://agentchat.cloud">💻 在线体验</a>
 </p>
 
@@ -144,6 +144,12 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 *多模型支持，灵活配置不同AI服务*
 
 <img width="800" height="450" alt="模型管理" src="https://github.com/user-attachments/assets/41a49873-f758-49f2-86a4-1a1a57677018" />
+
+### 📰 生成AI日报
+*获取最新的AI咨询，支持生成图片类型的日报*
+
+<img width="500" height="1500" alt="image" src="https://github.com/user-attachments/assets/a4f4489a-19bf-4516-96db-77ff2525beb8" />
+
 
 </div>
 
