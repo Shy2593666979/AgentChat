@@ -2,6 +2,7 @@ from langchain_core.language_models import BaseChatModel
 from langchain_openai import ChatOpenAI
 from openai import AsyncOpenAI
 
+from agentchat.core.models.embedding import EmbeddingModel
 from agentchat.core.models.models import ToolCallModel
 from agentchat.core.models.reason_model import ReasoningModel
 from agentchat.settings import app_settings
@@ -44,3 +45,11 @@ class ModelManager:
         return ChatOpenAI(model=kwargs.get("model"),
                           api_key=kwargs.get("api_key"),
                           base_url=kwargs.get("base_url"))
+
+    @classmethod
+    def get_embedding_model(cls) -> EmbeddingModel:
+        return EmbeddingModel(
+            model=app_settings.embedding.get("model_name"),
+            base_url=app_settings.embedding.get('base_url'),
+            api_key=app_settings.embedding.get('api_key')
+        )

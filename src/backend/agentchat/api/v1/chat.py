@@ -13,6 +13,7 @@ from agentchat.prompts.chat_prompt import SYSTEM_PROMPT
 from agentchat.schema.chat import ConversationReq
 from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
 from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.memory.client import memory_client
 from agentchat.services.rag_handler import RagHandler
 from agentchat.settings import app_settings
 from agentchat.utils.file_utils import get_aliyun_oss_base_path
@@ -21,9 +22,6 @@ from fastapi.responses import StreamingResponse
 from agentchat.utils.helpers import combine_user_input
 
 router = APIRouter()
-
-Assistant_Role = "assistant"
-User_Role = "user"
 
 
 @router.post("/chat", description="对话接口")
@@ -45,7 +43,9 @@ async def chat(*,
 
     messages: List[BaseMessage] = [SystemMessage(content=SYSTEM_PROMPT if agent_config.system_prompt.strip() == "" else agent_config.system_prompt)]
     if agent_config.use_embedding:
-        history_messages = await HistoryService.select_history(conversation_req.dialog_id, 10)
+        # 改成使用Memory请求上下文
+        history_messages = await memory_client.search(query=original_user_input, run_id=conversation_req.dialog_id)
+        # history_messages = await HistoryService.select_history(conversation_req.dialog_id, 10)
     else:
         history_messages = await HistoryService.select_history(conversation_req.dialog_id)
     # messages.extend(history_messages)
@@ -67,10 +67,13 @@ async def chat(*,
                 # 其他事件（如工具调用、心跳）同样按SSE格式输出
                 events.append(event)
                 yield f'data: {json.dumps(event)}\n\n'
-        await HistoryService.save_chat_history(Assistant_Role, response_content, events, conversation_req.dialog_id, agent_config.use_embedding)
+        await memory_client.add({"role": "assistant", "content": response_content}, run_id=conversation_req.dialog_id)
+        await HistoryService.save_chat_history("assistant", response_content, events, conversation_req.dialog_id, agent_config.use_embedding)
 
-    # 将用户问题存放到MySQL数据库
-    await HistoryService.save_chat_history(User_Role, original_user_input, events, conversation_req.dialog_id, agent_config.use_embedding)
+    # 保存到上下文中(主要使用多轮对话展示)
+    await memory_client.add({"role": "user", "content": original_user_input}, run_id=conversation_req.dialog_id)
+    # 将用户问题存放到MySQL数据库(在历史消息中展示)
+    await HistoryService.save_chat_history("user", original_user_input, events, conversation_req.dialog_id, agent_config.use_embedding)
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
 

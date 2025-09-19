@@ -27,6 +27,7 @@ class Settings(BaseSettings):
     tool_tavily: dict = {}
     whitelist_paths: list = []
     mars: dict = {}
+    memory: dict = {}
 
     multi_models: MultiModels = MultiModels()
 
