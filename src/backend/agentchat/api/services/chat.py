@@ -168,8 +168,8 @@ class StreamingAgent:
 
             self.tool_invocation_model.bind_tools(tools_schema)
 
-            system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
-            call_tool_messages.append(system_message)
+            # system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
+            # call_tool_messages.append(system_message)
 
         call_tool_messages.extend(messages)
 

@@ -155,32 +155,3 @@ async def load_system_mcp_server():
     with open('./agentchat/data/mcp_server.json', 'r', encoding='utf-8') as f:
         result = json.load(f)
     return result
-
-# --------------------------------------
-# 下面是0.1版本，不做修改
-# --------------------------------------
-
-# Agent的json文件加载
-# def load_agent_openai():
-#     with open("TOOL_OPENAI", 'r', encoding='utf-8') as f:
-#         result = json.load(f)
-#
-#     return result
-#
-#
-# # 将工具的信息插入到MySQL
-# def agent_insert_mysql(type: str = "openai"):
-#     result = load_agent_openai()
-#
-#     for data in result:
-#         name = data.get('name')
-#         description = data.get('description')
-#         logo = data.get('logo')
-#         parameter = data
-#
-#         AgentService.create_agent(name=name,
-#                                   description=description,
-#                                   logo=logo,
-#                                   parameter=json.dumps(parameter, ensure_ascii=False),
-#                                   type=type,
-#                                   is_custom=False)
