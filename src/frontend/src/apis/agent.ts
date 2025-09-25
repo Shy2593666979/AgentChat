@@ -10,7 +10,7 @@ export interface AgentCreateRequest {
   mcp_ids: string[]
   system_prompt: string
   knowledge_ids: string[]
-  use_embedding: boolean
+  enable_memory: boolean
 }
 
 export interface AgentUpdateRequest {
@@ -23,7 +23,7 @@ export interface AgentUpdateRequest {
   mcp_ids?: string[]
   system_prompt?: string
   knowledge_ids?: string[]
-  use_embedding?: boolean
+  enable_memory?: boolean
 }
 
 export interface AgentResponse {
@@ -36,7 +36,7 @@ export interface AgentResponse {
   mcp_ids: string[]
   system_prompt: string
   knowledge_ids: string[]
-  use_embedding: boolean
+  enable_memory: boolean
 }
 
 export interface ApiResponse<T> {

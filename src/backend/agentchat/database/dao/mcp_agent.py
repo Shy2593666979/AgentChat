@@ -11,7 +11,7 @@ class MCPAgentDao:
 
     @classmethod
     def _get_mcp_agent_sql(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                           llm_id: str, mcp_servers_id: List[str], is_custom: bool, use_embedding: bool):
+                           llm_id: str, mcp_servers_id: List[str], is_custom: bool, enable_memory: bool):
         agent = MCPAgentTable(name=name,
                               logo=logo,
                               user_id=user_id,
@@ -20,15 +20,15 @@ class MCPAgentDao:
                               description=description,
                               knowledges_id=knowledges_id,
                               is_custom=is_custom,
-                              use_embedding=use_embedding)
+                              enable_memory=enable_memory)
         return agent
 
     @classmethod
     def create_mcp_agent(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                         llm_id: str, mcp_servers_id: List[str], is_custom: bool, use_embedding: bool):
+                         llm_id: str, mcp_servers_id: List[str], is_custom: bool, enable_memory: bool):
         with Session(engine) as session:
             session.add(cls._get_mcp_agent_sql(name, description, logo, user_id, knowledges_id, llm_id, mcp_servers_id,
-                                               is_custom, use_embedding))
+                                               is_custom, enable_memory))
             session.commit()
 
     @classmethod
@@ -107,7 +107,7 @@ class MCPAgentDao:
 
     @classmethod
     def update_mcp_agent_by_id(cls, id: str, name: str, description: str, knowledges_id: List[str],
-                               logo: str, llm_id: str, mcp_servers_id: List[str], use_embedding: bool):
+                               logo: str, llm_id: str, mcp_servers_id: List[str], enable_memory: bool):
         with Session(engine) as session:
             # 构建 update 语句
             update_values = {}
@@ -121,8 +121,8 @@ class MCPAgentDao:
                 update_values['mcp_servers_id'] = mcp_servers_id
             if knowledges_id is not None:
                 update_values['knowledges_id'] = knowledges_id
-            if use_embedding:
-                update_values['use_embedding'] = use_embedding
+            if enable_memory:
+                update_values['enable_memory'] = enable_memory
 
             if logo is not None:
                 # 删除agent的logo地址

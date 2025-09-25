@@ -49,16 +49,17 @@ const formData = reactive<AgentFormData>({
   mcp_ids: [],
   system_prompt: '',
   knowledge_ids: [],
-  use_embedding: false
+  enable_memory: false
 })
 
 // 折叠面板状态
 const collapseItems = ref({
-  basic: true,
-  aiModel: true,
-  knowledge: true,
-  tools: true,
-  skills: true
+  basic: false,
+  aiModel: false,
+  memory: false,
+  knowledge: false,
+  tools: false,
+  skills: false
 })
 
 // 选项数据
@@ -124,7 +125,7 @@ const loadAgent = (agent?: Agent) => {
       mcp_ids: processedMcpIds,
       system_prompt: agent.system_prompt || '',
       knowledge_ids: processedKnowledgeIds,
-      use_embedding: agent.use_embedding || false
+      enable_memory: agent.enable_memory || false
     })
     
     console.log('✅ 表单数据已更新:', formData)
@@ -161,7 +162,7 @@ const loadAgent = (agent?: Agent) => {
       mcp_ids: [],
       system_prompt: '',
       knowledge_ids: [],
-      use_embedding: false
+      enable_memory: false
     })
     fileList.value = []
     console.log('✅ 表单已重置为创建模式')
@@ -242,7 +243,7 @@ const saveAgent = async () => {
       mcp_ids: formData.mcp_ids,
       system_prompt: formData.system_prompt,
       knowledge_ids: formData.knowledge_ids,
-      use_embedding: formData.use_embedding
+      enable_memory: formData.enable_memory
     }
     
     if (isEditing.value) {
@@ -520,7 +521,7 @@ const loadAgentFromAPI = async (agentId: string) => {
         mcp_ids: agentData.mcp_ids || [],
         system_prompt: agentData.system_prompt,
         knowledge_ids: agentData.knowledge_ids || [],
-        use_embedding: agentData.use_embedding,
+        enable_memory: agentData.enable_memory,
         created_time: new Date().toISOString()
       }
       
@@ -808,6 +809,45 @@ defineExpose({ loadAgent })
                       </div>
                     </el-option>
                   </el-select>
+                </el-form-item>
+
+              </div>
+            </div>
+
+            <!-- 记忆功能 -->
+            <div class="config-section">
+              <div class="section-header" @click="toggleCollapse('memory')">
+                <div class="section-title">
+                  <el-icon class="section-icon">
+                    <ArrowDown v-if="collapseItems.memory" />
+                    <ArrowRight v-else />
+                  </el-icon>
+                  <span>记忆功能</span>
+                </div>
+                <div class="section-badge">
+                  <el-tag size="small" :type="formData.enable_memory ? 'success' : 'info'" effect="plain">
+                    {{ formData.enable_memory ? '已开启' : '已关闭' }}
+                  </el-tag>
+                </div>
+              </div>
+              <div v-show="collapseItems.memory" class="section-content">
+                <el-form-item label="启用记忆">
+                  <div class="memory-toggle-wrapper">
+                    <button 
+                      type="button"
+                      class="memory-toggle-btn" 
+                      :class="{ 'active': formData.enable_memory }"
+                      @click="formData.enable_memory = !formData.enable_memory"
+                    >
+                      <div class="toggle-slider"></div>
+                      <span class="toggle-text">
+                        {{ formData.enable_memory ? '🧠 已开启' : '💭 已关闭' }}
+                      </span>
+                    </button>
+                    <div class="memory-description">
+                      {{ formData.enable_memory ? '智能体将长期记忆你的对话和喜好，提供更连贯的对话体验' : '智能体仅保留最近几轮对话记忆，适合轻量交互的场景' }}
+                    </div>
+                  </div>
                 </el-form-item>
               </div>
             </div>
@@ -1423,6 +1463,89 @@ defineExpose({ loadAgent })
               }
             }
           }
+        }
+      }
+
+      .memory-toggle-wrapper {
+        display: flex;
+        flex-direction: column;
+        gap: 12px;
+
+        .memory-toggle-btn {
+          position: relative;
+          width: 200px;
+          height: 48px;
+          border: none;
+          border-radius: 24px;
+          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
+          cursor: pointer;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 4px;
+          box-shadow: 
+            0 2px 8px rgba(0, 0, 0, 0.08),
+            inset 0 1px 0 rgba(255, 255, 255, 0.5);
+
+          &:hover {
+            transform: translateY(-1px);
+            box-shadow: 
+              0 4px 16px rgba(99, 102, 241, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.7);
+          }
+
+          &.active {
+            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+            box-shadow: 
+              0 4px 16px rgba(99, 102, 241, 0.3),
+              inset 0 1px 0 rgba(255, 255, 255, 0.2);
+
+            .toggle-slider {
+              transform: translateX(152px);
+              background: white;
+              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            }
+
+            .toggle-text {
+              color: white;
+              font-weight: 600;
+            }
+          }
+
+          .toggle-slider {
+            position: absolute;
+            left: 4px;
+            width: 40px;
+            height: 40px;
+            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+            border-radius: 20px;
+            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+            box-shadow: 
+              0 2px 8px rgba(0, 0, 0, 0.1),
+              inset 0 1px 0 rgba(255, 255, 255, 0.8);
+          }
+
+          .toggle-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            transition: all 0.4s ease;
+            margin: 0 16px;
+            z-index: 1;
+            position: relative;
+          }
+        }
+
+        .memory-description {
+          font-size: 12px;
+          color: #64748b;
+          line-height: 1.4;
+          padding: 8px 12px;
+          background: rgba(248, 250, 252, 0.6);
+          border-radius: 8px;
+          border: 1px solid rgba(226, 232, 240, 0.4);
+          backdrop-filter: blur(5px);
         }
       }
 

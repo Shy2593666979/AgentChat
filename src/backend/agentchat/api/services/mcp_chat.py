@@ -12,7 +12,7 @@ class MCPChatAgent:
     def __init__(self, **kwargs):
         self.mcp_servers_id = kwargs.get("mcp_servers_id")
         self.llm_id = kwargs.get("llm_id")
-        self.use_embedding = kwargs.get("use_embedding")
+        self.enable_memory = kwargs.get("enable_memory")
         self.knowledges_id = kwargs.get("knowledges_id")
 
         self.deep_anthropic = self._init_Anthropic()
@@ -52,7 +52,7 @@ class MCPChatAgent:
 
     async def get_history_message(self, user_input: str, dialog_id: str, top_k: int = 5) :
         # 如果开启Embedding，默认走RAG检索聊天记录
-        if self.use_embedding:
+        if self.enable_memory:
             messages = await self._retrieval_history(user_input, dialog_id, top_k)
             return messages
         else:

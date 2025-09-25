@@ -38,7 +38,7 @@ class HistoryService:
             raise ValueError(f"Select history is appear error: {err}")
 
     @classmethod
-    async def use_embedding_select_history(cls, dialog_id: str, top_k: int = 10):
+    async def enable_memory_select_history(cls, dialog_id: str, top_k: int = 10):
         pass
 
     @classmethod
@@ -73,15 +73,15 @@ class HistoryService:
 
         await milvus_client.insert(collection_name, chunks)
 
-    # 历史记录都存milvus 和 es一份，开启RAG召回历史记录
     @classmethod
     async def save_chat_history(cls, role, content, events, dialog_id, embedding_enable: bool=False):
         await cls.create_history(role, content, events, dialog_id)
 
-        if embedding_enable:
-            documents = f"{role}: \n {content}"
-            await cls.save_es_documents(dialog_id, documents)
-            await cls.save_milvus_documents(dialog_id, documents)
-
-            # 更新对话窗口的最近使用时间
-            await DialogService.update_dialog_time(dialog_id=dialog_id)
+        # 目前都已经改成使用Memory功能，历史记录只存数据库中
+        # if embedding_enable:
+        #     documents = f"{role}: \n {content}"
+        #     await cls.save_es_documents(dialog_id, documents)
+        #     await cls.save_milvus_documents(dialog_id, documents)
+        #
+        #     # 更新对话窗口的最近使用时间
+        #     await DialogService.update_dialog_time(dialog_id=dialog_id)

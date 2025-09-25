@@ -35,3 +35,4 @@ class MemoryHistoryTable(SQLModelSerializable, table=True):
     is_deleted: bool = Field(default=False, sa_column=Column(Boolean), description="是否删除")
     actor_id: Optional[str] = Field(default=None, description="操作者ID")
     role: Optional[str] = Field(default=None, description="角色")
+

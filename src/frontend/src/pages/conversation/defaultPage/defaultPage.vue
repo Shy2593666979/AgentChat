@@ -95,7 +95,7 @@ const searchAgent = async () => {
         mcp_ids: [],
         system_prompt: '',
         knowledge_ids: [],
-        use_embedding: false
+        enable_memory: false
       }))
     } catch (error) {
       console.error('搜索智能体失败:', error)

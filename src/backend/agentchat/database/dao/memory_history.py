@@ -217,3 +217,4 @@ class MemoryHistoryDao:
             except Exception as e:
                 logger.error(f"Failed to get history by actor_id {actor_id}: {e}")
                 raise
+

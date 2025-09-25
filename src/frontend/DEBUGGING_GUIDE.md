@@ -100,7 +100,7 @@ curl -X GET \
       "mcp_ids": [],
       "system_prompt": "系统提示词",
       "knowledge_ids": [],
-      "use_embedding": false
+      "enable_memory": false
     }
   ]
 }

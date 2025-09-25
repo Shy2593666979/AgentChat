@@ -290,7 +290,7 @@ const stopGeneration = () => {
     abortCtrl.value.abort()
     const lastMessage = historyChatStore.chatArr[historyChatStore.chatArr.length - 1]
     if (lastMessage) {
-      lastMessage.aiMessage.content = '已取消本次AI生成！'
+      //lastMessage.aiMessage.content = '已取消本次AI生成！'
       sendQuestion.value = true
       abortCtrl.value = null
       hasActiveEvents.value = false

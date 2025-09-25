@@ -10,21 +10,21 @@ class AgentDao:
 
     @classmethod
     async def _get_agent_sql(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
-                             llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str],
+                             llm_id: str, tool_ids: List[str], is_custom: bool, enable_memory: bool, mcp_ids: List[str],
                              system_prompt: str):
         agent = AgentTable(name=name, logo_url=logo_url, user_id=user_id, llm_id=llm_id,
                            tool_ids=tool_ids, description=description, mcp_ids=mcp_ids,
-                           system_prompt=system_prompt, use_embedding=use_embedding, is_custom=is_custom)
+                           system_prompt=system_prompt, enable_memory=enable_memory, is_custom=is_custom)
         return agent
 
     @classmethod
     async def create_agent(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
-                           llm_id: str, tool_ids: List[str], is_custom: bool, use_embedding: bool, mcp_ids: List[str],
+                           llm_id: str, tool_ids: List[str], is_custom: bool, enable_memory: bool, mcp_ids: List[str],
                            system_prompt: str):
         with Session(engine) as session:
             session.add(
                 await cls._get_agent_sql(name, description, logo_url, user_id, knowledge_ids, llm_id, tool_ids,
-                                         is_custom, use_embedding, mcp_ids, system_prompt))
+                                         is_custom, enable_memory, mcp_ids, system_prompt))
             session.commit()
 
     @classmethod
@@ -114,7 +114,7 @@ class AgentDao:
 
     @classmethod
     async def update_agent_by_id(cls, id: str, name: str, description: str, knowledge_ids: List[str],
-                                 logo_url: str, llm_id: str, tool_ids: List[str], use_embedding: bool,
+                                 logo_url: str, llm_id: str, tool_ids: List[str], enable_memory: bool,
                                  mcp_ids: List[str],
                                  system_prompt):
         with Session(engine) as session:
@@ -129,8 +129,8 @@ class AgentDao:
                 update_values['tool_ids'] = tool_ids
             if knowledge_ids is not None:
                 update_values['knowledge_ids'] = knowledge_ids
-            if use_embedding is not None:
-                update_values['use_embedding'] = use_embedding
+            if enable_memory is not None:
+                update_values['enable_memory'] = enable_memory
             if mcp_ids is not None:
                 update_values["mcp_ids"] = mcp_ids
             if system_prompt is not None:
