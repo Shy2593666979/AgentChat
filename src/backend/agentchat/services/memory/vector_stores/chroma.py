@@ -50,7 +50,7 @@ class ChromaDB(VectorStoreBase):
                 self.settings.chroma_api_impl = "chromadb.api.fastapi.FastAPI"
             else:
                 if path is None:
-                    path = "db"
+                    path = "memory_db"
 
             self.settings.persist_directory = path
             self.settings.is_persistent = True

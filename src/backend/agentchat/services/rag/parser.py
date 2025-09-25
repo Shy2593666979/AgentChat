@@ -1,12 +1,12 @@
 import os
 import asyncio
 
+from agentchat.core.models.manager import ModelManager
 from agentchat.schema.chunk import ChunkModel
 from agentchat.services.rag.doc_parser.docx import docx_parser
 from agentchat.services.rag.doc_parser.pdf import pdf_parser
 from agentchat.services.rag.doc_parser.text import text_parser
 from agentchat.services.rag.doc_parser.markdown import markdown_parser
-from agentchat.core.models.models import async_client
 
 
 class DocParser:
@@ -35,6 +35,8 @@ class DocParser:
 
     @classmethod
     async def generate_summary(cls, chunk: ChunkModel, semaphore):
+        async_client = ModelManager.get_conversation_model()
+
         async with semaphore:
             prompt = f"""
                 你是一个专业的摘要生成助手，请根据以下要求为文本生成一段摘要：

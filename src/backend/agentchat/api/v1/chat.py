@@ -99,7 +99,7 @@ async def chat(*,
         实时处理AI助手的响应流，将内容按SSE格式返回给前端，
         同时收集和处理各种事件（工具调用、心跳等）
         """
-        response_content = ""
+        response_content = " "
         try:
             async for event in chat_agent.ainvoke_streaming(messages):
                 if event.get("type") == "response_chunk":
