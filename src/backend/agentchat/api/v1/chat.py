@@ -1,9 +1,11 @@
 import json
-from typing import Annotated, List, Union
+from typing import Annotated, List, Union, Callable
 from urllib.parse import urljoin
 
+import loguru
 from fastapi import APIRouter, Body, UploadFile, File, Depends
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
+from starlette.types import Receive
 
 from agentchat.api.services.chat import StreamingAgent, AgentConfig
 from agentchat.api.services.history import HistoryService
@@ -23,6 +25,32 @@ from agentchat.utils.helpers import combine_user_input, combine_history_messages
 
 router = APIRouter()
 
+"""
+重写 StreamingResponse类 保证流式输出的时候可随时暂停
+"""
+class WatchedStreamingResponse(StreamingResponse):
+    def __init__(self,
+                 content,
+                 callback: Callable = None,
+                 status_code: int = 200,
+                 headers = None,
+                 media_type: str | None = None,
+                 background = None,
+                 ):
+        super().__init__(content, status_code, headers, media_type, background)
+
+        self.callback = callback
+
+    async def listen_for_disconnect(self, receive: Receive) -> None:
+        while True:
+            message = await receive()
+            if message["type"] == "http.disconnect":
+                loguru.logger.info("http.disconnect. stop task and streaming")
+
+                if self.callback:
+                    self.callback()
+
+                break
 
 @router.post("/chat", description="对话接口")
 async def chat(*,
@@ -38,6 +66,8 @@ async def chat(*,
     config = await DialogService.get_agent_by_dialog_id(dialog_id=conversation_req.dialog_id)
     agent_config = AgentConfig(**config)
 
+    # 将agent_config的配置改成请求的用户ID
+    agent_config.user_id = login_user.user_id
     # 基于配置创建流式对话智能体实例
     chat_agent = StreamingAgent(agent_config)
     await chat_agent.init_agent()
@@ -49,10 +79,10 @@ async def chat(*,
 
     # 构建对话消息列表，首先添加系统提示词作为基础指令
     messages: List[BaseMessage] = [SystemMessage(content=SYSTEM_PROMPT if agent_config.system_prompt.strip() == "" else agent_config.system_prompt)]
-    if agent_config.use_embedding:
+    if agent_config.enable_memory:
         # 启用向量化记忆模式：通过语义搜索获取相关历史上下文
         history_messages = await memory_client.search(query=original_user_input, run_id=conversation_req.dialog_id)
-        messages[0].content = SYSTEM_PROMPT.format(history=f"<chat_history>\n {'\n'.join(msg.get('memory', '') for msg in history_messages)} </chat_history>")
+        messages[0].content = SYSTEM_PROMPT.format(history=f"<chat_history>\n {'\n'.join(msg.get('memory', '') for msg in history_messages.get('results'))} </chat_history>")
     else:
         # 传统历史记录模式：从数据库获取完整对话历史并融入系统提示词
         history_messages = await HistoryService.select_history(conversation_req.dialog_id)
@@ -70,27 +100,27 @@ async def chat(*,
         同时收集和处理各种事件（工具调用、心跳等）
         """
         response_content = ""
-        async for event in chat_agent.ainvoke_streaming(messages):
-            if event.get("type") == "response_chunk":
-                # 处理AI生成的文本片段：按SSE标准格式封装并流式传输
-                yield f'data: {json.dumps(event)}\n\n'
-                response_content += event["data"].get("chunk")
-            else:
-                # 处理其他类型事件（工具调用、状态更新等）：记录并同样流式传输
-                events.append(event)
-                yield f'data: {json.dumps(event)}\n\n'
-        # 流式响应结束后，将完整的助手回复保存到记忆系统
-        await memory_client.add({"role": "assistant", "content": response_content}, run_id=conversation_req.dialog_id)
-        # 将助手回复及相关事件持久化到数据库
-        await HistoryService.save_chat_history("assistant", response_content, events, conversation_req.dialog_id, agent_config.use_embedding)
+        try:
+            async for event in chat_agent.ainvoke_streaming(messages):
+                if event.get("type") == "response_chunk":
+                    # 处理AI生成的文本片段：按SSE标准格式封装并流式传输
+                    yield f'data: {json.dumps(event)}\n\n'
+                    response_content += event["data"].get("chunk")
+                else:
+                    # 处理其他类型事件（工具调用、状态更新等）：记录并同样流式传输
+                    events.append(event)
+                    yield f'data: {json.dumps(event)}\n\n'
+        finally:
+            if agent_config.enable_memory: # 将完整的助手回复保存到记忆系统，在流式输出完，不影响响应时间
+                await memory_client.add([{"role": "user", "content": original_user_input}, {"role": "assistant", "content": response_content}], run_id=conversation_req.dialog_id)
+            # 将助手回复及相关事件持久化到数据库
+            await HistoryService.save_chat_history("assistant", response_content, events, conversation_req.dialog_id, agent_config.enable_memory)
 
-    # 将用户输入保存到记忆系统，用于后续的多轮对话上下文构建
-    await memory_client.add({"role": "user", "content": original_user_input}, run_id=conversation_req.dialog_id)
     # 将用户输入持久化到MySQL数据库，用于历史对话记录展示
-    await HistoryService.save_chat_history("user", original_user_input, events, conversation_req.dialog_id, agent_config.use_embedding)
+    await HistoryService.save_chat_history("user", original_user_input, events, conversation_req.dialog_id, agent_config.enable_memory)
 
     # 返回SSE流式响应，支持实时前端交互
-    return StreamingResponse(general_generate(), media_type="text/event-stream")
+    return WatchedStreamingResponse(general_generate(), callback=chat_agent.stop_streaming_callback, media_type="text/event-stream")
 
 
 @router.post("/upload", description="上传文件的接口", response_model=UnifiedResponseModel)

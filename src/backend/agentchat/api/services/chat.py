@@ -29,7 +29,7 @@ class AgentConfig(BaseModel):
     knowledge_ids: List[str]
     tool_ids: List[str]
     system_prompt: str
-    use_embedding: bool = False
+    enable_memory: bool = False
     user_id: str
     llm_id: str
 
@@ -54,6 +54,8 @@ class StreamingAgent:
 
         # 记录工具调用次数
         self.tool_call_count: dict[str, int] = {}
+
+        self.stop_streaming = False
 
     async def emit_event(self, data: Dict[Any, Any]):
         """发送流式事件"""
@@ -168,7 +170,7 @@ class StreamingAgent:
 
             self.tool_invocation_model.bind_tools(tools_schema)
 
-            # system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
+            system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
             # call_tool_messages.append(system_message)
 
         call_tool_messages.extend(messages)
@@ -478,6 +480,8 @@ class StreamingAgent:
         response_content = ""
         try:
             async for chunk in self.conversation_model.astream(messages):
+                if self.stop_streaming:
+                    break
                 response_content += chunk.content
                 yield {
                     "type": "response_chunk",
@@ -557,6 +561,8 @@ class StreamingAgent:
                 return False, tool
         return False, None
 
+    def stop_streaming_callback(self):
+        self.stop_streaming = True
 
 # 将OpenAI的function call格式转成Langchain格式做适配
 def convert_langchain_tool_calls(tool_calls: List[ChatCompletionMessageToolCall]):
