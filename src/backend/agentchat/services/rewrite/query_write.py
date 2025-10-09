@@ -4,8 +4,8 @@ from loguru import logger
 from langchain_core.messages import HumanMessage, SystemMessage
 
 from agentchat.core.models.manager import ModelManager
-from agentchat.prompts.system import system_query_rewrite
-from agentchat.prompts.user import user_query_write
+from agentchat.prompts.rewrite import system_query_rewrite
+from agentchat.prompts.rewrite import user_query_write
 
 class QueryRewrite:
     def __init__(self):

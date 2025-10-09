@@ -6,7 +6,7 @@ from typing import Type
 from langchain.tools import BaseTool
 from pydantic import Field, BaseModel
 from agentchat.settings import app_settings
-from agentchat.prompts.tool_prompt import DELIVERY_PROMPT
+from agentchat.prompts.tool import DELIVERY_PROMPT
 from loguru import logger
 
 class DeliveryInput(BaseModel):

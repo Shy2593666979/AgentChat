@@ -11,7 +11,7 @@ from agentchat.api.services.chat import StreamingAgent, AgentConfig
 from agentchat.api.services.history import HistoryService
 from agentchat.api.services.dialog import DialogService
 from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.prompts.chat_prompt import SYSTEM_PROMPT
+from agentchat.prompts.chat import SYSTEM_PROMPT
 from agentchat.schema.chat import ConversationReq
 from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
 from agentchat.services.aliyun_oss import aliyun_oss

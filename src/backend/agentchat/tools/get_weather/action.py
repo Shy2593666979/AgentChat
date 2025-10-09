@@ -5,7 +5,7 @@ from typing import Type
 from langchain.tools import BaseTool
 from pydantic import BaseModel, Field
 from agentchat.settings import app_settings
-from agentchat.prompts.tool_prompt import WEATHER_PROMPT, MESSAGE_PROMPT
+from agentchat.prompts.tool import WEATHER_PROMPT, MESSAGE_PROMPT
 
 
 class WeatherInput(BaseModel):

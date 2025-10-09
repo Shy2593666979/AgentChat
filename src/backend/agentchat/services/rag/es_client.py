@@ -2,7 +2,7 @@ import json
 from typing import List
 from elasticsearch import Elasticsearch
 
-from agentchat.prompts.es_index import ESIndex
+from agentchat.config.es_index import ESIndex
 from agentchat.schema.chunk import ChunkModel
 from agentchat.schema.search import SearchModel
 from agentchat.settings import app_settings

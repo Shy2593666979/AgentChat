@@ -3,7 +3,6 @@ from fastapi import APIRouter, Form, UploadFile, File, Depends
 from agentchat.api.services.mcp_agent import MCPAgentService
 from agentchat.schema.schemas import resp_200, resp_500, UnifiedResponseModel
 from agentchat.settings import app_settings
-from agentchat.prompts.template import code_template, parameter_template
 from agentchat.api.services.user import UserPayload, get_login_user
 from typing import List
 from loguru import logger

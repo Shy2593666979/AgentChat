@@ -13,7 +13,7 @@ from openai.types.chat.chat_completion_message_tool_call import Function
 from pydantic import BaseModel, create_model, Field
 
 from agentchat.core.models.manager import ModelManager
-from agentchat.prompts.chat_prompt import DEFAULT_CALL_PROMPT
+from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.services.mars.mars_tools import Mars_Call_Tool
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
 from agentchat.settings import app_settings

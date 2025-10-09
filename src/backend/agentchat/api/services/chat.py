@@ -15,7 +15,7 @@ from pydantic.v1 import BaseModel
 from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
 from agentchat.api.services.tool import ToolService
-from agentchat.prompts.chat_prompt import DEFAULT_CALL_PROMPT
+from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.services.rag_handler import RagHandler
 from agentchat.tools import Call_Tool
 from agentchat.services.mcp.manager import MCPManager
