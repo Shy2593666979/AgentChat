@@ -3,7 +3,7 @@ from datetime import datetime
 from typing import List
 from agentchat.database.models.agent import AgentTable
 from sqlmodel import Session, select, and_, update, desc, delete
-from agentchat.database import engine
+from agentchat.database.session import session_getter
 
 
 class AgentDao:
@@ -21,7 +21,7 @@ class AgentDao:
     async def create_agent(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
                            llm_id: str, tool_ids: List[str], is_custom: bool, enable_memory: bool, mcp_ids: List[str],
                            system_prompt: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             session.add(
                 await cls._get_agent_sql(name, description, logo_url, user_id, knowledge_ids, llm_id, tool_ids,
                                          is_custom, enable_memory, mcp_ids, system_prompt))
@@ -29,70 +29,56 @@ class AgentDao:
 
     @classmethod
     async def get_agent(cls):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).order_by(desc(AgentTable.create_time))
             result = session.exec(sql).all()
             return result
 
     @classmethod
     async def select_agent_by_name(cls, name: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(AgentTable.name == name)
             result = session.exec(sql).first()
             return result
 
     @classmethod
     async def get_agent_user_id(cls, agent_id: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(AgentTable.id == agent_id)
             agent = session.exec(sql).first()
             return agent
 
-    # @classmethod
-    # async def select_agent_by_type(cls, schema: str):
-    #     with Session(engine) as session:
-    #         sql = select(AgentTable).where(AgentTable.schema == schema)
-    #         result = session.exec(sql).all()
-    #         return result
-
     @classmethod
     async def select_agent_by_custom(cls, is_custom: bool):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(AgentTable.is_custom == is_custom)
             result = session.exec(sql).all()
             return result
 
-    # @classmethod
-    # async def get_agent_by_name_type(cls, name: str, schema: str):
-    #     with Session(engine) as session:
-    #         sql = select(AgentTable).where(and_(AgentTable.name == name, AgentTable.schema == schema))
-    #         result = session.exec(sql).all()
-    #         return result
-
     @classmethod
     async def delete_agent_by_id(cls, id: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = delete(AgentTable).where(AgentTable.id == id)
             session.exec(sql)
             session.commit()
 
     @classmethod
     async def _get_logo_by_id(cls, id: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(AgentTable.id == id)
             result = session.exec(sql).all()
             return result[0][0].logo_url
 
     @classmethod
     async def check_repeat_name(cls, name: str, user_id: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(and_(AgentTable.name == name, AgentTable.user_id == user_id))
             result = session.exec(sql).all()
             return result
 
     @classmethod
     async def search_agent_name(cls, name: str, user_id: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(and_(AgentTable.name.like(f'%{name}%'),
                                                 AgentTable.user_id == user_id))
             result = session.exec(sql).all()
@@ -100,14 +86,14 @@ class AgentDao:
 
     @classmethod
     async def get_agent_by_user_id(cls, user_id: str):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(AgentTable.user_id == user_id)
             result = session.exec(sql).all()
             return result
 
     @classmethod
     async def select_agent_by_id(cls, agent_id):
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(AgentTable).where(AgentTable.id == agent_id)
             result = session.exec(sql).first()
             return result
@@ -117,7 +103,7 @@ class AgentDao:
                                  logo_url: str, llm_id: str, tool_ids: List[str], enable_memory: bool,
                                  mcp_ids: List[str],
                                  system_prompt):
-        with Session(engine) as session:
+        with session_getter() as session:
             update_values = {}
             if name is not None:
                 update_values['name'] = name

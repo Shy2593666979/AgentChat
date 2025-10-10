@@ -6,7 +6,7 @@ from datetime import datetime
 
 from agentchat.database.models.memory_history import MemoryHistoryTable
 from sqlmodel import Session, select, delete
-from agentchat.database import engine
+from agentchat.database.session import session_getter
 
 logger = logging.getLogger(__name__)
 
@@ -33,7 +33,7 @@ class MemoryHistoryDao:
         """添加记忆历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     history_record = MemoryHistoryTable(
                         id=str(uuid.uuid4()),
                         memory_id=memory_id,
@@ -58,7 +58,7 @@ class MemoryHistoryDao:
         """获取指定memory_id的历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = select(MemoryHistoryTable).where(
                         MemoryHistoryTable.memory_id == memory_id
                     ).order_by(
@@ -91,7 +91,7 @@ class MemoryHistoryDao:
         """获取所有历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = select(MemoryHistoryTable).order_by(
                         MemoryHistoryTable.created_at.asc()
                     )
@@ -107,7 +107,7 @@ class MemoryHistoryDao:
         """删除指定memory_id的所有历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = delete(MemoryHistoryTable).where(
                         MemoryHistoryTable.memory_id == memory_id
                     )
@@ -123,7 +123,7 @@ class MemoryHistoryDao:
         """删除指定ID的历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = delete(MemoryHistoryTable).where(
                         MemoryHistoryTable.id == history_id
                     )
@@ -139,7 +139,7 @@ class MemoryHistoryDao:
         """重置表（删除所有记录）"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = delete(MemoryHistoryTable)
                     session.exec(sql)
                     session.commit()
@@ -157,7 +157,7 @@ class MemoryHistoryDao:
         """更新历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = select(MemoryHistoryTable).where(
                         MemoryHistoryTable.id == history_id
                     )
@@ -191,7 +191,7 @@ class MemoryHistoryDao:
         """根据事件类型获取历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = select(MemoryHistoryTable).where(
                         MemoryHistoryTable.event == event
                     ).order_by(MemoryHistoryTable.created_at.asc())
@@ -207,7 +207,7 @@ class MemoryHistoryDao:
         """根据操作者ID获取历史记录"""
         with cls._lock:
             try:
-                with Session(engine) as session:
+                with session_getter() as session:
                     sql = select(MemoryHistoryTable).where(
                         MemoryHistoryTable.actor_id == actor_id
                     ).order_by(MemoryHistoryTable.created_at.asc())

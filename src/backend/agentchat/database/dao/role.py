@@ -1,6 +1,6 @@
 from typing import List
 from sqlmodel import Session
-from agentchat.database import engine
+from agentchat.database.session import session_getter
 from sqlmodel import select, func, delete, and_
 from agentchat.database.models.role import RoleBase, Role, AdminRole, RoleCreate
 
@@ -25,7 +25,7 @@ class RoleDao(RoleBase):
         if page and limit:
             statement = statement.offset((page - 1) * limit).limit(limit)
         statement = statement.order_by(Role.create_time.desc())
-        with Session(engine) as session:
+        with session_getter() as session:
             return session.exec(statement).all()
 
     @classmethod
@@ -38,12 +38,12 @@ class RoleDao(RoleBase):
             statement = statement.where(Role.group_id.in_(group))
         if keyword:
             statement = statement.filter(Role.role_name.like(f'%{keyword}%'))
-        with Session(engine) as session:
+        with session_getter() as session:
             return session.scalar(statement)
 
     @classmethod
     def insert_role(cls, role: RoleCreate):
-        with Session(engine) as session:
+        with session_getter() as session:
             session.add(role)
             session.commit()
             session.refresh(role)
@@ -51,12 +51,12 @@ class RoleDao(RoleBase):
 
     @classmethod
     def get_role_by_ids(cls, role_ids: List[int]) -> List[Role]:
-        with Session(engine) as session:
+        with session_getter() as session:
             return session.query(Role).filter(Role.id.in_(role_ids)).all()
 
     @classmethod
     def get_role_by_id(cls, role_id: int) -> Role:
-        with Session(engine) as session:
+        with session_getter() as session:
             return session.query(Role).filter(Role.id == role_id).first()
 
     @classmethod
@@ -65,7 +65,7 @@ class RoleDao(RoleBase):
         删除分组下所有的角色，清理用户对应的角色
         """
         from agentchat.database.models.user_role import UserRole
-        with Session(engine) as session:
+        with session_getter() as session:
             # 清理对应的用户
             all_user = select(UserRole, Role).join(
                 Role, and_(UserRole.role_id == Role.id,
