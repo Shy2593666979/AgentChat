@@ -53,9 +53,9 @@ class RagHandler:
     async def rag_query_summary(cls, query, knowledges_id, min_score: Optional[float]=None,
                                 top_k: Optional[int]=None, needs_query_rewrite: bool=True):
         if min_score is None:
-            min_score = app_settings.rag.get('min_score')
+            min_score = app_settings.rag.retrival.get('min_score')
         if top_k is None:
-            top_k = app_settings.rag.get('top_k')
+            top_k = app_settings.rag.retrival.get('top_k')
 
         # 查询重写
         if needs_query_rewrite:
@@ -104,9 +104,9 @@ class RagHandler:
                 str: 拼接后的最终结果。
             """
         if min_score is None:
-            min_score = app_settings.rag.get('min_score')
+            min_score = app_settings.rag.retrival.get('min_score')
         if top_k is None:
-            top_k = app_settings.rag.get('top_k')
+            top_k = app_settings.rag.retrival.get('top_k')
 
         # 查询重写
         if needs_query_rewrite:

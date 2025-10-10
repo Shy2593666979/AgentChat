@@ -30,7 +30,7 @@ from agentchat.services.deepsearch.prompts import (
 from agentchat.settings import app_settings
 
 # 初始化Tavily客户端
-tavily_client = TavilyClient(api_key=app_settings.tool_tavily["api_key"])
+tavily_client = TavilyClient(api_key=app_settings.tools.tavily["api_key"])
 
 # 使用contextvars来传递流式输出回调，支持并发
 stream_callback: contextvars.ContextVar[Optional[Callable]] = contextvars.ContextVar('stream_callback', default=None)

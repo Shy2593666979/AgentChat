@@ -7,8 +7,8 @@ from agentchat.settings import app_settings
 
 class TextParser:
     def __init__(self):
-        self.chunk_size = app_settings.split.get('chunk_size')
-        self.overlap_size = app_settings.split.get('overlap_size')
+        self.chunk_size = app_settings.rag.split.get('chunk_size')
+        self.overlap_size = app_settings.rag.split.get('overlap_size')
 
     async def split_text_into_chunks_by_lines(self, text):
         """

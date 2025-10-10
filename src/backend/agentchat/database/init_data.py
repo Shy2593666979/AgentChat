@@ -146,12 +146,12 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
 
 
 async def load_default_tool():
-    with open('./agentchat/data/tool.json', 'r', encoding='utf-8') as f:
+    with open('./agentchat/config/tool.json', 'r', encoding='utf-8') as f:
         result = json.load(f)
     return result
 
 
 async def load_system_mcp_server():
-    with open('./agentchat/data/mcp_server.json', 'r', encoding='utf-8') as f:
+    with open('./agentchat/config/mcp_server.json', 'r', encoding='utf-8') as f:
         result = json.load(f)
     return result

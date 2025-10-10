@@ -43,7 +43,7 @@ class ModelManager:
     @classmethod
     def get_embedding_model(cls) -> EmbeddingModel:
         return EmbeddingModel(
-            model=app_settings.embedding.get("model_name"),
-            base_url=app_settings.embedding.get('base_url'),
-            api_key=app_settings.embedding.get('api_key')
+            model=app_settings.multi_models.embedding.model_name,
+            base_url=app_settings.multi_models.embedding.base_url,
+            api_key=app_settings.multi_models.embedding.api_key
         )

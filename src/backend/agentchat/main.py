@@ -17,7 +17,7 @@ warnings.filterwarnings("ignore")
 
 async def register_router(app: FastAPI):
     from agentchat.api.router import router
-    app.mount("/img", StaticFiles(directory="agentchat/data/img"), name="img")
+
     app.include_router(router)
 
     # 健康探针
@@ -99,7 +99,7 @@ def create_app():
     return app
 
 
-app = create_app()  # 不需要使用 await
+app = create_app()
 
 if __name__ == "__main__":
     import uvicorn

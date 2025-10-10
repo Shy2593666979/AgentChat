@@ -27,9 +27,9 @@ def get_delivery(delivery_number: str):
     try:
         query = f'number={delivery_number}&mobile=mobile&type=type'
 
-        url = app_settings.tool_delivery.get('endpoint') + '?' + query
+        url = app_settings.tools.delivery.get('endpoint') + '?' + query
         headers = {
-            'Authorization': 'APPCODE ' + app_settings.tool_delivery.get('api_key')
+            'Authorization': 'APPCODE ' + app_settings.tools.delivery.get('api_key')
         }
 
         request = urllib.request.Request(url, headers=headers)

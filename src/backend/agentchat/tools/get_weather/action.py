@@ -24,13 +24,13 @@ class WeatherTool(BaseTool):
 def get_weather(location: str):
     """帮助用户想要查询的天气"""
     params = {
-        'key': app_settings.tool_weather.get('api_key'),
+        'key': app_settings.tools.weather.get('api_key'),
         'city': location,
         'extensions': 'all'
     }
 
     try:
-        res = requests.get(url=app_settings.tool_weather.get('endpoint'), params=params, timeout=5)  # 预报天气
+        res = requests.get(url=app_settings.tools.weather.get('endpoint'), params=params, timeout=5)  # 预报天气
         result = res.json()
         city = result.get('forecasts')[0].get("city")  # 获取城市
         message_result = []
