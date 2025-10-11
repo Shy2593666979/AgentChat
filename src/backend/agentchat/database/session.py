@@ -1,8 +1,9 @@
 import logging
 
-from contextlib import contextmanager
-from typing import Iterator
+from contextlib import contextmanager, asynccontextmanager
+from typing import Iterator, AsyncIterator
 
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session
 from agentchat.database import engine
 
@@ -20,3 +21,16 @@ def session_getter() -> Iterator[Session]:
         raise
     finally:
         session.close()
+
+@asynccontextmanager
+async def async_session_getter() -> AsyncIterator[AsyncSession]:
+    session = AsyncSession(engine)  # 使用异步引擎创建会话
+
+    try:
+        yield session
+    except Exception as e:
+        logger.info('Session rollback because of exception: %s', e)
+        await session.rollback()  # 异步回滚
+        raise
+    finally:
+        await session.close()  # 异步关闭会话
