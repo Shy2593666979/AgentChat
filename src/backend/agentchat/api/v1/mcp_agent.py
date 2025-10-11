@@ -3,7 +3,6 @@ from fastapi import APIRouter, Form, UploadFile, File, Depends
 from agentchat.api.services.mcp_agent import MCPAgentService
 from agentchat.schema.schemas import resp_200, resp_500, UnifiedResponseModel
 from agentchat.settings import app_settings
-from agentchat.prompts.template import code_template, parameter_template
 from agentchat.api.services.user import UserPayload, get_login_user
 from typing import List
 from loguru import logger
@@ -18,7 +17,7 @@ async def create_mcp_agent(name: str = Form(...),
                            mcp_servers_id: List[str] = Form(default=[], description="绑定的工具id"),
                            llm_id: str = Form(None),
                            knowledges_id: List[str] = Form(default=[], description="绑定的知识库ID"),
-                           use_embedding: bool = Form(True),
+                           enable_memory: bool = Form(True),
                            logoFile: UploadFile = File(None),
                            login_user: UserPayload = Depends(get_login_user)):
     try:
@@ -41,7 +40,7 @@ async def create_mcp_agent(name: str = Form(...),
                                          llm_id=llm_id,
                                          user_id=login_user.user_id,
                                          knowledges_id=knowledges_id,
-                                         use_embedding=use_embedding)
+                                         enable_memory=enable_memory)
         return resp_200()
     except Exception as err:
         logger.error(f"create agent API error: {err}")
@@ -61,7 +60,7 @@ async def get_mcp_agent(login_user: UserPayload = Depends(get_login_user)):
                            "mcp_servers_id": item.mcp_servers_id,
                            "llm_id": item.llm_id,
                            "is_custom": item.is_custom,
-                           "use_embedding": item.use_embedding,
+                           "enable_memory": item.enable_memory,
                            "create_time": item.create_time})
 
         return resp_200(data=result)
@@ -87,7 +86,7 @@ async def update_mcp_agent(agent_id: str = Form(...),
                            mcp_servers_id: List[str] = Form(None),
                            knowledges_id: List[str] = Form(None),
                            llm_id: str = Form(None),
-                           use_embedding: bool = Form(True),
+                           enable_memory: bool = Form(True),
                            logoFile: UploadFile = File(None),
                            login_user: UserPayload = Depends(get_login_user)):
     try:
@@ -110,7 +109,7 @@ async def update_mcp_agent(agent_id: str = Form(...),
                                                       user_id=login_user.user_id,
                                                       mcp_servers_id=mcp_servers_id,
                                                       llm_id=llm_id,
-                                                      use_embedding=use_embedding)
+                                                      enable_memory=enable_memory)
 
     except Exception as err:
         logger.error(f"update agent API error: {err}")
@@ -130,7 +129,7 @@ async def search_mcp_agent(name: str = Form(...),
                            "logo": app_settings.logo.get('prefix') + item.logo,
                            "mcp_servers_id": item.mcp_servers_id,
                            "llm_id": item.llm_id,
-                           "use_embedding": item.use_embedding,
+                           "enable_memory": item.enable_memory,
                            "is_custom": item.is_custom,
                            "create_time": item.create_time})
 

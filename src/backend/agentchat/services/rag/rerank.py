@@ -11,23 +11,23 @@ class Reranker:
     @classmethod
     async def request_rerank(cls, query, documents):
         headers = {
-            "Authorization": f"Bearer {app_settings.rerank.get('api_key')}",
+            "Authorization": f"Bearer {app_settings.multi_models.rerank.api_key}",
             "Content-Type": "application/json"
         }
         payload = {
-            "model": app_settings.rerank.get('model_name'),
+            "model": app_settings.multi_models.rerank.model_name,
             "input": {
                 "query": query,
                 "documents": documents
             },
             "parameters": {
                 "return_documents": True,
-                "top_n": app_settings.rerank.get('top_n')
+                "top_n": app_settings.rag.retrival.get('top_k') * 2
             }
         }
 
         async with aiohttp.ClientSession() as session:
-            async with session.post(url=app_settings.rerank.get('base_url'), headers=headers, data=json.dumps(payload)) as response:
+            async with session.post(url=app_settings.multi_models.rerank.base_url, headers=headers, data=json.dumps(payload)) as response:
                 if response.status == 200:
                     result = await response.json()
                     return result['output']['results']

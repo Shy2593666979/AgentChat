@@ -28,7 +28,7 @@ const convertBackendToAgent = (backendAgent: any): Agent => ({
   mcp_ids: backendAgent.mcp_ids || [],
   system_prompt: backendAgent.system_prompt || '',
   knowledge_ids: backendAgent.knowledge_ids || [],
-  use_embedding: backendAgent.use_embedding || false,
+  enable_memory: backendAgent.enable_memory || false,
   created_time: backendAgent.create_time
 })
 
@@ -83,7 +83,7 @@ const searchAgents = async () => {
         mcp_ids: [],
         system_prompt: '',
         knowledge_ids: [],
-        use_embedding: false
+        enable_memory: false
       }))
     } else {
       ElMessage.error(response.data.status_message || '搜索失败')
@@ -253,10 +253,10 @@ onMounted(() => {
             
             <div class="agent-status">
               <el-tag 
-                :type="agent.use_embedding ? 'success' : 'info'" 
+                :type="agent.enable_memory ? 'success' : 'info'"
                 size="small"
               >
-                {{ agent.use_embedding ? '已启用向量化' : '未启用向量化' }}
+                {{ agent.enable_memory ? '已启用向量化' : '未启用向量化' }}
               </el-tag>
             </div>
           </div>

@@ -22,7 +22,7 @@ class ChromaClient:
         """建立 Chroma 连接"""
         try:
             # 使用持久化客户端，避免内存丢失
-            self.client = chromadb.PersistentClient(path="./chroma_db")
+            self.client = chromadb.PersistentClient(path="./vector_db")
             logger.info("Successfully connected to Chroma")
         except Exception as e:
             logger.error(f"Failed to connect to Chroma: {e}")

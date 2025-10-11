@@ -5,7 +5,6 @@ from agentchat.api.v1.chat import SYSTEM_PROMPT
 from agentchat.schema.agent import CreateAgentRequest, UpdateAgentRequest
 from agentchat.schema.schemas import resp_200, resp_500, UnifiedResponseModel
 from agentchat.settings import app_settings
-from agentchat.prompts.template import code_template, parameter_template
 from agentchat.api.services.user import UserPayload, get_login_user
 from typing import List
 from loguru import logger
@@ -34,7 +33,7 @@ async def create_agent(agent_request: CreateAgentRequest = Body(),
                                         user_id=login_user.user_id,
                                         system_prompt=agent_request.system_prompt,
                                         knowledge_ids=agent_request.knowledge_ids,
-                                        use_embedding=agent_request.use_embedding)
+                                        enable_memory=agent_request.enable_memory)
         return resp_200()
     except Exception as err:
         logger.error(err)
@@ -82,7 +81,7 @@ async def update_agent(agent_request: UpdateAgentRequest,
                                               llm_id=agent_request.llm_id,
                                               mcp_ids=agent_request.mcp_ids,
                                               system_prompt=agent_request.system_prompt,
-                                              use_embedding=agent_request.use_embedding)
+                                              enable_memory=agent_request.enable_memory)
         return resp_200()
 
     except Exception as err:

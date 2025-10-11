@@ -8,6 +8,30 @@ from agentchat.settings import app_settings
 from datetime import datetime, timedelta, timezone
 
 
+def combine_history_messages(history_messages):
+    """
+    examples:
+        <chat_history>
+        role: user, content: 你好啊！
+        role: ai, content: 你好啊，我可以帮助你什么？
+        <chat_history>
+        ......
+    """
+    if len(history_messages) % 2 == 1:
+        history_messages = history_messages[:len(history_messages)-1]
+
+    history_content = ""
+    for idx in range(0, len(history_messages), 2):
+        user_msg = history_messages[idx]
+        ai_msg = history_messages[idx+1]
+        history_content += f"<chat_history_{idx // 2 + 1}>\n"
+        history_content += f"role: {user_msg.type}, content: {user_msg.content}\n"
+        history_content += f"role: {ai_msg.type}, content: {ai_msg.content}\n"
+        history_content += f"</chat_history_{idx // 2 + 1}>\n"
+
+    return history_content
+
+
 def fix_json_text(text: str):
     """
     Json字符串不允许出现 ' 单引号

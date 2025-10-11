@@ -88,7 +88,15 @@ async def crawl_ai_news(user_input: str,
                 raise
 
         html_content = create_html_report(sample_date, sample_content)
-        hti = Html2Image(custom_flags=['--no-sandbox', '--disable-setuid-sandbox'])
+        hti = Html2Image(
+            custom_flags=[
+                '--no-sandbox',
+                '--disable-setuid-sandbox',
+                '--disable-gpu',  # 禁用 GPU
+                '--disable-dev-shm-usage',  # 避免共享内存不足
+                '--no-zygote',  # 配合 --no-sandbox 使用
+            ]
+        )
 
         png_save_name = f'{sample_date}.png'
 
@@ -121,272 +129,272 @@ async def crawl_ai_news(user_input: str,
 def get_html_template():
     """返回HTML模板，避免格式化冲突"""
     return """
-<!DOCTYPE html>
-<html lang="zh-CN">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>AI资讯简报</title>
-    <style>
-        * {{
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }}
-
-        body {{
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            padding: 0;
-            margin: 0;
-        }}
-
-        .news-report {{
-            width: 600px;
-            min-height: 800px;
-            background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
-            margin: 0;
-            padding: 50px 40px;
-            position: relative;
-            overflow: hidden;
-        }}
-
-        .news-report::before {{
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            right: 0;
-            height: 5px;
-            background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
-        }}
-
-        .report-header {{
-            text-align: center;
-            margin-bottom: 50px;
-        }}
-
-        .report-title {{
-            font-size: 48px;
-            font-weight: 900;
-            color: #1e3a8a;
-            margin-bottom: 15px;
-            letter-spacing: 3px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
-        }}
-
-        .report-date {{
-            font-size: 20px;
-            color: #64748b;
-            margin-bottom: 25px;
-            font-weight: 500;
-        }}
-
-        .report-divider {{
-            width: 150px;
-            height: 4px;
-            background: linear-gradient(90deg, #667eea, #764ba2);
-            margin: 0 auto;
-            border-radius: 2px;
-            position: relative;
-        }}
-
-        .report-divider::after {{
-            content: '';
-            position: absolute;
-            top: 50%;
-            left: 50%;
-            transform: translate(-50%, -50%);
-            width: 12px;
-            height: 12px;
-            background: #6366f1;
-            border-radius: 50%;
-            border: 4px solid #f8fafc;
-        }}
-
-        .report-news-list {{
-            margin-top: 50px;
-        }}
-
-        .report-news-item {{
-            display: flex;
-            margin-bottom: 30px;
-            position: relative;
-            align-items: flex-start;
-        }}
-
-        .report-news-number {{
-            width: 40px;
-            height: 40px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-weight: bold;
-            color: white;
-            font-size: 16px;
-            margin-right: 20px;
-            flex-shrink: 0;
-            box-shadow: 0 6px 15px rgba(0,0,0,0.2);
-            z-index: 2;
-        }}
-
-        .report-news-line {{
-            position: absolute;
-            left: 19px;
-            top: 40px;
-            bottom: -15px;
-            width: 3px;
-            background: linear-gradient(to bottom, transparent 0%, currentColor 15%, currentColor 85%, transparent 100%);
-            z-index: 1;
-        }}
-
-        .report-news-item:last-child .report-news-line {{
-            display: none;
-        }}
-
-        .report-news-content {{
-            flex: 1;
-            background: white;
-            padding: 25px;
-            border-radius: 18px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.1);
-            border: 1px solid #e5e7eb;
-            position: relative;
-            transition: all 0.3s ease;
-            margin-top: -5px;
-        }}
-
-        .report-news-content::before {{
-            content: '';
-            position: absolute;
-            left: -8px;
-            top: 20px;
-            width: 0;
-            height: 0;
-            border-top: 8px solid transparent;
-            border-bottom: 8px solid transparent;
-            border-right: 8px solid white;
-        }}
-
-        .report-news-title {{
-            font-size: 17px;
-            font-weight: 700;
-            color: #1f2937;
-            line-height: 1.5;
-            margin-bottom: 12px;
-        }}
-
-        .report-news-desc {{
-            font-size: 14px;
-            color: #6b7280;
-            line-height: 1.6;
-        }}
-
-        .report-news-category {{
-            position: absolute;
-            top: -10px;
-            right: 20px;
-            padding: 6px 16px;
-            border-radius: 15px;
-            font-size: 12px;
-            font-weight: 700;
-            color: white;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
-        }}
-
-        .category-技术, .tech {{ 
-            background: linear-gradient(135deg, #6366f1, #8b5cf6); 
-            color: #6366f1;
-        }}
-        .category-产品, .product {{ 
-            background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
-            color: #3b82f6;
-        }}
-        .category-资讯, .news {{ 
-            background: linear-gradient(135deg, #8b5cf6, #a855f7); 
-            color: #8b5cf6;
-        }}
-
-        .report-footer {{
-            margin-top: 60px;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }}
-
-        .report-quote {{
-            background: white;
-            padding: 15px 25px;
-            border-radius: 25px;
-            font-size: 15px;
-            color: #374151;
-            border: 2px solid #374151;
-            font-style: italic;
-            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
-            text-align: center; /* 内部文本居中 */
-            margin: 0 auto; /* 元素自身在父容器中水平居中 */
-            max-width: fit-content; /* 让元素宽度适应内容，避免过度拉伸 */
-        }}
-
-        .report-info {{
-            background: #1e293b;
-            padding: 20px;
-            border-radius: 15px;
-            text-align: center;
-            color: white;
-            min-width: 120px;
-            box-shadow: 0 8px 25px rgba(0,0,0,0.2);
-        }}
-
-        .report-info-title {{
-            font-size: 14px;
-            font-weight: 700;
-            margin-bottom: 5px;
-        }}
-
-        .report-info-subtitle {{
-            font-size: 11px;
-            color: #94a3b8;
-            line-height: 1.3;
-        }}
-
-        .qr-placeholder {{
-            width: 50px;
-            height: 50px;
-            background: white;
-            border: 2px solid #374151;
-            border-radius: 8px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 10px;
-            color: #374151;
-            font-weight: bold;
-            margin-top: 10px;
-        }}
-    </style>
-</head>
-<body>
-    <div class="news-report">
-        <div class="report-header">
-            <h1 class="report-title">AI资讯简报</h1>
-            <div class="report-date">{date}</div>
-            <div class="report-divider"></div>
-        </div>
-
-        <div class="report-news-list">
-            {news_items}
-        </div>
-
-        <div class="report-footer">
-            <div class="report-quote">由www.agentchat.cloud提供</div>
-        </div>
-    </div>
-</body>
-</html>
+            <!DOCTYPE html>
+            <html lang="zh-CN">
+            <head>
+                <meta charset="UTF-8">
+                <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                <title>AI资讯简报</title>
+                <style>
+                    * {{
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }}
+            
+                    body {{
+                        font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC', 'Microsoft YaHei', sans-serif;
+                        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                        padding: 0;
+                        margin: 0;
+                    }}
+            
+                    .news-report {{
+                        width: 600px;
+                        min-height: 800px;
+                        background: linear-gradient(135deg, #f8fafc 0%, #e2e8f0 100%);
+                        margin: 0;
+                        padding: 50px 40px;
+                        position: relative;
+                        overflow: hidden;
+                    }}
+            
+                    .news-report::before {{
+                        content: '';
+                        position: absolute;
+                        top: 0;
+                        left: 0;
+                        right: 0;
+                        height: 5px;
+                        background: linear-gradient(90deg, #667eea, #764ba2, #f093fb);
+                    }}
+            
+                    .report-header {{
+                        text-align: center;
+                        margin-bottom: 50px;
+                    }}
+            
+                    .report-title {{
+                        font-size: 48px;
+                        font-weight: 900;
+                        color: #1e3a8a;
+                        margin-bottom: 15px;
+                        letter-spacing: 3px;
+                        text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+                    }}
+            
+                    .report-date {{
+                        font-size: 20px;
+                        color: #64748b;
+                        margin-bottom: 25px;
+                        font-weight: 500;
+                    }}
+            
+                    .report-divider {{
+                        width: 150px;
+                        height: 4px;
+                        background: linear-gradient(90deg, #667eea, #764ba2);
+                        margin: 0 auto;
+                        border-radius: 2px;
+                        position: relative;
+                    }}
+            
+                    .report-divider::after {{
+                        content: '';
+                        position: absolute;
+                        top: 50%;
+                        left: 50%;
+                        transform: translate(-50%, -50%);
+                        width: 12px;
+                        height: 12px;
+                        background: #6366f1;
+                        border-radius: 50%;
+                        border: 4px solid #f8fafc;
+                    }}
+            
+                    .report-news-list {{
+                        margin-top: 50px;
+                    }}
+            
+                    .report-news-item {{
+                        display: flex;
+                        margin-bottom: 30px;
+                        position: relative;
+                        align-items: flex-start;
+                    }}
+            
+                    .report-news-number {{
+                        width: 40px;
+                        height: 40px;
+                        border-radius: 50%;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-weight: bold;
+                        color: white;
+                        font-size: 16px;
+                        margin-right: 20px;
+                        flex-shrink: 0;
+                        box-shadow: 0 6px 15px rgba(0,0,0,0.2);
+                        z-index: 2;
+                    }}
+            
+                    .report-news-line {{
+                        position: absolute;
+                        left: 19px;
+                        top: 40px;
+                        bottom: -15px;
+                        width: 3px;
+                        background: linear-gradient(to bottom, transparent 0%, currentColor 15%, currentColor 85%, transparent 100%);
+                        z-index: 1;
+                    }}
+            
+                    .report-news-item:last-child .report-news-line {{
+                        display: none;
+                    }}
+            
+                    .report-news-content {{
+                        flex: 1;
+                        background: white;
+                        padding: 25px;
+                        border-radius: 18px;
+                        box-shadow: 0 10px 30px rgba(0,0,0,0.1);
+                        border: 1px solid #e5e7eb;
+                        position: relative;
+                        transition: all 0.3s ease;
+                        margin-top: -5px;
+                    }}
+            
+                    .report-news-content::before {{
+                        content: '';
+                        position: absolute;
+                        left: -8px;
+                        top: 20px;
+                        width: 0;
+                        height: 0;
+                        border-top: 8px solid transparent;
+                        border-bottom: 8px solid transparent;
+                        border-right: 8px solid white;
+                    }}
+            
+                    .report-news-title {{
+                        font-size: 17px;
+                        font-weight: 700;
+                        color: #1f2937;
+                        line-height: 1.5;
+                        margin-bottom: 12px;
+                    }}
+            
+                    .report-news-desc {{
+                        font-size: 14px;
+                        color: #6b7280;
+                        line-height: 1.6;
+                    }}
+            
+                    .report-news-category {{
+                        position: absolute;
+                        top: -10px;
+                        right: 20px;
+                        padding: 6px 16px;
+                        border-radius: 15px;
+                        font-size: 12px;
+                        font-weight: 700;
+                        color: white;
+                        text-transform: uppercase;
+                        letter-spacing: 1px;
+                        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+                    }}
+            
+                    .category-技术, .tech {{ 
+                        background: linear-gradient(135deg, #6366f1, #8b5cf6); 
+                        color: #6366f1;
+                    }}
+                    .category-产品, .product {{ 
+                        background: linear-gradient(135deg, #3b82f6, #1d4ed8); 
+                        color: #3b82f6;
+                    }}
+                    .category-资讯, .news {{ 
+                        background: linear-gradient(135deg, #8b5cf6, #a855f7); 
+                        color: #8b5cf6;
+                    }}
+            
+                    .report-footer {{
+                        margin-top: 60px;
+                        display: flex;
+                        justify-content: space-between;
+                        align-items: center;
+                    }}
+            
+                    .report-quote {{
+                        background: white;
+                        padding: 15px 25px;
+                        border-radius: 25px;
+                        font-size: 15px;
+                        color: #374151;
+                        border: 2px solid #374151;
+                        font-style: italic;
+                        box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+                        text-align: center; /* 内部文本居中 */
+                        margin: 0 auto; /* 元素自身在父容器中水平居中 */
+                        max-width: fit-content; /* 让元素宽度适应内容，避免过度拉伸 */
+                    }}
+            
+                    .report-info {{
+                        background: #1e293b;
+                        padding: 20px;
+                        border-radius: 15px;
+                        text-align: center;
+                        color: white;
+                        min-width: 120px;
+                        box-shadow: 0 8px 25px rgba(0,0,0,0.2);
+                    }}
+            
+                    .report-info-title {{
+                        font-size: 14px;
+                        font-weight: 700;
+                        margin-bottom: 5px;
+                    }}
+            
+                    .report-info-subtitle {{
+                        font-size: 11px;
+                        color: #94a3b8;
+                        line-height: 1.3;
+                    }}
+            
+                    .qr-placeholder {{
+                        width: 50px;
+                        height: 50px;
+                        background: white;
+                        border: 2px solid #374151;
+                        border-radius: 8px;
+                        display: flex;
+                        align-items: center;
+                        justify-content: center;
+                        font-size: 10px;
+                        color: #374151;
+                        font-weight: bold;
+                        margin-top: 10px;
+                    }}
+                </style>
+            </head>
+            <body>
+                <div class="news-report">
+                    <div class="report-header">
+                        <h1 class="report-title">AI资讯简报</h1>
+                        <div class="report-date">{date}</div>
+                        <div class="report-divider"></div>
+                    </div>
+            
+                    <div class="report-news-list">
+                        {news_items}
+                    </div>
+            
+                    <div class="report-footer">
+                        <div class="report-quote">由www.agentchat.cloud提供</div>
+                    </div>
+                </div>
+            </body>
+            </html>
 """
 
 
@@ -395,14 +403,14 @@ def generate_news_item_html(index, title, description):
     color = '#6366f1'
 
     return f"""
-    <div class="report-news-item">
-        <div class="report-news-number" style="background: {color};">{index}</div>
-        <div class="report-news-line" style="color: {color};"></div>
-        <div class="report-news-content">
-            <div class="report-news-title">{title}</div>
-            <div class="report-news-desc">{description}</div>
-        </div>
-    </div>
+            <div class="report-news-item">
+                <div class="report-news-number" style="background: {color};">{index}</div>
+                <div class="report-news-line" style="color: {color};"></div>
+                <div class="report-news-content">
+                    <div class="report-news-title">{title}</div>
+                    <div class="report-news-desc">{description}</div>
+                </div>
+            </div>
     """
 
 

@@ -1,12 +1,13 @@
 import os
 import asyncio
 
+from agentchat.settings import app_settings
+from agentchat.core.models.manager import ModelManager
 from agentchat.schema.chunk import ChunkModel
 from agentchat.services.rag.doc_parser.docx import docx_parser
 from agentchat.services.rag.doc_parser.pdf import pdf_parser
 from agentchat.services.rag.doc_parser.text import text_parser
 from agentchat.services.rag.doc_parser.markdown import markdown_parser
-from agentchat.core.models.models import async_client
 
 
 class DocParser:
@@ -25,16 +26,20 @@ class DocParser:
             chunks = await pdf_parser.parse_into_chunks(file_id, file_path, knowledge_id)
         """其他文档"""
 
-        # 创建信号量，限制最大并发任务数
-        semaphore = asyncio.Semaphore(max_concurrent_tasks)
+        # 当开启chunk总结时才有该步骤
+        if app_settings.rag.enable_summary:
+            # 创建信号量，限制最大并发任务数
+            semaphore = asyncio.Semaphore(max_concurrent_tasks)
 
-        tasks = [asyncio.create_task(cls.generate_summary(chunk, semaphore)) for chunk in chunks]
-        chunks = await asyncio.gather(*tasks)
+            tasks = [asyncio.create_task(cls.generate_summary(chunk, semaphore)) for chunk in chunks]
+            chunks = await asyncio.gather(*tasks)
 
         return chunks
 
     @classmethod
     async def generate_summary(cls, chunk: ChunkModel, semaphore):
+        async_client = ModelManager.get_conversation_model()
+
         async with semaphore:
             prompt = f"""
                 你是一个专业的摘要生成助手，请根据以下要求为文本生成一段摘要：
@@ -46,7 +51,7 @@ class DocParser:
                 3. 只输出摘要部分，不准输出 `以下是文本的摘要` 等字段
             """
             response = await async_client.ainvoke(prompt)
-            chunk.summary = response
+            chunk.summary = response.content
 
             return chunk
 

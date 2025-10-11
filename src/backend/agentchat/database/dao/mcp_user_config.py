@@ -2,7 +2,7 @@ from datetime import datetime
 from typing import Optional, List
 
 from sqlmodel import Session, select, and_, update, desc, delete, or_
-from agentchat.database import engine
+from agentchat.database.session import session_getter
 
 from agentchat.database.models.mcp_user_config import MCPUserConfigTable
 
@@ -17,7 +17,7 @@ class MCPUserConfigDao:
         :param config: 配置信息（可选）
         :return: None
         """
-        with Session(engine) as session:
+        with session_getter() as session:
             mcp_user_config = MCPUserConfigTable(mcp_server_id=mcp_server_id, user_id=user_id, config=config)
             session.add(mcp_user_config)
             session.commit()
@@ -29,7 +29,7 @@ class MCPUserConfigDao:
         :param config_id: 配置记录ID
         :return: 查询结果
         """
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(MCPUserConfigTable).where(MCPUserConfigTable.id == config_id)
             results = session.exec(sql).first()
             return results
@@ -41,7 +41,7 @@ class MCPUserConfigDao:
         :param config_id: 配置记录ID
         :return: None
         """
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = delete(MCPUserConfigTable).where(MCPUserConfigTable.id == config_id)
             session.exec(sql)
             session.commit()
@@ -56,7 +56,7 @@ class MCPUserConfigDao:
         :param config: 配置信息（可选）
         :return: None
         """
-        with Session(engine) as session:
+        with session_getter() as session:
             try:
                 update_values = {}
                 if config is not None:  # 更明确的判断
@@ -84,7 +84,7 @@ class MCPUserConfigDao:
         :param mcp_server_id: MCP Server ID
         :return: 查询结果
         """
-        with Session(engine) as session:
+        with session_getter() as session:
             sql = select(MCPUserConfigTable)
             sql = sql.where(
                 and_(MCPUserConfigTable.user_id == user_id, MCPUserConfigTable.mcp_server_id == mcp_server_id))

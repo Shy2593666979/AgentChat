@@ -2,7 +2,7 @@ import json
 from typing import List
 from elasticsearch import Elasticsearch
 
-from agentchat.prompts.es_index import ESIndex
+from agentchat.config.es_index import ESIndex
 from agentchat.schema.chunk import ChunkModel
 from agentchat.schema.search import SearchModel
 from agentchat.settings import app_settings
@@ -11,7 +11,7 @@ from loguru import logger
 
 class ESClient:
     def __init__(self):
-        self.client = Elasticsearch(hosts=app_settings.elasticsearch.get('hosts'))
+        self.client = Elasticsearch(hosts=app_settings.rag.elasticsearch.get('hosts'))
 
     async def insert_documents(self, index_name, chunks: List[ChunkModel]):
         # 构造查询条件

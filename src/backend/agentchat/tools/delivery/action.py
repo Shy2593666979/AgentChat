@@ -6,7 +6,7 @@ from typing import Type
 from langchain.tools import BaseTool
 from pydantic import Field, BaseModel
 from agentchat.settings import app_settings
-from agentchat.prompts.tool_prompt import DELIVERY_PROMPT
+from agentchat.prompts.tool import DELIVERY_PROMPT
 from loguru import logger
 
 class DeliveryInput(BaseModel):
@@ -27,9 +27,9 @@ def get_delivery(delivery_number: str):
     try:
         query = f'number={delivery_number}&mobile=mobile&type=type'
 
-        url = app_settings.tool_delivery.get('endpoint') + '?' + query
+        url = app_settings.tools.delivery.get('endpoint') + '?' + query
         headers = {
-            'Authorization': 'APPCODE ' + app_settings.tool_delivery.get('api_key')
+            'Authorization': 'APPCODE ' + app_settings.tools.delivery.get('api_key')
         }
 
         request = urllib.request.Request(url, headers=headers)

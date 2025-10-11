@@ -14,102 +14,98 @@ redis:
 
 # 根据自己的LLM配置进行更改
 multi_models:
-  qwen2:
-    api_key: "sk-**********"
+  conversation_model:
+    api_key: "sk-****************"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model_name: "qwen-plus"
-  deepseek_v3:
-    api_key: "sk-**********"
-    base_url: "https://api.deepseek.com/v1"
-    model_name: "deepseek-chat"
-  qwen_vl:
-    api_key: "sk-**********"
+  tool_call_model:
+    api_key: "sk-****************"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    model_name: "qwen-vl-plus"
-  deepseek_r1:
-    api_key: "sk-**********"
+    model_name: "qwen-plus"
+  reasoning_model:
+    api_key: "sk-*****************"
     base_url: "https://api.deepseek.com/v1"
     model_name: "deepseek-reasoner"
   text2image:
-    api_key: "sk-**********"
+    api_key: "sk-****************"
     base_url: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis"
     model_name: "wanx2.0-t2i-turbo"
+  qwen_vl:
+    api_key: "sk-****************"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "qwen-vl-plus"
 
-# 根据自己的Embedding配置进行更改
-embedding:
-  api_key: "sk-**********"
-  base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-  model_name: "text-embedding-v4"
+  # 根据自己的Embedding配置进行更改
+  embedding:
+    api_key: "sk-****************"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "text-embedding-v4"
 
-# 根据自己的Rerank配置进行更改
-rerank:
-  top_n: 10
-  api_key: "sk-************"
-  model_name: "gte-rerank-v2"
-  base_url: "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
-
-# 使用的是aliyun上的快递查询api
-tool_delivery:
-  api_key: "df69**********"
-  endpoint: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
-
-# 使用的是serpapi上的Google Search的api
-tool_google:
-  api_key: "cdc*********"
-
-# 使用的tavily上的联网搜索功能， 1000次/month
-tool_tavily:
-  api_key: "tvly-*************"
+  # 根据自己的Rerank配置进行更改
+  rerank:
+    api_key: "sk-****************"
+    base_url: "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
+    model_name: "gte-rerank-v2"
 
 
-# 使用高德地图上的天气api
-tool_weather:
-  api_key: "fac***********"
-  endpoint: "https://restapi.amap.com/v3/weather/weatherInfo?parameters"
+tools:
+  # 使用高德地图上的天气api
+  weather:
+    api_key: "fac0ad465***********"
+    endpoint: "https://restapi.amap.com/v3/weather/weatherInfo?parameters"
 
-# Mars中的配置
+  # 使用的tavily上的联网搜索功能， 1000次/month
+  tavily:
+    api_key: "tvly-dev-**************"
+
+  # 使用的是serpapi上的Google Search的api
+  google:
+    api_key: "cdc3b20760684****************"
+
+  # 使用的是aliyun上的快递查询api
+  delivery:
+    api_key: "df69*****************"
+    endpoint: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
+
+rag:
+  enable_summary: False # 是否对片段进行摘要
+
+  retrival:
+    top_k: 5  # 知识库召回的数量
+    min_score: 0.2 # 知识库召回的最小分数
+
+  split:
+    chunk_size: 500 # 知识库片段的最大字符数
+    overlap_size: 100 # 知识库片段之间的重复字符
+
+  elasticsearch:
+    hosts: "http://127.0.0.1:9200"
+
+  # vector db根据自己的配置更改
+  vector_db:
+    host: "127.0.0.1"
+    port: "19530"
+    mode: "chroma" # standalone 代表完整功能的Milvus; lite是轻量版的Milvus; chroma是更轻量级的向量库，mode 选择 chroma 不需要填host和 port
+
+
+aliyun_oss:
+  access_key_id: "LTAI5tL85xWWx9*********"
+  access_key_secret: "MiKCkLCx9qZzxc*******"
+  endpoint: "oss-cn-beijing.aliyuncs.com"
+  bucket_name: "agentchat"
+  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
+
+logo: # 创建
+  tool_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tool.png"
+  agent_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png"
+
 mars:
   daily_url: "https://news.aibase.com/zh/news"
 
-# vector db根据自己的配置更改
-vector_db:
-  host: "127.0.0.1"
-  port: "19530"
-  mode: "chroma" # standalone 代表完整功能的Milvus; lite是轻量版的Milvus; chroma是更轻量级的向量库，mode 选择 chroma 不需要填host和 port
-
-# 必要配置，但是不填可正常启动。但是用不了知识库模块
-elasticsearch:
-  hosts: "http://127.0.0.1:9200"
-  index_config_path: "agentchat/data/index_config.json"
-  index_search_summary_path: "agentchat/data/index_search_content.json"
-  index_search_content_path: "agentchat/data/index_search_summary.json"
-
-rag:
-  top_k: 5  # 知识库召回的数量
-  min_score: 0.2 # 知识库召回的最小分数
-
-split:
-  chunk_size: 500 # 知识库片段的最大字符数
-  overlap_size: 100 # 知识库片段之间的重复字符
-
-logo:
-  tool_url: "https://*******.oss-cn-beijing.aliyuncs.com/icons/tool.png"
-  agent_url: "https://******.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png"
-  prefix: "http://127.0.0.1:8880/"
-
-
-# 必要配置
-aliyun_oss:
-  access_key_id: "LT**************"
-  access_key_secret: "MiKCkLCx******"
-  endpoint: "oss-cn-beijing.aliyuncs.com"
-  bucket_name: "*******"
-  base_url: "https://******.oss-cn-beijing.aliyuncs.com"
+memory:
+  collection_name: "memory"
 
 whitelist_paths: ["/login"] #, "/api/v1"]
-
-use_captcha: False # 用户登录是否需要验证码， 代码里面已经默认 False，修改的话需要修改代码
-use_oss: True  # 是否开启OSS
 
 # 目前版本不应用
 langfuse:

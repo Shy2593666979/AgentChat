@@ -8,6 +8,7 @@ from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.mars import Mars_System_Prompt
 from agentchat.services.mars.mars_agent import MarsAgent, MarsConfig
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
+from agentchat.services.memory.client import memory_client
 
 router = APIRouter()
 
@@ -25,22 +26,22 @@ async def chat_mars(user_input: str = Body(..., description="用户输入", embe
 
     await mars_agent.init_mars_agent()
 
-    tools_schema = []
-    for tool in mars_agent.mars_tools:
-        if tool.name == "auto_build_agent":
-            auto_build_prompt = await construct_auto_build_prompt(mars_config.user_id)
-            tool.coroutine.__doc__ = tool.coroutine.__doc__.replace("{{{user_configs_placeholder}}}", auto_build_prompt)
-        tools_schema.append(f"工具：{tool.coroutine.__doc__}\n\n")
+    memory_messages = await memory_client.search(query=user_input, user_id=login_user.user_id)
+    memory_content = str([f"- {msg.get('memory', '')} \n" for msg in memory_messages.get('results', [])])
 
-    messages: List[BaseMessage] = [SystemMessage(content=Mars_System_Prompt.format(tools_info=str(tools_schema))),
+    messages: List[BaseMessage] = [SystemMessage(content=Mars_System_Prompt.format(memory_content=memory_content)),
                                    HumanMessage(content=user_input)]
 
     async def general_generate():
+        final_response = ""
         async for chunk in mars_agent.ainvoke_stream(messages):
             yield f"data: {chunk}\n\n"
+            if chunk.get("type") == "response_chunk":
+                final_response += chunk.get("data", "")
+
+        await memory_client.add(user_id=login_user.user_id, messages=[{"role": "user", "content": user_input}, {"role": "assistant", "content": final_response}])
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
-
 
 @router.post("/mars/example")
 async def chat_mars_example(example_id: int = Body(..., description="例子ID", embed=True),
@@ -53,7 +54,7 @@ async def chat_mars_example(example_id: int = Body(..., description="例子ID", 
 
     user_input = ""
     if example_id == MarsExampleEnum.Autobuild_Agent:
-        user_input = "帮我生成一个智能体，它可以给我预报每天的天气情况并且可以帮我生成图片，名称跟描述的话请你给他起一个吧"
+        user_input = "帮我生成一个智能体，它可以给我预报每天的天气情况并且可以帮我生成图片，名称跟描述的话请你给他起一个吧，智能体名称字数要处于2-10字之间"
     elif example_id == MarsExampleEnum.AI_News:
         user_input = "请帮我生成一份今天的AI日报，然后总结之后提供给我一个AI日报的图片，不需要详细内容"
     elif example_id == MarsExampleEnum.Query_Knowledge:

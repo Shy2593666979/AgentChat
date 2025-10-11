@@ -34,7 +34,7 @@ const convertToAgent = (apiAgent: any): Agent => ({
   mcp_ids: apiAgent.mcp_ids || [],
   system_prompt: apiAgent.system_prompt,
   knowledge_ids: apiAgent.knowledge_ids || [],
-  use_embedding: apiAgent.use_embedding,
+  enable_memory: apiAgent.enable_memory,
   created_time: apiAgent.create_time || apiAgent.created_time,
   is_custom: apiAgent.is_custom // 新增is_custom字段
 })
@@ -113,7 +113,7 @@ const searchAgents = async () => {
         mcp_ids: [],
         system_prompt: '',
         knowledge_ids: [],
-        use_embedding: false,
+        enable_memory: false,
         is_custom: false // 搜索结果默认为系统智能体
       }))
     } else {

@@ -12,7 +12,7 @@ from langgraph.graph import StateGraph, START, END
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from agentchat.prompts.llm_prompt import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt, \
+from agentchat.prompts.llm import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt, \
     PROMPT_REACT_BASE
 from agentchat.api.services.agent import AgentService
 from agentchat.api.services.chat import ChatService

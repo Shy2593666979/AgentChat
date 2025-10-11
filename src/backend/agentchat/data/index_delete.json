@@ -1,7 +1,0 @@
-{
-    "query": {
-        "term": {
-            "file_id": "{file_id}"
-        }
-    }
-}

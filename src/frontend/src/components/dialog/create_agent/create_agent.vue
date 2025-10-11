@@ -24,7 +24,7 @@ const form = ref<AgentFormData>({
   tool_ids: [],
   mcp_ids: [],
   knowledge_ids: [],
-  use_embedding: false
+  enable_memory: false
 })
 
 const collapseItems = ref({
@@ -84,7 +84,7 @@ const open = async (event: string, item?: Agent) => {
       tool_ids: [],
       mcp_ids: [],
       knowledge_ids: [],
-      use_embedding: false
+      enable_memory: false
     }
   } else {
     if (item) {
@@ -101,7 +101,7 @@ const open = async (event: string, item?: Agent) => {
         tool_ids: item.tool_ids || [],
         mcp_ids: item.mcp_ids || [],
         knowledge_ids: item.knowledge_ids || [],
-        use_embedding: item.use_embedding
+        enable_memory: item.enable_memory
       }
       id.value = item.agent_id
     }

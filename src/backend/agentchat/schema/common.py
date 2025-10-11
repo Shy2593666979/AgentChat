@@ -40,6 +40,25 @@ class MultiModels(BaseModel):
     tool_call_model: ModelConfig = Field(default_factory=ModelConfig)
     qwen_vl: ModelConfig = Field(default_factory=ModelConfig)
     text2image: ModelConfig = Field(default_factory=ModelConfig)
-    # deepseek_v3: ModelConfig = Field(default_factory=ModelConfig)
-    # qwen2: ModelConfig = Field(default_factory=ModelConfig)
-    # deepseek_r1: ModelConfig = Field(default_factory=ModelConfig)
+    embedding: ModelConfig = Field(default_factory=ModelConfig)
+    rerank: ModelConfig = Field(default_factory=ModelConfig)
+
+class Tools(BaseModel):
+    class Config:
+        extra = "allow"
+
+    weather: dict = Field(default_factory=dict)
+    tavily: dict = Field(default_factory=dict)
+    google: dict = Field(default_factory=dict)
+    delivery: dict = Field(default_factory=dict)
+
+
+class Rag(BaseModel):
+    class Config:
+        extra = "allow"
+
+    enable_summary: bool = Field(default=False)
+    retrival: dict = Field(default_factory=dict)
+    split: dict = Field(default_factory=dict)
+    elasticsearch: dict = Field(default_factory=dict)
+    vector_db: dict = Field(default_factory=dict)

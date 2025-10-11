@@ -11,12 +11,12 @@ class AgentService:
     @classmethod
     async def create_agent(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
                            llm_id: str, tool_ids: List[str], mcp_ids: List[str], system_prompt: str,
-                           use_embedding: bool = False, is_custom: bool = True):
+                           enable_memory: bool = False, is_custom: bool = True):
         try:
             await AgentDao.create_agent(name=name, description=description, logo_url=logo_url,
                                         llm_id=llm_id, tool_ids=tool_ids, user_id=user_id,
                                         knowledge_ids=knowledge_ids, is_custom=is_custom,
-                                        use_embedding=use_embedding, mcp_ids=mcp_ids, system_prompt=system_prompt)
+                                        enable_memory=enable_memory, mcp_ids=mcp_ids, system_prompt=system_prompt)
         except Exception as err:
             raise ValueError(f"Create Agent Appear Error: {err}")
 
@@ -31,7 +31,7 @@ class AgentService:
     @classmethod
     async def update_agent_by_id(cls, id: str, name: str, description: str, user_id: str,
                                  logo_url: str, tool_ids: List[str], knowledge_ids: List[str], llm_id: str,
-                                 use_embedding: bool, mcp_ids: List[str], system_prompt: str):
+                                 enable_memory: bool, mcp_ids: List[str], system_prompt: str):
         try:
             # 需要判断是否有权限，管理员随意
             if user_id == AdminUser or user_id == await cls.get_agent_user_id(agent_id=id):
@@ -43,7 +43,7 @@ class AgentService:
                                                   tool_ids=tool_ids,
                                                   llm_id=llm_id,
                                                   mcp_ids=mcp_ids,
-                                                  use_embedding=use_embedding,
+                                                  enable_memory=enable_memory,
                                                   system_prompt=system_prompt)
             else:
                 raise ValueError("No Permission Exec")

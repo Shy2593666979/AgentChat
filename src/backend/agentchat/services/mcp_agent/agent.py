@@ -14,7 +14,7 @@ from pydantic import BaseModel
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.core.models.manager import ModelManager
-from agentchat.prompts.chat_prompt import DEFAULT_CALL_PROMPT
+from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.utils.helpers import fix_json_text
 

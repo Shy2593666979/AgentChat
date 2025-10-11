@@ -9,7 +9,7 @@ class MCPAgentService:
 
     @classmethod
     def create_mcp_agent(cls, name: str, description: str, logo: str, user_id: str, knowledges_id: List[str],
-                         llm_id: str, mcp_servers_id: List[str], use_embedding: bool, is_custom: bool = True):
+                         llm_id: str, mcp_servers_id: List[str], enable_memory: bool, is_custom: bool = True):
         try:
             agent_id = MCPAgentDao.create_mcp_agent(name=name,
                                                     description=description,
@@ -19,7 +19,7 @@ class MCPAgentService:
                                                     user_id=user_id,
                                                     knowledges_id=knowledges_id,
                                                     is_custom=is_custom,
-                                                    use_embedding=use_embedding)
+                                                    enable_memory=enable_memory)
             return agent_id
         except Exception as err:
             logger.error(f"create agent is appear error: {err}")
@@ -38,7 +38,7 @@ class MCPAgentService:
     @classmethod
     def update_mcp_agent_by_id(cls, id: str, name: str, description: str, user_id: str,
                                logo: str, mcp_servers_id: List[str], knowledges_id: List[str], llm_id: str,
-                               use_embedding: bool):
+                               enable_memory: bool):
         try:
             # 需要判断是否有权限，管理员随意
             if user_id == AdminUser or user_id == cls.get_agent_user_id(agent_id=id):
@@ -49,7 +49,7 @@ class MCPAgentService:
                                                    knowledges_id=knowledges_id,
                                                    mcp_servers_id=mcp_servers_id,
                                                    llm_id=llm_id,
-                                                   use_embedding=use_embedding)
+                                                   enable_memory=enable_memory)
                 return resp_200(message='update agent success')
             else:
                 return resp_500(message='no permission exec')

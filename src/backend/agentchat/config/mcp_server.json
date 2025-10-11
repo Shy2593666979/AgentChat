@@ -1,0 +1,40 @@
+[
+  {
+    "server_name": "高德地图",
+    "url": "https://mcp.api-inference.modelscope.net/77df8a09751e4c/sse",
+    "type": "sse",
+    "config": {},
+    "params": {},
+    "config_enabled": false,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/map.png"
+  },
+  {
+    "server_name": "必应搜索",
+    "url": "https://mcp.api-inference.modelscope.net/23311e898a7e4a/sse",
+    "type": "sse",
+    "config": {},
+    "params": {},
+    "config_enabled": false,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/biying.png"
+  },
+  {
+    "server_name": "飞书",
+    "url": "http://47.95.23.87:8000/sse",
+    "type": "sse",
+    "config": [
+      {
+        "label": "APP_ID",
+        "key": "app_id",
+        "value": ""
+      },
+      {
+        "label": "APP_SECRET",
+        "key": "app_secret",
+        "value": ""
+      }
+    ],
+    "params": {},
+    "config_enabled": true,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/feishu.png"
+  }
+]

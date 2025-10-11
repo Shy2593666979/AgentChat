@@ -4,9 +4,9 @@ from typing import Union, List
 from openai import AsyncOpenAI
 from agentchat.settings import app_settings, initialize_app_settings
 
-embedding_model = app_settings.embedding.get('model_name')
-embedding_client = AsyncOpenAI(base_url=app_settings.embedding.get('base_url'),
-                               api_key=app_settings.embedding.get('api_key'))
+embedding_model = app_settings.multi_models.embedding.model_name
+embedding_client = AsyncOpenAI(base_url=app_settings.multi_models.embedding.base_url,
+                               api_key=app_settings.multi_models.embedding.api_key)
 
 async def get_embedding(query: Union[str, List[str]]):
     # 如果是字符串或长度小于等于10的列表，直接处理

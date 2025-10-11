@@ -28,7 +28,7 @@ const formData = reactive<AgentFormData>({
   mcp_ids: [],
   system_prompt: '',
   knowledge_ids: [],
-  use_embedding: false
+  enable_memory: false
 })
 
 // 折叠面板状态
@@ -102,7 +102,7 @@ const open = (mode: 'create' | 'edit', agent?: Agent) => {
       mcp_ids: agent.mcp_ids || [],
       system_prompt: agent.system_prompt,
       knowledge_ids: agent.knowledge_ids || [],
-      use_embedding: agent.use_embedding
+      enable_memory: agent.enable_memory
     })
     
     if (agent.logo_url) {
@@ -177,7 +177,7 @@ const resetForm = () => {
     mcp_ids: [],
     system_prompt: '你是一个智能助手 tmg-GPT，具有丰富的自然语言处理经验，擅长理解和生成文本内容，你的任务是帮助用户解决问题并提供信息支持，确保按照用户的指示执行任务。',
     knowledge_ids: [],
-    use_embedding: false
+    enable_memory: false
   })
   fileList.value = []
   editingAgentId.value = ''

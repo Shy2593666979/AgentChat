@@ -155,7 +155,7 @@ const goToRegister = () => {
 
         <!-- 底部版本信息 -->
         <div class="footer">
-          <span>v2.0</span>
+          <span>v2.0.1</span>
           <div class="footer-icons">
             <a href="https://github.com/Shy2593666979/AgentChat" target="_blank">
               <i class="icon-github"></i>

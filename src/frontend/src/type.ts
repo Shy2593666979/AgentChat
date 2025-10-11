@@ -110,7 +110,7 @@ export interface Agent {
   mcp_ids: string[]
   system_prompt: string
   knowledge_ids: string[]
-  use_embedding: boolean
+  enable_memory: boolean
   created_time?: string
   updated_time?: string
   user_id?: string
@@ -126,7 +126,7 @@ export interface AgentFormData {
   mcp_ids: string[]
   system_prompt: string
   knowledge_ids: string[]
-  use_embedding: boolean
+  enable_memory: boolean
 }
 
 export interface ToolOption {

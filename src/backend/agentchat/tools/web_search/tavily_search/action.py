@@ -5,7 +5,7 @@ from pydantic import BaseModel, Field, validate_call
 from agentchat.settings import app_settings
 from tavily import TavilyClient
 
-tavily_client = TavilyClient(app_settings.tool_tavily.get("api_key"))
+tavily_client = TavilyClient(app_settings.tools.tavily.get("api_key"))
 
 
 class TavilySearchInput(BaseModel):

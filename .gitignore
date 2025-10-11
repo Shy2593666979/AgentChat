@@ -9,3 +9,5 @@ chat.html
 .env
 
 chroma_db/
+memory_db/
+vector_db/
