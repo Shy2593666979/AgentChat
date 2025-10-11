@@ -671,7 +671,7 @@ npm run dev
 
 ## 🔧 开发指南
 
-### ⚠️ 重要提示
+### ⚠️ 重要提示 (目前已单独放到与agentchat并列，不需要再额外处理)
 
 由于 `fastapi-jwt-auth` 库使用较旧版本的 Pydantic，而项目中的 LangChain、MCP 等组件需要 Pydantic >= 2，需要手动修改库文件：
 
