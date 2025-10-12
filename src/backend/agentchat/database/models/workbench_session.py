@@ -3,6 +3,7 @@ from typing import Optional, List
 
 from sqlmodel import Field
 from uuid import uuid4
+from pydantic import BaseModel
 from sqlalchemy import Column, Text, JSON, DateTime, text, ForeignKey, CHAR, func
 
 from agentchat.database.models.base import SQLModelSerializable
@@ -10,7 +11,7 @@ from agentchat.database.models.base import SQLModelSerializable
 class WorkBenchSessionBase(SQLModelSerializable):
     title: str = Field(..., description="工作台会话的标题")
     user_id: str = Field(..., description="工作台会话对应的User ID")
-    contexts: List[dict] = Field(None, sa_column=Column(JSON), description="JSON, 含 tasks、questions、answers、guide_prompts 四个字段的结构化对话上下文")
+    contexts: List[dict] = Field([], sa_column=Column(JSON), description="JSON, 含 tasks、questions、answers、guide_prompts 四个字段的结构化对话上下文")
 
     # tasks: List[str] = Field(None, description="工作台会话的任务")
     # questions: List[str] = Field(None, description="用户的问题列表")
@@ -38,3 +39,8 @@ class WorkBenchSession(WorkBenchSessionBase, table=True):
         ),
         description="创建时间"
     )
+
+class WorkBenchSessionCreate(BaseModel):
+    title: str
+    user_id: str
+    contexts: List[dict] = []
