@@ -29,6 +29,13 @@ class ModelManager:
                               base_url=app_settings.multi_models.reasoning_model.base_url)
 
     @classmethod
+    def get_lingseek_intent_model(cls) -> BaseChatModel:
+        return ChatOpenAI(
+            model=app_settings.multi_models.tool_call_model.model_name,
+            api_key=app_settings.multi_models.tool_call_model.api_key,
+            base_url=app_settings.multi_models.tool_call_model.base_url)
+
+    @classmethod
     def get_qwen_vl_model(cls) -> BaseChatModel:
         return ChatOpenAI(model=app_settings.multi_models.qwen_vl.model_name,
                           api_key=app_settings.multi_models.qwen_vl.api_key,

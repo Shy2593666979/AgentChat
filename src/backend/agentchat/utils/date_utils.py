@@ -2,6 +2,17 @@
 from datetime import datetime, timedelta
 import pytz
 
+
+def get_beijing_time():
+    # 设置北京时区
+    beijing_tz = pytz.timezone('Asia/Shanghai')
+
+    # 获取当前的北京时区时间
+    current_bj_time = datetime.now(beijing_tz)
+    formatted_time = current_bj_time.strftime("%Y-%m-%d %H:%M")
+
+    return formatted_time
+
 def get_beijing_date_str():
     """获取当前北京时间，并返回格式为 'YYYY-m-d' 的字符串（如 2025-6-30）"""
     now = datetime.now(pytz.timezone('Asia/Shanghai'))

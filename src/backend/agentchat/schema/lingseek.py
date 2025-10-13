@@ -1,0 +1,37 @@
+from typing import List
+from pydantic import BaseModel
+
+
+class LingSeekGuidePrompt(BaseModel):
+    query: str
+    enable_search: bool = True
+    plugins: List[str] = []
+    mcp_servers: List[str] = []
+
+
+class LingSeekGuidePromptFeedBack(BaseModel):
+    query: str
+    guide_prompt: str
+    feedback: str = ""
+    enable_search: bool = True
+    plugins: List[str] = []
+    mcp_servers: List[str] = []
+
+class LingSeekTask(BaseModel):
+    query: str
+    guide_prompt: str
+    enable_search: bool = True
+    plugins: List[str] = []
+    mcp_servers: List[str] = []
+
+class LingSeekTaskStep(BaseModel):
+    thought: str
+    step_id: str
+    title: str
+    target: str
+    workflow: str
+    precautions: str
+    input_thought: str
+    input: List[str] = []
+
+    result: str = ""

@@ -1,9 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
+from starlette.responses import StreamingResponse
 
 from agentchat.api.services.workbench_session import WorkBenchSessionService
+from agentchat.schema.lingseek import LingSeekGuidePrompt
 from agentchat.schema.schemas import resp_200
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.database.models.workbench_session import WorkBenchSessionCreate
+from agentchat.services.lingseek.agent import LingSeekAgent
 
 router = APIRouter(prefix="/workbench")
 
@@ -36,3 +39,4 @@ async def create_workbench_session(session_id: str,
         await WorkBenchSessionService.delete_workbench_session([session_id], login_user.user_id)
     except Exception as err:
         raise HTTPException(status_code=500, detail=str(err))
+

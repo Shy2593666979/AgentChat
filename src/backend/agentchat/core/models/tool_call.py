@@ -17,7 +17,7 @@ class ToolCallModel:
 
         self.client = AsyncOpenAI(api_key=self.api_key, base_url=base_url)
 
-    def bind_tools(self, tools: dict):
+    def bind_tools(self, tools: Union[dict, list]):
         self.tools = tools
 
     async def ainvoke(self, messages: List[BaseMessage]) -> ChatCompletionMessage:
