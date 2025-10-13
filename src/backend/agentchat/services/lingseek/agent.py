@@ -150,7 +150,7 @@ class LingSeekAgent:
                     tasks_graph[input_step].model_dump()
                 )
 
-            step_prompt = ToolCallPrompt(
+            step_prompt = ToolCallPrompt.format(
                 step_info=step_info,
                 step_context=str(step_context)
             )
@@ -160,7 +160,7 @@ class LingSeekAgent:
 
             step_info.result = "\n".join([msg.content for msg in tools_messages])
 
-            # 总结到整体Messages
+            # 合到整体Messages
             messages.append(response)
             messages.extend(tools_messages)
             yield {
