@@ -5,9 +5,12 @@ from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, Tool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from agentchat.api.services.mcp_server import MCPService
+from agentchat.api.services.workspace_session import WorkSpaceSessionService
+from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
 from agentchat.prompts.template import GuidePromptTemplate
+from agentchat.schema.workspace import WorkSpaceAgents
 from agentchat.services.mcp_agent.agent import MCPConfig
-from agentchat.tools import LingSeekPlugins
+from agentchat.tools import LingSeekPlugins, tavily_search as web_search
 from agentchat.api.services.tool import ToolService
 from agentchat.core.models.manager import ModelManager
 from agentchat.utils.convert import mcp_tool_to_args_schema
@@ -23,9 +26,11 @@ class LingSeekAgent:
     conversation_model = ModelManager.get_conversation_model()
     tool_call_model = ModelManager.get_lingseek_intent_model()
 
-    def __init__(self):
+    def __init__(self, user_id: str):
         self.mcp_manager = MCPManager()
         self.mcp_tools = []
+
+        self.user_id = user_id
 
     async def _generate_guide_prompt(self, lingseek_guide_prompt):
         """
@@ -76,6 +81,15 @@ class LingSeekAgent:
         response = await self.conversation_model.ainvoke(title_prompt)
         return response.content
 
+    async def _add_workspace_session(self, query, contexts: WorkSpaceSessionContext):
+        title = await self._generate_title(query)
+        await WorkSpaceSessionService.create_workspace_session(
+            WorkSpaceSessionCreate(
+                title=title,
+                user_id=self.user_id,
+                contexts=[contexts.model_dump()],
+                agent=WorkSpaceAgents.LingSeekAgent.value))
+
     async def _parse_function_call_response(self, message: AIMessage):
         tool_messages = []
         if message.tool_calls:
@@ -90,7 +104,7 @@ class LingSeekAgent:
         return tool_messages
 
     async def generate_tasks(self, lingseek_task: LingSeekTask):
-        tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers)
+        tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers, lingseek_task.web_search)
         tools_str = json.dumps(tools, ensure_ascii=False, indent=2)
 
         lingseek_task_prompt = GenerateTaskPrompt.format(
@@ -106,7 +120,7 @@ class LingSeekAgent:
     async def generate_guide_prompt(self, lingseek_info: Union[LingSeekGuidePrompt, LingSeekGuidePromptFeedBack],
                                     feedback: bool = False):
 
-        tools = await self._obtain_lingseek_tools(lingseek_info.plugins, lingseek_info.mcp_servers)
+        tools = await self._obtain_lingseek_tools(lingseek_info.plugins, lingseek_info.mcp_servers, lingseek_info.web_search)
         tools_str = json.dumps(tools, ensure_ascii=False, indent=2)
 
         if feedback:
@@ -123,7 +137,7 @@ class LingSeekAgent:
                 guide_prompt_template=GuidePromptTemplate,
             )
         async for chunk in self._generate_guide_prompt(lingseek_guide_prompt):
-            yield chunk
+            yield chunk.content
 
     async def submit_lingseek_task(self, lingseek_task: LingSeekTask):
         task = await self.generate_tasks(lingseek_task)
@@ -138,11 +152,11 @@ class LingSeekAgent:
             task_step = LingSeekTaskStep(**step)
             tasks_graph[task.step_id] = task_step
 
-        tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers)
+        tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers, lingseek_task.web_search)
         tool_call_model = self.tool_call_model.bind_tools(tools)
 
-
         messages = []
+        context_task = []
         for step_id, step_info in tasks_graph:
             step_context = []
             for input_step in step_info.input:
@@ -160,16 +174,31 @@ class LingSeekAgent:
 
             step_info.result = "\n".join([msg.content for msg in tools_messages])
 
+            context_task.append(step_info.model_dump())
             # 合到整体Messages
             messages.append(response)
             messages.extend(tools_messages)
             yield {
-                "event": "task_result",
+                "event": "step_result",
                 "data": json.dumps({"message": step_info.result, "title": step_info.title})
             }
 
+        final_response = ""
         async for chunk in self.conversation_model.astream(messages):
-            yield chunk
+            final_response += chunk.content
+            yield {
+                "event": "task_result",
+                "data": json.dumps({"message": chunk.content})
+            }
+
+        await self._add_workspace_session(
+            lingseek_task.query,
+            WorkSpaceSessionContext(
+                query=lingseek_task.query,
+                guide_prompt=lingseek_task.guide_prompt,
+                task=context_task,
+                answer=final_response
+            ))
 
     async def _process_tools_result(self, tool_name, tool_args):
         def find_mcp_tool(tool_name):
@@ -185,10 +214,14 @@ class LingSeekAgent:
             text_content = LingSeekPlugins[tool_name](**tool_args)
         return text_content
 
-    async def _obtain_lingseek_tools(self, plugins, mcp_servers):
+    async def _obtain_lingseek_tools(self, plugins, mcp_servers, enable_web_search=False):
         plugins_name = await ToolService.get_tool_name_by_id(plugins)
         plugins_func = [LingSeekPlugins.get(name) for name in plugins_name]
         tools = [convert_to_openai_tool(func) for func in plugins_func]
+
+        if enable_web_search and web_search not in plugins_func:
+            plugins_func.append(web_search)
+            tools.append(convert_to_openai_tool(web_search))
 
         async def get_mcp_tools():
             servers_info = []
