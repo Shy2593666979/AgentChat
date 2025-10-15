@@ -29,7 +29,7 @@ class LingSeekTaskStep(BaseModel):
     step_id: str
     title: str
     target: str
-    workflow: str
+    workflow: str | dict
     precautions: str
     input_thought: str
     input: List[str] = []

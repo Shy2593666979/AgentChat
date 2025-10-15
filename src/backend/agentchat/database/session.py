@@ -5,7 +5,7 @@ from typing import Iterator, AsyncIterator
 
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import Session
-from agentchat.database import engine
+from agentchat.database import engine, async_engine
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ def session_getter() -> Iterator[Session]:
 
 @asynccontextmanager
 async def async_session_getter() -> AsyncIterator[AsyncSession]:
-    session = AsyncSession(engine)  # 使用异步引擎创建会话
+    session = AsyncSession(async_engine)  # 使用异步引擎创建会话
 
     try:
         yield session

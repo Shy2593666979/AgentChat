@@ -150,19 +150,20 @@ class LingSeekAgent:
                 "data": json.dumps({"message": step.get("title", "")})
             }
             task_step = LingSeekTaskStep(**step)
-            tasks_graph[task.step_id] = task_step
+            tasks_graph[task_step.step_id] = task_step
 
         tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers, lingseek_task.web_search)
         tool_call_model = self.tool_call_model.bind_tools(tools)
 
         messages = []
         context_task = []
-        for step_id, step_info in tasks_graph:
+        for step_id, step_info in tasks_graph.items():
             step_context = []
             for input_step in step_info.input:
-                step_context.append(
-                    tasks_graph[input_step].model_dump()
-                )
+                if input_step in tasks_graph:
+                    step_context.append(
+                        tasks_graph[input_step].model_dump()
+                    )
 
             step_prompt = ToolCallPrompt.format(
                 step_info=step_info,
