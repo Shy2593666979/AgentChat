@@ -14,6 +14,7 @@ class WorkSpaceSessionService:
     @classmethod
     async def get_workspace_sessions(cls, user_id):
         results = await WorkSpaceSessionDao.get_workspace_sessions(user_id)
+        results.sort(key=lambda x: x.update_time, reverse=True)
         return [result.to_dict() for result in results]
 
     @classmethod
@@ -27,6 +28,8 @@ class WorkSpaceSessionService:
     @classmethod
     async def get_workspace_session_from_id(cls, session_id, user_id):
         result = await WorkSpaceSessionDao.get_workspace_session_from_id(session_id)
+        if result is None:
+            raise ValueError("工作台会话不存在")
         if result.user_id != user_id:
             raise ValueError("无权限操作该工作台会话")
         return result.to_dict()

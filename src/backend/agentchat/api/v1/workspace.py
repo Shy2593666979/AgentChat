@@ -38,11 +38,12 @@ async def workspace_session_info(session_id: str,
     except Exception as err:
         raise HTTPException(status_code=500, detail=str(err))
 
-@router.post("/session/delete", summary="删除工作台的会话")
+@router.delete("/session", summary="删除工作台的会话")
 async def create_workspace_session(session_id: str,
                                    login_user: UserPayload = Depends(get_login_user)):
     try:
         await WorkSpaceSessionService.delete_workspace_session([session_id], login_user.user_id)
+        return resp_200()
     except Exception as err:
         raise HTTPException(status_code=500, detail=str(err))
 

@@ -137,25 +137,46 @@ class LingSeekAgent:
                 guide_prompt_template=GuidePromptTemplate,
             )
         async for chunk in self._generate_guide_prompt(lingseek_guide_prompt):
-            yield chunk.content
+            yield {
+                "event": "generate_guide_prompt",
+                "data": {
+                    "chunk": chunk.content
+                }
+            }
 
     async def submit_lingseek_task(self, lingseek_task: LingSeekTask):
         task = await self.generate_tasks(lingseek_task)
 
         tasks_graph = {}
+        tasks_show = []
         steps = task.get("steps", [])
         for step in steps:
-            yield {
-                "event": "generate_tasks",
-                "data": json.dumps({"message": step.get("title", "")})
-            }
             task_step = LingSeekTaskStep(**step)
             tasks_graph[task_step.step_id] = task_step
 
-        tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers, lingseek_task.web_search)
-        tool_call_model = self.tool_call_model.bind_tools(tools)
+        for step_id, step_info in tasks_graph.items():
+            for input_step in step_info.input:
+                if input_step in tasks_graph:
+                    # 构建展示的任务列表图结构
+                    tasks_show.append({
+                        "start": tasks_graph[input_step].title,
+                        "end": tasks_graph[step_id].title
+                    })
+                else:
+                    tasks_show.append({
+                        "start": "用户问题",
+                        "end": tasks_graph[step_id].title
+                    })
+        yield {
+            "event": "generate_tasks",
+            "data": {"graph": tasks_show}
+        }
 
-        messages = []
+
+        tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers, lingseek_task.web_search)
+        tool_call_model = self.tool_call_model.bind_tools(tools) if len(tools) else self.tool_call_model
+
+        messages = [HumanMessage(content=lingseek_task.query)]
         context_task = []
         for step_id, step_info in tasks_graph.items():
             step_context = []
@@ -181,7 +202,7 @@ class LingSeekAgent:
             messages.extend(tools_messages)
             yield {
                 "event": "step_result",
-                "data": json.dumps({"message": step_info.result, "title": step_info.title})
+                "data": {"message": step_info.result, "title": step_info.title}
             }
 
         final_response = ""
@@ -189,7 +210,7 @@ class LingSeekAgent:
             final_response += chunk.content
             yield {
                 "event": "task_result",
-                "data": json.dumps({"message": chunk.content})
+                "data": {"message": chunk.content}
             }
 
         await self._add_workspace_session(
@@ -198,6 +219,7 @@ class LingSeekAgent:
                 query=lingseek_task.query,
                 guide_prompt=lingseek_task.guide_prompt,
                 task=context_task,
+                task_graph=tasks_show,
                 answer=final_response
             ))
 

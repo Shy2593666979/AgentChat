@@ -17,7 +17,7 @@ async def generate_lingseek_guide_prompt(*,
 
     async def general_generate():
         async for chunk in lingseek_agent.generate_guide_prompt(lingseek_info):
-            yield f"data: {chunk}\n\n"
+            yield f"data: {json.dumps(chunk)}\n\n"
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
 
@@ -30,7 +30,7 @@ async def rebuild_generate_lingseek_guide_prompt(*,
 
     async def general_generate():
         async for chunk in lingseek_agent.generate_guide_prompt(feedback_guide_prompt, True):
-            yield f"data: {chunk}\n\n"
+            yield f"data: {json.dumps(chunk)}\n\n"
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
 
@@ -56,5 +56,5 @@ async def submit_lingseek_task(*,
 
     async def general_generate():
         async for chunk in lingseek_agent.submit_lingseek_task(task):
-            yield f"data: {chunk}\n\n"
+            yield f"data: {json.dumps(chunk)}\n\n"
     return StreamingResponse(general_generate(), media_type="text/event-stream")
