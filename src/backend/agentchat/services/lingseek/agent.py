@@ -197,9 +197,9 @@ class LingSeekAgent:
             step_info.result = "\n".join([msg.content for msg in tools_messages])
 
             context_task.append(step_info.model_dump())
-            # 合到整体Messages
-            messages.append(response)
-            messages.extend(tools_messages)
+            if tools_messages: # 合到整体Messages
+                messages.append(response)
+                messages.extend(tools_messages)
             yield {
                 "event": "step_result",
                 "data": {"message": step_info.result, "title": step_info.title}

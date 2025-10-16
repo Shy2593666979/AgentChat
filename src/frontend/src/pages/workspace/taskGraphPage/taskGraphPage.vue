@@ -69,7 +69,7 @@ const startReceivingResults = () => {
   if (!showTaskResult.value) {
     showTaskResult.value = true
   }
-  ElMessage.success('开始接收任务结果')
+  // ElMessage.success('开始接收任务结果')
   console.log('✅ [startReceivingResults] 状态已更新，准备启动排空')
   // 启动排空
   startDrain()
@@ -102,7 +102,7 @@ const startDrain = () => {
       }
       isDraining.value = false
       isReceivingResult.value = false
-      ElMessage.success('任务执行完成')
+      //ElMessage.success('任务执行完成')
       return
     }
     const chunk = resultBuffer.value.slice(0, drainChunkSize)
