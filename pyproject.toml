@@ -69,6 +69,7 @@ bcrypt = "4.2.0"
 redis = "~5.2.1"
 SQLAlchemy = "~2.0.32"
 sqlmodel = "~0.0.21"
+aiomysql = "0.2.0"
 PyMySQL = "1.1.1"
 python-multipart = "0.0.9"
 
