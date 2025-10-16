@@ -3,7 +3,7 @@ import logging
 from contextlib import contextmanager, asynccontextmanager
 from typing import Iterator, AsyncIterator
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlmodel.ext.asyncio.session import AsyncSession
 from sqlmodel import Session
 from agentchat.database import engine, async_engine
 
