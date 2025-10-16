@@ -8,6 +8,7 @@ server:
 # 根据自己的MySQL配置更改：mysql+pymysql://账号（root）:账号密码（123456）@主机地址（localhost）:端口号（3306）/数据库名
 mysql:
   endpoint: "mysql+pymysql://root:mingguang@localhost:3306/agentchat"
+  async_endpoint: "mysql+aiomysql://root:mingguang@localhost:3306/agentchat"
 
 redis:
   endpoint: "redis://localhost:6379"
