@@ -67,6 +67,11 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 
 <div align="center">
 
+### ✨灵寻任务规划
+*实时的任务流程图，更加直观的感受*
+<img width="800" height="450" alt="cc59faad-4112-48cd-b9b1-6f89d3cbdb39" src="https://github.com/user-attachments/assets/53f7fe9f-d70d-4cc2-bf7e-b47a712a6d7a" />
+
+
 ### 🏠 智言平台首页
 *简洁现代的主界面，提供直观的功能导航*
 
