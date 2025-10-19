@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Any
 from pydantic import BaseModel
 
 
@@ -29,7 +29,7 @@ class LingSeekTaskStep(BaseModel):
     step_id: str
     title: str
     target: str
-    workflow: str | dict
+    workflow: Any
     precautions: str
     input_thought: str
     input: List[str] = []

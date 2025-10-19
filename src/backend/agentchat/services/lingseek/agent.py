@@ -1,7 +1,7 @@
 import json
 from typing import List, Union
 
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage, BaseMessage
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from agentchat.api.services.mcp_server import MCPService
@@ -176,7 +176,7 @@ class LingSeekAgent:
         tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers, lingseek_task.web_search)
         tool_call_model = self.tool_call_model.bind_tools(tools) if len(tools) else self.tool_call_model
 
-        messages = [HumanMessage(content=lingseek_task.query)]
+        messages: List[BaseMessage] = [HumanMessage(content=lingseek_task.query)]
         context_task = []
         for step_id, step_info in tasks_graph.items():
             step_context = []
@@ -200,9 +200,11 @@ class LingSeekAgent:
             if tools_messages: # 合到整体Messages
                 messages.append(response)
                 messages.extend(tools_messages)
+            else:
+                messages.append(AIMessage(content=response.content))
             yield {
                 "event": "step_result",
-                "data": {"message": step_info.result, "title": step_info.title}
+                "data": {"message": step_info.result or " ", "title": step_info.title}
             }
 
         final_response = ""
