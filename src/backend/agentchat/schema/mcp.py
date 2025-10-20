@@ -1,0 +1,41 @@
+from pathlib import Path
+from pydantic import BaseModel, Field
+from typing import List, Any, Dict, Optional, Literal, Union
+
+class MCPBaseConfig(BaseModel):
+    server_name: str
+    transport: str
+    personal_config: Optional[Dict[str, Any]] = None
+
+class MCPSSEConfig(MCPBaseConfig):
+    transport: Literal["sse"] = "sse"
+    url: str
+    headers: Optional[Dict[str, Any]] = None
+    timeout: Optional[float] = None
+    sse_read_timeout: Optional[float] = None
+    session_kwargs: Optional[Dict[str, Any]] = None
+
+class MCPStdioConfig(MCPBaseConfig):
+    transport: Literal["stdio"] = "stdio"
+    command: str
+    args: list[str]
+    env: Optional[Dict[str, str]] = None
+    cwd: Optional[Path] = None
+    encoding: str = "utf-8"
+    encoding_error_handler: Optional[str] = "ignore"
+    session_kwargs: Optional[Dict[str, Any]] = None
+
+class MCPStreamableHttpConfig(MCPBaseConfig):
+    transport: Literal["streamable_http"] = "streamable_http"
+    url: str
+    headers: Optional[Dict[str, Any]] = None
+    timeout: Optional[float] = None
+    sse_read_timeout: Optional[float] = None
+    terminate_on_close: Optional[bool] = None
+    session_kwargs: Optional[Dict[str, Any]] = None
+
+
+class MCPWebsocketConfig(MCPBaseConfig):
+    transport: Literal["websocket"] = "websocket"
+    url: str
+    session_kwargs: Optional[Dict[str, Any]] = None

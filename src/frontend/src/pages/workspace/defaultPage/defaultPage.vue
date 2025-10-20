@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { getWorkspacePluginsAPI } from '../../../apis/workspace'
@@ -13,7 +13,12 @@ const showToolSelector = ref(false)
 const showSearchSelector = ref(false)
 const selectedModel = ref('Kimi-K2')
 const selectedTools = ref<string[]>([])
+const showMcpSelector = ref(false)
+const selectedMcpServers = ref<string[]>([])
+const mcpServers = ref<any[]>([])
 const webSearchEnabled = ref(false)
+const toolDropdownRef = ref<HTMLElement | null>(null)
+const mcpDropdownRef = ref<HTMLElement | null>(null)
 
 // 检测是否为Mac系统
 const isMac = computed(() => {
@@ -82,6 +87,27 @@ const toggleWebSearch = () => {
   showSearchSelector.value = false
 }
 
+// 点击空白处关闭工具/MCP下拉
+const handleClickOutside = (e: MouseEvent) => {
+  const target = e.target as Node
+  if (showToolSelector.value && toolDropdownRef.value && !toolDropdownRef.value.contains(target)) {
+    showToolSelector.value = false
+  }
+  if (showMcpSelector.value && mcpDropdownRef.value && !mcpDropdownRef.value.contains(target)) {
+    showMcpSelector.value = false
+  }
+}
+
+// 切换 MCP 服务器选择
+const toggleMcp = (serverId: string) => {
+  const index = selectedMcpServers.value.indexOf(serverId)
+  if (index > -1) {
+    selectedMcpServers.value.splice(index, 1)
+  } else {
+    selectedMcpServers.value.push(serverId)
+  }
+}
+
 // 发送消息
 const handleSend = async () => {
   if (!inputMessage.value.trim()) {
@@ -104,7 +130,8 @@ const handleSend = async () => {
       query: {
         query: query,
         tools: JSON.stringify(selectedTools.value),
-        webSearch: webSearchEnabled.value.toString()
+        webSearch: webSearchEnabled.value.toString(),
+        mcp_servers: JSON.stringify(selectedMcpServers.value)
       }
     })
   } else {
@@ -127,6 +154,22 @@ const handleKeydown = (event: KeyboardEvent) => {
 
 onMounted(() => {
   fetchPlugins()
+  // 懒加载 MCP 列表（用于选择）
+  import('../../../apis/mcp-server').then(async ({ getMCPServersAPI }) => {
+    try {
+      const res = await getMCPServersAPI()
+      if (res.data && res.data.status_code === 200 && Array.isArray(res.data.data)) {
+        mcpServers.value = res.data.data
+      }
+    } catch (e) {
+      console.error('加载 MCP 服务器失败', e)
+    }
+  })
+  document.addEventListener('click', handleClickOutside)
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', handleClickOutside)
 })
 </script>
 
@@ -212,7 +255,7 @@ onMounted(() => {
               </div>
               
               <!-- 工具选择 -->
-              <div class="selector-dropdown">
+              <div class="selector-dropdown" ref="toolDropdownRef">
                 <div 
                   class="selector-item"
                   @click="showToolSelector = !showToolSelector"
@@ -279,6 +322,79 @@ onMounted(() => {
                       </button>
                       <div class="selected-info">
                         <span class="selected-count">已选 {{ selectedTools.length }} 个工具</span>
+                      </div>
+                    </div>
+                  </div>
+                </transition>
+              </div>
+
+              <!-- MCP 服务器选择（紧跟工具选择后） -->
+              <div class="selector-dropdown" ref="mcpDropdownRef">
+                <div 
+                  class="selector-item"
+                  @click="showMcpSelector = !showMcpSelector"
+                >
+                  <span class="selector-icon">🧩</span>
+                  <span class="selector-text">
+                    {{ selectedMcpServers.length > 0 ? `已选 ${selectedMcpServers.length} 个MCP` : '选择MCP' }}
+                  </span>
+                  <span class="selector-arrow">▼</span>
+                </div>
+                
+                <!-- MCP 下拉菜单 -->
+                <transition name="dropdown">
+                  <div v-if="showMcpSelector" class="dropdown-menu tool-menu">
+                    <!-- 标题 -->
+                    <div class="dropdown-header">
+                      <span class="header-title">选择MCP服务器</span>
+                      <span class="header-count">{{ mcpServers.length }} 个可用</span>
+                    </div>
+
+                    <!-- 列表 -->
+                    <div class="dropdown-list">
+                      <div v-if="mcpServers.length === 0" class="dropdown-empty">
+                        <span class="empty-icon">🧩</span>
+                        <span class="empty-text">暂无可用MCP服务器</span>
+                      </div>
+                      <div
+                        v-for="mcp in mcpServers"
+                        :key="mcp.mcp_server_id"
+                        :class="['dropdown-item', { selected: selectedMcpServers.includes(mcp.mcp_server_id) }]"
+                        @click="toggleMcp(mcp.mcp_server_id)"
+                      >
+                        <div class="item-left">
+                          <div class="item-icon-wrapper">
+                            <img 
+                              v-if="mcp.logo_url" 
+                              :src="mcp.logo_url" 
+                              :alt="mcp.server_name"
+                              class="item-icon-img"
+                            />
+                            <span v-else class="item-icon">🧩</span>
+                          </div>
+                          <div class="item-content">
+                            <div class="item-text">{{ mcp.server_name }}</div>
+                          </div>
+                        </div>
+                        <div 
+                          v-if="selectedMcpServers.includes(mcp.mcp_server_id)" 
+                          class="item-check-wrapper"
+                        >
+                          <span class="item-check">✓</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    <!-- 底部操作栏 -->
+                    <div v-if="selectedMcpServers.length > 0" class="dropdown-footer">
+                      <button 
+                        class="clear-btn"
+                        @click.stop="selectedMcpServers = []"
+                      >
+                        <span>清空</span>
+                      </button>
+                      <div class="selected-info">
+                        <span class="selected-count">已选 {{ selectedMcpServers.length }} 个MCP</span>
                       </div>
                     </div>
                   </div>

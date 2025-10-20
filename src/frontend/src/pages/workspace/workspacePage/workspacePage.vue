@@ -212,6 +212,10 @@ onMounted(async () => {
     webSearchEnabled.value = route.query.webSearch === 'true'
     console.log('webSearchEnabled:', webSearchEnabled.value)
 
+    const mcpQuery = route.query.mcp_servers as string
+    const selectedMcpServers = mcpQuery ? JSON.parse(mcpQuery) : []
+    console.log('mcp_servers:', selectedMcpServers)
+
     // 如果有查询内容，立即开始生成（后端会创建会话）
     if (userQuery.value) {
       console.log('检测到 userQuery，开始调用接口')
@@ -222,7 +226,7 @@ onMounted(async () => {
         tools: selectedTools.value,
         web_search: webSearchEnabled.value,
         plugins: selectedTools.value, // plugins 和 tools 是同一个字段
-        mcp_servers: [] // 暂时为空，如果需要可以从其他地方获取
+        mcp_servers: selectedMcpServers
       }
       
       startGenerateGuidePrompt()
@@ -273,7 +277,8 @@ const startGenerateGuidePrompt = async () => {
       {
         query: userQuery.value,
         tools: selectedTools.value,
-        web_search: webSearchEnabled.value
+        web_search: webSearchEnabled.value,
+        mcp_servers: originalParams.value.mcp_servers
       },
       (data) => {
         // 处理流式数据（纯文本），立即更新

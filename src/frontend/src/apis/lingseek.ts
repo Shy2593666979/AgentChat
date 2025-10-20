@@ -8,6 +8,7 @@ export const generateLingSeekGuidePromptAPI = async (
     query: string
     tools?: string[]
     web_search?: boolean
+    mcp_servers?: string[]
   },
   onMessage: (data: any) => void,
   onError?: (error: any) => void,

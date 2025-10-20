@@ -301,7 +301,8 @@ const generateGuidePrompt = async () => {
       {
         query: originalParams.value.query,
         tools: originalParams.value.tools,
-        web_search: originalParams.value.web_search
+        web_search: originalParams.value.web_search,
+        mcp_servers: originalParams.value.mcp_servers
       },
       (data) => {
         // 处理流式数据
@@ -363,6 +364,7 @@ const handleConfirmRegenerate = async () => {
         query: originalParams.value.query,
         plugins: originalParams.value.plugins,
         web_search: originalParams.value.web_search,
+        mcp_servers: originalParams.value.mcp_servers,
         feedback: feedbackText.value,
         guide_prompt: currentGuidePrompt
       },
@@ -431,10 +433,13 @@ onMounted(async () => {
     const tools = route.query.tools as string
     originalParams.value.tools = tools ? JSON.parse(tools) : []
     originalParams.value.plugins = originalParams.value.tools
+    const mcpQuery = route.query.mcp_servers as string
+    originalParams.value.mcp_servers = mcpQuery ? JSON.parse(mcpQuery) : []
     
     taskParams.value.query = originalParams.value.query
     taskParams.value.web_search = originalParams.value.web_search
     taskParams.value.plugins = originalParams.value.plugins
+    taskParams.value.mcp_servers = originalParams.value.mcp_servers
     
     console.log('✅ 用户问题:', originalParams.value.query)
     console.log('✅ 选中工具:', originalParams.value.tools)
@@ -1027,6 +1032,7 @@ const getNodeColor = (status: string) => {
 </template>
 
 <style lang="scss" scoped>
+@use "sass:color";
 // 全局颜色变量
 $primary-start: #06b6d4;
 $primary-end: #3b82f6;
@@ -1477,7 +1483,7 @@ $error: #ef4444;
           }
 
           &:hover:not(:disabled) {
-            background: linear-gradient(135deg, darken($primary-start, 5%) 0%, darken($primary-end, 5%) 100%);
+            background: linear-gradient(135deg, color.adjust($primary-start, $lightness: -5%) 0%, color.adjust($primary-end, $lightness: -5%) 100%);
             box-shadow: 
               0 12px 32px rgba(6, 182, 212, 0.5),
               0 6px 16px rgba(59, 130, 246, 0.35),
