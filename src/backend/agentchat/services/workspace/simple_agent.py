@@ -113,7 +113,7 @@ class WorkSpaceSimpleAgent:
         try:
             tools_name = await ToolService.get_tool_name_by_id(self.plugins)
             for name in tools_name:
-                self.plugin_tools.append(StructuredTool(name=name, description=WorkSpacePlugins[name].__doc__, func=WorkSpacePlugins[name]))
+                self.plugin_tools.append(Tool(name=name, description=WorkSpacePlugins[name].__doc__, func=WorkSpacePlugins[name]))
 
             logger.info(f"Loaded {len(self.plugin_tools)} plugin tools")
 
