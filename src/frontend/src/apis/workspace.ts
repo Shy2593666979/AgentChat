@@ -43,3 +43,20 @@ export const deleteWorkspaceSessionAPI = async (sessionId: string) => {
     }
   })
 }
+
+// 工作区日常对话接口
+export interface WorkSpaceSimpleTask {
+  query: string
+  model_id: string
+  plugins: string[]
+  mcp_servers: string[]
+}
+
+export const workspaceSimpleChatAPI = async (data: WorkSpaceSimpleTask) => {
+  return request({
+    url: '/api/v1/workspace/simple/chat',
+    method: 'post',
+    data,
+    responseType: 'stream'
+  })
+}

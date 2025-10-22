@@ -1,12 +1,17 @@
+import json
 from fastapi import APIRouter, Depends, HTTPException
+from langchain_core.messages import HumanMessage
 from starlette.responses import StreamingResponse
 
+from agentchat.api.services.llm import LLMService
+from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.tool import ToolService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.schema.schemas import resp_200
+from agentchat.schema.workspace import WorkSpaceSimpleTask
 from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.database.models.workspace_session import WorkSpaceSessionCreate
-from agentchat.services.lingseek.agent import LingSeekAgent
+from agentchat.services.workspace.simple_agent import WorkSpaceSimpleAgent
+from agentchat.utils.convert import convert_mcp_config
 
 router = APIRouter(prefix="/workspace")
 
@@ -46,4 +51,33 @@ async def create_workspace_session(session_id: str,
         return resp_200()
     except Exception as err:
         raise HTTPException(status_code=500, detail=str(err))
+
+
+@router.post("/simple/chat", summary="工作台日常对话")
+async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
+                                login_user: UserPayload = Depends(get_login_user)):
+    model_config = await LLMService.get_llm_by_id(simple_task.model_id)
+    servers_config = []
+    for mcp_id in simple_task.mcp_servers:
+        mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
+        servers_config.append(
+            convert_mcp_config(mcp_server)
+        )
+
+    simple_agent = WorkSpaceSimpleAgent(
+        model_config={
+            "model": model_config["model"],
+            "base_url": model_config["base_url"],
+            "api_key": model_config["api_key"]
+        },
+        mcp_configs=servers_config,
+        plugins=simple_task.plugins,
+    )
+
+    async def general_generate():
+        async for chunk in simple_agent.astream([HumanMessage(content=simple_task.query)]):
+            yield f"data: {json.dumps(chunk)}"
+
+    return StreamingResponse(general_generate(), media_type="text/event-stream")
+
 

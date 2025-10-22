@@ -49,7 +49,7 @@ class WorkSpaceSessionCreate(BaseModel):
 
 class WorkSpaceSessionContext(BaseModel):
     query: str
-    guide_prompt: str
-    task: list[dict]
-    task_graph: list[dict]
+    guide_prompt: str = ""
+    task: list[dict] = []
+    task_graph: list[dict] = []
     answer: str

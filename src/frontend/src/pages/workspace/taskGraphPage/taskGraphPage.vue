@@ -128,6 +128,7 @@ const feedbackText = ref('')
 const isHistoryMode = ref(false)
 const historyContexts = ref<HistoryContext[]>([])
 
+
 // 保存任务参数
 const taskParams = ref({
   query: '',
@@ -406,6 +407,7 @@ const handleStartTask = () => {
   console.log('✅ 已同步指导手册到任务参数，长度:', taskParams.value.guide_prompt.length)
   startTask()
 }
+
 
 // 初始化
 onMounted(async () => {
@@ -2213,6 +2215,7 @@ $error: #ef4444;
 .task-graph-page::after {
   display: none !important;
 }
+
 
 /* 布局与面板 */
 .three-column-layout {
