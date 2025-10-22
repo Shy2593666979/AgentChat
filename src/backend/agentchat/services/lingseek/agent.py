@@ -1,10 +1,11 @@
 import json
-from typing import List, Union
+from typing import List, Union, Optional
 
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage, BaseMessage
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from agentchat.api.services.mcp_server import MCPService
+from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
 from agentchat.prompts.template import GuidePromptTemplate
@@ -13,11 +14,11 @@ from agentchat.services.mcp_agent.agent import MCPConfig
 from agentchat.tools import LingSeekPlugins, tavily_search as web_search
 from agentchat.api.services.tool import ToolService
 from agentchat.core.models.manager import ModelManager
-from agentchat.utils.convert import mcp_tool_to_args_schema
+from agentchat.utils.convert import mcp_tool_to_args_schema, convert_mcp_config
 from agentchat.utils.date_utils import get_beijing_time
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.prompts.lingseek import GenerateGuidePrompt, FeedBackGuidePrompt, GenerateTitlePrompt, \
-    GenerateTaskPrompt, FixJsonPrompt, ToolCallPrompt
+    GenerateTaskPrompt, FixJsonPrompt, ToolCallPrompt, SystemMessagePrompt
 from agentchat.schema.lingseek import LingSeekGuidePrompt, LingSeekGuidePromptFeedBack, LingSeekTask, \
     LingSeekTaskStep
 
@@ -27,8 +28,9 @@ class LingSeekAgent:
     tool_call_model = ModelManager.get_lingseek_intent_model()
 
     def __init__(self, user_id: str):
-        self.mcp_manager = MCPManager()
+        self.mcp_manager: Optional[MCPManager] = None
         self.mcp_tools = []
+        self.tool_mcp_server_dict = {}
 
         self.user_id = user_id
 
@@ -176,7 +178,7 @@ class LingSeekAgent:
         tools = await self._obtain_lingseek_tools(lingseek_task.plugins, lingseek_task.mcp_servers, lingseek_task.web_search)
         tool_call_model = self.tool_call_model.bind_tools(tools) if len(tools) else self.tool_call_model
 
-        messages: List[BaseMessage] = [HumanMessage(content=lingseek_task.query)]
+        messages: List[BaseMessage] = [SystemMessage(content=SystemMessagePrompt), HumanMessage(content=lingseek_task.query)]
         context_task = []
         for step_id, step_info in tasks_graph.items():
             step_context = []
@@ -201,6 +203,7 @@ class LingSeekAgent:
                 messages.append(response)
                 messages.extend(tools_messages)
             else:
+                messages.append(HumanMessage(content=lingseek_task.query))
                 messages.append(AIMessage(content=response.content))
             yield {
                 "event": "step_result",
@@ -234,6 +237,9 @@ class LingSeekAgent:
             return None
 
         if tool := find_mcp_tool(tool_name):
+            mcp_config = await MCPUserConfigService.get_mcp_user_config(self.user_id,
+                                                                        self.tool_mcp_server_dict[tool_name])
+            tool_args.update(mcp_config)
             text_content, no_text_content = await tool.coroutine(**tool_args)
         else:
             text_content = LingSeekPlugins[tool_name](**tool_args)
@@ -249,19 +255,19 @@ class LingSeekAgent:
             tools.append(convert_to_openai_tool(web_search))
 
         async def get_mcp_tools():
-            servers_info = []
+            if self.mcp_tools:
+                return self.mcp_tools
+
+            servers_config = []
             for mcp_id in mcp_servers:
                 mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
                 mcp_config = MCPConfig(**mcp_server)
 
-                servers_info.append(
-                    {
-                        "url": mcp_config.url,
-                        "type": mcp_config.type,
-                        "server_name": mcp_config.server_name
-                    }
+                self.tool_mcp_server_dict.update({tool: mcp_config.mcp_server_id for tool in mcp_config.tools})
+                servers_config.append(
+                    convert_mcp_config(mcp_config.model_dump())
                 )
-            await self.mcp_manager.connect_mcp_servers(servers_info)
+            self.mcp_manager = MCPManager(servers_config)
             mcp_tools = await self.mcp_manager.get_mcp_tools()
             self.mcp_tools = mcp_tools
 

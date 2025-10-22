@@ -13,6 +13,7 @@ from agentchat.api.services.mcp_server import MCPService
 from agentchat.database.models.user import AdminUser
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.settings import app_settings
+from agentchat.utils.convert import convert_mcp_config
 
 
 # 创建MySQL数据表
@@ -98,7 +99,7 @@ async def insert_tools_to_mysql():
 
 # 更新MCP Server的信息到数据库中
 async def update_mcp_server_into_mysql(has_mcp_server: bool):
-    mcp_manager = MCPManager(timeout=10)
+
 
     # 判断是不是不是首次连接
     if has_mcp_server:
@@ -117,7 +118,7 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
                              "url": server["url"],
                              "server_name": server["server_name"]})
 
-    await mcp_manager.connect_mcp_servers(servers_info)
+    mcp_manager = MCPManager(convert_mcp_config(servers_info))
     servers_params = await mcp_manager.show_mcp_tools()
 
     # 通过MCP Server名称获取信息

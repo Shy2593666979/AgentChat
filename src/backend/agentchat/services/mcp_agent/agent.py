@@ -1,22 +1,23 @@
 import asyncio
 import inspect
 import json
-from typing import List
+from typing import List, Optional
+from loguru import logger
 
+from pydantic import BaseModel
 from langchain_core.messages import ToolMessage, BaseMessage, AIMessage, SystemMessage, ToolCall, HumanMessage
 from langchain_core.tools import BaseTool
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, MessagesState
-from loguru import logger
 from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion_message_tool_call import Function
-from pydantic import BaseModel
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.utils.helpers import fix_json_text
+from agentchat.utils.convert import convert_mcp_config
 
 
 class MCPConfig(BaseModel):
@@ -30,7 +31,7 @@ class MCPConfig(BaseModel):
 class MCPAgent:
     def __init__(self, mcp_config: MCPConfig, user_id: str):
         self.mcp_config = mcp_config
-        self.mcp_manager = MCPManager()
+        self.mcp_manager = MCPManager([convert_mcp_config(mcp_config.model_dump())])
 
         self.user_id = user_id
         self.mcp_tools: List[BaseTool] = []
@@ -42,7 +43,7 @@ class MCPAgent:
 
     async def init_mcp_agent(self):
         if self.mcp_config:
-            await self.connect_mcp_server()
+            # await self.connect_mcp_server() # 已使用MCP v2.0
             self.mcp_tools = await self.set_mcp_tools()
 
         await self.set_language_model()
@@ -59,13 +60,14 @@ class MCPAgent:
         mcp_tools = await self.mcp_manager.get_mcp_tools()
         return mcp_tools
 
-    async def connect_mcp_server(self):
-        server_info = {
-            "url": self.mcp_config.url,
-            "type": self.mcp_config.type,
-            "server_name": self.mcp_config.server_name
-        }
-        await self.mcp_manager.connect_mcp_servers([server_info])
+    # 已使用MCP v2.0
+    # async def connect_mcp_server(self):
+    #     server_info = {
+    #         "url": self.mcp_config.url,
+    #         "type": self.mcp_config.type,
+    #         "server_name": self.mcp_config.server_name
+    #     }
+    #     await self.mcp_manager.connect_mcp_servers([server_info])
 
     async def call_tools_messages(self, messages: List[BaseMessage]) -> AIMessage:
         """调用工具选择，添加流式事件"""
@@ -122,7 +124,7 @@ class MCPAgent:
                 tool_args.update(mcp_config)
 
                 # 调用MCP 工具返回结果
-                tool_result = await mcp_tool.coroutine(**tool_args)
+                tool_result, _ = await mcp_tool.coroutine(**tool_args)
 
                 tool_messages.append(
                     ToolMessage(content=tool_result, name=tool_name, tool_call_id=tool_call_id))
