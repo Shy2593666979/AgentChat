@@ -47,7 +47,9 @@ const fetchSessions = async () => {
       sessions.value = response.data.data.map((session: any) => ({
         sessionId: session.session_id || session.id,
         title: session.title || '未命名会话',
-        createTime: session.create_time || session.created_at || new Date().toISOString()
+        createTime: session.create_time || session.created_at || new Date().toISOString(),
+        agent: session.agent || 'lingseek', // 保存agent类型，默认为lingseek
+        contexts: session.contexts || [] // 保存上下文
       }))
       console.log('工作区会话列表:', sessions.value)
     } else {
@@ -84,15 +86,38 @@ const deleteSession = async (sessionId: string, event: Event) => {
   }
 }
 
-// 选择会话 - 直接跳转到三列布局页面
+// 选择会话 - 根据agent类型跳转到不同页面
 const selectSession = (sessionId: string) => {
   selectedSession.value = sessionId
-  router.push({
-    name: 'taskGraphPage',
-    query: {
-      session_id: sessionId
-    }
-  })
+  
+  // 找到对应的会话
+  const session = sessions.value.find(s => s.sessionId === sessionId)
+  
+  if (!session) {
+    console.error('未找到会话:', sessionId)
+    return
+  }
+  
+  console.log('选择会话:', sessionId, '类型:', session.agent)
+  
+  // 根据agent类型判断跳转页面
+  if (session.agent === 'simple') {
+    // 日常模式，跳转到日常对话页面，并传递session_id
+    router.push({
+      name: 'workspaceDefaultPage',
+      query: {
+        session_id: sessionId
+      }
+    })
+  } else {
+    // lingseek模式，跳转到三列布局页面
+    router.push({
+      name: 'taskGraphPage',
+      query: {
+        session_id: sessionId
+      }
+    })
+  }
 }
 
 // 用户下拉菜单命令处理

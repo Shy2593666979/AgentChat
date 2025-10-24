@@ -77,8 +77,18 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
 
     async def general_generate():
         async for chunk in simple_agent.astream([HumanMessage(content=simple_task.query)]):
-            yield f"data: {json.dumps(chunk)}"
+            # chunk 已经是 dict: {"event": "task_result", "data": {"message": "..."}}
+            # 需要 JSON 序列化后作为 SSE 的 data 字段
+            yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
-    return StreamingResponse(general_generate(), media_type="text/event-stream")
+    return StreamingResponse(
+        general_generate(),
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        }
+    )
 
 

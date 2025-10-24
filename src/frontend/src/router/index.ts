@@ -52,12 +52,12 @@ const routes: RouteRecordRaw[] = [
     },
     children: [
       {
-        path: '/workspace/',
+        path: '',
         name: 'workspaceDefaultPage',
         component: WorkspaceDefaultPage,
       },
       {
-        path: '/workspace/workspacePage',
+        path: 'workspacePage',
         name: 'workspacePage',
         component: WorkspacePage,
       }

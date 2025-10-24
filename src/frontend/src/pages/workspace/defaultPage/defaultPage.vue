@@ -1,17 +1,25 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onBeforeUnmount } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onBeforeUnmount, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
-import { getWorkspacePluginsAPI } from '../../../apis/workspace'
+import { MdPreview } from "md-editor-v3"
+import "md-editor-v3/lib/style.css"
+import { getWorkspacePluginsAPI, workspaceSimpleChatStreamAPI, type WorkSpaceSimpleTask } from '../../../apis/workspace'
+import { getVisibleLLMsAPI, type LLMResponse } from '../../../apis/llm'
+import { useUserStore } from '../../../store/user'
+
+const userStore = useUserStore()
 
 const router = useRouter()
+const route = useRoute()
 const inputMessage = ref('')
 const selectedMode = ref('normal')
 const plugins = ref<any[]>([])
 const showModelSelector = ref(false)
 const showToolSelector = ref(false)
 const showSearchSelector = ref(false)
-const selectedModel = ref('Kimi-K2')
+const selectedModel = ref<string>('')
+const selectedModelId = ref<string>('')
 const selectedTools = ref<string[]>([])
 const showMcpSelector = ref(false)
 const selectedMcpServers = ref<string[]>([])
@@ -20,10 +28,20 @@ const webSearchEnabled = ref(false)
 const toolDropdownRef = ref<HTMLElement | null>(null)
 const mcpDropdownRef = ref<HTMLElement | null>(null)
 
-// 检测是否为Mac系统
-const isMac = computed(() => {
-  return typeof navigator !== 'undefined' && navigator.platform.toUpperCase().indexOf('MAC') >= 0
-})
+// 模型数据（来自应用中心“可见模型”）
+const modelOptions = ref<LLMResponse[]>([])
+const modelsLoading = ref(false)
+
+// 本页对话消息（用户在上，AI在下）
+const messages = ref<Array<{ role: 'user' | 'assistant'; content: string }>>([])
+
+// 头像加载错误处理
+const handleAvatarError = (event: Event) => {
+  const target = event.target as HTMLImageElement
+  if (target) {
+    target.src = '/src/assets/user.svg'
+  }
+}
 
 const modes = [
   {
@@ -38,11 +56,31 @@ const modes = [
   }
 ]
 
-const models = [
-  { id: 'kimi-k2', name: 'Kimi-K2', icon: '🤖' },
-  { id: 'gpt-4', name: 'GPT-4', icon: '🧠' },
-  { id: 'claude', name: 'Claude', icon: '🎭' }
-]
+// 从接口加载模型
+const fetchModels = async () => {
+  modelsLoading.value = true
+  try {
+    const res = await getVisibleLLMsAPI()
+    if (res.data && res.data.status_code === 200) {
+      const grouped = res.data.data || {}
+      const list: LLMResponse[] = []
+      Object.values(grouped).forEach((arr: any) => {
+        if (Array.isArray(arr)) list.push(...arr)
+      })
+      // 仅保留 LLM 类型
+      modelOptions.value = list.filter(m => (m.llm_type || '').toUpperCase() === 'LLM')
+      // 默认选择第一个
+      if (!selectedModelId.value && modelOptions.value.length > 0) {
+        selectedModelId.value = modelOptions.value[0].llm_id
+        selectedModel.value = modelOptions.value[0].model
+      }
+    }
+  } catch (e) {
+    console.error('获取模型失败', e)
+  } finally {
+    modelsLoading.value = false
+  }
+}
 
 // 获取可用插件
 const fetchPlugins = async () => {
@@ -63,10 +101,11 @@ const selectMode = (modeId: string) => {
 }
 
 // 选择模型
-const selectModel = (modelId: string) => {
-  const model = models.find(m => m.id === modelId)
+const selectModel = (llmId: string) => {
+  const model = modelOptions.value.find(m => m.llm_id === llmId)
   if (model) {
-    selectedModel.value = model.name
+    selectedModelId.value = model.llm_id
+    selectedModel.value = model.model
   }
   showModelSelector.value = false
 }
@@ -135,8 +174,52 @@ const handleSend = async () => {
       }
     })
   } else {
-    // 日常模式：TODO - 跳转到普通对话页面
-    ElMessage.info('日常模式对话功能开发中')
+    // 日常模式：在本页进行对话（流式）
+    console.log('=== 日常模式发送消息 ===')
+    console.log('selectedModelId:', selectedModelId.value)
+    console.log('query:', query)
+    
+    if (!selectedModelId.value) {
+      ElMessage.warning('请先选择模型')
+      return
+    }
+
+    // 将用户消息加入消息列表
+    console.log('将用户消息加入 messages')
+    messages.value.push({ role: 'user' as const, content: query })
+    
+    // 预置一条AI消息用于流式累加（先添加到数组，然后通过索引更新以触发响应式）
+    const aiMsgIndex = messages.value.length
+    messages.value.push({ role: 'assistant', content: '' })
+    console.log('当前 messages 长度:', messages.value.length)
+
+    try {
+      const payload: WorkSpaceSimpleTask = {
+        query,
+        model_id: selectedModelId.value,
+        plugins: selectedTools.value,
+        mcp_servers: selectedMcpServers.value
+      }
+      console.log('准备调用 workspaceSimpleChatStreamAPI')
+      await workspaceSimpleChatStreamAPI(
+        payload,
+        (chunk) => {
+          console.log('收到 chunk，累加到 aiMsg:', chunk)
+          // 通过索引更新以触发 Vue 的响应式
+          messages.value[aiMsgIndex].content += chunk
+        },
+        (err) => {
+          console.error('日常模式流式出错', err)
+          ElMessage.error('对话失败，请稍后重试')
+        },
+        () => {
+          console.log('日常模式流式结束')
+        }
+      )
+    } catch (e) {
+      console.error('日常模式对话异常', e)
+      ElMessage.error('对话异常')
+    }
   }
   
   // 清空输入框
@@ -145,15 +228,50 @@ const handleSend = async () => {
 
 // 键盘事件处理
 const handleKeydown = (event: KeyboardEvent) => {
-  // Cmd+Enter (Mac) 或 Ctrl+Enter (Windows) 发送
-  if ((event.metaKey || event.ctrlKey) && event.key === 'Enter') {
+  // 直接回车发送，Shift+Enter 换行
+  if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault()
     handleSend()
   }
 }
 
-onMounted(() => {
+// 加载会话历史
+const loadSessionHistory = async (sessionId: string) => {
+  try {
+    // 导入 API
+    const { getWorkspaceSessionsAPI } = await import('../../../apis/workspace')
+    const response = await getWorkspaceSessionsAPI()
+    
+    if (response.data.status_code === 200) {
+      const session = response.data.data.find((s: any) => s.session_id === sessionId)
+      
+      if (session && session.contexts && Array.isArray(session.contexts)) {
+        // 将 contexts 转换为 messages 格式
+        messages.value = session.contexts.map((ctx: any) => [
+          { role: 'user' as const, content: ctx.query || '' },
+          { role: 'assistant' as const, content: ctx.answer || '' }
+        ]).flat().filter((msg: any) => msg.content) // 过滤掉空内容
+        
+        console.log('已加载会话历史，消息数量:', messages.value.length)
+      }
+    }
+  } catch (error) {
+    console.error('加载会话历史失败:', error)
+    ElMessage.error('加载会话历史失败')
+  }
+}
+
+onMounted(async () => {
   fetchPlugins()
+  fetchModels()
+  
+  // 检查是否有 session_id 参数，如果有则加载会话历史
+  const sessionId = route.query.session_id as string
+  if (sessionId) {
+    console.log('加载已有会话:', sessionId)
+    await loadSessionHistory(sessionId)
+  }
+  
   // 懒加载 MCP 列表（用于选择）
   import('../../../apis/mcp-server').then(async ({ getMCPServersAPI }) => {
     try {
@@ -171,13 +289,27 @@ onMounted(() => {
 onBeforeUnmount(() => {
   document.removeEventListener('click', handleClickOutside)
 })
+
+// 监听路由参数变化
+watch(
+  () => route.query.session_id,
+  async (newSessionId, oldSessionId) => {
+    if (newSessionId && newSessionId !== oldSessionId) {
+      console.log('检测到会话ID变化:', oldSessionId, '->', newSessionId)
+      // 清空当前消息
+      messages.value = []
+      // 加载新会话的历史
+      await loadSessionHistory(newSessionId as string)
+    }
+  }
+)
 </script>
 
 <template>
-  <div class="chat-page">
+  <div class="chat-page" :class="{ 'chat-active': messages.length > 0 }">
     <div class="chat-container">
-      <!-- 欢迎区域 -->
-      <div class="welcome-section">
+      <!-- 欢迎区域（有对话时隐藏） -->
+      <div v-if="messages.length === 0" class="welcome-section">
         <div class="avatar-wrapper">
           <img src="../../../assets/robot.svg" alt="智言" class="avatar" />
         </div>
@@ -187,8 +319,8 @@ onBeforeUnmount(() => {
         </p>
       </div>
 
-      <!-- 模式选择 -->
-      <div class="mode-selector">
+      <!-- 模式选择（有对话时隐藏） -->
+      <div v-if="messages.length === 0" class="mode-selector">
         <button
           v-for="mode in modes"
           :key="mode.id"
@@ -200,8 +332,29 @@ onBeforeUnmount(() => {
         </button>
       </div>
 
-      <!-- 输入区域 -->
-      <div class="input-section">
+      <!-- 对话历史（有对话时显示在上方） -->
+      <div v-if="messages.length > 0" class="chat-conversation">
+        <div v-for="(msg, idx) in messages" :key="idx" class="message-group">
+          <!-- User Message -->
+          <div v-if="msg.role === 'user'" class="user-message">
+            <div class="message-content">
+              <span>{{ msg.content }}</span>
+            </div>
+            <img :src="userStore.userInfo?.avatar || '/src/assets/user.svg'" alt="User Avatar" class="avatar" @error="handleAvatarError" />
+          </div>
+          
+          <!-- AI Message -->
+          <div v-if="msg.role === 'assistant'" class="ai-message">
+            <img src="/src/assets/robot.svg" alt="AI Avatar" class="avatar" />
+            <div class="message-content">
+              <MdPreview :editorId="'workspace-ai-' + idx" :modelValue="msg.content" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 输入区域（固定在底部） -->
+      <div class="input-section" :class="{ 'input-fixed': messages.length > 0 }">
         <div class="input-wrapper">
           <textarea
             v-model="inputMessage"
@@ -221,22 +374,30 @@ onBeforeUnmount(() => {
                   @click="showModelSelector = !showModelSelector"
                 >
                   <span class="selector-icon">🤖</span>
-                  <span class="selector-text">{{ selectedModel }}</span>
-                  <span class="selector-arrow">▼</span>
+                  <span class="selector-text">{{ selectedModel || (modelsLoading ? '加载中...' : '选择模型') }}</span>
+                  <span class="selector-arrow">▲</span>
                 </div>
                 
                 <!-- 模型下拉菜单 -->
                 <transition name="dropdown">
                   <div v-if="showModelSelector" class="dropdown-menu">
+                    <div v-if="modelsLoading" class="dropdown-empty">
+                      <span class="empty-icon">⏳</span>
+                      <span class="empty-text">正在加载模型...</span>
+                    </div>
+                    <div v-else-if="modelOptions.length === 0" class="dropdown-empty">
+                      <span class="empty-icon">🤖</span>
+                      <span class="empty-text">暂无可用模型</span>
+                    </div>
                     <div
-                      v-for="model in models"
-                      :key="model.id"
+                      v-for="m in modelOptions"
+                      :key="m.llm_id"
                       class="dropdown-item"
-                      @click="selectModel(model.id)"
+                      @click="selectModel(m.llm_id)"
                     >
-                      <span class="item-icon">{{ model.icon }}</span>
-                      <span class="item-text">{{ model.name }}</span>
-                      <span v-if="selectedModel === model.name" class="item-check">✓</span>
+                      <span class="item-icon">🧠</span>
+                      <span class="item-text">{{ m.model }}</span>
+                      <span v-if="selectedModelId === m.llm_id" class="item-check">✓</span>
                     </div>
                   </div>
                 </transition>
@@ -264,7 +425,7 @@ onBeforeUnmount(() => {
                   <span class="selector-text">
                     {{ selectedTools.length > 0 ? `已选 ${selectedTools.length} 个` : '选择工具' }}
                   </span>
-                  <span class="selector-arrow">▼</span>
+                  <span class="selector-arrow">▲</span>
                 </div>
                 
                 <!-- 工具下拉菜单 -->
@@ -338,7 +499,7 @@ onBeforeUnmount(() => {
                   <span class="selector-text">
                     {{ selectedMcpServers.length > 0 ? `已选 ${selectedMcpServers.length} 个MCP` : '选择MCP' }}
                   </span>
-                  <span class="selector-arrow">▼</span>
+                  <span class="selector-arrow">▲</span>
                 </div>
                 
                 <!-- MCP 下拉菜单 -->
@@ -415,11 +576,6 @@ onBeforeUnmount(() => {
             </div>
           </div>
         </div>
-        
-        <!-- 快捷键提示 -->
-        <div class="hint-text">
-          {{ isMac ? '⌘' : 'Ctrl' }} + Enter 发送
-        </div>
       </div>
     </div>
   </div>
@@ -433,8 +589,14 @@ onBeforeUnmount(() => {
   align-items: flex-start;
   justify-content: center;
   background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
-  padding: 60px 20px 40px;
+  padding: 0;
   overflow-y: auto;
+
+  &.chat-active {
+    padding: 0;
+    overflow: hidden;
+    background-color: #f7f8fa;
+  }
 }
 
 .chat-container {
@@ -443,6 +605,15 @@ onBeforeUnmount(() => {
   display: flex;
   flex-direction: column;
   align-items: center;
+  padding: 60px 20px 40px;
+
+  .chat-active & {
+    max-width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: 0;
+  }
 }
 
 .welcome-section {
@@ -571,11 +742,23 @@ onBeforeUnmount(() => {
   max-width: 800px;
   animation: fadeInUp 0.6s ease 0.2s both;
 
+  &.input-fixed {
+    max-width: 100%;
+    padding: 10px 20px 20px 20px;
+    background: #f7f8fa;
+    animation: none;
+
+    .input-wrapper {
+      max-width: 900px;
+      margin: 0 auto;
+    }
+  }
+
   .input-wrapper {
     background: #ffffff;
     border: 2px solid #e5e7eb;
     border-radius: 20px;
-    padding: 24px;
+    padding: 16px 20px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
 
@@ -595,8 +778,8 @@ onBeforeUnmount(() => {
       resize: none;
       outline: none;
       font-family: inherit;
-      min-height: 90px;
-      margin-bottom: 16px;
+      min-height: 45px;
+      margin-bottom: 12px;
 
       &::placeholder {
         color: #9ca3af;
@@ -669,13 +852,13 @@ onBeforeUnmount(() => {
 
           .dropdown-menu {
             position: absolute;
-            top: calc(100% + 8px);
+            bottom: calc(100% + 8px);
             left: 0;
             min-width: 200px;
             background: white;
             border: 1px solid #e5e7eb;
             border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
+            box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.15);
             z-index: 1000;
             max-height: 320px;
             overflow: hidden;
@@ -991,16 +1174,77 @@ onBeforeUnmount(() => {
       }
     }
   }
+}
 
-  .hint-text {
-    margin-top: 10px;
-    text-align: right;
-    font-size: 12px;
-    color: #9ca3af;
+.chat-conversation {
+  flex: 1;
+  padding: 0;
+  overflow-y: auto;
+  width: 100%;
+  background-color: #f7f8fa;
+  
+  .message-group {
+    margin-bottom: 20px;
+    padding: 0 20px;
+    
+    &:first-child {
+      padding-top: 20px;
+    }
+  }
+
+  .ai-message {
+    display: flex;
+    align-items: flex-start;
+    justify-content: flex-start;
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-right: 15px;
+      flex-shrink: 0;
+      border: 1px solid #eee;
+    }
+
+    .message-content {
+      background-color: #ffffff;
+      border-radius: 18px;
+      padding: 12px 18px;
+      max-width: 70%;
+      color: #333;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+      word-break: break-word;
+    }
+  }
+
+  .user-message {
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+
+    .avatar {
+      width: 40px;
+      height: 40px;
+      border-radius: 50%;
+      margin-left: 12px;
+      flex-shrink: 0;
+      border: 1px solid #eee;
+    }
+
+    .message-content {
+      display: flex;
+      align-items: center;
+      background: linear-gradient(135deg, #6e8efb, #a777e3);
+      color: white;
+      border-radius: 18px;
+      padding: 12px 18px;
+      max-width: 70%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
   }
 }
 
-// 下拉菜单动画
+// 下拉菜单动画（向上展开）
 .dropdown-enter-active,
 .dropdown-leave-active {
   transition: all 0.2s ease;
@@ -1008,12 +1252,17 @@ onBeforeUnmount(() => {
 
 .dropdown-enter-from {
   opacity: 0;
-  transform: translateY(-8px);
+  transform: translateY(8px);
 }
 
 .dropdown-leave-to {
   opacity: 0;
-  transform: translateY(-4px);
+  transform: translateY(4px);
+}
+
+// Override MdPreview background
+:deep(.md-editor-preview-wrapper) {
+    background-color: transparent !important;
 }
 
 @media (max-width: 768px) {

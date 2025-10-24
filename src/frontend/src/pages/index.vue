@@ -63,7 +63,8 @@ const goCurrent = (item: string) => {
     "mcp-server": "/mcp-server",
     "knowledge": "/knowledge",
     "tool": "/tool",
-    "model": "/model"
+    "model": "/model",
+    "workspace": "/workspace"
   }
   
   router.push(routes[item] || "/")
@@ -170,12 +171,20 @@ watch(
             :default-active="current"
             text-color="#909399"
           >
+            <el-menu-item index="workspace" @click="goCurrent('workspace')">
+              <template #title>
+                <el-icon>
+                  <img src="../assets/workspace.svg" width="22px" height="22px" />
+                </el-icon>
+                <span>工作台</span>
+              </template>
+            </el-menu-item>
             <el-menu-item index="homepage" @click="goCurrent('homepage')">
               <template #title>
                 <el-icon>
-                  <img src="../assets/frontpage.svg" width="22px" height="22px" />
+                  <img src="../assets/explore.svg" width="22px" height="22px" />
                 </el-icon>
-                <span>首页</span>
+                <span>探索</span>
               </template>
             </el-menu-item>
             <el-menu-item index="conversation" @click="goCurrent('conversation')">
