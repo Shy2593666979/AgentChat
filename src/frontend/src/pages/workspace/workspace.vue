@@ -233,7 +233,9 @@ onMounted(async () => {
       <div class="create-section">
         <button @click="goToHomepage" class="create-btn-native">
           <div class="btn-content">
-            <span class="icon">🏠</span>
+            <span class="icon">
+              <img src="../../assets/application-center.svg" width="30px" height="30px" />
+            </span>
             <span>应用中心</span>
           </div>
         </button>
@@ -260,7 +262,9 @@ onMounted(async () => {
           :class="['session-card', { active: selectedSession === session.sessionId }]"
           @click="selectSession(session.sessionId)"
         >
-          <div class="session-icon">📋</div>
+          <div class="session-icon">
+            <img src="../../assets/workspace-session.svg" width="30px" height="30px" />
+          </div>
           <div class="session-info">
             <div class="session-title">{{ session.title }}</div>
             <div class="session-time">{{ formatTime(session.createTime) }}</div>
@@ -387,17 +391,20 @@ onMounted(async () => {
         width: 100%;
         height: 48px;
         border-radius: 8px;
-        font-weight: 500;
+        font-weight: 600;
         transition: all 0.3s ease;
-        background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-        color: white;
-        border: none;
+        background: white;
+        color: #3b82f6;
+        border: 2px solid #3b82f6;
         cursor: pointer;
-        font-size: 14px;
+        font-size: 15px;
+        font-family: 'PingFang SC', 'Microsoft YaHei UI', 'Source Han Sans CN', 'Noto Sans CJK SC', sans-serif;
+        letter-spacing: 1px;
 
         &:hover {
           transform: translateY(-1px);
-          box-shadow: 0 4px 12px rgba(116, 185, 255, 0.4);
+          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+          background: #eff6ff;
         }
 
         &:active {
