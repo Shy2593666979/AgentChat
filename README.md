@@ -80,7 +80,8 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 ### 🏠 智言平台首页
 *简洁现代的主界面，提供直观的功能导航*
 
-<img width="800" height="450" alt="智言平台首页" src="https://github.com/user-attachments/assets/26deacff-2349-4e54-9cb7-b4a22429f088" />
+<img width="800" height="450" alt="5a6ee271-7c81-4032-aeca-57496634a64f" src="https://github.com/user-attachments/assets/0295e9ea-6f15-484c-b223-82000bc9d33c" />
+
 
 
 ### 🔐 智言平台登录页
