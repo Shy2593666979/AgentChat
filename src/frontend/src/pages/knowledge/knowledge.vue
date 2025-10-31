@@ -456,17 +456,35 @@ onMounted(() => {
 .knowledge-page {
   padding: 16px;
   height: 100%;
+  min-height: calc(100vh - 60px);
+  background-color: #f5f7fa;
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-bottom: 16px;
-    
+    background: linear-gradient(to right, #ffffff, #f8fafc);
+    padding: 16px 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+    position: relative;
+    overflow: hidden;
+
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 4px;
+      background: linear-gradient(90deg, #4880FF, #73c7ff, #67c23a);
+    }
+
     h2 {
       margin: 0;
-      font-size: 20px;
-      font-weight: 600;
+      font-size: 26px;
+      font-weight: 700;
       display: flex;
       align-items: center;
       gap: 12px;
@@ -476,8 +494,21 @@ onMounted(() => {
       background-clip: text;
       
       .knowledge-icon {
-        width: 28px;
-        height: 28px;
+        width: 32px;
+        height: 32px;
+      }
+    }
+
+    .el-button {
+      font-weight: 600;
+      letter-spacing: 0.025em;
+      border-radius: 12px;
+      padding: 12px 24px;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      
+      &:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
       }
     }
   }

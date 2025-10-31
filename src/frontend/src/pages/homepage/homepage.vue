@@ -192,6 +192,10 @@ const handleExampleClick = async (example: any, index: number) => {
   background: #ffffff;
   padding: 10px 15px; /* 进一步减少填充 */
   overflow-y: auto;
+  /* 隐藏右侧滚动条，仍保留滚动功能 */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge */
+  &::-webkit-scrollbar { display: none; } /* WebKit */
 }
 
 .logo-section {
@@ -209,10 +213,10 @@ const handleExampleClick = async (example: any, index: number) => {
       filter: drop-shadow(0 5px 15px rgba(0, 0, 0, 0.18));
     }
     
-         .brand-name {
+    .brand-name {
        font-size: 48px; /* 增大品牌名称字体大小 */
        font-weight: 800;
-       background: linear-gradient(135deg, #667eea 0%, #764ba2 30%, #8b5cf6 60%, #6366f1 100%);
+      background: linear-gradient(135deg, #3b82f6 0%, #2563eb 35%, #1d4ed8 70%, #60a5fa 100%);
        -webkit-background-clip: text;
        -webkit-text-fill-color: transparent;
        background-clip: text;
@@ -225,7 +229,7 @@ const handleExampleClick = async (example: any, index: number) => {
          position: absolute;
          top: 2px;
          left: 2px;
-         background: linear-gradient(135deg, rgba(102, 126, 234, 0.4), rgba(118, 75, 162, 0.4));
+        background: linear-gradient(135deg, rgba(59, 130, 246, 0.4), rgba(29, 78, 216, 0.4));
          -webkit-background-clip: text;
          -webkit-text-fill-color: transparent;
          background-clip: text;
@@ -240,7 +244,7 @@ const handleExampleClick = async (example: any, index: number) => {
          left: 0;
          right: 0;
          height: 3px;
-         background: linear-gradient(90deg, transparent, #6366f1, #8b5cf6, #6366f1, transparent);
+        background: linear-gradient(90deg, transparent, #3b82f6, #60a5fa, #3b82f6, transparent);
          border-radius: 2px;
          opacity: 0.6;
        }

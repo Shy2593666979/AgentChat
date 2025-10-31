@@ -588,8 +588,8 @@ const handleStartTask = () => {
   display: flex;
   justify-content: center;
   background: linear-gradient(180deg, #fafbfc 0%, #ffffff 100%);
-  padding: 24px;
-  overflow-y: auto;
+  padding: 0;
+  overflow: hidden;
 }
 
 .chat-container {
@@ -599,6 +599,7 @@ const handleStartTask = () => {
   display: flex;
   flex-direction: column;
   gap: 24px;
+  min-height: 0; // allow inner sections to manage their own overflow
 }
 
 // 历史记录区域（全屏模式）
@@ -655,25 +656,10 @@ const handleStartTask = () => {
     overflow-y: auto;
     padding: 20px;
     background: #fafbfc;
-
-    // 美化滚动条
-    &::-webkit-scrollbar {
-      width: 8px;
-    }
-
-    &::-webkit-scrollbar-track {
-      background: #f1f1f1;
-      border-radius: 4px;
-    }
-
-    &::-webkit-scrollbar-thumb {
-      background: #cbd5e1;
-      border-radius: 4px;
-
-      &:hover {
-        background: #94a3b8;
-      }
-    }
+    // 隐藏滚动条（仍可滚动）
+    scrollbar-width: none; // Firefox
+    -ms-overflow-style: none; // IE/Edge
+    &::-webkit-scrollbar { display: none; } // WebKit
 
     .conversation-item {
       background: white;
@@ -1068,6 +1054,10 @@ const handleStartTask = () => {
           flex: 1;
           overflow-y: auto;
           padding: 16px 24px;
+          // 隐藏滚动条（仍可滚动）
+          scrollbar-width: none; // Firefox
+          -ms-overflow-style: none; // IE/Edge
+          &::-webkit-scrollbar { display: none; } // WebKit
           
           :deep(h1), :deep(h2), :deep(h3), :deep(h4), :deep(h5), :deep(h6) {
             margin-top: 6px;

@@ -90,6 +90,12 @@ const cancelUploadedFile = () => {
   ElMessage.info('已取消选择的文件')
 }
 
+// 判断是否为图片文件以便展示缩略图
+const isImageFile = (name: string) => {
+  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name)
+}
+
+
 // Function to scroll to the bottom of the chat
 function scrollBottom() {
   nextTick(() => {
@@ -441,8 +447,14 @@ watch(
       <div class="input-wrapper">
         <!-- 已上传文件显示 -->
         <div v-if="fileUrl" class="uploaded-file-tag">
-          <span class="file-name">📎 {{ fileName }}</span>
-          <el-button size="small" type="danger" text @click="cancelUploadedFile" class="cancel-btn">
+          <span class="file-avatar" aria-hidden="true">
+            <img v-if="isImageFile(fileName)" :src="fileUrl" alt="" />
+            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+              <path d="M21.44 11.05l-7.07 7.07a5 5 0 01-7.07-7.07l7.07-7.07a3 3 0 114.24 4.24l-7.07 7.07a1 1 0 01-1.41-1.41l6.36-6.36" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            </svg>
+          </span>
+          <a class="file-name" :href="fileUrl" target="_blank" rel="noopener" :title="fileName">{{ fileName }}</a>
+          <el-button size="small" type="danger" text @click="cancelUploadedFile" class="cancel-btn" title="移除">
             <el-icon><Close /></el-icon>
           </el-button>
         </div>
@@ -467,7 +479,6 @@ watch(
         <el-icon v-else><VideoPause /></el-icon>
       </el-button>
     </div>
-    <div class="footer-text">内容由AI生成, 仅供参考!</div>
   </div>
 </template>
 
@@ -698,34 +709,57 @@ watch(
     left: 0;
     display: flex;
     align-items: center;
-    padding: 4px 8px;
-    background-color: #f0f9ff;
+    gap: 8px;
+    padding: 6px 10px;
+    background: linear-gradient(135deg, #f5fbff 0%, #ecf5ff 100%);
     border: 1px solid #b3d8ff;
-    border-radius: 12px;
+    border-radius: 16px;
     font-size: 12px;
     z-index: 10;
     box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 
+    .file-avatar {
+      width: 22px;
+      height: 22px;
+      border-radius: 6px;
+      overflow: hidden;
+      background: rgba(64, 158, 255, 0.1);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+      border: 1px solid rgba(64, 158, 255, 0.2);
+      img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        display: block;
+      }
+    }
+
     .file-name {
-      color: #409eff;
-      margin-right: 6px;
+      color: #1f6fd6;
+      text-decoration: none;
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
-      max-width: 150px;
+      max-width: 180px;
       font-weight: 500;
     }
 
     .cancel-btn {
       padding: 0;
-      width: 16px;
-      height: 16px;
-      min-height: 16px;
-      font-size: 10px;
+      width: 20px;
+      height: 20px;
+      min-height: 20px;
+      font-size: 12px;
       margin-left: 4px;
       
       &:hover {
         background-color: rgba(245, 108, 108, 0.1);
+      }
+      :deep(.el-icon) {
+        font-size: 16px;
       }
     }
   }
@@ -763,13 +797,6 @@ watch(
   }
 }
 
-.footer-text {
-  text-align: center;
-  font-size: 12px;
-  color: #aaa;
-  padding: 8px 0;
-  background-color: #f7f8fa;
-}
 
 // Override MdPreview background
 :deep(.md-editor-preview-wrapper) {

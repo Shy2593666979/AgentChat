@@ -1,0 +1,17 @@
+<svg width="400" height="120" xmlns="http://www.w3.org/2000/svg">
+  <!-- 基础样式：统一字体与指定颜色 -->
+  <style>
+    .main-text {
+      font-family: Arial, sans-serif; /* 通用字体，确保兼容性 */
+      font-size: 65px;
+      font-weight: bold;
+      fill: #1B7CE4; /* 你指定的颜色 */
+    }
+  </style>
+
+  <!-- 核心文字：位置均匀分布，清晰显示 -->
+  <text x="25" y="85" class="main-text">智</text>
+  <text x="115" y="85" class="main-text">言</text>
+  <text x="200" y="85" class="main-text">平</text>
+  <text x="285" y="85" class="main-text">台</text>
+</svg>

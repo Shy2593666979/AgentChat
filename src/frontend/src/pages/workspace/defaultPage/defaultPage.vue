@@ -27,6 +27,7 @@ const mcpServers = ref<any[]>([])
 const webSearchEnabled = ref(false)
 const toolDropdownRef = ref<HTMLElement | null>(null)
 const mcpDropdownRef = ref<HTMLElement | null>(null)
+  const fileInputRef = ref<HTMLInputElement | null>(null)
 
 // 模型数据（来自应用中心“可见模型”）
 const modelOptions = ref<LLMResponse[]>([])
@@ -135,6 +136,21 @@ const handleClickOutside = (e: MouseEvent) => {
   if (showMcpSelector.value && mcpDropdownRef.value && !mcpDropdownRef.value.contains(target)) {
     showMcpSelector.value = false
   }
+}
+
+// 触发文件选择
+const triggerFileInput = () => {
+  fileInputRef.value?.click()
+}
+
+// 处理文件选择
+const onFileChange = (e: Event) => {
+  const input = e.target as HTMLInputElement
+  const files = input.files
+  if (files && files.length > 0) {
+    ElMessage.success(`已选择 ${files.length} 个文件`)
+  }
+  if (input) input.value = ''
 }
 
 // 切换 MCP 服务器选择
@@ -315,7 +331,7 @@ watch(
         </div>
         <h1 class="welcome-title">我是智言小助手，很高兴见到你！</h1>
         <p class="welcome-subtitle">
-          欢迎体验智言产品，智言灵寻，一位懂得完成复杂任务的Agent助理~
+          欢迎体验智言灵寻LingSeek，一位懂得完成复杂任务的Agent助理~
         </p>
       </div>
 
@@ -355,7 +371,7 @@ watch(
 
       <!-- 输入区域（固定在底部） -->
       <div class="input-section" :class="{ 'input-fixed': messages.length > 0 }">
-        <div class="input-wrapper">
+        <div class="input-wrapper" :class="{ 'lingseek-glow': selectedMode === 'lingseek' }">
           <textarea
             v-model="inputMessage"
             placeholder="给智言发消息，让智言帮你完成任务~"
@@ -370,34 +386,42 @@ watch(
               <!-- 模型选择（仅日常模式显示） -->
               <div v-if="selectedMode === 'normal'" class="selector-dropdown">
                 <div 
-                  class="selector-item"
+                  :class="['selector-item', { open: showModelSelector }]"
                   @click="showModelSelector = !showModelSelector"
                 >
-                  <span class="selector-icon">🤖</span>
+                  <img src="../../../assets/model.svg" alt="模型" class="selector-icon-img" />
                   <span class="selector-text">{{ selectedModel || (modelsLoading ? '加载中...' : '选择模型') }}</span>
                   <span class="selector-arrow">▲</span>
                 </div>
                 
                 <!-- 模型下拉菜单 -->
                 <transition name="dropdown">
-                  <div v-if="showModelSelector" class="dropdown-menu">
+                  <div v-if="showModelSelector" class="dropdown-menu model-menu">
                     <div v-if="modelsLoading" class="dropdown-empty">
                       <span class="empty-icon">⏳</span>
                       <span class="empty-text">正在加载模型...</span>
                     </div>
                     <div v-else-if="modelOptions.length === 0" class="dropdown-empty">
-                      <span class="empty-icon">🤖</span>
+                      <img src="../../../assets/model.svg" alt="模型" class="empty-icon-img" />
                       <span class="empty-text">暂无可用模型</span>
                     </div>
                     <div
                       v-for="m in modelOptions"
                       :key="m.llm_id"
-                      class="dropdown-item"
+                      :class="['dropdown-item', { selected: selectedModelId === m.llm_id }]"
                       @click="selectModel(m.llm_id)"
                     >
-                      <span class="item-icon">🧠</span>
-                      <span class="item-text">{{ m.model }}</span>
-                      <span v-if="selectedModelId === m.llm_id" class="item-check">✓</span>
+                      <div class="item-left">
+                        <div class="item-icon-wrapper">
+                          <img src="../../../assets/model.svg" alt="模型" class="item-icon-img" />
+                        </div>
+                        <div class="item-content">
+                          <div class="item-text">{{ m.model }}</div>
+                        </div>
+                      </div>
+                      <div v-if="selectedModelId === m.llm_id" class="item-check-wrapper">
+                        <span class="item-check">✓</span>
+                      </div>
                     </div>
                   </div>
                 </transition>
@@ -421,7 +445,7 @@ watch(
                   class="selector-item"
                   @click="showToolSelector = !showToolSelector"
                 >
-                  <span class="selector-icon">🔧</span>
+                  <img src="../../../assets/plugin.svg" alt="工具" class="selector-icon-img" />
                   <span class="selector-text">
                     {{ selectedTools.length > 0 ? `已选 ${selectedTools.length} 个` : '选择工具' }}
                   </span>
@@ -440,7 +464,7 @@ watch(
                     <!-- 工具列表 -->
                     <div class="dropdown-list">
                       <div v-if="plugins.length === 0" class="dropdown-empty">
-                        <span class="empty-icon">🔧</span>
+                        <img src="../../../assets/plugin.svg" alt="工具" class="empty-icon-img" />
                         <span class="empty-text">暂无可用工具</span>
                       </div>
                       <div
@@ -457,7 +481,7 @@ watch(
                               :alt="plugin.zh_name || plugin.name"
                               class="item-icon-img"
                             />
-                            <span v-else class="item-icon">🔧</span>
+                            <img v-else src="../../../assets/plugin.svg" alt="工具" class="item-icon-img" />
                           </div>
                           <div class="item-content">
                             <div class="item-text">{{ plugin.zh_name || plugin.name || plugin.tool_name }}</div>
@@ -495,7 +519,7 @@ watch(
                   class="selector-item"
                   @click="showMcpSelector = !showMcpSelector"
                 >
-                  <span class="selector-icon">🧩</span>
+                  <img src="../../../assets/mcp.svg" alt="MCP" class="selector-icon-img" />
                   <span class="selector-text">
                     {{ selectedMcpServers.length > 0 ? `已选 ${selectedMcpServers.length} 个MCP` : '选择MCP' }}
                   </span>
@@ -514,7 +538,7 @@ watch(
                     <!-- 列表 -->
                     <div class="dropdown-list">
                       <div v-if="mcpServers.length === 0" class="dropdown-empty">
-                        <span class="empty-icon">🧩</span>
+                        <img src="../../../assets/mcp.svg" alt="MCP" class="empty-icon-img" />
                         <span class="empty-text">暂无可用MCP服务器</span>
                       </div>
                       <div
@@ -531,7 +555,7 @@ watch(
                               :alt="mcp.server_name"
                               class="item-icon-img"
                             />
-                            <span v-else class="item-icon">🧩</span>
+                            <img v-else src="../../../assets/mcp.svg" alt="MCP" class="item-icon-img" />
                           </div>
                           <div class="item-content">
                             <div class="item-text">{{ mcp.server_name }}</div>
@@ -565,9 +589,16 @@ watch(
             
             <div class="footer-right">
               <!-- 附件按钮 -->
-              <button class="icon-btn" title="上传附件">
-                <span>📎</span>
+              <button class="icon-btn" title="上传附件" @click="triggerFileInput">
+                <img src="../../../assets/upload.svg" alt="上传" class="upload-icon" />
               </button>
+              <input
+                type="file"
+                ref="fileInputRef"
+                class="hidden-file-input"
+                multiple
+                @change="onFileChange"
+              />
               
               <!-- 发送按钮 -->
               <button class="send-btn" @click="handleSend">
@@ -737,6 +768,35 @@ watch(
   }
 }
 
+// 灵寻模式输入框外发光“呼吸”动画（淡蓝色，颜色不变，仅强弱变化）
+@keyframes lingseek-breath {
+  0%, 100% {
+    box-shadow:
+      0 0 0 2px rgba(102, 126, 234, 0.12),
+      0 0 24px 10px rgba(102, 126, 234, 0.14);
+  }
+  50% {
+    box-shadow:
+      0 0 0 3px rgba(102, 126, 234, 0.22),
+      0 0 44px 18px rgba(102, 126, 234, 0.22);
+  }
+}
+
+@keyframes lingseek-breath-strong {
+  0%, 100% {
+    box-shadow:
+      0 0 0 3px rgba(102, 126, 234, 0.20),
+      0 0 36px 14px rgba(102, 126, 234, 0.24);
+  }
+  50% {
+    box-shadow:
+      0 0 0 4px rgba(102, 126, 234, 0.30),
+      0 0 60px 24px rgba(102, 126, 234, 0.30);
+  }
+}
+
+// 移除彩虹动画（不再需要）
+
 .input-section {
   width: 100%;
   max-width: 800px;
@@ -761,6 +821,22 @@ watch(
     padding: 16px 20px;
     transition: all 0.3s ease;
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.06);
+    position: relative;
+    z-index: 1;
+
+    &.lingseek-glow {
+      border-color: rgba(102, 126, 234, 0.35);
+      box-shadow:
+        0 0 0 2px rgba(102, 126, 234, 0.12),
+        0 0 16px 6px rgba(102, 126, 234, 0.14);
+      animation: lingseek-breath 2.8s ease-in-out infinite;
+
+      &:focus-within {
+        border-color: rgba(102, 126, 234, 0.55);
+        animation: lingseek-breath-strong 2.2s ease-in-out infinite;
+        transform: translateY(-2px);
+      }
+    }
 
     &:focus-within {
       border-color: #667eea;
@@ -816,6 +892,13 @@ watch(
               font-size: 16px;
             }
 
+            .selector-icon-img {
+              width: 20px;
+              height: 20px;
+              object-fit: contain;
+              display: inline-block;
+            }
+
             .selector-text {
               font-weight: 500;
             }
@@ -824,6 +907,12 @@ watch(
               font-size: 10px;
               opacity: 0.5;
               transition: transform 0.2s ease;
+            }
+
+            &.open {
+              .selector-arrow {
+                transform: rotate(180deg);
+              }
             }
 
             .selector-check {
@@ -868,6 +957,22 @@ watch(
             &.tool-menu {
               min-width: 360px;
               max-height: 450px;
+            }
+
+            // 模型下拉尺寸与工具列表保持一致
+            &.model-menu {
+              min-width: 180px;
+              max-height: 450px;
+
+              .dropdown-item {
+                .item-content {
+                  .item-text {
+                    white-space: nowrap;
+                    overflow: hidden;
+                    text-overflow: ellipsis;
+                  }
+                }
+              }
             }
 
             .dropdown-header {
@@ -929,6 +1034,13 @@ watch(
               .empty-icon {
                 font-size: 48px;
                 opacity: 0.3;
+              }
+
+              .empty-icon-img {
+                width: 48px;
+                height: 48px;
+                opacity: 0.35;
+                object-fit: contain;
               }
 
               .empty-text {
@@ -1147,24 +1259,35 @@ watch(
           }
         }
 
+        .hidden-file-input {
+          display: none;
+        }
+
+        .upload-icon {
+          width: 18px;
+          height: 18px;
+          object-fit: contain;
+          display: block;
+        }
+
         .send-btn {
           width: 36px;
           height: 36px;
           display: flex;
           align-items: center;
           justify-content: center;
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+          background: linear-gradient(135deg, #60a5fa 0%, #3b82f6 100%);
           border: none;
           border-radius: 8px;
           color: white;
           cursor: pointer;
           transition: all 0.2s ease;
           font-size: 16px;
-          box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+          box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 
           &:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 16px rgba(102, 126, 234, 0.4);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
           }
 
           &:active {
