@@ -10,6 +10,31 @@ from agentchat.tools.convert_to_pdf.action import convert_to_pdf, ConvertPdfTool
 from agentchat.tools.convert_to_docx.action import convert_to_docx, ConvertDocxTool
 from agentchat.tools.image2text.action import image_to_text, Image2TextTool
 
+
+LingSeekPlugins = {
+    "send_email": send_email,
+    "tavily_search": tavily_search,
+    "get_arxiv": get_arxiv,
+    "get_weather": get_weather,
+    "get_delivery": get_delivery,
+    "text_to_image": text_to_image,
+    "image_to_text": image_to_text,
+    "convert_to_pdf": convert_to_pdf,
+    "convert_to_docx": convert_to_docx,
+}
+
+WorkSpacePlugins = {
+    "send_email": send_email,
+    "tavily_search": tavily_search,
+    "get_arxiv": get_arxiv,
+    "get_weather": get_weather,
+    "get_delivery": get_delivery,
+    "text_to_image": text_to_image,
+    "image_to_text": image_to_text,
+    "convert_to_pdf": convert_to_pdf,
+    "convert_to_docx": convert_to_docx,
+}
+
 action_Function_call = {
     "send_email": send_email,
     # "google_search": google_search,

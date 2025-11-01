@@ -365,17 +365,7 @@ const closeCreateDialog = () => {
         </button>
       </div>
 
-      <!-- 搜索框 -->
-      <div class="search-section">
-        <div class="search-input-wrapper">
-          <span class="search-icon">🔍</span>
-          <input
-            v-model="searchKeyword"
-            placeholder="搜索会话..."
-            class="search-input"
-          />
-        </div>
-      </div>
+      
 
       <!-- 会话列表标题 -->
       <div class="list-header">
@@ -505,7 +495,7 @@ const closeCreateDialog = () => {
 .conversation-main {
   display: flex;
   height: calc(100vh - 60px);
-  background-color: #f8f9fa;
+  background-color: #ffffff;
 
   .sidebar {
     height: 100%;
@@ -768,9 +758,10 @@ const closeCreateDialog = () => {
   .content {
     flex: 1;
     background-color: #ffffff;
-    border-radius: 8px;
-    margin: 16px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.05);
+    border-radius: 0;
+    margin: 0;
+    box-shadow: none;
+    border-left: 1px solid #e9ecef;
     overflow: hidden;
 
     .welcome-content {
@@ -974,7 +965,7 @@ const closeCreateDialog = () => {
     }
     
     .content {
-      margin: 8px;
+      margin: 0;
     }
   }
 }
@@ -991,7 +982,7 @@ const closeCreateDialog = () => {
     
     .content {
       flex: 1;
-      margin: 8px;
+      margin: 0;
     }
   }
 }

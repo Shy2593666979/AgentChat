@@ -1,66 +1,40 @@
 import asyncio
+import logging
+from typing import List, Dict, Any
 
 from langchain_core.tools import BaseTool
 from agentchat.services.mcp.multi_client import MultiServerMCPClient
-from loguru import logger
+from agentchat.schema.mcp import MCPBaseConfig
+
+logger = logging.getLogger(__name__)
+
+HIDE_FIELDS = ["server_name", "personal_config"]
 
 class MCPManager:
-    def __init__(self, timeout=10):
-        self.multi_server_client = MultiServerMCPClient()
+    def __init__(self, mcp_configs: List[MCPBaseConfig], timeout=10):
+
+        connection_info = {
+            mcp_config.server_name: mcp_config.model_dump(exclude={"server_name", "personal_config"})
+            for mcp_config in mcp_configs
+        }
+
+        self.multi_server_client = MultiServerMCPClient(connection_info)
+        self.mcp_configs = mcp_configs
 
         self.timeout = timeout
 
-    async def connect_mcp_servers(self, mcp_servers: list):
-        # 如果出现连接不上的mcp server 直接略过
-        is_all_not_connect = True
-        for server in mcp_servers:
-            try:
-                if server["type"] == "sse":
-                    await self.multi_server_client.connect_to_sse_server(server["server_name"], url=server["url"], timeout=self.timeout)
-                elif server["type"] == "websocket":
-                    await self.multi_server_client.connect_to_websocket_server(server["server_name"], url=server["url"], timeout=self.timeout)
-                else:
-                    # TODO: 添加stdio方式
-                    pass
-                is_all_not_connect = False
-            except Exception as err:
-                logger.info(f"Connect mcp servers {server['server_name']} Error: {err}")
-        if is_all_not_connect:
-            await self.multi_server_client.aclose()
-
-    # async def connect_sse_servers(self, mcp_servers: list):
-    #     try:
-    #         for server in mcp_servers:
-    #             await self.multi_server_client.connect_to_sse_server(server["server_name"], url=server["url"], timeout=self.timeout)
-    #     except Exception as err:
-    #         logger.info(f"Connect sse servers Error: {err}")
-    #         await self.multi_server_client.aclose()
-    #
-    # async def connect_stdio_servers(self, mcp_servers: list):
-    #     pass
-    #
-    # async def connect_websocket_servers(self, mcp_servers: list):
-    #     try:
-    #         for server in mcp_servers:
-    #             await self.multi_server_client.connect_to_websocket_server(server["server_name"], url=server["url"])
-    #     except Exception as err:
-    #         logger.info(f"Connect websocket servers Error: {err}")
-    #         await self.multi_server_client.aclose()
 
     async def get_mcp_tools(self) -> list[BaseTool]:
-        mcp_tools = self.multi_server_client.get_tools()
-        return mcp_tools
+        tools = await self.multi_server_client.get_tools()
+        return tools
 
     async def show_mcp_tools(self) -> dict:
+        result = {}
         try:
-            server_name_tools = await self.multi_server_client.show_tools()
-            result = {}
-            for key, tools in server_name_tools.items():
+            for mcp_config in self.mcp_configs:
+                server_tools = await self.multi_server_client.get_tools(server_name=mcp_config.server_name)
                 tool_list = []
-                for tool in tools:
-                    # TODO: 基于LangChain的Tool Sdk修改，提取schema交给frontend
-                    # args_schema = tool.args_schema.model_json_schema()
-                    # input_schema = args_schema["properties"]["input_schema"]["default"]
+                for tool in server_tools:
                     input_schema = tool.args_schema
                     tool_dict = {
                         'name': tool.name,
@@ -68,52 +42,61 @@ class MCPManager:
                         'input_schema': input_schema
                     }
                     tool_list.append(tool_dict)
-                result[key] = tool_list
+                result[mcp_config.server_name] = tool_list
+            return result
         except Exception as err:
-            result = {}
-            logger.info(f"获取MCP 服务工具列表出错: {err}")
-        finally:
-            await self.multi_server_client.aclose()
-        return result
+            logger.info(f"Error getting MCP service tool list: {err}")
+            return {}
 
-    async def call_mcp_tools(self, mcp_tools_args, is_concurrent=True):
-        tool_results = []
-        callable_tools = {}
+    async def call_mcp_tools(self, tools_info: List[Dict[str, Any]]):
+        """
+        Asynchronously and concurrently call multiple MCP tools
+        
+        Args:
+            tools_info: List of tool names, List of tool parameters, corresponding one-to-one with tool_names
+            
+        Returns:
+            list: List of tool execution results
+        """
+        # Get tool list
+        tools = await self.get_mcp_tools()
+        tool_dict = {tool.name: tool for tool in tools}
+        
+        # Async concurrency
+        async def execute_tool(tool_name: str, args: Dict[str, Any]):
+            # Create async task list
+            if tool_name not in tool_dict:
+                return f"Tool {tool_name} does not exist"
+            
+            tool = tool_dict[tool_name]
+            try:
+                # Create async task
+                if asyncio.iscoroutinefunction(tool.coroutine):
+                    result = await tool.coroutine(**args)
+                else:
+                    # Execute all tasks concurrently
+                    result = await asyncio.to_thread(tool.coroutine, **args)
+                return result
+            except Exception as e:
+                logger.error(f"Error executing tool: {e}")
+                return f"Error executing tool {tool_name}: {e}"
+
+        # Create task list
+        tasks = []
+        for tool in tools_info:
+            tool_name = tool.get("tool_name")
+            tool_args = tool.get("tool_args")
+            task = execute_tool(tool_name, tool_args)
+            tasks.append(task)
+        
+        # Execute all tasks concurrently
         try:
-            # 获取工具列表
-            mcp_tools = self.multi_server_client.get_tools()
-            for tool in mcp_tools:
-                callable_tools[tool.name] = tool
-            # 异步并发
-            if is_concurrent:
-                # 创建异步任务列表
-                tasks = []
-                for tool_args in mcp_tools_args:
-                    tool_name = tool_args["tool_name"]
-                    tool_args = tool_args["tool_args"]
-                    # 创建异步任务
-                    task = asyncio.create_task(callable_tools[tool_name].coroutine(**tool_args))
-                    tasks.append(task)
-                # 并发执行所有任务
-                for task in asyncio.as_completed(tasks):
-                    try:
-                        result = await task
-                        tool_results.append(result)
-                    except Exception as e:
-                        logger.error(f"执行工具时出错: {e}")
-            else:
-                for tool_args in mcp_tools_args:
-                    tool_name = tool_args["tool_name"]
-                    tool_args = tool_args["tool_args"]
-                    try:
-                        result = await callable_tools[tool_name].coroutine(**tool_args)
-                        tool_results.append(result)
-                    except Exception as e:
-                        tool_results.append(f"执行工具 {tool_name} 时出错: {e}")
-                        logger.error(f"执行工具 {tool_name} 时出错: {e}")
-
+            tool_results = await asyncio.gather(*tasks, return_exceptions=True)
+            for i, result in enumerate(tool_results):
+                if isinstance(result, Exception):
+                    tool_results[i] = f"Error executing tool {tools_info[i].get("tool_name")}: {result}"
+                    logger.error(f"Error executing tool {tools_info[i].get("tool_name")}: {result}")
+            return tool_results
         except Exception as err:
-            logger.error(f"调用工具发生错误：{err}")
-        finally:
-            await self.multi_server_client.aclose()
-        return tool_results
+            logger.error(f"Error calling tools: {err}")
+            return []

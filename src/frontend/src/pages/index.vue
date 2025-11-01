@@ -1,8 +1,16 @@
 <script setup lang="ts">
-import { onMounted, ref, watch } from "vue"
+import { onMounted, ref, watch, computed } from "vue"
 import { useRouter } from "vue-router"
 import { useRoute } from "vue-router"
 import { ElMessage, ElMessageBox } from 'element-plus'
+import workspaceIcon from '../assets/workspace.svg'
+import applicationCenterIcon from '../assets/application-center.svg'
+import dialogIcon from '../assets/dialog.svg'
+import robotIcon from '../assets/robot.svg'
+import pluginIcon from '../assets/plugin.svg'
+import knowledgeIcon from '../assets/knowledge.svg'
+import modelIcon from '../assets/model.svg'
+import mcpIcon from '../assets/mcp.svg'
 import { User, SwitchButton, Setting } from '@element-plus/icons-vue'
 import { useAgentCardStore } from "../store/agent_card"
 import { useUserStore } from "../store/user"
@@ -15,8 +23,48 @@ const userStore = useUserStore()
 const route = useRoute()
 const router = useRouter()
 const itemName = ref("智言平台")
+const showAppCenterMenu = ref(false)
+let appCenterHoverTimer: any = null
+
+const openAppCenterMenu = () => {
+  if (appCenterHoverTimer) clearTimeout(appCenterHoverTimer)
+  showAppCenterMenu.value = true
+}
+
+const closeAppCenterMenu = () => {
+  if (appCenterHoverTimer) clearTimeout(appCenterHoverTimer)
+  appCenterHoverTimer = setTimeout(() => {
+    showAppCenterMenu.value = false
+  }, 120)
+}
+
+const goWorkspaceTop = () => {
+  router.push('/workspace')
+}
+
+const appCenterColumns = ref([
+  [
+    { label: '会话', icon: dialogIcon, route: '/conversation' },
+    { label: '工作台', icon: workspaceIcon, route: '/workspace' }
+  ],
+  [
+    { label: '智能体', icon: robotIcon, route: '/agent' },
+    { label: '工具', icon: pluginIcon, route: '/tool' }
+  ],
+  [
+    { label: '知识库', icon: knowledgeIcon, route: '/knowledge' },
+    { label: '模型', icon: modelIcon, route: '/model' }
+  ],
+  [
+    { label: 'MCP', icon: mcpIcon, route: '/mcp-server' }
+  ]
+])
 const current = ref(route.meta.current)
 const cardList = ref<Agent[]>([])
+
+// 顶栏按钮激活态
+const isWorkspaceActive = computed(() => route.path.startsWith('/workspace'))
+const isAppCenterActive = computed(() => route.path.startsWith('/homepage'))
 
 // 初始化用户状态
 onMounted(async () => {
@@ -63,7 +111,8 @@ const goCurrent = (item: string) => {
     "mcp-server": "/mcp-server",
     "knowledge": "/knowledge",
     "tool": "/tool",
-    "model": "/model"
+    "model": "/model",
+    "workspace": "/workspace"
   }
   
   router.push(routes[item] || "/")
@@ -118,15 +167,13 @@ watch(
 <template>
   <div class="ai-body">
     <div class="ai-nav">
-      <div class="left" @click="godefault">
-        <div class="item-img">
-          <img
-            src="../../public/ai.svg"
-            alt=""
-            style="width: 32px; height: 32px"
-          />
+      <div class="left">
+        <div class="item-img" @click="godefault">
+          <img :src="robotIcon" alt="Logo" class="logo" />
         </div>
-        <div class="item-name" data-text="智言平台">{{ itemName }}</div>
+        <div class="nav-links">
+          <img src="../assets/agentchat.svg" alt="智言平台" class="brand-logo-img" />
+        </div>
       </div>
       <div class="right">
         <!-- 用户信息区域 -->
@@ -170,12 +217,20 @@ watch(
             :default-active="current"
             text-color="#909399"
           >
+            <el-menu-item index="workspace" @click="goCurrent('workspace')">
+              <template #title>
+                <el-icon>
+                  <img src="../assets/workspace.svg" width="22px" height="22px" />
+                </el-icon>
+                <span>工作台</span>
+              </template>
+            </el-menu-item>
             <el-menu-item index="homepage" @click="goCurrent('homepage')">
               <template #title>
                 <el-icon>
-                  <img src="../assets/frontpage.svg" width="22px" height="22px" />
+                  <img src="../assets/explore.svg" width="22px" height="22px" />
                 </el-icon>
-                <span>首页</span>
+                <span>探索</span>
               </template>
             </el-menu-item>
             <el-menu-item index="conversation" @click="goCurrent('conversation')">
@@ -268,6 +323,9 @@ watch(
 
 <style lang="scss" scoped>
 .ai-body {
+@import url('https://fonts.googleapis.com/css2?family=ZCOOL+KuaiLe&family=Zhi+Mang+Xing&family=Ma+Shan+Zheng&display=swap');
+}
+.ai-body {
   overflow: hidden;
   
   .ai-nav {
@@ -275,15 +333,17 @@ watch(
     justify-content: space-between;
     align-items: center;
     height: 64px;
-    background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+    background: linear-gradient(180deg, #e0f2fe 0%, #dbeafe 100%);
     padding: 0 24px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    box-shadow: 0 1px 0 rgba(15, 23, 42, 0.06);
+    position: relative;
+    z-index: 3000;
     
     .left {
       display: flex;
       align-items: center;
       font-weight: 600;
-      color: white;
+      color: #0f172a;
       cursor: pointer;
       transition: all 0.3s ease;
       
@@ -292,41 +352,217 @@ watch(
       }
       
       .item-img {
-        margin-right: 12px;
+        margin-right: 0;
         
-        img {
-          /* 增加图标对比度和可见性 */
-          filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.5)) brightness(1.2) contrast(1.2);
+        .logo {
+          width: 32px;
+          height: 32px;
+          /* 与工作区保持一致的轻微阴影，避免色差 */
+          filter: drop-shadow(0 0 3px rgba(0, 0, 0, 0.2));
           transition: all 0.3s ease;
         }
       }
       
-      .item-name {
-        font-size: 22px;
-        letter-spacing: 2px;
-        background: linear-gradient(120deg, #f9f0ff, #fff, #e0f7fa, #fff6e5, #fff);
-        background-size: 300% auto;
-        background-clip: text;
-        -webkit-background-clip: text;
-        color: transparent;
-        /* 移除阴影效果 */
-        font-weight: 600;
-        animation: shine-rainbow 6s ease-in-out infinite;
-        /* 改为正常字体 */
-        font-family: "Microsoft YaHei", "PingFang SC", "Helvetica Neue", sans-serif;
+      /* 移除平台大字后的间距收紧 */
+
+      .nav-links {
+        display: flex;
+        align-items: center;
+        margin-left: 8px;
+        gap: 10px;
+
+        .nav-link {
+          background: #f8fafc;
+          color: #0f172a;
+          border: 1px solid #e5e7eb;
+          height: 40px;
+          padding: 0 14px;
+          border-radius: 14px;
+          font-size: 13px;
+          font-weight: 800;
+          letter-spacing: 0.4px;
+          cursor: pointer;
+          transition: all 0.2s ease;
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          position: relative;
+
+          &:hover {
+            background: #eef2ff;
+            transform: translateY(-1px);
+            box-shadow: 0 8px 18px rgba(2, 6, 23, 0.08);
+          }
+
+          .icon {
+            width: 20px;
+            height: 20px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+
+            img {
+              width: 20px;
+              height: 20px;
+            }
+          }
+
+          .text {
+            line-height: 1;
+          }
+        }
+
+        .brand-logo-img {
+          height: 45px;
+          width: auto;
+          display: block;
+          filter: drop-shadow(0 2px 6px rgba(59, 130, 246, 0.25));
+          user-select: none;
+        }
+
+        /* 更美观的主题色块：工作台与应用中心区分配色，带磨砂效果 */
+        .workspace-link {
+          background: linear-gradient(135deg, rgba(59,130,246,0.18), rgba(99,102,241,0.18));
+          border-color: rgba(99,102,241,0.24);
+          backdrop-filter: saturate(120%) blur(3px);
+
+          &:hover {
+            background: linear-gradient(135deg, rgba(59,130,246,0.26), rgba(99,102,241,0.26));
+          }
+
+          &.active {
+            background: #eef2ff; /* very light indigo */
+            border-color: #c7d2fe;
+            color: #0f172a;
+            box-shadow: inset 0 0 0 1px rgba(99,102,241,0.25);
+
+            &::after {
+              content: '';
+              position: absolute;
+              left: 12px;
+              right: 12px;
+              bottom: -5px;
+              height: 2px;
+              border-radius: 2px;
+              background: rgba(99,102,241,0.6);
+            }
+          }
+        }
+
+        .appcenter-link {
+          background: linear-gradient(135deg, rgba(16,185,129,0.16), rgba(59,130,246,0.16));
+          border-color: rgba(59,130,246,0.22);
+          backdrop-filter: saturate(120%) blur(3px);
+
+          &:hover {
+            background: linear-gradient(135deg, rgba(16,185,129,0.24), rgba(59,130,246,0.24));
+          }
+
+          &.active {
+            background: #ebf5ff; /* very light blue */
+            border-color: #bfdbfe;
+            color: #0f172a;
+            box-shadow: inset 0 0 0 1px rgba(59,130,246,0.22);
+
+            &::after {
+              content: '';
+              position: absolute;
+              left: 12px;
+              right: 12px;
+              bottom: -5px;
+              height: 2px;
+              border-radius: 2px;
+              background: rgba(59,130,246,0.55);
+            }
+          }
+        }
+
+        .app-center {
         position: relative;
-        padding: 0 5px;
+        }
+
+        .brand-title {
+          font-family: 'Zhi Mang Xing', 'Ma Shan Zheng', 'ZCOOL KuaiLe', 'PingFang SC', 'Microsoft YaHei', 'Source Han Sans CN', 'Noto Sans CJK SC', 'Helvetica Neue', Arial, sans-serif;
+          font-size: 28px;
+          font-weight: 700;
+          letter-spacing: 0.5px;
+          background: linear-gradient(135deg, #1f2937 0%, #3b82f6 50%, #8b5cf6 100%);
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          -webkit-text-stroke: 0.4px rgba(31, 41, 55, 0.06);
+          text-shadow: 0 3px 12px rgba(59, 130, 246, 0.3);
+          user-select: none;
+        }
         
-        &::before {
-          content: attr(data-text);
+        .mega-menu {
           position: absolute;
+          top: 48px;
           left: 0;
-          top: 0;
-          width: 100%;
-          height: 100%;
-          z-index: -1;
-          background: none;
-          /* 移除阴影效果 */
+          background: #ffffff;
+          border: 1px solid rgba(2, 6, 23, 0.08);
+          border-radius: 14px;
+          box-shadow: 0 20px 40px rgba(2, 6, 23, 0.18);
+          padding: 18px;
+          min-width: 560px;
+          z-index: 4000;
+          color: #0f172a;
+
+          .menu-header {
+            font-size: 13px;
+            font-weight: 600;
+            color: #64748b;
+            margin-bottom: 8px;
+          }
+
+          .menu-columns {
+            display: grid;
+            grid-template-columns: repeat(4, minmax(0, 1fr));
+            gap: 14px;
+          }
+
+          .menu-column {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+          }
+
+          .menu-item {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding: 10px 12px;
+            border-radius: 10px;
+            color: #1f2937;
+            text-decoration: none;
+            transition: all 0.2s ease;
+
+            &:hover {
+              background: linear-gradient(180deg, #f8fbff, #f3f6fb);
+              box-shadow: inset 0 0 0 1px #e5e7eb;
+            }
+
+            .icon {
+              width: 30px;
+              height: 30px;
+              display: inline-flex;
+              align-items: center;
+              justify-content: center;
+              border-radius: 9px;
+              background: #eef4ff;
+              border: 1px solid rgba(99, 102, 241, 0.12);
+
+              img {
+                width: 19px;
+                height: 19px;
+              }
+            }
+
+            .text {
+              font-size: 14px;
+              font-weight: 700;
+            }
+          }
         }
       }
       

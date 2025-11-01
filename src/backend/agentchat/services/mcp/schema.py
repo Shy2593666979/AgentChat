@@ -9,7 +9,7 @@ from typing import Any, Literal, TypedDict, cast
 EncodingErrorHandler = Literal["strict", "ignore", "replace"]
 
 DEFAULT_ENCODING = "utf-8"
-DEFAULT_ENCODING_ERROR_HANDLER: EncodingErrorHandler = "strict"
+DEFAULT_ENCODING_ERROR_HANDLER: EncodingErrorHandler = "ignore"
 
 DEFAULT_HTTP_TIMEOUT = 5
 DEFAULT_SSE_READ_TIMEOUT = 60 * 5

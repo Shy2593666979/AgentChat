@@ -20,8 +20,13 @@ import ModelEditor from '../pages/model/model-editor.vue'
 import Profile from '../pages/profile'
 import Homepage from '../pages/homepage'
 import MarsChat from '../pages/mars'
+import Workspace from '../pages/workspace/workspace.vue'
+import WorkspacePage from '../pages/workspace/workspacePage/workspacePage.vue'
+import WorkspaceDefaultPage from '../pages/workspace/defaultPage/defaultPage.vue'
+import TaskGraphPage from '../pages/workspace/taskGraphPage/taskGraphPage.vue'
+import type { RouteRecordRaw } from 'vue-router'
 
-const routes = [
+const routes: RouteRecordRaw[] = [
   {
     path: '/login',
     name: 'login',
@@ -39,8 +44,36 @@ const routes = [
     }
   },
   {
+    path: '/workspace',
+    name: 'workspace',
+    component: Workspace,
+    meta: {
+      requiresAuth: true
+    },
+    children: [
+      {
+        path: '',
+        name: 'workspaceDefaultPage',
+        component: WorkspaceDefaultPage,
+      },
+      {
+        path: 'workspacePage',
+        name: 'workspacePage',
+        component: WorkspacePage,
+      }
+    ]
+  },
+  {
+    path: '/workspace/taskGraph',
+    name: 'taskGraphPage',
+    component: TaskGraphPage,
+    meta: {
+      requiresAuth: true
+    }
+  },
+  {
     path: '/',
-    redirect: '/homepage',
+    redirect: '/workspace',
     name: 'index',
     component: Index,
     meta: {
@@ -182,7 +215,7 @@ const routes = [
 
 const router = createRouter({
   history: createWebHistory(),
-  routes,
+  routes: routes as RouteRecordRaw[],
 });
 
 // 路由守卫

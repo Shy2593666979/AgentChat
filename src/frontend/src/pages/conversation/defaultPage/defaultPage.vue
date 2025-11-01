@@ -1,229 +1,25 @@
 <script setup lang="ts">
-import { Search, Plus, Star } from "@element-plus/icons-vue"
-import CommonCard from "../../../components/commonCard"
-import { ref, onMounted, computed } from "vue"
-import { createDialogAPI } from "../../../apis/history"
-import { getAgentsAPI, searchAgentsAPI } from "../../../apis/agent"
-import { Agent } from "../../../type"
-import { useHistoryChatStore } from "../../../store/history_chat_msg"
-import { useHistoryListStore } from "../../../store/history_list/index"
-import { useRouter } from "vue-router"
-import { ElMessage } from "element-plus"
+import { ref, onMounted } from "vue"
 import { getDialogListAPI } from "../../../apis/history"
 
-const router = useRouter()
-const historyListStore = useHistoryListStore()
-const historyChatStore = useHistoryChatStore()
-const searchInput = ref("")
-const CardList = ref<Agent[]>([])
-const loading = ref(false)
-const shouldShow = ref(false) // 控制是否显示页面内容
-
-// 过滤后的智能体列表
-const filteredAgents = computed(() => {
-  if (!searchInput.value) {
-    return CardList.value
-  }
-  return CardList.value.filter(agent => 
-    agent.name.toLowerCase().includes(searchInput.value.toLowerCase()) ||
-    agent.description.toLowerCase().includes(searchInput.value.toLowerCase())
-  )
-})
+const shouldShow = ref(false)
 
 onMounted(async () => {
-  // 先检查是否有会话记录
   try {
     const response = await getDialogListAPI()
     if (response.data.status_code === 200 && response.data.data && response.data.data.length > 0) {
-      // 有会话记录，不显示此页面，等待父组件跳转
-      console.log('检测到有会话记录，不显示默认页面')
       return
     }
-  } catch (error) {
-    console.error('检查会话记录失败:', error)
+  } catch (_) {
+    // ignore
   }
-  
-  // 没有会话记录，显示页面并加载智能体
   shouldShow.value = true
-  await loadAgents()
 })
-
-const loadAgents = async () => {
-  try {
-    loading.value = true
-    const response = await getAgentsAPI()
-    CardList.value = response.data.data
-  } catch (error) {
-    console.error('获取智能体列表失败:', error)
-    ElMessage.error('获取智能体列表失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-const gochat = async (item: Agent) => {
-  try {
-    historyChatStore.name = item.name
-    historyChatStore.logo = item.logo_url
-    const list = await createDialogAPI({ 
-      name: `与${item.name}的对话`,
-      agent_id: item.agent_id,
-      agent_type: "Agent"
-    })
-    historyChatStore.dialogId = list.data.data.dialog_id
-    historyChatStore.clear()
-    await historyListStore.getList()
-    router.push("/conversation/chatPage")
-    ElMessage.success('会话创建成功')
-  } catch (error) {
-    ElMessage.error('创建会话失败')
-  }
-}
-
-const searchAgent = async () => {
-  if (searchInput.value) {
-    try {
-      loading.value = true
-      const response = await searchAgentsAPI({ name: searchInput.value })
-      CardList.value = response.data.data.map(item => ({
-        agent_id: item.agent_id,
-        name: item.name,
-        description: item.description,
-        logo_url: item.logo_url,
-        tool_ids: [],
-        llm_id: '',
-        mcp_ids: [],
-        system_prompt: '',
-        knowledge_ids: [],
-        enable_memory: false
-      }))
-    } catch (error) {
-      console.error('搜索智能体失败:', error)
-      ElMessage.error('搜索失败')
-    } finally {
-      loading.value = false
-    }
-  } else {
-    await loadAgents()
-  }
-}
-
-const clearSearch = () => {
-  searchInput.value = ''
-  loadAgents()
-}
 </script>
 
 <template>
-  <!-- 只有确认没有会话记录时才显示页面内容 -->
-  <div v-if="shouldShow" class="default-page">
-    <!-- 头部区域 -->
-    <div class="header-section">
-      <div class="welcome-content">
-        <div class="welcome-icon">
-          <el-icon size="48" color="#3b82f6">
-            <Star />
-          </el-icon>
-        </div>
-        <div class="welcome-text">
-          <h1 class="title">
-            欢迎使用 <span class="highlight">智言</span> 平台
-          </h1>
-          <p class="subtitle">
-            选择您需要的智能体，开始智能对话之旅
-          </p>
-        </div>
-      </div>
-    </div>
-
-    <!-- 搜索区域 -->
-    <div class="search-section">
-      <div class="search-container">
-        <el-input
-          v-model="searchInput"
-          placeholder="搜索智能体功能..."
-          class="search-input"
-          size="large"
-          @keydown.enter="searchAgent"
-          clearable
-          @clear="clearSearch"
-        >
-          <template #prefix>
-            <el-icon><Search /></el-icon>
-          </template>
-          <template #append>
-            <el-button 
-              type="primary" 
-              @click="searchAgent"
-              :loading="loading"
-            >
-              搜索
-            </el-button>
-          </template>
-        </el-input>
-      </div>
-    </div>
-
-    <!-- 智能体列表区域 -->
-    <div class="agents-section">
-      <div class="section-header">
-        <div class="header-left">
-          <h2 class="section-title">可用智能体</h2>
-          <span class="agent-count">({{ filteredAgents.length }})</span>
-        </div>
-        <div class="header-right">
-          <el-button 
-            type="primary" 
-            :icon="Plus"
-            @click="loadAgents"
-            :loading="loading"
-          >
-            刷新列表
-          </el-button>
-        </div>
-      </div>
-
-      <!-- 加载状态 -->
-      <div v-if="loading" class="loading-state">
-        <el-skeleton :rows="6" animated />
-      </div>
-
-      <!-- 空状态 -->
-      <div v-else-if="filteredAgents.length === 0" class="empty-state">
-        <div class="empty-icon">🤖</div>
-        <div class="empty-title">
-          {{ searchInput ? '没有找到相关智能体' : '暂无可用智能体' }}
-        </div>
-        <div class="empty-description">
-          {{ searchInput ? '请尝试其他关键词' : '请联系管理员添加智能体' }}
-        </div>
-        <el-button 
-          v-if="searchInput" 
-          type="primary" 
-          @click="clearSearch"
-        >
-          清除搜索
-        </el-button>
-      </div>
-
-      <!-- 智能体网格 -->
-      <div v-else class="agents-grid">
-        <div 
-          v-for="item in filteredAgents" 
-          :key="item.agent_id"
-          class="agent-item"
-        >
-          <CommonCard
-            class="agent-card"
-            :title="item.name"
-            :detail="item.description"
-            :imgUrl="item.logo_url"
-            @click="gochat(item)"
-          />
-        </div>
-      </div>
-    </div>
-  </div>
+  <!-- 对话列表为空时，右侧展示空白 -->
+  <div v-if="shouldShow"></div>
   <!-- 如果有会话记录，不显示任何内容，等待跳转 -->
 </template>
 

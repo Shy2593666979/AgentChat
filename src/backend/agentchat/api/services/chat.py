@@ -4,7 +4,7 @@ import json
 import time
 import inspect
 from loguru import logger
-from typing import List, Dict, Any, AsyncGenerator
+from typing import List, Dict, Any, AsyncGenerator, Optional
 from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage, HumanMessage, ToolCall
 from langchain_core.tools import BaseTool, Tool
 from langgraph.graph import MessagesState, StateGraph, END, START
@@ -37,7 +37,7 @@ class AgentConfig(BaseModel):
 class StreamingAgent:
     def __init__(self, agent_config: AgentConfig):
         self.agent_config = agent_config
-        self.mcp_manager = MCPManager()
+        self.mcp_manager: Optional[MCPManager] = None
         self.conversation_model = None
         self.tool_invocation_model = None
         self.tools = []

@@ -67,16 +67,28 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 
 <div align="center">
 
+### 🖥️新增工作区
+*新增工作区，工作区和应用中心可随意切换*
+<img width="800" height="450" alt="c453afd6-84ed-4bb7-b268-407fb531a1c9" src="https://github.com/user-attachments/assets/766c7628-2256-4c8b-a838-c400eaa78d6b" />
+
+
+### ✨灵寻任务规划
+*实时的任务流程图，更加直观的感受*
+<img width="800" height="450" alt="cc59faad-4112-48cd-b9b1-6f89d3cbdb39" src="https://github.com/user-attachments/assets/53f7fe9f-d70d-4cc2-bf7e-b47a712a6d7a" />
+
+
 ### 🏠 智言平台首页
 *简洁现代的主界面，提供直观的功能导航*
 
-<img width="800" height="450" alt="智言平台首页" src="https://github.com/user-attachments/assets/26deacff-2349-4e54-9cb7-b4a22429f088" />
+<img width="800" height="450" alt="5a6ee271-7c81-4032-aeca-57496634a64f" src="https://github.com/user-attachments/assets/0295e9ea-6f15-484c-b223-82000bc9d33c" />
+
 
 
 ### 🔐 智言平台登录页
 *安全便捷的用户认证系统*
 
-<img width="800" height="450" alt="登录页面" src="https://github.com/user-attachments/assets/18f79604-0631-483f-b1eb-8831bf329063" />
+<img width="800" height="450" alt="d67ba546-b3bd-40e0-b09c-9b1615afda29" src="https://github.com/user-attachments/assets/87b6e15c-a4aa-47c5-b588-0bc977599311" />
+
 
 ### 🤖 智能体管理页面
 *强大的Agent配置和管理中心*
