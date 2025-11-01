@@ -1,5 +1,7 @@
 from datetime import datetime
 from typing import Optional, List, Dict
+from uuid import uuid4
+
 from pydantic import BaseModel
 from sqlmodel import Field
 from sqlalchemy import Column, DateTime, text
@@ -12,9 +14,8 @@ class UsageStatsBase(SQLModelSerializable):
 
     user_id: str = Field(..., description="发起请求的用户唯一标识（UUID 或系统用户 ID）")
 
-    input_token: int = Field(ge=0, description="输入（prompt）所消耗的 token 数量")
-    output_token: int = Field(ge=0, description="模型生成（completion）所消耗的 token 数量")
-    total_token: int = Field(ge=0, description="总 token 数量，通常为 input_token + output_token")
+    input_tokens: int = Field(0, description="输入（prompt）所消耗的 token 数量")
+    output_tokens: int = Field(0, description="模型生成（completion）所消耗的 token 数量")
 
     create_time: Optional[datetime] = Field(
         sa_column=Column(
@@ -26,4 +27,4 @@ class UsageStatsBase(SQLModelSerializable):
     )
 
 class UsageStats(UsageStatsBase, table=True):
-    id: str = Field(..., description="智能体、模型的使用统计的ID")
+    id: str = Field(default_factory=lambda: uuid4().hex, description="智能体、模型的使用统计的ID")
