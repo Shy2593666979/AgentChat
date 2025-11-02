@@ -1,15 +1,17 @@
 import json
 from typing import List, Union, Optional
 
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage, BaseMessage
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage, BaseMessage, AIMessageChunk
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
+from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
 from agentchat.prompts.template import GuidePromptTemplate
 from agentchat.schema.workspace import WorkSpaceAgents
+from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.services.mcp_agent.agent import MCPConfig
 from agentchat.tools import LingSeekPlugins, tavily_search as web_search
 from agentchat.api.services.tool import ToolService
@@ -146,6 +148,8 @@ class LingSeekAgent:
                 }
             }
 
+            await self._record_agent_token_usage(chunk, self.conversation_model.model_name)
+
     async def submit_lingseek_task(self, lingseek_task: LingSeekTask):
         task = await self.generate_tasks(lingseek_task)
 
@@ -194,6 +198,8 @@ class LingSeekAgent:
             )
             step_messages = [SystemMessage(content=step_prompt), HumanMessage(content=lingseek_task.query)]
             response = await tool_call_model.ainvoke(step_messages)
+
+            await self._record_agent_token_usage(response, tool_call_model.model_name)
             tools_messages = await self._parse_function_call_response(response)
 
             step_info.result = "\n".join([msg.content for msg in tools_messages])
@@ -217,6 +223,7 @@ class LingSeekAgent:
                 "event": "task_result",
                 "data": {"message": chunk.content}
             }
+            await self._record_agent_token_usage(chunk, self.conversation_model.model_name)
 
         await self._add_workspace_session(
             lingseek_task.query,
@@ -278,3 +285,13 @@ class LingSeekAgent:
         tools.extend(mcp_tools)
 
         return tools
+
+    async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk | BaseMessage, model):
+        if response.usage_metadata:
+            await UsageStatsService.create_usage_stats(
+                model=model,
+                user_id=self.user_id,
+                agent=UsageStatsAgentType.lingseek_agent,
+                input_tokens=response.usage_metadata.get("input_tokens"),
+                output_tokens=response.usage_metadata.get("output_tokens")
+            )

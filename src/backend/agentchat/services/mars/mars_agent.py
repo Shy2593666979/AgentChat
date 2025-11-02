@@ -5,15 +5,17 @@ import time
 import typing
 from typing import List, Dict, Any
 
-from langchain_core.messages import BaseMessage, SystemMessage, ToolCall, AIMessage, ToolMessage
+from langchain_core.messages import BaseMessage, SystemMessage, ToolCall, AIMessage, ToolMessage, AIMessageChunk
 from langchain_core.tools import Tool, BaseTool
 from loguru import logger
 from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion_message_tool_call import Function
 from pydantic import BaseModel, create_model, Field
 
+from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
+from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.services.mars.mars_tools import Mars_Call_Tool
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
 from agentchat.settings import app_settings
@@ -98,7 +100,7 @@ class MarsAgent:
                 tool.coroutine.__doc__ = tool.coroutine.__doc__.replace("{{{user_configs_placeholder}}}", auto_build_prompt)
             tools_schema.append(function_to_args_schema(tool.coroutine))
 
-        self.tool_invocation_model.bind_tools(tools_schema)
+        self.tool_invocation_model = self.tool_invocation_model.bind_tools(tools_schema)
 
         system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
         call_tool_messages.append(system_message)
@@ -106,17 +108,10 @@ class MarsAgent:
         call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
+        await self._record_agent_token_usage(response, self.tool_invocation_model.model_name)
         # 判断是否有工具可调用
         if response.tool_calls:
-            openai_tool_calls = response.tool_calls
-
-            response.tool_calls = convert_langchain_tool_calls(response.tool_calls)
-
-
-            return AIMessage(
-                content=response.content,
-                tool_calls=response.tool_calls,
-            )
+            return response
         else:
             return AIMessage(content="没有命中可用的工具")
 
@@ -248,7 +243,15 @@ class MarsAgent:
         # 5. 确保Mars Agent任务已彻底完成
         await mars_task
 
-
+    async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk | BaseMessage, model):
+        if response.usage_metadata:
+            await UsageStatsService.create_usage_stats(
+                model=model,
+                user_id=self.mars_config.user_id,
+                agent=UsageStatsAgentType.mars_agent,
+                input_tokens=response.usage_metadata.get("input_tokens"),
+                output_tokens=response.usage_metadata.get("output_tokens")
+            )
 
 # 将OpenAI的function call格式转成Langchain格式做适配
 def convert_langchain_tool_calls(tool_calls: List[ChatCompletionMessageToolCall]):

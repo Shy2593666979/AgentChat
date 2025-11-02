@@ -4,12 +4,14 @@ import copy
 from loguru import logger
 from typing import List, Dict, Any
 
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage, AIMessageChunk
 from langchain_core.tools import BaseTool, Tool, StructuredTool
 from langgraph.graph import MessagesState, StateGraph, END, START
 
+from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
+from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceAgents
 from agentchat.tools import WorkSpacePlugins
 from agentchat.api.services.tool import ToolService
@@ -141,6 +143,7 @@ class WorkSpaceSimpleAgent:
         call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
+        await self._record_agent_token_usage(response, self.model.model_name)
         # Determine if there are tools available for calling
         if response.tool_calls:
             return response
@@ -320,6 +323,7 @@ class WorkSpaceSimpleAgent:
                 }
             }
             final_answer += chunk.content
+            await self._record_agent_token_usage(chunk, self.model.model_name)
 
         await generate_title_task
         title = generate_title_task.result() if generate_title_task.done() else None
@@ -332,6 +336,15 @@ class WorkSpaceSimpleAgent:
             ))
 
 
+    async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk | BaseMessage, model):
+        if response.usage_metadata:
+            await UsageStatsService.create_usage_stats(
+                model=model,
+                user_id=self.user_id,
+                agent=UsageStatsAgentType.simple_agent,
+                input_tokens=response.usage_metadata.get("input_tokens"),
+                output_tokens=response.usage_metadata.get("output_tokens")
+            )
 
     # Additional helper methods
     def find_tool_use(self, tool_name: str):

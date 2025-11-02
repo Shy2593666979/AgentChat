@@ -5,7 +5,8 @@ from typing import List, Optional
 from loguru import logger
 
 from pydantic import BaseModel
-from langchain_core.messages import ToolMessage, BaseMessage, AIMessage, SystemMessage, ToolCall, HumanMessage
+from langchain_core.messages import ToolMessage, BaseMessage, AIMessage, SystemMessage, ToolCall, HumanMessage, \
+    AIMessageChunk
 from langchain_core.tools import BaseTool
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, MessagesState
@@ -13,6 +14,7 @@ from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion_message_tool_call import Function
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
+from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.services.mcp.manager import MCPManager
@@ -29,10 +31,11 @@ class MCPConfig(BaseModel):
 
 
 class MCPAgent:
-    def __init__(self, mcp_config: MCPConfig, user_id: str):
+    def __init__(self, mcp_config: MCPConfig, user_id: str, agent_name=None):
         self.mcp_config = mcp_config
         self.mcp_manager = MCPManager([convert_mcp_config(mcp_config.model_dump())])
 
+        self.agent_name = agent_name
         self.user_id = user_id
         self.mcp_tools: List[BaseTool] = []
         self.conversation_model = None
@@ -80,7 +83,7 @@ class MCPAgent:
             for tool in self.mcp_tools:
                 tools_schema.append(mcp_tool_to_args_schema(tool.name, tool.description, tool.args_schema))
 
-            self.tool_invocation_model.bind_tools(tools_schema)
+            self.tool_invocation_model = self.tool_invocation_model.bind_tools(tools_schema)
 
             system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
             # MCP Agent 单独的Prompt，不受历史记录影响
@@ -90,15 +93,10 @@ class MCPAgent:
             call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
+        await self._record_agent_token_usage(response, self.tool_invocation_model.model_name)
         # 判断是否有工具可调用
         if response.tool_calls:
-            openai_tool_calls = response.tool_calls
-            response.tool_calls = convert_langchain_tool_calls(response.tool_calls)
-
-            return AIMessage(
-                content="命中可用工具",
-                tool_calls=response.tool_calls,
-            )
+            return response
         else:
             # 发送无工具可用事件
             return AIMessage(content="没有命中可用的工具")
@@ -194,6 +192,16 @@ class MCPAgent:
         return messages
         # 是否需要模型总结信息（增加10-20s的时间） ↓
         # return await self.conversation_model.ainvoke(result["messages"][:-1])
+
+    async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk, model):
+        if response.usage_metadata:
+            await UsageStatsService.create_usage_stats(
+                model=model,
+                user_id=self.user_id,
+                agent=self.agent_name,
+                input_tokens=response.usage_metadata.get("input_tokens"),
+                output_tokens=response.usage_metadata.get("output_tokens")
+            )
 
     def find_mcp_tool(self, name) -> BaseTool | None:
         for tool in self.mcp_tools:

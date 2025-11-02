@@ -7,13 +7,13 @@ from agentchat.database.dao.usage_stats import UsageStatsDao, UsageStats
 class UsageStatsService:
 
     @classmethod
-    async def create_usage_stats(cls, agent, model, user_id, input_token=0, output_token=0):
+    async def create_usage_stats(cls, agent, model, user_id, input_tokens=0, output_tokens=0):
         usage_stats = UsageStats(
             agent=agent,
             model=model,
             user_id=user_id,
-            input_token=input_token,
-            output_token=output_token
+            input_tokens=input_tokens,
+            output_tokens=output_tokens
         )
 
         await UsageStatsDao.create_usage_stats(usage_stats)
@@ -57,28 +57,28 @@ class UsageStatsService:
             # 初始化agent的token数据
             if not date_usage_dict[date_key]["agent"][agent_key]:
                 date_usage_dict[date_key]["agent"][agent_key] = {
-                    "input_token": 0,
-                    "output_token": 0,
-                    "total_token": 0
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "total_tokens": 0
                 }
             # 累加agent的token数量
-            date_usage_dict[date_key]["agent"][agent_key]["input_token"] += item.input_token
-            date_usage_dict[date_key]["agent"][agent_key]["output_token"] += item.output_token
-            date_usage_dict[date_key]["agent"][agent_key]["total_token"] += item.input_token + item.output_token
+            date_usage_dict[date_key]["agent"][agent_key]["input_tokens"] += item.input_tokens
+            date_usage_dict[date_key]["agent"][agent_key]["output_tokens"] += item.output_tokens
+            date_usage_dict[date_key]["agent"][agent_key]["total_tokens"] += item.input_tokens + item.output_tokens
 
             # 处理model相关统计
             model_key = item.model or "未指定model"
             # 初始化model的token数据
             if not date_usage_dict[date_key]["model"][model_key]:
                 date_usage_dict[date_key]["model"][model_key] = {
-                    "input_token": 0,
-                    "output_token": 0,
-                    "total_token": 0
+                    "input_tokens": 0,
+                    "output_tokens": 0,
+                    "total_tokens": 0
                 }
             # 累加model的token数量
-            date_usage_dict[date_key]["model"][model_key]["input_token"] += item.input_token
-            date_usage_dict[date_key]["model"][model_key]["output_token"] += item.output_token
-            date_usage_dict[date_key]["model"][model_key]["total_token"] += item.input_token + item.output_token
+            date_usage_dict[date_key]["model"][model_key]["input_tokens"] += item.input_tokens
+            date_usage_dict[date_key]["model"][model_key]["output_tokens"] += item.output_tokens
+            date_usage_dict[date_key]["model"][model_key]["total_tokens"] += item.input_tokens + item.output_tokens
 
         final_dict = dict(date_usage_dict)
         return final_dict
