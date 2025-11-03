@@ -17,6 +17,10 @@ class WorkSpaceSessionDao:
     @classmethod
     async def create_workspace_session(cls, workspace_session: WorkSpaceSession):
         async with async_session_getter() as session:
+            # 如果没有提供session_id，自动生成一个
+            if not workspace_session.session_id:
+                from uuid import uuid4
+                workspace_session.session_id = uuid4().hex
             session.add(workspace_session)
             await session.commit()
             await session.refresh(workspace_session)
@@ -34,7 +38,10 @@ class WorkSpaceSessionDao:
     async def update_workspace_session_contexts(cls, session_id, session_context):
         async with async_session_getter() as session:
             workspace_session = await session.get(WorkSpaceSession, session_id)
-            workspace_session.contexts.append(session_context)
+            new_contexts = workspace_session.contexts.copy()
+            new_contexts.append(session_context)
+            workspace_session.contexts = new_contexts  # 重新赋值
+
             await session.commit()
             await session.refresh(workspace_session)
 

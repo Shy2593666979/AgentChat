@@ -73,6 +73,7 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
         mcp_configs=servers_config,
         plugins=simple_task.plugins,
         user_id=login_user.user_id,
+        session_id=simple_task.session_id
     )
 
     async def general_generate():

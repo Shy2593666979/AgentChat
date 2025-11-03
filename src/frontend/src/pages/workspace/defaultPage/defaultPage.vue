@@ -27,9 +27,12 @@ const mcpServers = ref<any[]>([])
 const webSearchEnabled = ref(false)
 const toolDropdownRef = ref<HTMLElement | null>(null)
 const mcpDropdownRef = ref<HTMLElement | null>(null)
-  const fileInputRef = ref<HTMLInputElement | null>(null)
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const currentSessionId = ref<string>('')  // 当前会话ID
+const chatConversationRef = ref<HTMLElement | null>(null)  // 聊天容器引用
+const isGenerating = ref(false)  // 是否正在生成回复
 
-// 模型数据（来自应用中心“可见模型”）
+// 模型数据（来自应用中心"可见模型"）
 const modelOptions = ref<LLMResponse[]>([])
 const modelsLoading = ref(false)
 
@@ -163,10 +166,33 @@ const toggleMcp = (serverId: string) => {
   }
 }
 
+// 生成UUID（模拟Python的uuid4().hex）
+const generateSessionId = (): string => {
+  // 使用crypto.randomUUID()生成UUID，然后移除横杠
+  return crypto.randomUUID().replace(/-/g, '')
+}
+
+// 自动滚动到底部
+const scrollToBottom = () => {
+  if (chatConversationRef.value) {
+    setTimeout(() => {
+      if (chatConversationRef.value) {
+        chatConversationRef.value.scrollTop = chatConversationRef.value.scrollHeight
+      }
+    }, 100)
+  }
+}
+
 // 发送消息
 const handleSend = async () => {
   if (!inputMessage.value.trim()) {
     ElMessage.warning('请输入消息内容')
+    return
+  }
+
+  // 如果正在生成回复，不允许发送新消息
+  if (isGenerating.value) {
+    ElMessage.warning('请等待当前回复完成')
     return
   }
   
@@ -179,6 +205,9 @@ const handleSend = async () => {
     console.log('query:', query)
     console.log('tools:', selectedTools.value)
     console.log('webSearch:', webSearchEnabled.value)
+    
+    // 立即清空输入框
+    inputMessage.value = ''
     
     router.push({
       name: 'taskGraphPage',
@@ -194,15 +223,31 @@ const handleSend = async () => {
     console.log('=== 日常模式发送消息 ===')
     console.log('selectedModelId:', selectedModelId.value)
     console.log('query:', query)
+    console.log('session_id:', currentSessionId.value)
     
     if (!selectedModelId.value) {
       ElMessage.warning('请先选择模型')
       return
     }
 
+    // 如果还没有session_id，生成一个新的
+    if (!currentSessionId.value) {
+      currentSessionId.value = generateSessionId()
+      console.log('生成新的 session_id:', currentSessionId.value)
+    }
+
+    // 立即清空输入框，提升用户体验
+    inputMessage.value = ''
+    
+    // 设置正在生成状态（转圈）
+    isGenerating.value = true
+
     // 将用户消息加入消息列表
     console.log('将用户消息加入 messages')
     messages.value.push({ role: 'user' as const, content: query })
+    
+    // 自动滚动到底部
+    scrollToBottom()
     
     // 预置一条AI消息用于流式累加（先添加到数组，然后通过索引更新以触发响应式）
     const aiMsgIndex = messages.value.length
@@ -214,32 +259,35 @@ const handleSend = async () => {
         query,
         model_id: selectedModelId.value,
         plugins: selectedTools.value,
-        mcp_servers: selectedMcpServers.value
+        mcp_servers: selectedMcpServers.value,
+        session_id: currentSessionId.value  // 添加session_id参数
       }
-      console.log('准备调用 workspaceSimpleChatStreamAPI')
+      console.log('准备调用 workspaceSimpleChatStreamAPI，payload:', payload)
       await workspaceSimpleChatStreamAPI(
         payload,
         (chunk) => {
           console.log('收到 chunk，累加到 aiMsg:', chunk)
           // 通过索引更新以触发 Vue 的响应式
           messages.value[aiMsgIndex].content += chunk
+          // 每次收到新内容时自动滚动到底部
+          scrollToBottom()
         },
         (err) => {
           console.error('日常模式流式出错', err)
           ElMessage.error('对话失败，请稍后重试')
+          isGenerating.value = false  // 出错时解除生成状态
         },
         () => {
           console.log('日常模式流式结束')
+          isGenerating.value = false  // 完成时解除生成状态
         }
       )
     } catch (e) {
       console.error('日常模式对话异常', e)
       ElMessage.error('对话异常')
+      isGenerating.value = false  // 异常时解除生成状态
     }
   }
-  
-  // 清空输入框
-  inputMessage.value = ''
 }
 
 // 键盘事件处理
@@ -247,7 +295,10 @@ const handleKeydown = (event: KeyboardEvent) => {
   // 直接回车发送，Shift+Enter 换行
   if (event.key === 'Enter' && !event.shiftKey) {
     event.preventDefault()
-    handleSend()
+    // 如果正在生成，不响应回车
+    if (!isGenerating.value) {
+      handleSend()
+    }
   }
 }
 
@@ -269,6 +320,9 @@ const loadSessionHistory = async (sessionId: string) => {
         ]).flat().filter((msg: any) => msg.content) // 过滤掉空内容
         
         console.log('已加载会话历史，消息数量:', messages.value.length)
+        
+        // 加载历史后滚动到底部
+        scrollToBottom()
       }
     }
   } catch (error) {
@@ -285,7 +339,12 @@ onMounted(async () => {
   const sessionId = route.query.session_id as string
   if (sessionId) {
     console.log('加载已有会话:', sessionId)
+    currentSessionId.value = sessionId  // 设置当前会话ID
     await loadSessionHistory(sessionId)
+  } else {
+    // 如果没有session_id，生成一个新的
+    currentSessionId.value = generateSessionId()
+    console.log('生成新会话ID:', currentSessionId.value)
   }
   
   // 懒加载 MCP 列表（用于选择）
@@ -312,10 +371,17 @@ watch(
   async (newSessionId, oldSessionId) => {
     if (newSessionId && newSessionId !== oldSessionId) {
       console.log('检测到会话ID变化:', oldSessionId, '->', newSessionId)
+      // 更新当前会话ID
+      currentSessionId.value = newSessionId as string
       // 清空当前消息
       messages.value = []
       // 加载新会话的历史
       await loadSessionHistory(newSessionId as string)
+    } else if (!newSessionId && oldSessionId) {
+      // 如果从有session_id变为没有，生成新的session_id
+      currentSessionId.value = generateSessionId()
+      console.log('生成新会话ID:', currentSessionId.value)
+      messages.value = []
     }
   }
 )
@@ -349,7 +415,7 @@ watch(
       </div>
 
       <!-- 对话历史（有对话时显示在上方） -->
-      <div v-if="messages.length > 0" class="chat-conversation">
+      <div v-if="messages.length > 0" class="chat-conversation" ref="chatConversationRef">
         <div v-for="(msg, idx) in messages" :key="idx" class="message-group">
           <!-- User Message -->
           <div v-if="msg.role === 'user'" class="user-message">
@@ -601,8 +667,9 @@ watch(
               />
               
               <!-- 发送按钮 -->
-              <button class="send-btn" @click="handleSend">
-                <span>➤</span>
+              <button class="send-btn" :class="{ 'btn-disabled': isGenerating }" :disabled="isGenerating" @click="handleSend">
+                <span v-if="!isGenerating">➤</span>
+                <span v-else class="loading-spinner"></span>
               </button>
             </div>
           </div>
@@ -1285,13 +1352,32 @@ watch(
           font-size: 16px;
           box-shadow: 0 2px 8px rgba(59, 130, 246, 0.25);
 
-          &:hover {
+          &:hover:not(.btn-disabled) {
             transform: translateY(-2px);
             box-shadow: 0 6px 16px rgba(59, 130, 246, 0.35);
           }
 
-          &:active {
+          &:active:not(.btn-disabled) {
             transform: translateY(0);
+          }
+
+          &.btn-disabled {
+            background: linear-gradient(135deg, #9ca3af 0%, #6b7280 100%);
+            cursor: not-allowed;
+            opacity: 0.6;
+          }
+
+          .loading-spinner {
+            animation: spin 1s linear infinite;
+          }
+        }
+
+        @keyframes spin {
+          from {
+            transform: rotate(0deg);
+          }
+          to {
+            transform: rotate(360deg);
           }
         }
       }
@@ -1305,6 +1391,7 @@ watch(
   overflow-y: auto;
   width: 100%;
   background-color: #f7f8fa;
+  scroll-behavior: smooth;  // 平滑滚动
   
   .message-group {
     margin-bottom: 20px;

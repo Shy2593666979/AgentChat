@@ -29,7 +29,7 @@ class WorkSpaceSessionService:
     async def get_workspace_session_from_id(cls, session_id, user_id):
         result = await WorkSpaceSessionDao.get_workspace_session_from_id(session_id)
         if result is None:
-            raise ValueError("工作台会话不存在")
+            return None
         if result.user_id != user_id:
             raise ValueError("无权限操作该工作台会话")
         return result.to_dict()

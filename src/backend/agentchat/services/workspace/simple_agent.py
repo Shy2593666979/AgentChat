@@ -44,6 +44,7 @@ class WorkSpaceSimpleAgent:
     def __init__(self,
                  model_config,
                  user_id: str,
+                 session_id: str,
                  mcp_configs: List[MCPBaseConfig] = [],
                  plugins: List[str] = []):
 
@@ -56,6 +57,7 @@ class WorkSpaceSimpleAgent:
         self.tools = []
         self.mcp_manager = MCPManager(mcp_configs)
         self.plugins = plugins
+        self.session_id = session_id
 
         self.step_counter_lock = asyncio.Lock()
         self.step_counter = 1
@@ -280,17 +282,28 @@ class WorkSpaceSimpleAgent:
             return []
 
     async def _generate_title(self, query):
+        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.user_id)
+        if session:
+            return session.get("title")
         title_prompt = GenerateTitlePrompt.format(query=query)
         response = await self.model.ainvoke(title_prompt)
         return response.content
 
     async def _add_workspace_session(self, title, contexts: WorkSpaceSessionContext):
-        await WorkSpaceSessionService.create_workspace_session(
-            WorkSpaceSessionCreate(
-                title=title,
-                user_id=self.user_id,
-                contexts=[contexts.model_dump()],
-                agent=WorkSpaceAgents.SimpleAgent.value))
+        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.user_id)
+        if session:
+            await WorkSpaceSessionService.update_workspace_session_contexts(
+                session_id=self.session_id,
+                session_context=contexts.model_dump()
+            )
+        else:
+            await WorkSpaceSessionService.create_workspace_session(
+                WorkSpaceSessionCreate(
+                    title=title,
+                    user_id=self.user_id,
+                    session_id=self.session_id,
+                    contexts=[contexts.model_dump()],
+                    agent=WorkSpaceAgents.SimpleAgent.value))
 
     async def astream(self, messages: List[BaseMessage]):
         if not self._initialized:
