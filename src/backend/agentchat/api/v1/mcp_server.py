@@ -8,6 +8,8 @@ from agentchat.schema.schemas import resp_500, resp_200
 from agentchat.services.mcp.manager import MCPManager
 from loguru import logger
 
+from agentchat.utils.convert import convert_mcp_config
+
 router = APIRouter()
 
 
@@ -19,13 +21,14 @@ async def create_mcp_server(server_name: str = Body(..., description="MCP Server
                             logo_url: Optional[str] = Body("xxxx", description="MCP Server çš„LOGO"),
                             login_user: UserPayload = Depends(get_login_user)):
     try:
-        mcp_manager = MCPManager()
         server_info = {
             "server_name": server_name,
             "type": type,
             "url": url
         }
-        await mcp_manager.connect_mcp_servers([server_info])
+        mcp_manager = MCPManager(
+            [convert_mcp_config(server_info)]
+        )
         tools_params = await mcp_manager.show_mcp_tools()
         tools_name_str = []
         for key, tools in tools_params.items():
@@ -89,13 +92,12 @@ async def update_mcp_server(server_id: str = Body(..., description="MCP Server ç
         mcp_server = await MCPService.get_mcp_server_from_id(server_id)
 
         if url != mcp_server["url"]:
-            mcp_manager = MCPManager()
             server_info = {
                 "server_name": server_name,
                 "type": type,
                 "url": url
             }
-            await mcp_manager.connect_mcp_servers([server_info])
+            mcp_manager = MCPManager([convert_mcp_config(server_info)])
             tools_params = await mcp_manager.show_mcp_tools()
             tools_str = []
             for key, tools in tools_params:
