@@ -148,7 +148,6 @@ class LingSeekAgent:
                 }
             }
 
-            await self._record_agent_token_usage(chunk, self.conversation_model.model_name)
 
     async def submit_lingseek_task(self, lingseek_task: LingSeekTask):
         task = await self.generate_tasks(lingseek_task)
@@ -199,7 +198,6 @@ class LingSeekAgent:
             step_messages = [SystemMessage(content=step_prompt), HumanMessage(content=lingseek_task.query)]
             response = await tool_call_model.ainvoke(step_messages)
 
-            await self._record_agent_token_usage(response, tool_call_model.model_name)
             tools_messages = await self._parse_function_call_response(response)
 
             step_info.result = "\n".join([msg.content for msg in tools_messages])
@@ -223,7 +221,6 @@ class LingSeekAgent:
                 "event": "task_result",
                 "data": {"message": chunk.content}
             }
-            await self._record_agent_token_usage(chunk, self.conversation_model.model_name)
 
         await self._add_workspace_session(
             lingseek_task.query,

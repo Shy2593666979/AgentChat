@@ -13,6 +13,7 @@
     "@microsoft/fetch-event-source": "^2.0.1",
     "@vueuse/core": "^10.9.0",
     "axios": "^1.6.8",
+    "echarts": "^6.0.0",
     "element-plus": "^2.7.0",
     "lodash": "^4.17.21",
     "marked": "^16.4.0",

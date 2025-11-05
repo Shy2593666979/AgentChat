@@ -6,9 +6,11 @@ from starlette.responses import StreamingResponse
 
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.mars import Mars_System_Prompt
+from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.services.mars.mars_agent import MarsAgent, MarsConfig
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
 from agentchat.services.memory.client import memory_client
+from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 
 router = APIRouter()
 
@@ -21,6 +23,10 @@ class MarsExampleEnum:
 @router.post("/mars/chat")
 async def chat_mars(user_input: str = Body(..., description="用户输入", embed=True),
                     login_user: UserPayload = Depends(get_login_user)):
+    # 设置全局变量
+    set_user_id_context(login_user.user_id)
+    set_agent_name_context(UsageStatsAgentType.mars_agent)
+
     mars_config = MarsConfig(user_id=login_user.user_id)
     mars_agent = MarsAgent(mars_config)
 
@@ -46,6 +52,9 @@ async def chat_mars(user_input: str = Body(..., description="用户输入", embe
 @router.post("/mars/example")
 async def chat_mars_example(example_id: int = Body(..., description="例子ID", embed=True),
                             login_user: UserPayload = Depends(get_login_user)):
+    # 设置全局变量
+    set_user_id_context(login_user.user_id)
+    set_agent_name_context(UsageStatsAgentType.mars_agent)
 
     mars_config = MarsConfig(user_id=login_user.user_id)
     mars_agent = MarsAgent(mars_config)

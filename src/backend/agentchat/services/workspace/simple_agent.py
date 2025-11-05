@@ -145,7 +145,6 @@ class WorkSpaceSimpleAgent:
         call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
-        await self._record_agent_token_usage(response, self.model.model_name)
         # Determine if there are tools available for calling
         if response.tool_calls:
             return response
@@ -336,7 +335,6 @@ class WorkSpaceSimpleAgent:
                 }
             }
             final_answer += chunk.content
-            await self._record_agent_token_usage(chunk, self.model.model_name)
 
         await generate_title_task
         title = generate_title_task.result() if generate_title_task.done() else None

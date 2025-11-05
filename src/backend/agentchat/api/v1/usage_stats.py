@@ -22,6 +22,22 @@ async def get_agentchat_usage(usage_stats: UsageStatsRequest,
     except Exception as err:
         return HTTPException(status_code=500, detail=str(err))
 
+@router.post("/usage_count", summary="统计每个Agent、Model统计次数")
+async def get_agentchat_usage_count(usage_stats: UsageStatsRequest,
+                                    login_user: UserPayload = Depends(get_login_user)):
+    try:
+        result = await UsageStatsService.get_usage_count_by_agent_model(
+            user_id=login_user.user_id,
+            **usage_stats.model_dump()
+        )
+        return resp_200(
+            data=result
+        )
+
+    except Exception as err:
+        return HTTPException(status_code=500, detail=str(err))
+
+
 @router.get("/usage/models_list", summary="获取用量统计的模型列表")
 async def get_usage_models(login_user: UserPayload = Depends(get_login_user)):
     try:

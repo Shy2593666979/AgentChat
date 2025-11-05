@@ -6,7 +6,7 @@ from agentchat.settings import app_settings
 class UsageStatsRequest(BaseModel):
     agent: Optional[str] = None
     model: Optional[str] = None
-    delta_days: int
+    delta_days: int = 10000
 
 class UsageStatsAgentType(str, Enum):
     mars_agent = "Mars-Agent"

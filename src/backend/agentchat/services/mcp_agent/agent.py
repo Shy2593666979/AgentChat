@@ -93,7 +93,6 @@ class MCPAgent:
             call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
-        await self._record_agent_token_usage(response, self.tool_invocation_model.model_name)
         # 判断是否有工具可调用
         if response.tool_calls:
             return response

@@ -1,7 +1,7 @@
 from typing import Optional, List
 from sqlmodel import select, and_
 from datetime import datetime, timedelta
-from agentchat.database.session import async_session_getter
+from agentchat.database.session import async_session_getter, session_getter
 from agentchat.database.models.usage_stats import UsageStats
 
 
@@ -13,6 +13,14 @@ class UsageStatsDao:
             session.add(usage_stats)
             await session.commit()
             await session.refresh(usage_stats)
+            return usage_stats
+
+    @classmethod
+    def sync_create_usage_stats(cls, usage_stats: UsageStats):
+        with session_getter() as session:
+            session.add(usage_stats)
+            session.commit()
+            session.refresh(usage_stats)
             return usage_stats
 
     @classmethod

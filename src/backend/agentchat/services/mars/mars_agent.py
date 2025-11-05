@@ -3,13 +3,12 @@ import inspect
 import json
 import time
 import typing
+from loguru import logger
 from typing import List, Dict, Any
 
 from langchain_core.messages import BaseMessage, SystemMessage, ToolCall, AIMessage, ToolMessage, AIMessageChunk
 from langchain_core.tools import Tool, BaseTool
-from loguru import logger
 from openai.types.chat import ChatCompletionMessageToolCall
-from openai.types.chat.chat_completion_message_tool_call import Function
 from pydantic import BaseModel, create_model, Field
 
 from agentchat.api.services.usage_stats import UsageStatsService
@@ -18,7 +17,6 @@ from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.services.mars.mars_tools import Mars_Call_Tool
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
-from agentchat.settings import app_settings
 
 
 class MarsConfig(BaseModel):
@@ -57,14 +55,6 @@ class MarsAgent:
         self.mars_tools = await self.set_mars_tools()
 
         await self.set_language_model()
-    # async def set_knowledges(self):
-    #     pass
-    #
-    # async def set_mcp_agents(self):
-    #     pass
-    #
-    # async def set_plugin_tools(self):
-    #     pass
 
     async def set_mars_tools(self) -> List[BaseTool]:
         # TODO：因为Tool必须绑定func，但不用，加个test函数
@@ -108,7 +98,6 @@ class MarsAgent:
         call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
-        await self._record_agent_token_usage(response, self.tool_invocation_model.model_name)
         # 判断是否有工具可调用
         if response.tool_calls:
             return response
@@ -152,7 +141,7 @@ class MarsAgent:
             运行Mars Agent，执行工具调用并将其输出放入队列。
             """
             try:
-                # 1. 判断是否需要调用工具
+                # 判断是否需要调用工具
                 call_tool_message = await self.call_tools_messages(messages)
                 if not call_tool_message.tool_calls:
                     # 如果没有工具调用，放入None作为结束信号并直接返回
@@ -161,7 +150,7 @@ class MarsAgent:
 
                 messages.append(call_tool_message)
 
-                # 2. 执行工具并处理输出
+                # 执行工具并处理输出
                 first_chunk = True
                 mars_task_first_chunk = {
                     "type": "response_chunk",
@@ -219,28 +208,28 @@ class MarsAgent:
 
         # --- 主执行流程 ---
 
-        # 1. 立即返回初始信息
+        # 立即返回初始信息
         yield {
             "type": "response_chunk",
             "time": time.time(),
             "data": "#### 现在开始，我会边梳理思路边完成这项任务😊\n"
         }
 
-        # 2. 在后台启动Mars Agent任务
+        # 在后台启动Mars Agent任务
         mars_task = asyncio.create_task(run_mars_agent())
 
-        # 3. 首先，流式输出推理模型的思考过程，直到被中断
+        # 首先，流式输出推理模型的思考过程，直到被中断
         async for reasoning_chunk in run_reasoning_model():
             yield reasoning_chunk
 
-        # 4. 推理过程结束后，开始处理并输出Mars Agent的结果
+        # 推理过程结束后，开始处理并输出Mars Agent的结果
         while True:
             mars_chunk = await mars_output_queue.get()
             if mars_chunk is None:  # 收到结束信号
                 break
             yield mars_chunk
 
-        # 5. 确保Mars Agent任务已彻底完成
+        # 确保Mars Agent任务已彻底完成
         await mars_task
 
     async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk | BaseMessage, model):

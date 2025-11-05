@@ -177,7 +177,6 @@ class StreamingAgent:
         call_tool_messages.extend(messages)
 
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
-        await self._record_agent_token_usage(response, self.tool_invocation_model.model_name)
         # 判断是否有工具可调用
         if response.tool_calls:
             tool_call_names = [tool_call["name"] for tool_call in response.tool_calls]
@@ -446,7 +445,6 @@ class StreamingAgent:
                     }
                 }
 
-                await self._record_agent_token_usage(chunk, self.conversation_model.model_name)
         # 针对模型回复进行兜底操作，错误类型包括：敏感词，模型问题
         except Exception as err:
             logger.error(f"LLM Model Error: {err}")
