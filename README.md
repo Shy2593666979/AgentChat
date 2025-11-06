@@ -76,6 +76,10 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 *实时的任务流程图，更加直观的感受*
 <img width="800" height="450" alt="cc59faad-4112-48cd-b9b1-6f89d3cbdb39" src="https://github.com/user-attachments/assets/53f7fe9f-d70d-4cc2-bf7e-b47a712a6d7a" />
 
+### 📊数据看板
+*能够根据Agent、模型、时间范围进行筛选调用次数和Token使用量* 
+<img width="800" height="450" alt="5e90c531-0a10-4457-962d-984b0568f25d" src="https://github.com/user-attachments/assets/2811a276-a2e3-4b10-8764-605bcbc80254" />
+
 
 ### 🏠 智言平台首页
 *简洁现代的主界面，提供直观的功能导航*
