@@ -1,28 +1,31 @@
 import smtplib
-from typing import Type
+from loguru import logger
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from email.header import Header
-from langchain.tools import BaseTool
-from pydantic import Field, BaseModel
-from loguru import logger
 
-class EmailInput(BaseModel):
-    sender: str = Field(description='邮件的发送人邮箱')
-    receiver: str = Field(description='邮件的收件人邮箱')
-    email_message: str = Field(description='邮件的具体内容')
-    password: str = Field(description='发送人邮箱的授权码')
+from langchain.tools import tool
 
-class SendEmailTool(BaseTool):
-    name: str = 'send_email'
-    description: str = '帮助用户发送邮件'
-    args_schema: Type[BaseModel] = EmailInput
-
-    def _run(self, sender: str, receiver: str, email_message: str, password: str):
-            return send_email(sender, receiver, email_message, password)
-
-
+@tool(parse_docstring=True)
 def send_email(sender: str, receiver: str, email_message: str, password: str):
+    """
+    向指定用户发送邮件信息。
+
+    Args:
+        sender (str): 发件人的邮箱地址。
+        receiver (str): 收件人的邮箱地址。
+        email_message (str): 发件人发送的邮件内容。
+        password (str): 发件人的邮箱密码或授权码。
+
+    Returns:
+        str: 发送邮件的结果信息。
+    """
+    return _send_email(sender, receiver, email_message, password)
+
+
+
+
+def _send_email(sender: str, receiver: str, email_message: str, password: str):
     """帮助用户发送邮件"""
 
     # 构建邮件内容

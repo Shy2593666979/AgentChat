@@ -1,11 +1,11 @@
 from typing import Optional, List
-
-from sqlalchemy import Column, VARCHAR, JSON, text, DateTime
-from sqlmodel import SQLModel, Field
 from datetime import datetime
 from uuid import uuid4, UUID
+
+from sqlmodel import Field
+from sqlalchemy import Column, VARCHAR, JSON, text, DateTime
+
 from agentchat.database.models.base import SQLModelSerializable
-import pytz
 
 # 目前暂时用不上
 class MCPServerStdioTable(SQLModelSerializable, table=True):
@@ -17,8 +17,14 @@ class MCPServerStdioTable(SQLModelSerializable, table=True):
     mcp_server_env: str = Field(description="MCP Server脚本环境变量")
     user_id: str = Field(description='MCP Server对应的创建用户')
     name: str = Field(default="MCP Server", description="MCP Server名称")
-    create_time: datetime = Field(default_factory=lambda: datetime.now(pytz.timezone('Asia/Shanghai')))
-
+    create_time: Optional[datetime] = Field(
+        sa_column=Column(
+            DateTime,
+            nullable=False,
+            server_default=text('CURRENT_TIMESTAMP')
+        ),
+        description="创建时间"
+    )
 
 
 class MCPServerTable(SQLModelSerializable, table=True):

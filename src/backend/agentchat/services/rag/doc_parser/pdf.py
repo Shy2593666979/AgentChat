@@ -1,17 +1,16 @@
 import asyncio
 import os
 import tempfile
-
 import aiofiles
 import pymupdf4llm
 import pathlib
 from urllib.parse import urljoin
 from loguru import logger
 
+from agentchat.settings import app_settings
 from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.services.rag.doc_parser.markdown import markdown_parser
 from agentchat.services.rewrite.markdown_rewrite import markdown_rewriter
-from agentchat.settings import app_settings
 from agentchat.utils.file_utils import get_aliyun_oss_base_path, get_convert_markdown_images_dir, \
     generate_unique_filename
 

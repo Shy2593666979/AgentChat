@@ -1,37 +1,33 @@
 import base64
-from typing import Type
+from langchain.tools import tool
 
-from langchain.tools import BaseTool
-from openai import OpenAI
-from pydantic import BaseModel, Field
-from agentchat.settings import app_settings
+from agentchat.core.models.manager import ModelManager
 
+@tool(parse_docstring=True)
+def image_to_text(image_path: str):
+    """
+    根据用户提供的图片路径描述图片内容。
 
-class Image2TextInput(BaseModel):
-    file_url: str = Field(description='用户上传的文件URL路径')
+    Args:
+        image_path (str): 用户提供的图片路径。
 
+    Returns:
+        str: 描述图片内容的结果。
+    """
+    return _image_to_text(image_path)
 
-class Image2TextTool(BaseTool):
-    name: str = "image_to_text"
-    description: str = '将用户上传的图片转成图片文本'
-    args_schema: Type[BaseModel] = Image2TextInput
-
-    def _run(self, file_url):
-        return image_to_text(file_url)
-
-
-def image_to_text(image_path):
+def _image_to_text(image_path):
     def encode_image():
         with open(image_path, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode("utf-8")
 
-    client = OpenAI(api_key=app_settings.multi_models.qwen_vl.api_key,
-                    base_url=app_settings.multi_models.qwen_vl.base_url)
+    client = ModelManager.get_qwen_vl_model()
+
     image_type = image_path.split('.')[-1]
     base64_image = encode_image()
-    completion = client.chat.completions.create(
-        model=app_settings.multi_models.qwen_vl.model_name,
-        messages=[
+
+    response = client.invoke(
+        [
             {
                 "role": "system",
                 "content": [{"type": "text", "text": "You are a helpful assistant."}]},
@@ -51,4 +47,4 @@ def image_to_text(image_path):
             }
         ],
     )
-    return completion.choices[0].message.content
+    return response.content

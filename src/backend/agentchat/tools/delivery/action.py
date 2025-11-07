@@ -3,26 +3,27 @@ import urllib.parse
 import ssl
 import json
 from typing import Type
-from langchain.tools import BaseTool
+from langchain.tools import tool
 from pydantic import Field, BaseModel
 from agentchat.settings import app_settings
 from agentchat.prompts.tool import DELIVERY_PROMPT
 from loguru import logger
 
-class DeliveryInput(BaseModel):
-    delivery_number: str = Field(description='用户输入的快递单号')
+@tool(parse_docstring=True)
+def get_delivery_info(delivery_number: str):
+    """
+    根据用户提供的快递号码查询快递物流信息。
 
-class DeliveryTool(BaseTool):
-    name: str = 'delivery'
-    description: str = '用来查询用户的快递物流信息'
-    args_schema: Type[BaseModel] = DeliveryInput
+    Args:
+        delivery_number (str): 用户提供的快递号码。
 
-    def _run(self, delivery_number: str):
-        return get_delivery(delivery_number)
+    Returns:
+        str: 查询到的快递信息。
+    """
+    return _get_delivery(delivery_number)
 
 
-# 支持function call的模型
-def get_delivery(delivery_number: str):
+def _get_delivery(delivery_number: str):
     """用来查询用户的快递物流信息"""
     try:
         query = f'number={delivery_number}&mobile=mobile&type=type'

@@ -1,26 +1,23 @@
-import os
-from typing import Type
-from langchain.tools import BaseTool
-from pydantic import BaseModel, Field
-from agentchat.settings import app_settings
+from langchain.tools import tool
 from langchain_community.utilities import SerpAPIWrapper
+from agentchat.settings import app_settings
 
-# os['SERPAPI_API_KEY`'] =
 search = SerpAPIWrapper(serpapi_api_key=app_settings.tools.google.get('api_key'))
 
-class GoogleSearchInput(BaseModel):
-    query: str = Field(description='用户想要搜索的问题')
-
-class GoogleSearchTool(BaseTool):
-    name: str = 'google_search'
-    description: str = '使用搜索工具给用户进行搜索'
-    args_schema: Type[BaseModel] = GoogleSearchInput
-
-    def _run(self, query: str):
-        return google_search(query)
-
-
+@tool("web_search", parse_docstring=True)
 def google_search(query: str):
+    """
+    根据用户的问题进行网上搜索信息。
+
+    Args:
+        query (str): 用户的问题。
+
+    Returns:
+        str: 搜索到的信息。
+    """
+    return _google_search(query)
+
+def _google_search(query: str):
     """使用搜索工具给用户进行搜索"""
     result = search.run(query)
     return result

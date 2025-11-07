@@ -1,32 +1,30 @@
-import os
-from typing import Type
+import requests
+from loguru import logger
 from http import HTTPStatus
 from urllib.parse import urlparse, unquote
 from pathlib import PurePosixPath
-import requests
+
 from dashscope import ImageSynthesis
-from langchain.tools import BaseTool
-from loguru import logger
-from pydantic import BaseModel, Field
+from langchain.tools import tool
 
-from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.settings import app_settings
+from agentchat.services.aliyun_oss import aliyun_oss
+
+@tool(parse_docstring=True)
+def text_to_image(user_prompt: str):
+    """
+    根据用户提供的提示词产生图片。
+
+    Args:
+        user_prompt (str): 用户的图片提示词。
+
+    Returns:
+        str: 生成的图片链接。
+    """
+    return _text_to_image(user_prompt)
 
 
-class Text2ImageInput(BaseModel):
-    user_prompt: str = Field(description='用户想要生成图片的prompt')
-
-
-class Text2ImageTool(BaseTool):
-    name: str = "text_to_image"
-    description: str = '将用户图片文本转化成图片'
-    args_schema: Type[BaseModel] = Text2ImageInput
-
-    def _run(self, user_prompt):
-        return text_to_image(user_prompt)
-
-
-def text_to_image(user_prompt):
+def _text_to_image(user_prompt):
     """给用户的图片描述生成一张照片"""
     rsp = ImageSynthesis.call(api_key=app_settings.multi_models.text2image.api_key,
                               model=app_settings.multi_models.text2image.model_name,

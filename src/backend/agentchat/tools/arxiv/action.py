@@ -1,24 +1,22 @@
-from typing import Type, Any
-from langchain.tools import BaseTool
-from pydantic import BaseModel, Field
+from langchain.tools import tool
 from langchain_community.utilities import ArxivAPIWrapper
 
 arxiv_wrapper = ArxivAPIWrapper()
 
-class ArxivInput(BaseModel):
-    query: str = Field(description='用户输入的问题')
-
-
-class ArxivTool(BaseTool):
-    name: str = 'arxiv'
-    description: str = '为用户提供Arxiv上的论文'
-    args_schema: Type[BaseModel] = ArxivInput
-
-    def _run(self, query: str):
-        return get_arxiv(query)
-
-# 支持Function Call的模型
+@tool(parse_docstring=True)
 def get_arxiv(query: str):
+    """
+    在 Arxiv 上为用户提供相关论文的信息。
+
+    Args:
+        query (str): 用户提供的搜索关键词。
+
+    Returns:
+        str: 与查询相关的论文文档。
+    """
+    return _get_arxiv(query)
+
+def _get_arxiv(query: str):
     """为用户提供Arxiv上的论文"""
     docs = arxiv_wrapper.run(query)
     return docs

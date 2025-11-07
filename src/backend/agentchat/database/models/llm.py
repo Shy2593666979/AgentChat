@@ -4,7 +4,6 @@ from sqlalchemy import DateTime, text, Column
 from sqlmodel import SQLModel, Field
 from datetime import datetime
 from uuid import uuid4
-import pytz
 
 from agentchat.database.models.base import SQLModelSerializable
 

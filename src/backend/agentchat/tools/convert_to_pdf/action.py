@@ -1,35 +1,27 @@
 import os
 import tempfile
 import subprocess
-from typing import Type
 
-from langchain.tools import BaseTool
-from pydantic import BaseModel, Field
+from langchain.tools import tool
 from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.utils.file_utils import get_object_name_from_aliyun_url, get_save_tempfile
 from agentchat.utils.helpers import get_now_beijing_time
 
 
-class ConvertPdfInput(BaseModel):
-    file_url: str = Field(description='用户上传的文件URL路径')
+@tool("docx_to_pdf", parse_docstring=True)
+def convert_to_pdf(file_url: str):
+    """
+    将用户上传的 DOCX 文件转换为 PDF 文件并返回链接。
 
+    Args:
+        file_url (str): 用户上传的 DOCX 文件链接。
 
-class ConvertPdfTool(BaseTool):
-    name: str = 'convert_to_pdf'
-    description: str = '将用户上传的文件解析成PDF'
-    args_schema: Type[BaseModel] = ConvertPdfInput
+    Returns:
+        str: 转换后的 PDF 文件链接。
+    """
+    return _convert_to_pdf(file_url)
 
-    def _run(self, file_url):
-        return convert_to_pdf(file_url)
-
-
-class ConvertToPdfError(Exception):
-    def __init__(self, msg):
-        self.msg = msg
-        super().__init__(self.msg)
-
-
-def convert_to_pdf(file_url):
+def _convert_to_pdf(file_url):
     """将用户上传的文件解析成PDF"""
     object_name = get_object_name_from_aliyun_url(file_url)
     file_name = file_url.split("/")[-1]
