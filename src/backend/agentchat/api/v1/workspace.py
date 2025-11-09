@@ -1,12 +1,13 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from starlette.responses import StreamingResponse
 
 from agentchat.api.services.llm import LLMService
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.tool import ToolService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
+from agentchat.prompts.chat import SYSTEM_PROMPT
 from agentchat.schema.schemas import resp_200
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceSimpleTask
@@ -84,7 +85,7 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
     )
 
     async def general_generate():
-        async for chunk in simple_agent.astream([HumanMessage(content=simple_task.query)]):
+        async for chunk in simple_agent.astream([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=simple_task.query)]):
             # chunk 已经是 dict: {"event": "task_result", "data": {"message": "..."}}
             # 需要 JSON 序列化后作为 SSE 的 data 字段
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
