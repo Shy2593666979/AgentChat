@@ -11,6 +11,9 @@ from agentchat.api.services.tool import ToolService
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.database.models.user import AdminUser
+from agentchat.prompts.mcp import McpAsToolPrompt
+from agentchat.schema.mcp import MCPResponseFormat
+from agentchat.services.agents.structured_response import StructuredResponseAgent
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.settings import app_settings
 from agentchat.utils.convert import convert_mcp_config
@@ -99,14 +102,12 @@ async def insert_tools_to_mysql():
 
 # 更新MCP Server的信息到数据库中
 async def update_mcp_server_into_mysql(has_mcp_server: bool):
-
-
     # 判断是不是不是首次连接
     if has_mcp_server:
         # 超过七天才有更新MCP Server的策略
         if await MCPService.mcp_server_need_update():
             servers = await MCPService.get_all_servers(AdminUser)
-            logger.info("MCP Server 最新版已更新到数据库！")
+            logger.info("MCP Server 最新版开始更新到数据库！")
         else:
             return
     else:
@@ -128,6 +129,8 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
                 return server
         return None
 
+
+
     # 解析Params中的工具列表
     async def get_tools_name_from_params(tools_params: dict):
         tools_name = []
@@ -138,12 +141,21 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
     for key, params in servers_params.items():
         server = await get_config_from_server_name(key)
         tools_name = await get_tools_name_from_params(params)
+
+        structured_agent = StructuredResponseAgent(MCPResponseFormat)
+        structured_response = structured_agent.get_structured_response(
+            McpAsToolPrompt.format(tools_info=json.dumps(params, indent=4)))
+
         if has_mcp_server:
             await MCPService.update_mcp_server(mcp_server_id=server["mcp_server_id"],
-                                               tools=tools_name, params=params)
+                                               mcp_as_tool_name=structured_response.mcp_as_tool_name,
+                                               tools=tools_name, params=params,
+                                               description=structured_response.description)
         else:
             await MCPService.create_mcp_server(key, SystemUser, "Admin", server["url"], server["type"],
-                                               server["config"], tools_name, params, server["config_enabled"], server["logo_url"])
+                                               server["config"], tools_name, params, server["config_enabled"],
+                                               server["logo_url"], structured_response.mcp_as_tool_name,
+                                               structured_response.description)
 
 
 async def load_default_tool():

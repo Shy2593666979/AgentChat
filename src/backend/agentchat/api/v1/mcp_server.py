@@ -1,10 +1,14 @@
+import json
 from typing import Optional
 
 from fastapi import APIRouter, Query, Body, Depends
 
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.user import UserPayload, get_login_user
+from agentchat.prompts.mcp import McpAsToolPrompt
+from agentchat.schema.mcp import MCPResponseFormat
 from agentchat.schema.schemas import resp_500, resp_200
+from agentchat.services.agents.structured_response import StructuredResponseAgent
 from agentchat.services.mcp.manager import MCPManager
 from loguru import logger
 
@@ -35,8 +39,14 @@ async def create_mcp_server(server_name: str = Body(..., description="MCP Server
             for tool in tools:
                 tools_name_str.append(tool["name"])
         config_enabled = True if config else False
-        await MCPService.create_mcp_server(server_name, login_user.user_id, login_user.user_name,
-                                           url, type, config, tools_name_str, tools_params.get(server_name), config_enabled, logo_url)
+
+        structured_agent = StructuredResponseAgent(MCPResponseFormat)
+        structured_response = structured_agent.get_structured_response(
+            McpAsToolPrompt.format(tools_info=json.dumps(tools_params, indent=4)))
+
+        await MCPService.create_mcp_server(server_name, login_user.user_id, login_user.user_name, url, type, config,
+                                           tools_name_str, tools_params.get(server_name), config_enabled, logo_url,
+                                           structured_response.mcp_as_tool_name, structured_response.description)
         return resp_200()
     except Exception as err:
         logger.error(err)
@@ -80,6 +90,7 @@ async def get_mcp_tools(server_id: str = Body(..., description="MCP Server 的ID
         logger.error(err)
         return resp_500(message=str(err))
 
+
 @router.put("/mcp_server")
 async def update_mcp_server(server_id: str = Body(..., description="MCP Server 的ID"),
                             server_name: str = Body(None, description="MCP Server的名称"),
@@ -103,7 +114,15 @@ async def update_mcp_server(server_id: str = Body(..., description="MCP Server �
             for key, tools in tools_params:
                 for tool in tools:
                     tools_str.append(tool["name"])
-            await MCPService.update_mcp_server(server_id, server_name, url, type, tools=tools_str, params=tools_params.get(server_name))
+
+            structured_agent = StructuredResponseAgent(MCPResponseFormat)
+            structured_response = structured_agent.get_structured_response(
+                McpAsToolPrompt.format(tools_info=json.dumps(tools_params, indent=4)))
+
+            await MCPService.update_mcp_server(server_id, server_name, url, type,
+                                               mcp_as_tool_name=structured_response.mcp_as_tool_name,
+                                               description=structured_response.description, tools=tools_str,
+                                               params=tools_params.get(server_name))
         else:
             await MCPService.update_mcp_server(server_id, server_name)
         return resp_200()

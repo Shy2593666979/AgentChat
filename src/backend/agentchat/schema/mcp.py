@@ -39,3 +39,8 @@ class MCPWebsocketConfig(MCPBaseConfig):
     transport: Literal["websocket"] = "websocket"
     url: str
     session_kwargs: Optional[Dict[str, Any]] = None
+
+
+class MCPResponseFormat(BaseModel):
+    mcp_as_tool_name: str = Field(..., description="根据该mcp服务下提供的工具描述生成一个工具名称，要求是2-4个英文单词组成，用下划线_隔开")
+    description: str = Field(..., description="根据该mcp服务下提供的工具描述生成一个子Agent描述，当主Agent在什么场景下能够调用这个Agent的描述，字数在100字符以内")
