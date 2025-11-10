@@ -84,8 +84,15 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
         session_id=simple_task.session_id
     )
 
+    workspace_session = await WorkSpaceSessionService.get_workspace_session_from_id(simple_task.session_id, login_user.user_id)
+    if workspace_session:
+        contexts = workspace_session.get("contexts", [])
+        history_messages = [f"query: {message.get("query")}, answer: {message.get("answer")}\n" for message in contexts]
+    else:
+        history_messages = "无历史对话"
+
     async def general_generate():
-        async for chunk in simple_agent.astream([SystemMessage(content=SYSTEM_PROMPT), HumanMessage(content=simple_task.query)]):
+        async for chunk in simple_agent.astream([SystemMessage(content=SYSTEM_PROMPT.format(history=str(history_messages))), HumanMessage(content=simple_task.query)]):
             # chunk 已经是 dict: {"event": "task_result", "data": {"message": "..."}}
             # 需要 JSON 序列化后作为 SSE 的 data 字段
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"

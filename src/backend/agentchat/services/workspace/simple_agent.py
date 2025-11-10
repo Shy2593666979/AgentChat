@@ -309,7 +309,7 @@ class WorkSpaceSimpleAgent:
             await self.init_simple_agent()
         user_messages = copy.deepcopy(messages)
 
-        generate_title_task = asyncio.create_task(self._generate_title(user_messages[0].content))
+        generate_title_task = asyncio.create_task(self._generate_title(user_messages[-1].content))
         try:
             graph_task = None
             if self.tools and len(self.tools) != 0:
@@ -342,7 +342,7 @@ class WorkSpaceSimpleAgent:
         await self._add_workspace_session(
             title=title,
             contexts=WorkSpaceSessionContext(
-                query=user_messages[0].content,
+                query=user_messages[-1].content,
                 answer=final_answer
             ))
 
