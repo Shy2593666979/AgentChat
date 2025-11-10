@@ -18,6 +18,7 @@ from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.services.memory.client import memory_client
 from agentchat.services.rag_handler import RagHandler
 from agentchat.settings import app_settings
+from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 from agentchat.utils.file_utils import get_aliyun_oss_base_path
 from fastapi.responses import StreamingResponse
 
@@ -65,6 +66,10 @@ async def chat(*,
     # 根据对话ID获取智能体配置信息
     config = await DialogService.get_agent_by_dialog_id(dialog_id=conversation_req.dialog_id)
     agent_config = AgentConfig(**config)
+
+    # 设置全局变量统计调用
+    set_user_id_context(login_user.user_id)
+    set_agent_name_context(agent_config.name)
 
     # 将agent_config的配置改成请求的用户ID
     agent_config.user_id = login_user.user_id

@@ -4,24 +4,27 @@ import json
 import time
 import inspect
 from loguru import logger
+from pydantic.v1 import BaseModel
 from typing import List, Dict, Any, AsyncGenerator, Optional
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage, HumanMessage, ToolCall
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage, HumanMessage, ToolCall, \
+    AIMessageChunk
 from langchain_core.tools import BaseTool, Tool
 from langgraph.graph import MessagesState, StateGraph, END, START
 from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion_message_tool_call import Function
-from pydantic.v1 import BaseModel
 
+from agentchat.tools import Call_Tool
+from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
 from agentchat.api.services.tool import ToolService
 from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.services.rag_handler import RagHandler
-from agentchat.tools import Call_Tool
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.services.mcp_agent.agent import MCPAgent, MCPConfig
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
+from agentchat.utils.convert import mcp_tool_to_args_schema, function_to_args_schema
 
 
 class AgentConfig(BaseModel):
@@ -30,6 +33,7 @@ class AgentConfig(BaseModel):
     tool_ids: List[str]
     system_prompt: str
     enable_memory: bool = False
+    name: str = None
     user_id: str
     llm_id: str
 
@@ -99,7 +103,7 @@ class StreamingAgent:
             mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
             mcp_config = MCPConfig(**mcp_server)
 
-            mcp_agent = MCPAgent(mcp_config, self.agent_config.user_id)
+            mcp_agent = MCPAgent(mcp_config, self.agent_config.user_id, self.agent_config.name)
             mcp_agents.append(mcp_agent)
         return mcp_agents
 
@@ -151,8 +155,6 @@ class StreamingAgent:
         select_tool_message = "开始选择可用工具" if self.step_counter == 1 else f"是否需要继续调用工具{' ' * self.step_counter}"
         # 发送工具分析开始事件
         await self.emit_event({
-            #"title": f"Run Select Tool_{self.step_counter}",
-            #"title": f"第{self.step_counter}次挑选可用工具",
             "title": select_tool_message,
             "status": "START",
             "message": "正在分析需要使用的工具...",
@@ -168,7 +170,7 @@ class StreamingAgent:
                 else:
                     tools_schema.append(function_to_args_schema(tool.func))
 
-            self.tool_invocation_model.bind_tools(tools_schema)
+            self.tool_invocation_model = self.tool_invocation_model.bind_tools(tools_schema)
 
             system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
             # call_tool_messages.append(system_message)
@@ -178,29 +180,18 @@ class StreamingAgent:
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
         # 判断是否有工具可调用
         if response.tool_calls:
-            openai_tool_calls = response.tool_calls
-
-            response.tool_calls = convert_langchain_tool_calls(response.tool_calls)
-
             tool_call_names = [tool_call["name"] for tool_call in response.tool_calls]
             # 发送工具选择完成事件
             await self.emit_event({
-                #"title": f"Run Select Tool_{self.step_counter}",
-                #"title": f"第{self.step_counter}次挑选可用工具",
                 "title": select_tool_message,
                 "status": "END",
                 "message": "可用工具：" + ", ".join(set(tool_call_names))
             })
 
-            return AIMessage(
-                content=response.content,
-                tool_calls=response.tool_calls,
-            )
+            return response
         else:
             # 发送无工具可用事件
             await self.emit_event({
-                #"title": f"Run Select Tool_{self.step_counter}",
-                #"title": f"第{self.step_counter}次挑选可用工具",
                 "title": select_tool_message,
                 "status": "END",
                 "message": "没有命中可用的工具"
@@ -217,15 +208,6 @@ class StreamingAgent:
             self.step_counter += 1
 
         for tool_call in tool_calls:
-            # 发送工具执行开始事件
-            # await self.emit_event(f"Run Execution Tool: {tool_call["name"]}", {
-            #     "status": "start",
-            #     "step": self.step_counter,
-            #     "tool_name": tool_call["name"],
-            #     "tool_args": tool_call["args"],
-            #     "tool_call_id": tool_call["id"]
-            # })
-
             is_mcp_tool, use_tool = self.mcp_tool_use(tool_call["name"])
             tool_name = tool_call["name"]
             tool_args = tool_call["args"]
@@ -284,7 +266,6 @@ class StreamingAgent:
                     await self.emit_event({
                         "status": "START",
                         "title": f"执行可用工具: {tool_zh_name}{suffix}",
-                        #"title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": f"正在调用插件工具 {tool_zh_name}..."
                     })
 
@@ -295,7 +276,6 @@ class StreamingAgent:
                     await self.emit_event({
                         "status": "END",
                         "title": f"执行可用工具: {tool_zh_name}{suffix}",
-                        #"title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": tool_result,
                     })
 
@@ -308,7 +288,6 @@ class StreamingAgent:
                     await self.emit_event({
                         "status": "ERROR",
                         "title": f"执行可用工具: {tool_zh_name}{suffix}",
-                        #"title": f"Run Execution Tool: {tool_name}{suffix}",
                         "message": str(err),
                     })
 
@@ -356,26 +335,12 @@ class StreamingAgent:
                 return END
 
             if last_message.tool_calls:
-                # 发送继续执行工具事件
-                # await self.emit_event("continue_tool_execution", {
-                #     "message": "检测到工具调用，继续执行...",
-                #     "tool_calls_count": len(last_message.tool_calls)
-                # })
                 return "execute_tool_node"
             else:
-                # 发送工具执行完成事件
-                # await self.emit_event("tool_execution_finished", {
-                #     "message": "所有工具执行完成，准备生成最终回答"
-                # })
                 return END
 
         async def call_tool_node(state: MessagesState):
             messages = state["messages"]
-
-            # 发送工具选择节点开始事件
-            # await self.emit_event("tool_selection_node_start", {
-            #     "message": "进入工具选择节点"
-            # })
 
             tool_message = await self.call_tools_messages(messages)
             messages.append(tool_message)
@@ -384,11 +349,6 @@ class StreamingAgent:
 
         async def execute_tool_node(state: MessagesState):
             messages = state["messages"]
-
-            # 发送工具执行节点开始事件
-            # await self.emit_event("tool_execution_node_start", {
-            #     "message": "进入工具执行节点"
-            # })
 
             tool_results = await self.execute_tool_message(messages)
             messages.extend(tool_results)
@@ -411,12 +371,6 @@ class StreamingAgent:
 
     async def ainvoke_streaming(self, messages: List[BaseMessage]) -> AsyncGenerator[Dict[str, Any], None]:
         """流式调用主方法"""
-
-        # 发送开始事件
-        # await self.emit_event("conversation_start", {
-        #     "user_message": messages[-1].content,
-        #     "message": "开始处理您的请求..."
-        # })
 
         # 启动知识库检索
         knowledge_task = None
@@ -491,6 +445,7 @@ class StreamingAgent:
                         "accumulated": response_content
                     }
                 }
+
         # 针对模型回复进行兜底操作，错误类型包括：敏感词，模型问题
         except Exception as err:
             logger.error(f"LLM Model Error: {err}")
@@ -551,6 +506,16 @@ class StreamingAgent:
 
         return response_content
 
+    async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk, model):
+        if response.usage_metadata:
+            await UsageStatsService.create_usage_stats(
+                model=model,
+                user_id=self.agent_config.user_id,
+                agent=self.agent_config.name,
+                input_tokens=response.usage_metadata.get("input_tokens"),
+                output_tokens=response.usage_metadata.get("output_tokens")
+            )
+
     # 新增辅助方法
     def mcp_tool_use(self, tool_name: str):
         """判断是否为MCP工具并返回对应的工具实例"""
@@ -587,75 +552,6 @@ def convert_openai_tool_calls(tool_calls: List[ToolCall]):
     return openai_tool_calls
 
 
-def mcp_tool_to_args_schema(name, description, args_schema) -> dict:
-    return {
-        "type": "function",
-        "function": {
-            "name": name,
-            "description": description,
-            "parameters": args_schema
-        }
-    }
-
-
-# 将函数转成function schema格式
-def function_to_args_schema(func) -> dict:
-    """
-    Converts a Python function into a JSON-serializable dictionary
-    that describes the function's signature, including its name,
-    description, and parameters.
-
-    Args:
-        func: The function to be converted.
-
-    Returns:
-        A dictionary representing the function's signature in JSON format.
-    """
-    type_map = {
-        str: "string",
-        int: "integer",
-        float: "number",
-        bool: "boolean",
-        list: "array",
-        dict: "object",
-        type(None): "null",
-    }
-
-    try:
-        signature = inspect.signature(func)
-    except ValueError as e:
-        raise ValueError(
-            f"Failed to get signature for function {func.__name__}: {str(e)}"
-        )
-
-    parameters = {}
-    for param in signature.parameters.values():
-        try:
-            param_type = type_map.get(param.annotation, "string")
-        except KeyError as e:
-            raise KeyError(
-                f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
-            )
-        parameters[param.name] = {"schema": param_type}
-
-    required = [
-        param.name
-        for param in signature.parameters.values()
-        if param.default == inspect._empty
-    ]
-
-    return {
-        "type": "function",
-        "function": {
-            "name": func.__name__,
-            "description": func.__doc__ or "",
-            "parameters": {
-                "type": "object",
-                "properties": parameters,
-                "required": required,
-            },
-        },
-    }
 
 # ❌ AgentChat V1.0 版本❌
 # class ChatAgent:

@@ -45,6 +45,7 @@ class WorkSpaceSessionCreate(BaseModel):
     title: str
     agent: str
     user_id: str
+    session_id: str = None  # 允许传入session_id，如果为None则自动生成
     contexts: list[dict] = []
 
 class WorkSpaceSessionContext(BaseModel):

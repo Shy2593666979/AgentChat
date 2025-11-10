@@ -24,6 +24,7 @@ import Workspace from '../pages/workspace/workspace.vue'
 import WorkspacePage from '../pages/workspace/workspacePage/workspacePage.vue'
 import WorkspaceDefaultPage from '../pages/workspace/defaultPage/defaultPage.vue'
 import TaskGraphPage from '../pages/workspace/taskGraphPage/taskGraphPage.vue'
+import Dashboard from '../pages/dashboard'
 import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
@@ -203,6 +204,14 @@ const routes: RouteRecordRaw[] = [
           current: 'mars'
         },
         component: MarsChat,
+      },
+      {
+        path: '/dashboard',
+        name: 'dashboard',
+        meta: {
+          current: 'dashboard'
+        },
+        component: Dashboard,
       }
     ]
   },

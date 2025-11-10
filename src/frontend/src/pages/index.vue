@@ -112,7 +112,8 @@ const goCurrent = (item: string) => {
     "knowledge": "/knowledge",
     "tool": "/tool",
     "model": "/model",
-    "workspace": "/workspace"
+    "workspace": "/workspace",
+    "dashboard": "/dashboard"
   }
   
   router.push(routes[item] || "/")
@@ -279,6 +280,14 @@ watch(
                   <img src="../assets/model.svg" width="22px" height="22px" />
                 </el-icon>
                 <span>模型</span>
+              </template>
+            </el-menu-item>
+            <el-menu-item index="dashboard" @click="goCurrent('dashboard')">
+              <template #title>
+                <el-icon>
+                  <img src="../assets/dashboard.svg" width="22px" height="22px" />
+                </el-icon>
+                <span>数据看板</span>
               </template>
             </el-menu-item>
           </el-menu>
@@ -630,7 +639,7 @@ watch(
       width: 100%;
       background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
       border-right: 1px solid #e2e8f0;
-      padding: 24px 0;
+      padding: 3px 0;
       box-sizing: border-box;
       box-shadow: 2px 0 12px rgba(0, 0, 0, 0.08);
     }

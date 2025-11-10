@@ -1,16 +1,19 @@
 import json
 from fastapi import APIRouter, Depends, HTTPException
-from langchain_core.messages import HumanMessage
+from langchain_core.messages import HumanMessage, SystemMessage
 from starlette.responses import StreamingResponse
 
 from agentchat.api.services.llm import LLMService
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.tool import ToolService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
+from agentchat.prompts.chat import SYSTEM_PROMPT
 from agentchat.schema.schemas import resp_200
+from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceSimpleTask
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.services.workspace.simple_agent import WorkSpaceSimpleAgent
+from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 from agentchat.utils.convert import convert_mcp_config
 
 router = APIRouter(prefix="/workspace")
@@ -56,6 +59,10 @@ async def create_workspace_session(session_id: str,
 @router.post("/simple/chat", summary="工作台日常对话")
 async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
                                 login_user: UserPayload = Depends(get_login_user)):
+    # 设置全局变量统计调用
+    set_user_id_context(login_user.user_id)
+    set_agent_name_context(UsageStatsAgentType.simple_agent)
+
     model_config = await LLMService.get_llm_by_id(simple_task.model_id)
     servers_config = []
     for mcp_id in simple_task.mcp_servers:
@@ -68,15 +75,24 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
         model_config={
             "model": model_config["model"],
             "base_url": model_config["base_url"],
-            "api_key": model_config["api_key"]
+            "api_key": model_config["api_key"],
+            "user_id": login_user.user_id,
         },
         mcp_configs=servers_config,
         plugins=simple_task.plugins,
         user_id=login_user.user_id,
+        session_id=simple_task.session_id
     )
 
+    workspace_session = await WorkSpaceSessionService.get_workspace_session_from_id(simple_task.session_id, login_user.user_id)
+    if workspace_session:
+        contexts = workspace_session.get("contexts", [])
+        history_messages = [f"query: {message.get("query")}, answer: {message.get("answer")}\n" for message in contexts]
+    else:
+        history_messages = "无历史对话"
+
     async def general_generate():
-        async for chunk in simple_agent.astream([HumanMessage(content=simple_task.query)]):
+        async for chunk in simple_agent.astream([SystemMessage(content=SYSTEM_PROMPT.format(history=str(history_messages))), HumanMessage(content=simple_task.query)]):
             # chunk 已经是 dict: {"event": "task_result", "data": {"message": "..."}}
             # 需要 JSON 序列化后作为 SSE 的 data 字段
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"

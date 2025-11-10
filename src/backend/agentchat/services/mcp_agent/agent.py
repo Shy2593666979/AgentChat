@@ -5,7 +5,8 @@ from typing import List, Optional
 from loguru import logger
 
 from pydantic import BaseModel
-from langchain_core.messages import ToolMessage, BaseMessage, AIMessage, SystemMessage, ToolCall, HumanMessage
+from langchain_core.messages import ToolMessage, BaseMessage, AIMessage, SystemMessage, ToolCall, HumanMessage, \
+    AIMessageChunk
 from langchain_core.tools import BaseTool
 from langgraph.constants import START, END
 from langgraph.graph import StateGraph, MessagesState
@@ -13,11 +14,12 @@ from openai.types.chat import ChatCompletionMessageToolCall
 from openai.types.chat.chat_completion_message_tool_call import Function
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
+from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.utils.helpers import fix_json_text
-from agentchat.utils.convert import convert_mcp_config
+from agentchat.utils.convert import convert_mcp_config, mcp_tool_to_args_schema
 
 
 class MCPConfig(BaseModel):
@@ -29,10 +31,11 @@ class MCPConfig(BaseModel):
 
 
 class MCPAgent:
-    def __init__(self, mcp_config: MCPConfig, user_id: str):
+    def __init__(self, mcp_config: MCPConfig, user_id: str, agent_name=None):
         self.mcp_config = mcp_config
         self.mcp_manager = MCPManager([convert_mcp_config(mcp_config.model_dump())])
 
+        self.agent_name = agent_name
         self.user_id = user_id
         self.mcp_tools: List[BaseTool] = []
         self.conversation_model = None
@@ -80,7 +83,7 @@ class MCPAgent:
             for tool in self.mcp_tools:
                 tools_schema.append(mcp_tool_to_args_schema(tool.name, tool.description, tool.args_schema))
 
-            self.tool_invocation_model.bind_tools(tools_schema)
+            self.tool_invocation_model = self.tool_invocation_model.bind_tools(tools_schema)
 
             system_message = SystemMessage(content=DEFAULT_CALL_PROMPT)
             # MCP Agent 单独的Prompt，不受历史记录影响
@@ -92,13 +95,7 @@ class MCPAgent:
         response = await self.tool_invocation_model.ainvoke(call_tool_messages)
         # 判断是否有工具可调用
         if response.tool_calls:
-            openai_tool_calls = response.tool_calls
-            response.tool_calls = convert_langchain_tool_calls(response.tool_calls)
-
-            return AIMessage(
-                content="命中可用工具",
-                tool_calls=response.tool_calls,
-            )
+            return response
         else:
             # 发送无工具可用事件
             return AIMessage(content="没有命中可用的工具")
@@ -195,6 +192,16 @@ class MCPAgent:
         # 是否需要模型总结信息（增加10-20s的时间） ↓
         # return await self.conversation_model.ainvoke(result["messages"][:-1])
 
+    async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk, model):
+        if response.usage_metadata:
+            await UsageStatsService.create_usage_stats(
+                model=model,
+                user_id=self.user_id,
+                agent=self.agent_name,
+                input_tokens=response.usage_metadata.get("input_tokens"),
+                output_tokens=response.usage_metadata.get("output_tokens")
+            )
+
     def find_mcp_tool(self, name) -> BaseTool | None:
         for tool in self.mcp_tools:
             if tool.name == name:
@@ -224,74 +231,3 @@ def convert_openai_tool_calls(self, tool_calls: List[ToolCall]):
                                                                    name=tool_call["name"])))
 
     return openai_tool_calls
-
-
-def mcp_tool_to_args_schema(name, description, args_schema) -> dict:
-    return {
-        "type": "function",
-        "function": {
-            "name": name,
-            "description": description,
-            "parameters": args_schema
-        }
-    }
-
-
-# 将函数转成function schema格式
-def function_to_args_schema(func) -> dict:
-    """
-    Converts a Python function into a JSON-serializable dictionary
-    that describes the function's signature, including its name,
-    description, and parameters.
-
-    Args:
-        func: The function to be converted.
-
-    Returns:
-        A dictionary representing the function's signature in JSON format.
-    """
-    type_map = {
-        str: "string",
-        int: "integer",
-        float: "number",
-        bool: "boolean",
-        list: "array",
-        dict: "object",
-        type(None): "null",
-    }
-
-    try:
-        signature = inspect.signature(func)
-    except ValueError as e:
-        raise ValueError(
-            f"Failed to get signature for function {func.__name__}: {str(e)}"
-        )
-
-    parameters = {}
-    for param in signature.parameters.values():
-        try:
-            param_type = type_map.get(param.annotation, "string")
-        except KeyError as e:
-            raise KeyError(
-                f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
-            )
-        parameters[param.name] = {"schema": param_type}
-
-    required = [
-        param.name
-        for param in signature.parameters.values()
-        if param.default == inspect._empty
-    ]
-
-    return {
-        "type": "function",
-        "function": {
-            "name": func.__name__,
-            "description": func.__doc__ or "",
-            "parameters": {
-                "type": "object",
-                "properties": parameters,
-                "required": required,
-            },
-        },
-    }

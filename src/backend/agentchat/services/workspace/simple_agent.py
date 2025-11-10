@@ -4,12 +4,14 @@ import copy
 from loguru import logger
 from typing import List, Dict, Any
 
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage
+from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage, AIMessageChunk
 from langchain_core.tools import BaseTool, Tool, StructuredTool
 from langgraph.graph import MessagesState, StateGraph, END, START
 
+from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
+from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceAgents
 from agentchat.tools import WorkSpacePlugins
 from agentchat.api.services.tool import ToolService
@@ -42,6 +44,7 @@ class WorkSpaceSimpleAgent:
     def __init__(self,
                  model_config,
                  user_id: str,
+                 session_id: str,
                  mcp_configs: List[MCPBaseConfig] = [],
                  plugins: List[str] = []):
 
@@ -54,6 +57,7 @@ class WorkSpaceSimpleAgent:
         self.tools = []
         self.mcp_manager = MCPManager(mcp_configs)
         self.plugins = plugins
+        self.session_id = session_id
 
         self.step_counter_lock = asyncio.Lock()
         self.step_counter = 1
@@ -277,24 +281,35 @@ class WorkSpaceSimpleAgent:
             return []
 
     async def _generate_title(self, query):
+        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.user_id)
+        if session:
+            return session.get("title")
         title_prompt = GenerateTitlePrompt.format(query=query)
         response = await self.model.ainvoke(title_prompt)
         return response.content
 
     async def _add_workspace_session(self, title, contexts: WorkSpaceSessionContext):
-        await WorkSpaceSessionService.create_workspace_session(
-            WorkSpaceSessionCreate(
-                title=title,
-                user_id=self.user_id,
-                contexts=[contexts.model_dump()],
-                agent=WorkSpaceAgents.SimpleAgent.value))
+        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.user_id)
+        if session:
+            await WorkSpaceSessionService.update_workspace_session_contexts(
+                session_id=self.session_id,
+                session_context=contexts.model_dump()
+            )
+        else:
+            await WorkSpaceSessionService.create_workspace_session(
+                WorkSpaceSessionCreate(
+                    title=title,
+                    user_id=self.user_id,
+                    session_id=self.session_id,
+                    contexts=[contexts.model_dump()],
+                    agent=WorkSpaceAgents.SimpleAgent.value))
 
     async def astream(self, messages: List[BaseMessage]):
         if not self._initialized:
             await self.init_simple_agent()
         user_messages = copy.deepcopy(messages)
 
-        generate_title_task = asyncio.create_task(self._generate_title(user_messages[0].content))
+        generate_title_task = asyncio.create_task(self._generate_title(user_messages[-1].content))
         try:
             graph_task = None
             if self.tools and len(self.tools) != 0:
@@ -327,11 +342,20 @@ class WorkSpaceSimpleAgent:
         await self._add_workspace_session(
             title=title,
             contexts=WorkSpaceSessionContext(
-                query=user_messages[0].content,
+                query=user_messages[-1].content,
                 answer=final_answer
             ))
 
 
+    async def _record_agent_token_usage(self, response: AIMessage | AIMessageChunk | BaseMessage, model):
+        if response.usage_metadata:
+            await UsageStatsService.create_usage_stats(
+                model=model,
+                user_id=self.user_id,
+                agent=UsageStatsAgentType.simple_agent,
+                input_tokens=response.usage_metadata.get("input_tokens"),
+                output_tokens=response.usage_metadata.get("output_tokens")
+            )
 
     # Additional helper methods
     def find_tool_use(self, tool_name: str):
