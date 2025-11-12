@@ -16,7 +16,7 @@ class Settings(BaseSettings):
     whitelist_paths: list = []
     mars: dict = {}
     memory: dict = {}
-
+    wechat_conf: dict = {}
     multi_models: MultiModels = MultiModels()
 
     tools: Tools = Tools()

@@ -42,7 +42,7 @@ def register_middleware(app: FastAPI):
     app.add_middleware(TraceIDMiddleware)
 
     # 注册白名单中间件
-    app.add_middleware(WhitelistMiddleware, whitelist_paths=app_settings.whitelist_paths)
+    app.add_middleware(WhitelistMiddleware)
 
 
     return app
