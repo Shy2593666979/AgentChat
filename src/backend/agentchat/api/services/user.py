@@ -106,6 +106,10 @@ class UserService:
     def update_user_info(cls, user_id, user_avatar, user_description):
         UserDao.update_user_info(user_id, user_avatar, user_description)
 
+    @classmethod
+    def get_user_id_by_name(cls, user_name):
+        user = UserDao.get_user_by_username(user_name)
+        return user.user_id
 
 async def get_login_user(request: Request, authorize: AuthJWT = Depends()) -> UserPayload:
     """

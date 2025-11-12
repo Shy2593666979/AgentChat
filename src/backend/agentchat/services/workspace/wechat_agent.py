@@ -14,7 +14,7 @@ from agentchat.services.rag_handler import RagHandler
 from agentchat.tools import WeChatTools
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceAgents
-from agentchat.api.services.tool import ToolService
+from agentchat.api.services.user import UserService
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.prompts.chat import GenerateTitlePrompt
 from agentchat.utils.convert import convert_mcp_config
@@ -162,10 +162,11 @@ class WeChatAgent:
             self.plugin_tools = []
 
     async def retrival_knowledge_documents(self, query):
-        knowledges = await KnowledgeService.select_knowledge(self.wechat_account_user)
+        wechat_account_user_id = UserService.get_user_id_by_name(self.wechat_account_user)
+        knowledges = await KnowledgeService.select_knowledge(wechat_account_user_id)
         if not knowledges:
             return None
-        collection_name = knowledges[0]["name"] # 时间有限，只检索一个知识库
+        collection_name = knowledges[0]["id"] # 时间有限，只检索一个知识库
         document = await RagHandler.retrieve_ranked_documents(
             top_k=3,
             min_score=0.01,
@@ -216,7 +217,7 @@ class WeChatAgent:
         return response
 
     async def _generate_title(self, query):
-        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.user_id)
+        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.wechat_account_user)
         if session:
             return session.get("title")
         title_prompt = GenerateTitlePrompt.format(query=query)
@@ -224,7 +225,7 @@ class WeChatAgent:
         return response.content
 
     async def _add_workspace_session(self, title, contexts: WorkSpaceSessionContext):
-        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.user_id)
+        session = await WorkSpaceSessionService.get_workspace_session_from_id(self.session_id, self.wechat_account_user)
         if session:
             await WorkSpaceSessionService.update_workspace_session_contexts(
                 session_id=self.session_id,
