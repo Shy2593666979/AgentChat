@@ -6,34 +6,31 @@ class MixRetrival:
 
     @classmethod
     async def retrival_milvus_documents(cls, query, knowledges_id, search_field):
+        """从Milvus检索文档"""
         documents = []
-        if isinstance(query, list):
-            for qry in query:
+        queries = query if isinstance(query, list) else [query]
+
+        for query in queries:
+            for knowledge_id in knowledges_id:
                 if search_field == "summary":
-                    for knowledge_id in knowledges_id:
-                        documents += await milvus_client.search_summary(qry, knowledge_id)
-                else:
-                    for knowledge_id in knowledges_id:
-                        documents += await milvus_client.search(qry, knowledge_id)
-                return documents
-        else:
-            if search_field == "summary":
-                for knowledge_id in knowledges_id:
                     documents += await milvus_client.search_summary(query, knowledge_id)
-            else:
-                for knowledge_id in knowledges_id:
+                else:
                     documents += await milvus_client.search(query, knowledge_id)
-            return documents
+
+        return documents
 
     @classmethod
     async def retrival_es_documents(cls, query, knowledges_id, search_field):
+        """从Elasticsearch检索文档"""
         documents = []
-        if search_field == "summary":
+        queries = query if isinstance(query, list) else [query]
+
+        for query in queries:
             for knowledge_id in knowledges_id:
-                documents += await es_client.search_documents_summary(query, knowledge_id)
-        else:
-            for knowledge_id in knowledges_id:
-                documents += await es_client.search_documents(query, knowledge_id)
+                if search_field == "summary":
+                    documents += await es_client.search_documents_summary(query, knowledge_id)
+                else:
+                    documents += await es_client.search_documents(query, knowledge_id)
 
         return documents
 
