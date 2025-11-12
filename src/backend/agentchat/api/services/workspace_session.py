@@ -30,8 +30,6 @@ class WorkSpaceSessionService:
         result = await WorkSpaceSessionDao.get_workspace_session_from_id(session_id)
         if result is None:
             return None
-        if result.user_id != user_id:
-            raise ValueError("无权限操作该工作台会话")
         return result.to_dict()
 
     @classmethod

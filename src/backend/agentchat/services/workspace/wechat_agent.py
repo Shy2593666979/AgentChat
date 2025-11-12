@@ -1,4 +1,5 @@
 import copy
+import time
 import asyncio
 from loguru import logger
 from typing import List, Dict, Any
@@ -188,23 +189,32 @@ class WeChatAgent:
         try:
             react_agent_task = None
             if self.tools and len(self.tools) != 0:
+                react_start = time.perf_counter()
                 react_agent_task = asyncio.create_task(self.react_agent.ainvoke({"messages": messages}))
 
+            retrival_start = time.perf_counter()
             retrival_task = asyncio.create_task(self.retrival_knowledge_documents(query=user_messages[-1].content))
+
             # Wait for tool execution to complete
             if react_agent_task:
                 results = await react_agent_task
-                messages = results["messages"][:-1]  # Remove messages that didn't hit tools
+                react_elapsed = time.perf_counter() - react_start
+                logger.info(f"React agent task completed in {react_elapsed:.2f}s")
 
+                messages = results["messages"][:-1]  # Remove messages that didn't hit tools
                 messages = [msg for msg in messages if
                             isinstance(msg, ToolMessage) or (isinstance(msg, AIMessage) and msg.tool_calls)]
 
             # 检索知识库补充信息
             retrival_result = await retrival_task
+            retrival_elapsed = time.perf_counter() - retrival_start
+            logger.info(f"Retrieval task completed in {retrival_elapsed:.2f}s")
+
             if retrival_result:
                 user_messages[0].content = user_messages[0].content.format(retrival_result=retrival_result)
         except Exception as err:
             raise ValueError from err
+
         messages = user_messages + messages
         response = await self.model.ainvoke(messages)
 
