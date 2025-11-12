@@ -14,7 +14,7 @@ class QueryRewrite:
     async def rewrite(self, user_input):
         rewrite_prompt = user_query_write.format(user_input=user_input)
         response = self.client.invoke([SystemMessage(content=system_query_rewrite), HumanMessage(content=rewrite_prompt)])
-        cleaned_response = response.replace("```json", "")
+        cleaned_response = response.content.replace("```json", "")
         cleaned_response = cleaned_response.replace("```", "").strip()
 
         try:

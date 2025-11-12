@@ -7,13 +7,23 @@ class MixRetrival:
     @classmethod
     async def retrival_milvus_documents(cls, query, knowledges_id, search_field):
         documents = []
-        if search_field == "summary":
-            for knowledge_id in knowledges_id:
-                documents += await milvus_client.search_summary(query, knowledge_id)
+        if isinstance(query, list):
+            for qry in query:
+                if search_field == "summary":
+                    for knowledge_id in knowledges_id:
+                        documents += await milvus_client.search_summary(qry, knowledge_id)
+                else:
+                    for knowledge_id in knowledges_id:
+                        documents += await milvus_client.search(qry, knowledge_id)
+                return documents
         else:
-            for knowledge_id in knowledges_id:
-                documents += await milvus_client.search(query, knowledge_id)
-        return documents
+            if search_field == "summary":
+                for knowledge_id in knowledges_id:
+                    documents += await milvus_client.search_summary(query, knowledge_id)
+            else:
+                for knowledge_id in knowledges_id:
+                    documents += await milvus_client.search(query, knowledge_id)
+            return documents
 
     @classmethod
     async def retrival_es_documents(cls, query, knowledges_id, search_field):
