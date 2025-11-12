@@ -24,18 +24,20 @@ class RagHandler:
 
     @classmethod
     async def mix_retrival_documents(cls, query_list, knowledges_id, search_field="summary"):
-        es_documents, milvus_documents = await MixRetrival.mix_retrival_documents(query_list, knowledges_id, search_field)
 
-        # 先对ES和Milvus结果分别排序
-        es_documents.sort(key=lambda x: x.score, reverse=True)
-        milvus_documents.sort(key=lambda x: x.score, reverse=True)
+        if app_settings.rag.enable_elasticsearch:
+            es_documents, milvus_documents = await MixRetrival.mix_retrival_documents(query_list, knowledges_id, search_field)
+            # 先对ES和Milvus结果分别排序
+            es_documents.sort(key=lambda x: x.score, reverse=True)
+            milvus_documents.sort(key=lambda x: x.score, reverse=True)
+            all_documents = es_documents + milvus_documents
+        else:
+            all_documents = await MixRetrival.retrival_milvus_documents(query_list, knowledges_id, search_field)
 
         # 合并并去重，保留分数更高的文档
         documents = []
         seen_chunk_ids = set()
-        
-        # 创建一个合并的文档列表
-        all_documents = es_documents + milvus_documents
+
         # 按分数从高到低排序
         all_documents.sort(key=lambda x: x.score, reverse=True)
         

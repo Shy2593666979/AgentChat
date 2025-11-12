@@ -57,6 +57,7 @@ class Rag(BaseModel):
     class Config:
         extra = "allow"
 
+    enable_elasticsearch: bool = Field(default=False)
     enable_summary: bool = Field(default=False)
     retrival: dict = Field(default_factory=dict)
     split: dict = Field(default_factory=dict)

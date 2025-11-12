@@ -38,3 +38,10 @@ AgentToolsWithName = {
 WorkSpacePlugins = AgentToolsWithName
 
 LingSeekPlugins = AgentToolsWithName
+
+WeChatTools = {
+    "tavily_search": tavily_search,
+    "get_arxiv": get_arxiv,
+    "get_weather": get_weather,
+    "text_to_image": text_to_image,
+}

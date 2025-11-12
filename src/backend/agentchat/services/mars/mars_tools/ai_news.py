@@ -1,13 +1,12 @@
 import json
 import os
-import random
 import time
 from datetime import datetime
 from typing import Optional, Literal
 from urllib.parse import urljoin
-from uuid import uuid4
 from loguru import logger
 from html2image import Html2Image
+from langchain.tools import tool
 
 from agentchat.core.models.manager import ModelManager
 from agentchat.services.aliyun_oss import aliyun_oss
@@ -18,7 +17,7 @@ from agentchat.utils.file_utils import get_aliyun_oss_base_path, get_save_tempfi
 
 
 
-
+@tool(parse_docstring=True)
 async def crawl_ai_news(user_input: str,
                         output_format: Literal["markdown", "png"] = "png",
                         output_detail: bool = False,
@@ -26,12 +25,13 @@ async def crawl_ai_news(user_input: str,
     """
     帮助用户获取一个AI日报, 如果用户有需求，可以提供一个可下载的Markdown下载链接
 
-    params:
+    Args:
         user_input: 用户输入的问题
         output_format: 给用户提供的日报下载文件格式，包含markdown和图片png两种，默认是png
         output_detail: 是否需要给用户提供详细的日报内容
+        user_id: 当前用户ID，默认为None
 
-    return:
+    Returns:
         返回来日报内容, 根据用户的需求判断是否包含可下载的Markdown链接
     """
     news_response = ""
