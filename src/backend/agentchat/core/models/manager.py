@@ -17,18 +17,14 @@ class ModelManager:
         return ChatModelWithTokenUsage(
             model=app_settings.multi_models.tool_call_model.model_name,
             api_key=app_settings.multi_models.tool_call_model.api_key,
-            base_url=app_settings.multi_models.tool_call_model.base_url,
-            **kwargs
-        )
+            base_url=app_settings.multi_models.tool_call_model.base_url)
 
     @classmethod
     def get_conversation_model(cls, **kwargs) -> BaseChatModel:
         return ChatModelWithTokenUsage(
             model=app_settings.multi_models.conversation_model.model_name,
             api_key=app_settings.multi_models.conversation_model.api_key,
-            base_url=app_settings.multi_models.conversation_model.base_url,
-            **kwargs
-        )
+            base_url=app_settings.multi_models.conversation_model.base_url)
 
     @classmethod
     def get_reasoning_model(cls) -> ReasoningModel:
@@ -54,9 +50,7 @@ class ModelManager:
         return ChatModelWithTokenUsage(
             model=kwargs.get("model"),
             api_key=kwargs.get("api_key"),
-            base_url=kwargs.get("base_url"),
-            **kwargs
-        )
+            base_url=kwargs.get("base_url"))
 
     @classmethod
     def get_embedding_model(cls) -> EmbeddingModel:
