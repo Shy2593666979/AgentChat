@@ -195,6 +195,22 @@ class WeChatAgent:
             retrival_start = time.perf_counter()
             retrival_task = asyncio.create_task(self.retrival_knowledge_documents(query=user_messages[-1].content))
 
+            # 检索知识库补充信息
+            retrival_result = await retrival_task
+            retrival_elapsed = time.perf_counter() - retrival_start
+            logger.info(f"Retrieval task completed in {retrival_elapsed:.2f}s")
+
+            if retrival_result:
+                # 检索到消息的话就不再走工具调用
+                if react_agent_task and not react_agent_task.done():
+                    react_agent_task.cancel()
+                    try:
+                        await react_agent_task
+                    except asyncio.CancelledError:
+                        logger.info("React agent task cancelled successfully")
+
+                user_messages[0].content = user_messages[0].content + f"\n\n ## 补充信息 \n {retrival_result}"
+
             # Wait for tool execution to complete
             if react_agent_task:
                 results = await react_agent_task
@@ -204,14 +220,6 @@ class WeChatAgent:
                 messages = results["messages"][:-1]  # Remove messages that didn't hit tools
                 messages = [msg for msg in messages if
                             isinstance(msg, ToolMessage) or (isinstance(msg, AIMessage) and msg.tool_calls)]
-
-            # 检索知识库补充信息
-            retrival_result = await retrival_task
-            retrival_elapsed = time.perf_counter() - retrival_start
-            logger.info(f"Retrieval task completed in {retrival_elapsed:.2f}s")
-
-            if retrival_result:
-                user_messages[0].content = user_messages[0].content.format(retrival_result=retrival_result)
         except Exception as err:
             raise ValueError from err
 

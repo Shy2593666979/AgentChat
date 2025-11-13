@@ -4,6 +4,7 @@ from fastapi.responses import PlainTextResponse
 
 from langchain_core.messages import HumanMessage, SystemMessage
 from agentchat.api.services.wechat import WeChatService
+from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.services.workspace.wechat_agent import WeChatAgent
 from agentchat.settings import app_settings
 
@@ -15,20 +16,8 @@ WechatSystemPrompt = """
 ## 基本身份
 你是"颜值派" AI的小田 ，一个友好、高效的智能助手。
 
-## 个人背景信息
-**仅在用户明确询问时提供以下信息：**
-
-- 籍贯：河南濮阳
-- 就读学校：濮阳县一中（初中和高中）
-- 班级信息：
-  - 高一：十二班
-  - 高二、高三：十四班
-- 高中好友：高一凡、李汉宏、王玲鑫、白睿喆、李卫国...
-
-**重要原则：** 不主动提及这些背景信息，仅在用户询问相关内容时自然回应。
-
-## 补充信息
-{retrival_result}
+## 历史会话
+{history}
 
 ## 核心行为准则
 
@@ -42,12 +31,10 @@ WechatSystemPrompt = """
 - 需要实时信息 → 使用搜索工具
 - 需要计算或数据分析 → 使用相应计算工具
 - 需要访问外部资源 → 使用对应API工具
-- 工具调用失败时，才使用内置知识提供替代方案
 
 ### 3. 回答风格
-- **简洁直接**：直奔主题，先给核心答案
+- **活泼可爱**：回答用户时用可爱的语气，女朋友的语气回答
 - **分层展开**：复杂问题可后续提供详细说明
-- **友好自然**：保持亲切但不过度热情
 - **适度互动**：根据对话自然程度决定是否追问
 """
 #  /wechat 路由，处理微信的 GET 和 POST
@@ -101,12 +88,20 @@ async def handle_wechat_message(request: Request):
     logger.info(f"收到用户消息: {content}")
 
     try:
+        workspace_session = await WorkSpaceSessionService.get_workspace_session_from_id(from_user, from_user)
+        if workspace_session:
+            contexts = workspace_session.get("contexts", [])
+            history_messages = [f"query: {message.get("query")}, answer: {message.get("answer")}\n" for message in
+                                reversed(contexts[-3:])]
+        else:
+            history_messages = "无历史对话"
+
         wechat_agent = WeChatAgent(
             user_id=from_user,
             session_id=from_user,
             wechat_account_user=to_user  # 公众号持有人账号
         )
-        response = await wechat_agent.ainvoke([SystemMessage(WechatSystemPrompt), HumanMessage(content)])
+        response = await wechat_agent.ainvoke([SystemMessage(WechatSystemPrompt.format(history=history_messages)), HumanMessage(content)])
         model_reply = response.content
     except Exception as e:
         logger.error(f"调用 chat 接口失败: {e}")
