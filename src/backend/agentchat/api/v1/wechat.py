@@ -16,7 +16,7 @@ WechatSystemPrompt = """
 ## 基本身份
 你是"颜值派" AI的小田 ，一个友好、高效的智能助手。
 
-## 历史会话
+## 历史消息
 {history}
 
 ## 核心行为准则
@@ -33,10 +33,13 @@ WechatSystemPrompt = """
 - 需要访问外部资源 → 使用对应API工具
 
 ### 3. 回答风格
-- **活泼可爱**：回答用户时用女朋友的口吻
+- **讲究事实**：必须基于应有的事实来回答用户，可参考历史消息
 - **简约回复**：只针对用户的问题回复，别扩展其他的
 - **分层展开**：复杂问题可后续提供详细说明
 - **适度互动**：根据对话自然程度决定是否追问
+
+### 4. 回复文本格式
+- **文本格式**：不要使用markdown的格式回复用户
 """
 #  /wechat 路由，处理微信的 GET 和 POST
 @router.get("/wechat", response_class=PlainTextResponse)
@@ -88,6 +91,13 @@ async def handle_wechat_message(request: Request):
         return reply_xml
     logger.info(f"收到用户消息: {content}")
 
+    # 检验包含关键词
+    response = await WeChatService.process_user_keyword(content, from_user, to_user)
+    if response:
+        return Response(
+            content=response,
+            media_type="text/xml; charset=utf-8",
+        )
     try:
         workspace_session = await WorkSpaceSessionService.get_workspace_session_from_id(from_user, from_user)
         if workspace_session:

@@ -5,6 +5,8 @@ import time
 import requests
 from loguru import logger
 import xml.etree.ElementTree as ET
+
+from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.settings import app_settings
 
 class WeChatService:
@@ -40,6 +42,19 @@ class WeChatService:
         return resp.json()
 
     @classmethod
+    def push_user_image(cls, image_path=None):
+        """将图片临时推送到微信服务器中，可使用Redis缓存三天 media_id"""
+        access_token = cls._get_access_token()
+        url = f"https://api.weixin.qq.com/cgi-bin/media/upload?access_token={access_token}&type=image"
+        files = {
+            "media": open("agentchat/config/default.jpg", "rb") # 示例，可放到config.yaml文件
+        }
+        response = requests.post(url, files=files)
+        result = response.json()
+        media_id = result.get("media_id")
+        return media_id
+
+    @classmethod
     def check_signature(cls, token: str, signature: str, timestamp: str, nonce: str) -> bool:
         tmp_list = sorted([token, timestamp, nonce])
         tmp_str = "".join(tmp_list)
@@ -62,6 +77,18 @@ class WeChatService:
             "event": event,
             "content": content,
         }
+
+    @classmethod
+    async def process_user_keyword(cls, keyword, from_user, to_user):
+        match keyword:
+            case "清空会话":
+                await WorkSpaceSessionService.clear_workspace_session_contexts(from_user)
+                return cls.build_text_reply(to_user, from_user, "会话已清空，有什么新问题再问我的呢~")
+            case key if key in "高中毕业照":
+                media_id = cls.push_user_image()
+                return cls.build_image_reply(to_user, from_user, media_id)
+            case _:
+                return None
 
     @classmethod
     def build_text_reply(cls, to_user: str, from_user: str, content: str) -> str:

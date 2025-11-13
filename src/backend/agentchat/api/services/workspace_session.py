@@ -26,6 +26,10 @@ class WorkSpaceSessionService:
         return await WorkSpaceSessionDao.update_workspace_session_contexts(session_id, session_context)
 
     @classmethod
+    async def clear_workspace_session_contexts(cls, session_id):
+        return await WorkSpaceSessionDao.clear_workspace_session_contexts(session_id)
+
+    @classmethod
     async def get_workspace_session_from_id(cls, session_id, user_id):
         result = await WorkSpaceSessionDao.get_workspace_session_from_id(session_id)
         if result is None:
