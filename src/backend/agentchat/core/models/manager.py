@@ -13,18 +13,22 @@ from agentchat.settings import app_settings
 class ModelManager:
 
     @classmethod
-    def get_tool_invocation_model(cls) -> BaseChatModel:
+    def get_tool_invocation_model(cls, **kwargs) -> BaseChatModel:
         return ChatModelWithTokenUsage(
             model=app_settings.multi_models.tool_call_model.model_name,
             api_key=app_settings.multi_models.tool_call_model.api_key,
-            base_url=app_settings.multi_models.tool_call_model.base_url)
+            base_url=app_settings.multi_models.tool_call_model.base_url,
+            **kwargs
+        )
 
     @classmethod
-    def get_conversation_model(cls) -> BaseChatModel:
+    def get_conversation_model(cls, **kwargs) -> BaseChatModel:
         return ChatModelWithTokenUsage(
             model=app_settings.multi_models.conversation_model.model_name,
             api_key=app_settings.multi_models.conversation_model.api_key,
-            base_url=app_settings.multi_models.conversation_model.base_url)
+            base_url=app_settings.multi_models.conversation_model.base_url,
+            **kwargs
+        )
 
     @classmethod
     def get_reasoning_model(cls) -> ReasoningModel:
@@ -33,7 +37,7 @@ class ModelManager:
                               base_url=app_settings.multi_models.reasoning_model.base_url)
 
     @classmethod
-    def get_lingseek_intent_model(cls) -> BaseChatModel:
+    def get_lingseek_intent_model(cls, **kwargs) -> BaseChatModel:
         return ChatModelWithTokenUsage(
             model=app_settings.multi_models.tool_call_model.model_name,
             api_key=app_settings.multi_models.tool_call_model.api_key,
@@ -50,7 +54,9 @@ class ModelManager:
         return ChatModelWithTokenUsage(
             model=kwargs.get("model"),
             api_key=kwargs.get("api_key"),
-            base_url=kwargs.get("base_url"))
+            base_url=kwargs.get("base_url"),
+            **kwargs
+        )
 
     @classmethod
     def get_embedding_model(cls) -> EmbeddingModel:

@@ -33,7 +33,8 @@ WechatSystemPrompt = """
 - 需要访问外部资源 → 使用对应API工具
 
 ### 3. 回答风格
-- **活泼可爱**：回答用户时用可爱的语气，女朋友的语气回答
+- **活泼可爱**：回答用户时用女朋友的口吻
+- **简约回复**：只针对用户的问题回复，别扩展其他的
 - **分层展开**：复杂问题可后续提供详细说明
 - **适度互动**：根据对话自然程度决定是否追问
 """
@@ -91,8 +92,9 @@ async def handle_wechat_message(request: Request):
         workspace_session = await WorkSpaceSessionService.get_workspace_session_from_id(from_user, from_user)
         if workspace_session:
             contexts = workspace_session.get("contexts", [])
-            history_messages = [f"query: {message.get("query")}, answer: {message.get("answer")}\n" for message in
-                                reversed(contexts[-3:])]
+            history_messages = "\n".join(
+                [f"user query: {message.get("query")}, answer: {message.get("answer")}\n" for message in
+                 reversed(contexts[-3:])])
         else:
             history_messages = "无历史对话"
 
