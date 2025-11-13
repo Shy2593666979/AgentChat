@@ -201,25 +201,30 @@ class WeChatAgent:
             logger.info(f"Retrieval task completed in {retrival_elapsed:.2f}s")
 
             if retrival_result:
-                # 检索到消息的话就不再走工具调用
-                if react_agent_task and not react_agent_task.done():
+                user_messages[0].content = user_messages[0].content + f"\n\n ## 补充信息 \n {retrival_result}"
+
+            # Wait for tool execution to complete
+            react_agent_result = None
+            if react_agent_task:
+                try:
+                    react_agent_result = await asyncio.wait_for(react_agent_task, timeout=2.0)
+                    react_elapsed = time.perf_counter() - react_start
+                    logger.info(f"React agent task completed in {react_elapsed:.2f}s")
+                except asyncio.TimeoutError:
+                    logger.warning("React agent task timeout after 2s, cancelling...")
                     react_agent_task.cancel()
                     try:
                         await react_agent_task
                     except asyncio.CancelledError:
-                        logger.info("React agent task cancelled successfully")
+                        logger.info("React agent task cancelled due to timeout")
+                except Exception as e:
+                    logger.error(f"React agent task failed: {e}")
 
-                user_messages[0].content = user_messages[0].content + f"\n\n ## 补充信息 \n {retrival_result}"
-
-            # Wait for tool execution to complete
-            if react_agent_task:
-                results = await react_agent_task
-                react_elapsed = time.perf_counter() - react_start
-                logger.info(f"React agent task completed in {react_elapsed:.2f}s")
-
-                messages = results["messages"][:-1]  # Remove messages that didn't hit tools
+            if react_agent_result:
+                messages = react_agent_result["messages"][:-1]  # Remove messages that didn't hit tools
                 messages = [msg for msg in messages if
                             isinstance(msg, ToolMessage) or (isinstance(msg, AIMessage) and msg.tool_calls)]
+
         except Exception as err:
             raise ValueError from err
 
