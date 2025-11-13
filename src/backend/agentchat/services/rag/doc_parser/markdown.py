@@ -222,9 +222,13 @@ class MarkdownParser:
         """
         读取指定文件并解析Markdown内容
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-        return text
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text = f.read()
+            return text
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     async def parse_into_chunks(self, file_id: str, file_path: str, knowledge_id: str):
         text = await self.parse_file(file_path)

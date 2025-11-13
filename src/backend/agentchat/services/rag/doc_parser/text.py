@@ -56,9 +56,13 @@ class TextParser:
         """
         读取指定文件并解析Markdown内容
         """
-        with open(file_path, 'r', encoding='utf-8') as f:
-            text = f.read()
-        return text
+        try:
+            with open(file_path, 'r', encoding='utf-8') as f:
+                text = f.read()
+            return text
+        finally:
+            if os.path.exists(file_path):
+                os.remove(file_path)
 
     async def parse_into_chunks(self, file_id, file_path, knowledge_id):
         file_content = await self.parse_file(file_path)
@@ -66,8 +70,9 @@ class TextParser:
         chunks = []
         update_time = datetime.utcnow() + timedelta(hours=8)
         for content in contents:
+            chunk_id = f"{os.path.basename(file_path).split('_')[0]}_{uuid4().hex}"
             chunks.append(ChunkModel(
-                chunk_id=f"{os.path.splitext(file_path)}_{uuid4().hex}",
+                chunk_id=chunk_id[:128] if len(chunk_id) > 128 else chunk_id,
                 content=content,
                 file_id=file_id,
                 file_name=os.path.basename(file_path),
