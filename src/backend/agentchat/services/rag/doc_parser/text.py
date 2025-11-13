@@ -72,7 +72,7 @@ class TextParser:
                 file_id=file_id,
                 file_name=os.path.basename(file_path),
                 knowledge_id=knowledge_id,
-                update_time=update_time
+                update_time=update_time.isoformat()
             ))
 
         return chunks

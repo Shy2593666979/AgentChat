@@ -144,5 +144,6 @@ class RagHandler:
 
     @classmethod
     async def delete_documents_es_milvus(cls, file_id, knowledge_id):
-        await es_client.delete_documents(file_id, knowledge_id)
+        if app_settings.rag.enable_elasticsearch:
+            await es_client.delete_documents(file_id, knowledge_id)
         await milvus_client.delete_by_file_id(file_id, knowledge_id)
