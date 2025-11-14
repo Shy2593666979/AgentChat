@@ -109,7 +109,7 @@ async def handle_wechat_message(request: Request):
     # 用户问题重复则从Redis里面取出
     if value := redis_client.get(f"{from_user}:{content}"):
         return Response(
-            content=value,
+            content=value.get("content"),
             media_type="text/xml; charset=utf-8",
         )
 
@@ -123,37 +123,44 @@ async def handle_wechat_message(request: Request):
         else:
             history_messages = "无历史对话"
 
-        def save_to_redis_callback(task):
-            try:
-                result = task.result()
+        # 进行定时操作，只对经常超时的数据进行Redis
+        timeout_event = asyncio.Event()
+
+        async def run_wechat_agent():
+            wechat_agent = WeChatAgent(
+                user_id=from_user,
+                session_id=from_user,
+                wechat_account_user=to_user  # 公众号持有人账号
+            )
+            wechat_agent_task = asyncio.create_task(
+                wechat_agent.ainvoke([
+                    SystemMessage(WechatSystemPrompt.format(history=history_messages)),
+                    HumanMessage(content)
+                ])
+            )
+            response = await wechat_agent_task
+
+            # 将信息保存到 Redis中
+            if timeout_event.is_set():
                 redis_key = f"{from_user}:{content}"
                 redis_client.set(
                     key=redis_key,
                     value={
                         "user": from_user,
-                        "content": result.content
+                        "content": response.content
                     },
                     expiration=7200
                 )
-                logger.info(f"Background task completed: {result}")
-            except Exception as e:
-                logger.error(f"Background task error: {e}")
+                logger.info(f"Background task completed and saved to Redis: {response.content[:50]}...")
+            return response
 
-        wechat_agent = WeChatAgent(
-            user_id=from_user,
-            session_id=from_user,
-            wechat_account_user=to_user  # 公众号持有人账号
-        )
-        wechat_agent_task = asyncio.create_task(
-            wechat_agent.ainvoke([
-                SystemMessage(WechatSystemPrompt.format(history=history_messages)),
-                HumanMessage(content)
-            ])
-        )
-        wechat_agent_task.add_done_callback(save_to_redis_callback)
-        response = await asyncio.wait_for(wechat_agent_task, 4.0)
+        run_wechat_agent_task = asyncio.create_task(run_wechat_agent())
+        shield_wechat_agent_task = asyncio.shield(run_wechat_agent_task)
+
+        response = await asyncio.wait_for(shield_wechat_agent_task, 4.0)
         model_reply = response.content
     except asyncio.TimeoutError as e:
+        timeout_event.set()
         logger.warning("Wechat agent task timeout after 4s, running...")
         model_reply = "小田刚才开了小差儿，请您用同样的问题再问一遍吧~"
     except Exception as e:
