@@ -207,11 +207,11 @@ class WeChatAgent:
             react_agent_result = None
             if react_agent_task:
                 try:
-                    react_agent_result = await asyncio.wait_for(react_agent_task, timeout=2.0)
+                    react_agent_result = await asyncio.wait_for(react_agent_task, timeout=1.0)
                     react_elapsed = time.perf_counter() - react_start
                     logger.info(f"React agent task completed in {react_elapsed:.2f}s")
                 except asyncio.TimeoutError:
-                    logger.warning("React agent task timeout after 2s, cancelling...")
+                    logger.warning("React agent task timeout after 1s, cancelling...")
                     react_agent_task.cancel()
                     try:
                         await react_agent_task

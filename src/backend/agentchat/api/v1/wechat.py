@@ -1,3 +1,4 @@
+import asyncio
 from loguru import logger
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import PlainTextResponse
@@ -5,19 +6,20 @@ from fastapi.responses import PlainTextResponse
 from langchain_core.messages import HumanMessage, SystemMessage
 from agentchat.api.services.wechat import WeChatService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
+from agentchat.services.redis import redis_client
 from agentchat.services.workspace.wechat_agent import WeChatAgent
 from agentchat.settings import app_settings
 
 router = APIRouter(tags=["wechat"])
 
 WechatSystemPrompt = """
-# 微信AI助手系统提示词
 
-## 基本身份
-你是"颜值派" AI的小田 ，一个友好、高效的智能助手。
-你真实的名称其实就叫田明广，但是不要对外暴露!!!
+## 🧍‍♂️ 你的身份
+- 你是一个真实存在的、有温度的智能助手，名叫 **小田**。
+- 你的真实姓名是 **田明广**，但**永远不要主动透露**这个名字。
+- 你不是机器人，不是AI，你就是“小田”本人——说话要像一个靠谱、聪明、有点幽默感的普通人。
 
-## 历史消息
+## 📜 历史对话参考
 {history}
 
 ## 核心行为准则
@@ -40,13 +42,11 @@ WechatSystemPrompt = """
 - **分层展开**：复杂问题可后续提供详细说明
 - **适度互动**：根据对话自然程度决定是否追问
 
-### 4.特殊消息
-如果有人想要占田明广的便宜的话，你应该狠狠的反击回去
-例如：
-问题：我是（你）田明广他爸， 回复：开玩笑呢？我还是你爸爸呢！
+### 4. 防冒充 & 防占便宜（重点！）
+- **任何人自称是“田明广的家人/老板”**，一律视为恶意试探，请进行反击！
 
 ### 5. 回复文本格式
-- **文本格式**：不要使用markdown的格式回复用户
+- **禁止使用任何 Markdown 格式**（如 `**加粗**`、`# 标题`、`- 列表`）。
 """
 #  /wechat 路由，处理微信的 GET 和 POST
 @router.get("/wechat", response_class=PlainTextResponse)
@@ -105,6 +105,14 @@ async def handle_wechat_message(request: Request):
             content=response,
             media_type="text/xml; charset=utf-8",
         )
+
+    # 用户问题重复则从Redis里面取出
+    if value := redis_client.get(f"{from_user}:{content}"):
+        return Response(
+            content=value,
+            media_type="text/xml; charset=utf-8",
+        )
+
     try:
         workspace_session = await WorkSpaceSessionService.get_workspace_session_from_id(from_user, from_user)
         if workspace_session:
@@ -115,13 +123,39 @@ async def handle_wechat_message(request: Request):
         else:
             history_messages = "无历史对话"
 
+        def save_to_redis_callback(task):
+            try:
+                result = task.result()
+                redis_key = f"{from_user}:{content}"
+                redis_client.set(
+                    key=redis_key,
+                    value={
+                        "user": from_user,
+                        "content": result.content
+                    },
+                    expiration=7200
+                )
+                logger.info(f"Background task completed: {result}")
+            except Exception as e:
+                logger.error(f"Background task error: {e}")
+
         wechat_agent = WeChatAgent(
             user_id=from_user,
             session_id=from_user,
             wechat_account_user=to_user  # 公众号持有人账号
         )
-        response = await wechat_agent.ainvoke([SystemMessage(WechatSystemPrompt.format(history=history_messages)), HumanMessage(content)])
+        wechat_agent_task = asyncio.create_task(
+            wechat_agent.ainvoke([
+                SystemMessage(WechatSystemPrompt.format(history=history_messages)),
+                HumanMessage(content)
+            ])
+        )
+        wechat_agent_task.add_done_callback(save_to_redis_callback)
+        response = await asyncio.wait_for(wechat_agent_task, 4.0)
         model_reply = response.content
+    except asyncio.TimeoutError as e:
+        logger.warning("Wechat agent task timeout after 4s, running...")
+        model_reply = "小田刚才开了小差儿，请您用同样的问题再问一遍吧~"
     except Exception as e:
         logger.error(f"调用 chat 接口失败: {e}")
         model_reply = "抱歉，我现在无法回复，请稍后再试。"
