@@ -38,6 +38,7 @@ class MultiModels(BaseModel):
     reasoning_model: ModelConfig = Field(default_factory=ModelConfig)
     conversation_model: ModelConfig = Field(default_factory=ModelConfig)
     tool_call_model: ModelConfig = Field(default_factory=ModelConfig)
+    qwen3_coder: ModelConfig = Field(default_factory=ModelConfig)
     qwen_vl: ModelConfig = Field(default_factory=ModelConfig)
     text2image: ModelConfig = Field(default_factory=ModelConfig)
     embedding: ModelConfig = Field(default_factory=ModelConfig)
