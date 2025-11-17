@@ -4,23 +4,22 @@ import asyncio
 
 from loguru import logger
 from pydantic.v1 import BaseModel
-from typing import List, Dict, Any, AsyncGenerator, Optional, Callable, NotRequired
+from typing import List, Dict, Any, AsyncGenerator, Callable, NotRequired
 
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 from langchain_core.tools import BaseTool, tool
 from langchain.tools.tool_node import ToolCallRequest
 from langchain.agents import create_agent, AgentState
-from langchain_core.messages import BaseMessage, AIMessage, SystemMessage, ToolMessage, HumanMessage
-from langchain.agents.middleware import LLMToolSelectorMiddleware, wrap_tool_call, ModelRequest, after_agent, \
-    ModelResponse, AgentMiddleware
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, HumanMessage
+from langchain.agents.middleware import LLMToolSelectorMiddleware, ModelRequest, ModelResponse, AgentMiddleware
 
-from agentchat.tools import AgentTools, AgentToolsWithName
+from agentchat.tools import AgentToolsWithName
 from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
 from agentchat.api.services.tool import ToolService
 from agentchat.services.rag_handler import RagHandler
-from agentchat.services.mcp_agent.agent import MCPAgent, MCPConfig
+from agentchat.core.agents.mcp_agent import MCPAgent, MCPConfig
 from agentchat.api.services.mcp_server import MCPService
 
 class StreamAgentState(AgentState):

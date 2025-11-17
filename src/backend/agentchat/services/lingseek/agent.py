@@ -12,7 +12,7 @@ from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, 
 from agentchat.prompts.template import GuidePromptTemplate
 from agentchat.schema.workspace import WorkSpaceAgents
 from agentchat.schema.usage_stats import UsageStatsAgentType
-from agentchat.services.mcp_agent.agent import MCPConfig
+from agentchat.core.agents.mcp_agent import MCPConfig
 from agentchat.tools import LingSeekPlugins, tavily_search as web_search
 from agentchat.api.services.tool import ToolService
 from agentchat.core.models.manager import ModelManager
