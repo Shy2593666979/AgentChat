@@ -87,7 +87,7 @@ class UserService:
         avatars_url = []
         for file_url in files_url:
             avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
-        return random.choice(avatars_url)
+        return random.choice(avatars_url) if avatars_url else ""
 
     @classmethod
     def get_available_avatars(cls):
