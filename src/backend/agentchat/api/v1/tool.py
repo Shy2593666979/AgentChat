@@ -7,7 +7,7 @@ from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.api.services.tool import ToolService
 from agentchat.schema.tool import ToolCreateRequest, ToolUpdateRequest
 
-router = APIRouter()
+router = APIRouter(tags=["Tool"])
 
 
 @router.post('/tool/create', response_model=UnifiedResponseModel)

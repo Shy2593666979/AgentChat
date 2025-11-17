@@ -15,7 +15,7 @@ from loguru import logger
 from agentchat.api.services.user import get_user_jwt
 from agentchat.utils.constants import USER_CURRENT_SESSION
 
-router = APIRouter()
+router = APIRouter(tags=["User"])
 
 
 @router.post('/user/register', response_model=UnifiedResponseModel)

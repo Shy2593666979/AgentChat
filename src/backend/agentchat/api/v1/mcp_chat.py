@@ -5,7 +5,7 @@ from agentchat.api.services.dialog import DialogService
 from agentchat.api.services.mcp_chat import MCPChatAgent
 from fastapi.responses import StreamingResponse
 
-router = APIRouter()
+router = APIRouter(tags=["MCP-Chat"])
 
 # 前端根据Dialog.agent_type判断走/mcp_chat 还是/chat
 @router.post("/mcp_chat", description="对话接口")

@@ -12,7 +12,7 @@ from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_pr
 from agentchat.services.memory.client import memory_client
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 
-router = APIRouter()
+router = APIRouter(tags=["Mars"])
 
 class MarsExampleEnum:
     Autobuild_Agent = 1

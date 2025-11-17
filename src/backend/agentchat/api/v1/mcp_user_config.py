@@ -7,7 +7,7 @@ from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.schema.mcp_user_config import MCPUserConfigCreateRequest, MCPUserConfigUpdateRequest
 
-router = APIRouter()
+router = APIRouter(tags=["MCP-User-Config"])
 
 @router.post('/mcp_user_config/create', response_model=UnifiedResponseModel)
 async def create_mcp_user_config(*,

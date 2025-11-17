@@ -10,7 +10,7 @@ from typing import List
 from loguru import logger
 from uuid import uuid4
 
-router = APIRouter()
+router = APIRouter(tags=["Agent"])
 
 
 @router.post("/agent", response_model=UnifiedResponseModel)

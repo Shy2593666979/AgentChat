@@ -2,7 +2,7 @@ from fastapi import APIRouter, Request
 from agentchat.api.services.message import MessageLikeService, MessageDownService
 from agentchat.schema.schemas import resp_200
 
-router = APIRouter()
+router = APIRouter(tags=["Message"])
 
 
 @router.post("/message/like")

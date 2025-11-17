@@ -9,7 +9,7 @@ from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
 from agentchat.utils.file_utils import get_save_tempfile
 
-router = APIRouter()
+router = APIRouter(tags=["Knowledge-File"])
 
 
 @router.post('/knowledge_file/create', response_model=UnifiedResponseModel)

@@ -8,7 +8,7 @@ from typing import List
 from loguru import logger
 from uuid import uuid4
 
-router = APIRouter()
+router = APIRouter(tags=["MCP-Agent"])
 
 
 @router.post("/mcp_agent", response_model=UnifiedResponseModel)

@@ -16,7 +16,7 @@ from agentchat.services.workspace.simple_agent import WorkSpaceSimpleAgent, MCPC
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 from agentchat.utils.convert import convert_mcp_config
 
-router = APIRouter(prefix="/workspace")
+router = APIRouter(prefix="/workspace", tags=["WorkSpace"])
 
 
 @router.get("/plugins", summary="获取工作台的可用插件")

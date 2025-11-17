@@ -1,3 +1,4 @@
+from typing import Union, List
 from loguru import logger
 from fastapi import Body, APIRouter, Depends
 
@@ -5,8 +6,9 @@ from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.schema.knowledge import KnowledgeCreateRequest, KnowledgeUpdateRequest
 from agentchat.schema.schemas import UnifiedResponseModel, resp_500, resp_200
+from agentchat.services.rag_handler import RagHandler
 
-router = APIRouter()
+router = APIRouter(tags=["Knowledge"])
 
 
 @router.post("/knowledge/create", response_model=UnifiedResponseModel)
@@ -59,3 +61,13 @@ async def delete_knowledge(knowledge_id: str = Body(embed=True),
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))
+
+@router.post("/knowledge/retrieval", response_model=UnifiedResponseModel)
+async def retrieval_knowledge(*,
+                              query: str = Body(..., description="用户的问题"),
+                              knowledge_id: Union[str, List[str]] = Body(..., description="知识库ID")):
+    if isinstance(knowledge_id, str):
+        content = await RagHandler.retrieve_ranked_documents(query, [knowledge_id], [knowledge_id])
+    else:
+        content = await RagHandler.retrieve_ranked_documents(query, knowledge_id, knowledge_id)
+    return resp_200(content)

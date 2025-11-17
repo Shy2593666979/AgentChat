@@ -10,7 +10,7 @@ from agentchat.services.redis import redis_client
 from agentchat.services.workspace.wechat_agent import WeChatAgent
 from agentchat.settings import app_settings
 
-router = APIRouter(tags=["wechat"])
+router = APIRouter(tags=["Wechat"])
 
 WechatSystemPrompt = """
 ## 🧍‍♂️ 你的身份

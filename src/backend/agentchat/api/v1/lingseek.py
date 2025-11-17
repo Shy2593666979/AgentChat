@@ -8,7 +8,7 @@ from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.services.lingseek.agent import LingSeekAgent
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 
-router = APIRouter(prefix="/workspace/lingseek")
+router = APIRouter(prefix="/workspace/lingseek", tags=["LingSeek"])
 
 
 @router.post("/guide_prompt", summary="生成灵寻的指导提示")

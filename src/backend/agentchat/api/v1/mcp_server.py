@@ -1,20 +1,20 @@
 import json
 from typing import Optional
 
-from fastapi import APIRouter, Query, Body, Depends
+from fastapi import APIRouter, Body, Depends
 
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.mcp import McpAsToolPrompt
 from agentchat.schema.mcp import MCPResponseFormat
 from agentchat.schema.schemas import resp_500, resp_200
-from agentchat.services.agents.structured_response import StructuredResponseAgent
+from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.services.mcp.manager import MCPManager
 from loguru import logger
 
 from agentchat.utils.convert import convert_mcp_config
 
-router = APIRouter()
+router = APIRouter(tags=["MCP-Server"])
 
 
 @router.post("/mcp_server")
