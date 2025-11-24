@@ -182,13 +182,13 @@ const goToLogin = () => {
 
         <!-- 底部版本信息 -->
         <div class="footer">
-          <span>v2.0</span>
+          <div class="version-badge" title="AgentChat 版本">v2.2.0</div>
           <div class="footer-icons">
-            <a href="https://github.com/Shy2593666979/AgentChat" target="_blank">
-              <i class="icon-github"></i>
+            <a href="https://github.com/Shy2593666979/AgentChat" target="_blank" class="icon-link" title="GitHub">
+              <img src="../../assets/github.png" alt="GitHub" class="icon-img" />
             </a>
-            <a href="#" target="_blank">
-              <i class="icon-docs"></i>
+            <a href="https://uawlh9wstr9.feishu.cn/wiki/QOaLwMDtBiiduWk4YtAcavEsnne" target="_blank" class="icon-link" title="帮助文档">
+              <img src="../../assets/help.png" alt="帮助文档" class="icon-img" />
             </a>
           </div>
         </div>
@@ -282,7 +282,7 @@ const goToLogin = () => {
 
     .header {
       text-align: center;
-      margin-bottom: 30px;
+      margin-bottom: 40px;
 
       .logo {
         margin-bottom: 16px;
@@ -313,14 +313,14 @@ const goToLogin = () => {
 
     .register-form {
       .form-group {
-        margin-bottom: 18px;
+        margin-bottom: 20px;
 
         .form-label {
           display: block;
           font-size: 16px;
           font-weight: 600;
           color: #2c3e50;
-          margin-bottom: 8px;
+          margin-bottom: 10px;
           font-family: 'PingFang SC', 'Helvetica Neue', 'Arial', sans-serif;
           letter-spacing: 0.5px;
         }
@@ -360,7 +360,7 @@ const goToLogin = () => {
       .form-actions {
         display: flex;
         justify-content: flex-end;
-        margin-bottom: 20px;
+        margin-bottom: 24px;
 
         .login-link {
           font-size: 15px;
@@ -409,37 +409,53 @@ const goToLogin = () => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 30px;
-      color: #888;
-      font-size: 14px;
+      margin-top: 36px;
+      color: #667084;
+      font-size: 13px;
       font-family: 'PingFang SC', 'Helvetica Neue', 'Arial', sans-serif;
       font-weight: 400;
+      border-top: 1px solid #eef2f7;
+      padding-top: 16px;
+
+      .version-badge {
+        display: inline-flex;
+        align-items: center;
+        padding: 4px 10px;
+        border-radius: 999px;
+        background: #f2f8ff;
+        color: #3b82f6;
+        border: 1px solid rgba(59, 130, 246, 0.25);
+        font-weight: 600;
+        letter-spacing: 0.3px;
+      }
 
       .footer-icons {
         display: flex;
-        gap: 12px;
+        gap: 10px;
 
         a {
-          width: 24px;
-          height: 24px;
+          width: 28px;
+          height: 28px;
           display: flex;
           align-items: center;
           justify-content: center;
-          color: #999;
-          transition: color 0.2s ease;
+          background: #f8fafc;
+          border: 1px solid #e5e7eb;
+          border-radius: 8px;
+          transition: all 0.2s ease;
+          overflow: hidden;
 
           &:hover {
-            color: #4f81ff;
+            transform: translateY(-1px);
+            box-shadow: 0 6px 16px rgba(59, 130, 246, 0.2);
+            border-color: rgba(59, 130, 246, 0.4);
           }
 
-          .icon-github::before {
-            content: "🐙";
-            font-size: 16px;
-          }
-
-          .icon-docs::before {
-            content: "📚";
-            font-size: 16px;
+          .icon-img {
+            width: 18px;
+            height: 18px;
+            object-fit: contain;
+            filter: saturate(0.9) contrast(1.05);
           }
         }
       }
