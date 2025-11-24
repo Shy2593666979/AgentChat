@@ -662,7 +662,7 @@ npm run dev
 ## 📖 文档
 
 ### 📚 API文档
-- [API Documentation v3.0](docs/API_Documentation_v3.0.md) - 最新API文档
+- [API Documentation v3.0](docs/api) - 最新API文档
 - [API Documentation v2.0](docs/API_Documentation_v2.0.md) - v2.0版本文档
 - [API Documentation v1.0](docs/API_Documentation_v1.0.md) - v1.0版本文档
 
