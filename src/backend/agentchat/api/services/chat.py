@@ -1,7 +1,6 @@
 import copy
 import time
 import asyncio
-
 from loguru import logger
 from pydantic.v1 import BaseModel
 from typing import List, Dict, Any, AsyncGenerator, Callable, NotRequired
@@ -11,9 +10,11 @@ from langgraph.types import Command
 from langchain_core.tools import BaseTool, tool
 from langchain.tools.tool_node import ToolCallRequest
 from langchain.agents import create_agent, AgentState
-from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, HumanMessage
+from langgraph.config import get_stream_writer
+from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, HumanMessage, AIMessageChunk
 from langchain.agents.middleware import LLMToolSelectorMiddleware, ModelRequest, ModelResponse, AgentMiddleware
 
+from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.tools import AgentToolsWithName
 from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
@@ -41,9 +42,8 @@ class AgentConfig(BaseModel):
 
 
 class EmitEventAgentMiddleware(AgentMiddleware):
-    def __init__(self, emit_event):
+    def __init__(self):
         super().__init__()
-        self.emit_event = emit_event
 
     async def aafter_model(
         self, state: StreamAgentState, runtime: Runtime
@@ -63,57 +63,42 @@ class EmitEventAgentMiddleware(AgentMiddleware):
             request: ModelRequest,
             handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
-        model_call_count = request.state.get("model_call_count", 0)
-        select_tool_message = "开始选择可用工具" if model_call_count == 0 else f"是否需要继续调用工具{' ' * model_call_count}"
-        # 发送工具分析开始事件
-        await self.emit_event({
-            "title": select_tool_message,
-            "status": "START",
-            "message": "正在分析需要使用的工具...",
-        })
-
-        response = await handler(request)
-        if tool_calls := response.result[0].tool_calls:
-            tool_call_names = [tool_call["name"] for tool_call in tool_calls]
-            # 发送工具选择完成事件
-            await self.emit_event({
-                "title": select_tool_message,
-                "status": "END",
-                "message": "可用工具：" + ", ".join(set(tool_call_names))
-            })
-
-        await self.emit_event({
-            "title": select_tool_message,
-            "status": "END",
-            "message": "无可使用的工具"
-        })
-
-        return response
+        try:
+            response = await handler(request)
+            return response
+        except Exception as err:
+            logger.error(f"Model call error: {err}")
+            raise ValueError(err)
 
     async def awrap_tool_call(
             self,
             request: ToolCallRequest,
             handler: Callable[[ToolCallRequest], ToolMessage | Command],
     ) -> ToolMessage | Command:
+        writer = get_stream_writer()
         tool_call_count = request.state.get("tool_call_count", 0)
         # 发送工具分析开始事件
-        await self.emit_event({
+        writer({
             "status": "START",
             "title": f"执行可用工具: {request.tool_call["name"]}",
             "message": f"正在调用插件工具 {request.tool_call["name"]}..."
-        })
+            })
         request.state["tool_call_count"] = tool_call_count + 1
-
-        tool_result = await handler(request)
-
-        await self.emit_event(
-            {
+        try:
+            tool_result = await handler(request)
+            writer({
                 "status": "END",
                 "title": f"执行可用工具: {request.tool_call["name"]}",
                 "message": tool_result.content
-            }
-        )
-        return tool_result
+                })
+            return tool_result
+        except Exception as err:
+            writer({
+                "status": "ERROR",
+                "title": f"执行可用工具: {request.tool_call["name"]}",
+                "message": str(err)
+            })
+            return ToolMessage(content=str(err), name=request.tool_call["name"], tool_call_id=request.tool_call["id"])
 
 class StreamingAgent:
     def __init__(self, agent_config: AgentConfig):
@@ -126,44 +111,41 @@ class StreamingAgent:
         self.tools = []
         self.mcp_agent_as_tools = []
         self.middlewares = []
-        self.collection_names = []
-        self.index_names = []
 
         # 流式事件队列
         self.event_queue = asyncio.Queue()
         self.stop_streaming = False
 
-    async def emit_event(self, data: Dict[Any, Any]):
+    def wrap_event(self, data: Dict[Any, Any]):
         """发送流式事件"""
         event = {
             "type": "event",
             "timestamp": time.time(),
             "data": data
         }
-        await self.event_queue.put(event)
+        return event
 
     async def init_agent(self):
         self.mcp_agent_as_tools = await self.setup_mcp_agent_as_tools()
 
         self.tools = await self.setup_tools()
 
-        self.collection_names, self.index_names = await self.setup_knowledge_names()
+        await self.setup_knowledge_tool()
         await self.setup_language_model()
 
         self.middlewares = await self.setup_agent_middleware()
         self.react_agent = self.setup_react_agent()
 
     async def setup_agent_middleware(self):
+        # 仅支持传入response_format为json object的模型
         tool_selector_middleware = LLMToolSelectorMiddleware(
             model=self.tool_invocation_model,
             max_tools=3 # 限制每次选择最多 3个工具
         )
 
-        emit_event_middleware = EmitEventAgentMiddleware(
-            self.emit_event
-        )
+        emit_event_middleware = EmitEventAgentMiddleware()
 
-        return [tool_selector_middleware, emit_event_middleware]
+        return [emit_event_middleware]
 
 
     async def setup_language_model(self):
@@ -217,106 +199,55 @@ class StreamingAgent:
             mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
             mcp_config = MCPConfig(**mcp_server)
 
-            mcp_agent = MCPAgent(mcp_config, self.agent_config.user_id, self.emit_event)
+            mcp_agent = MCPAgent(mcp_config, self.agent_config.user_id)
             await mcp_agent.init_mcp_agent()
 
             mcp_agent_as_tools.append(create_mcp_agent_as_tool(mcp_agent, mcp_server.get("mcp_as_tool_name"), mcp_server.get("description")))
 
         return mcp_agent_as_tools
 
-    async def setup_knowledge_names(self):
-        return self.agent_config.knowledge_ids, self.agent_config.knowledge_ids
+    async def setup_knowledge_tool(self):
+        @tool(parse_docstring=True)
+        async def retrival_knowledge(query: str) -> str:
+            """
+            通过检索知识库来获取信息
+
+            Args:
+                query (str): 用户问题
+
+            Returns:
+                str: 返回从知识库检索来的信息
+            """
+            knowledge_message = await RagHandler.retrieve_ranked_documents(
+                query, self.agent_config.knowledge_ids, self.agent_config.knowledge_ids
+            )
+            return knowledge_message
+
+        self.tools.append(retrival_knowledge)
 
 
-    async def call_knowledge_messages(self, messages: List[BaseMessage]) -> BaseMessage:
-        """调用知识库，添加流式事件"""
-        knowledge_query = messages[-1].content
-
-        # 发送知识库检索开始事件
-        await self.emit_event({
-            "title": "检索知识库",
-            "status":"START",
-            "message": "开始执行知识库检索....",
-        })
-
-        # Milvus和ES检索相关的知识库
-        knowledge_message = await RagHandler.retrieve_ranked_documents(
-            knowledge_query, self.collection_names, self.index_names
-        )
-
-        # 发送知识库检索完成事件
-        await self.emit_event({
-            "title": "检索知识库",
-            "message": knowledge_message[:500] + "..." if len(knowledge_message) > 500 else knowledge_message,
-            "status": "END"
-        })
-
-        return SystemMessage(content=knowledge_message)
-
-
-    async def ainvoke_streaming(self, messages: List[BaseMessage]) -> AsyncGenerator[Dict[str, Any], None]:
+    async def astream(self, messages: List[BaseMessage]) -> AsyncGenerator[Dict[str, Any], None]:
         """流式调用主方法"""
-
-        # 启动知识库检索
-        knowledge_task = None
-        if self.collection_names and len(self.collection_names) != 0:
-            knowledge_task = asyncio.create_task(self.call_knowledge_messages(copy.deepcopy(messages)))
-
-        # 启动ReAct Agent执行
-        graph_task = None
-        if self.tools or self.mcp_agent_as_tools:
-            graph_task = asyncio.create_task(self.react_agent.ainvoke({"messages": messages, "model_call_count": 0, "user_id": self.agent_config.user_id}))
-
-        # 收集所有任务
-        all_tasks = [task for task in [knowledge_task, graph_task] if task is not None]
-
-        # 流式返回事件
-        conversation_ended = False
-
-        while not conversation_ended:
-            try:
-                # 等待事件或超时
-                event = await asyncio.wait_for(self.event_queue.get(), timeout=5.0)
-                yield event
-
-            except asyncio.TimeoutError:
-                # 发送心跳事件
-                yield {
-                    "type": "heartbeat",
-                    "timestamp": time.time(),
-                    "data": {"message": "连接保持中..."}
-                }
-
-            # 检查任务执行是否完成
-            if all(task.done() for task in all_tasks):
-                conversation_ended = True
-
-        # 等待知识库返回结果
-        knowledge_message = knowledge_task.result() if knowledge_task and knowledge_task.done() else None
-
-        # 等待ReAct Agent执行完成
-        if graph_task and graph_task.done():
-            results = graph_task.result()
-            messages = results["messages"][:-1]  # 去除没有命中工具的message
-
-        # 添加知识库消息并开始最终响应
-        if knowledge_message:
-            messages.append(knowledge_message)
-
         response_content = ""
         try:
-            async for chunk in self.conversation_model.astream(messages):
-                if self.stop_streaming:
-                    break
-                response_content += chunk.content
-                yield {
-                    "type": "response_chunk",
-                    "timestamp": time.time(),
-                    "data": {
-                        "chunk": chunk.content,
-                        "accumulated": response_content
+            async for token, metadata in self.react_agent.astream(
+                    input={"messages": copy.deepcopy(messages), "model_call_count": 0, "user_id": self.agent_config.user_id},
+                    config={"callbacks": [usage_metadata_callback]},
+                    stream_mode=["messages", "custom"],
+            ):
+                print(f"{token}: {metadata}")
+                if token == "custom":
+                    yield self.wrap_event(metadata)
+                elif isinstance(metadata[0], AIMessageChunk) and metadata[0].content:
+                    response_content += metadata[0].content
+                    yield {
+                        "type": "response_chunk",
+                        "timestamp": time.time(),
+                        "data": {
+                            "chunk": metadata[0].content,
+                            "accumulated": response_content
+                        }
                     }
-                }
 
         # 针对模型回复进行兜底操作，错误类型包括：敏感词，模型问题
         except Exception as err:
@@ -329,41 +260,6 @@ class StreamingAgent:
                     "accumulated": response_content
                 }
             }
-
-    # 非流式版本（保持向后兼容）
-    async def ainvoke(self, messages: List[BaseMessage]):
-        """非流式版本（保持向后兼容）"""
-        # 并发执行知识库检索、工具调用
-        knowledge_task = None
-        if self.collection_names and len(self.collection_names) != 0:
-            knowledge_task = asyncio.create_task(self.call_knowledge_messages(copy.deepcopy(messages)))
-
-        graph_task = None
-        if self.tools and len(self.tools) != 0:
-            graph_task = asyncio.create_task(self.react_agent.ainvoke({"messages": messages}))
-
-        # 等待所有任务完成
-        if knowledge_task:
-            knowledge_message = await knowledge_task
-        else:
-            knowledge_message = None
-
-        if graph_task:
-            results = await graph_task
-            messages = results["messages"][:-1]  # 去除没有命中工具的message
-        else:
-            messages = messages.copy()
-
-        # 添加知识库消息
-        if knowledge_message:
-            messages.append(knowledge_message)
-
-        # 收集完整响应
-        response_content = ""
-        async for chunk in self.conversation_model.astream(messages):
-            response_content += chunk.content
-
-        return response_content
 
     def stop_streaming_callback(self):
         self.stop_streaming = True

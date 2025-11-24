@@ -1,9 +1,9 @@
 import json
 import loguru
+from starlette.types import Receive
 from typing import Annotated, List, Union, Callable
 from fastapi import APIRouter, Body, UploadFile, File, Depends
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
-from starlette.types import Receive
 
 from agentchat.api.services.chat import StreamingAgent, AgentConfig
 from agentchat.api.services.history import HistoryService
@@ -17,7 +17,7 @@ from fastapi.responses import StreamingResponse
 
 from agentchat.utils.helpers import combine_user_input, combine_history_messages
 
-router = APIRouter()
+router = APIRouter(tags=["Completion"])
 
 """
 重写 StreamingResponse类 保证流式输出的时候可随时暂停
@@ -99,7 +99,7 @@ async def chat(*,
         """
         response_content = " "
         try:
-            async for event in chat_agent.ainvoke_streaming(messages):
+            async for event in chat_agent.astream(messages):
                 if event.get("type") == "response_chunk":
                     # 处理AI生成的文本片段：按SSE标准格式封装并流式传输
                     yield f'data: {json.dumps(event)}\n\n'

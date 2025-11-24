@@ -4,6 +4,7 @@ from loguru import logger
 from typing import Optional
 from langchain.tools import tool
 from langchain_core.messages import SystemMessage, HumanMessage
+from langgraph.config import get_stream_writer
 
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.knowledge_file import KnowledgeFileService
@@ -23,6 +24,8 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
     Returns:
         用户问题在知识库中有关的信息
     """
+    writer =get_stream_writer()
+
     conversation_model = ModelManager.get_conversation_model()
 
     knowledges = await KnowledgeService.select_knowledge(user_id)
@@ -49,8 +52,8 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
     messages = [HumanMessage(content=query), SystemMessage(content="\n\n".join(documents))]
 
     async for chunk in conversation_model.astream(messages):
-        yield {
+         writer({
             "type": "response_chunk",
             "time": time.time(),
             "data": chunk.content
-        }
+        })

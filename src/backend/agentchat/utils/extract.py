@@ -1,3 +1,42 @@
+import asyncio
+
+from langchain.agents import create_agent
+from langchain_core.messages import AIMessageChunk
+from langchain_openai import ChatOpenAI
+from langgraph.config import get_stream_writer
+
+
+def get_weather(city: str) -> str:
+    """Get weather for a given city."""
+
+    return f"It's always sunny in {city}!"
+
+agent = create_agent(
+    model=ChatOpenAI(base_url = "https://dashscope.aliyuncs.com/compatible-mode/v1", api_key = "sk-fc40dd0604f04142a0730793ec74585f", model="qwen-plus"),
+    tools=[get_weather],
+)
+async def main():
+    messages = []
+    async for token, metadata in agent.astream(
+        {"messages": [{"role": "user", "content": "What is the weather in SF?"}]},
+        stream_mode=["messages", "updates", "values"],
+    ):
+        print(metadata)
+
+        if token == "values":
+            messages = metadata.get("messages", [])
+        if token == "messages":
+            if isinstance(metadata[0], AIMessageChunk) and metadata[0].content:
+                print("xxxxxx")
+                break
+    print(messages)
+    # print(metadata)
+        # print(f"node: {metadata['langgraph_node']}")
+        # print(f"content: {token.content_blocks}")
+        # print("\n")
+
+asyncio.run(main())
+
 import re
 
 BACKTICK_PATTERN = r"(?:^|\n)```(.*?)(?:```(?:\n|$))"

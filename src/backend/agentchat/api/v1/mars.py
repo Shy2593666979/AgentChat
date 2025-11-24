@@ -71,7 +71,7 @@ async def chat_mars_example(example_id: int = Body(..., description="例子ID", 
     elif example_id == MarsExampleEnum.Deep_Search:
         user_input = "使用深度搜索查泰山游玩攻略"
 
-    messages: List[BaseMessage] = [SystemMessage(content=Mars_System_Prompt),
+    messages: List[BaseMessage] = [SystemMessage(content=Mars_System_Prompt.format(memory_content="")),
                                    HumanMessage(content=user_input)]
 
     async def general_generate():

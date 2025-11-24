@@ -3,13 +3,14 @@ from pydantic import BaseModel
 
 from langchain.tools import BaseTool
 from langchain.agents import create_agent
+from langgraph.config import get_stream_writer
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
 from langchain.agents.middleware import AgentState, wrap_tool_call, before_agent
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.core.models.manager import ModelManager
-from agentchat.prompts.chat import DEFAULT_CALL_PROMPT
+from agentchat.prompts.chat import CALL_END_PROMPT
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.utils.convert import convert_mcp_config
 
@@ -23,10 +24,9 @@ class MCPConfig(BaseModel):
 
 
 class MCPAgent:
-    def __init__(self, mcp_config: MCPConfig, user_id: str, emit_event):
+    def __init__(self, mcp_config: MCPConfig, user_id: str):
         self.mcp_config = mcp_config
         self.mcp_manager = MCPManager([convert_mcp_config(mcp_config.model_dump())])
-        self.emit_event = emit_event
 
         self.user_id = user_id
         self.mcp_tools: List[BaseTool] = []
@@ -46,6 +46,10 @@ class MCPAgent:
         self.middlewares = await self.setup_agent_middlewares()
 
         self.react_agent = self.setup_react_agent()
+
+    async def emit_event(self, event):
+        writer = get_stream_writer()
+        writer(event)
 
     async def setup_language_model(self):
         # 普通对话模型
@@ -88,23 +92,14 @@ class MCPAgent:
             )
             return tool_result
 
-        @before_agent
-        async def add_agent_system_message(
-            state: AgentState,
-            runtime
-        ):
-            state["messages"].insert(0, SystemMessage(content=DEFAULT_CALL_PROMPT))
-            return {
-                "messages": state["messages"]
-            }
-
-        return [add_agent_system_message, add_tool_call_args]
+        return [add_tool_call_args]
 
     def setup_react_agent(self):
         return create_agent(
             model=self.conversation_model,
             tools=self.mcp_tools,
-            middleware=self.middlewares
+            middleware=self.middlewares,
+            system_prompt=CALL_END_PROMPT
         )
 
 
@@ -112,9 +107,8 @@ class MCPAgent:
         """非流式版本"""
         result = await self.react_agent.ainvoke({"messages": messages})
         messages = []
-        for message in result["messages"][:-1]: # 去除没有命中工具的AIMessage
+
+        for message in result["messages"][:-1]:
             if not isinstance(message, HumanMessage) and not isinstance(message, SystemMessage):
                 messages.append(message)
         return messages
-        # 是否需要模型总结信息（增加10-20s的时间） ↓
-        # return await self.conversation_model.ainvoke(result["messages"][:-1])

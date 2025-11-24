@@ -26,6 +26,7 @@ AgentTools = [
 AgentToolsWithName = {
     "send_email": send_email,
     "tavily_search": tavily_search,
+    "web_search": tavily_search,
     "get_arxiv": get_arxiv,
     "get_weather": get_weather,
     "get_delivery_info": get_delivery_info,

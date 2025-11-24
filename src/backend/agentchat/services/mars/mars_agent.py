@@ -6,12 +6,13 @@ from typing import List, Dict, Any
 from pydantic import BaseModel
 from langgraph.types import Command
 from langchain_core.tools import BaseTool
-from langchain.agents.middleware import wrap_tool_call, after_model
+from langchain.agents.middleware import wrap_tool_call, after_model, ToolCallLimitMiddleware
 from langgraph.prebuilt.tool_node import ToolCallRequest
 from langchain.agents import AgentState, create_agent
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, AIMessageChunk
 
 from agentchat.api.services.usage_stats import UsageStatsService
+from agentchat.core.callbacks.usage_metadata import UsageMetadataCallbackHandler
 from agentchat.core.models.manager import ModelManager
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.services.mars.mars_tools import MarsTool
@@ -72,6 +73,10 @@ class MarsAgent:
         )
 
     async def setup_middlewares(self):
+        tool_call_limiter = ToolCallLimitMiddleware(
+            thread_limit=1
+        )
+
         @after_model
         async def handler_after_model(
             state: AgentState,
@@ -88,36 +93,10 @@ class MarsAgent:
             handler,
         ) -> ToolMessage | Command:
             request.tool_call["args"].update({"user_id": self.mars_config.user_id})
-            first_chunk = True
-            tool_result = ""
-
-            try:
-                async for chunk in MarsTool[request.tool_call["name"]].func(**request.tool_call["args"]):
-                    if first_chunk:
-                        # 当第一个工具输出产生时，设置中断事件
-                        self.reasoning_interrupt.set()
-                        # 短暂等待，以确保推理任务有时间响应中断信号
-                        await asyncio.sleep(0.01)
-                        first_chunk = False
-                        # 发送暂停推理，开始任务回复的信息
-                        await self.mars_output_queue.put({
-                            "type": "response_chunk",
-                            "time": time.time(),
-                            "data": "#### 任务已经完成，我开始为你输出结果 ✅\n"
-                        })
-
-                    # 将工具的输出块放入队列
-                    tool_result += chunk.get("data", "")
-                    chunk["type"] = "response_chunk"
-                    await self.mars_output_queue.put(chunk)
-            except Exception as err:
-                logger.error(f"Mars Agent tool output error: {err}")
-
-            # 所有工具输出处理完毕，放入None作为结束信号
-            await self.mars_output_queue.put(None)
+            tool_result = await handler(request)
             return ToolMessage(content=tool_result, tool_call_id=request.tool_call["id"])
 
-        return [handler_after_model, handler_tool_call]
+        return [tool_call_limiter, handler_after_model, handler_tool_call]
 
 
     async def ainvoke_stream(self, messages: List[BaseMessage]):
@@ -126,11 +105,22 @@ class MarsAgent:
         # 用于存放Mars Agent输出的队列
         self.mars_output_queue = asyncio.Queue()
 
+        self.is_call_tool = False
+
+        callback = UsageMetadataCallbackHandler()
         async def run_mars_agent():
             """
             运行Mars Agent，执行工具调用并将其输出放入队列。
             """
-            await self.react_agent.ainvoke({"messages": messages})
+            async for token, chunk in self.react_agent.astream(
+                input={"messages": messages},
+                config={"callbacks": [callback]},
+                stream_mode=["custom"]
+            ):
+                self.is_call_tool = True
+                await self.mars_output_queue.put(chunk)
+
+            await self.mars_output_queue.put(None)
 
         async def run_reasoning_model():
             """
@@ -152,11 +142,14 @@ class MarsAgent:
                         }
 
                     if hasattr(delta, "content") and delta.content:
-                        yield {
-                            "type": "response_chunk",
-                            "time": time.time(),
-                            "data": delta.content
-                        }
+                        if self.is_call_tool: # 如果调用Mars工具的话 使用工具里面的信息进行回答
+                            break
+                        else:
+                            yield {
+                                "type": "response_chunk",
+                                "time": time.time(),
+                                "data": delta.content
+                            }
             except Exception as e:
                 logger.error(f"推理模型流式输出错误: {e}")
 

@@ -86,7 +86,7 @@ def check_input(user_input):
 
 def delete_img(logo: str):
     try:
-        if os.path.exists(logo) and logo != app_settings.logo.get('agent'):
+        if os.path.exists(logo) and logo != app_settings.default_config.get("agent_logo_url"):
             os.remove(logo)
         else:
             logger.info(f"The logo Path is no exist")

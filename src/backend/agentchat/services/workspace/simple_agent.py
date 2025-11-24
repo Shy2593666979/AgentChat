@@ -9,6 +9,7 @@ from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware import wrap_tool_call
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, AIMessageChunk
 
+from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.tools import WorkSpacePlugins
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceAgents
@@ -186,7 +187,7 @@ class WorkSpaceSimpleAgent:
         if session:
             return session.get("title")
         title_prompt = GenerateTitlePrompt.format(query=query)
-        response = await self.model.ainvoke(title_prompt)
+        response = await self.model.ainvoke(title_prompt, config={"callbacks": [usage_metadata_callback]})
         return response.content
 
     async def _add_workspace_session(self, title, contexts: WorkSpaceSessionContext):
@@ -214,7 +215,7 @@ class WorkSpaceSimpleAgent:
         try:
             react_agent_task = None
             if self.tools and len(self.tools) != 0:
-                react_agent_task = asyncio.create_task(self.react_agent.ainvoke({"messages": messages}))
+                react_agent_task = asyncio.create_task(self.react_agent.ainvoke(input={"messages": messages}, config={"callbacks": [usage_metadata_callback]}))
 
             # Wait for tool execution to complete
             if react_agent_task:
@@ -228,7 +229,7 @@ class WorkSpaceSimpleAgent:
         messages = user_messages + messages
 
         final_answer = ""
-        async for chunk in self.model.astream(messages):
+        async for chunk in self.model.astream(input=messages, config={"callbacks": [usage_metadata_callback]}):
             yield {
                 "event": "task_result",
                 "data":{
