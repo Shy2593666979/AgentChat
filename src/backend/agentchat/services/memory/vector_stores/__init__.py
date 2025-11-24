@@ -6,7 +6,7 @@ class VectorStoreManager:
     @classmethod
     def get_chroma_vector(cls):
         return ChromaDB(
-            collection_name=app_settings.memory.get("collection_name")
+            collection_name=app_settings.default_config.get("memory_collection_name")
         )
 
     @classmethod
