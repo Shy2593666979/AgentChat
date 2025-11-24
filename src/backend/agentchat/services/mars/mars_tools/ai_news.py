@@ -7,7 +7,7 @@ from urllib.parse import urljoin
 from loguru import logger
 from html2image import Html2Image
 from langchain.tools import tool
-
+from langgraph.config import get_stream_writer
 from agentchat.core.models.manager import ModelManager
 from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.services.mars.ai_news.detial_news import yield_crawl_detail_ai_news
@@ -34,6 +34,8 @@ async def crawl_ai_news(user_input: str,
     Returns:
         返回来日报内容, 根据用户的需求判断是否包含可下载的Markdown链接
     """
+    writer = get_stream_writer()
+
     news_response = ""
     final_response = ""
     async for chunk in yield_crawl_detail_ai_news(output_detail):
@@ -45,11 +47,11 @@ async def crawl_ai_news(user_input: str,
         yield chunk
 
     if output_format == "markdown":
-        yield {
+        writer({
             "type": "tool_chunk",
             "time": time.time(),
             "data": "\n\n接下来我要开始生成一份完整的Markdown文件\n"
-        }
+        })
 
         try:
             file_name = f"AI日报-{datetime.today().date()}.md"
@@ -60,11 +62,11 @@ async def crawl_ai_news(user_input: str,
             aliyun_oss.sign_url_for_get(sign_url)
             aliyun_oss.upload_file(oss_object_name, news_response)
 
-            yield {
+            writer({
                 "type": "tool_chunk",
                 "time": time.time(),
                 "data": f"\n\n文件已经生成完毕, 请点击下载查看 [AI日报📰]({sign_url}) \n"
-            }
+            })
         except Exception as err:
             logger.error(f"生成日报文件失败:{err}")
 
@@ -114,16 +116,16 @@ async def crawl_ai_news(user_input: str,
         # 在本地进行删除
         os.remove(png_save_name)
 
-        yield {
+        writer({
             "type": "tool_chunk",
             "time": time.time(),
             "data": "\n ### 图片已经生成完毕, 请点击或下载查看✅ \n"
-        }
-        yield {
+        })
+        writer({
             "type": "tool_chunk",
             "time": time.time(),
             "data": f"![AI日报]({sign_url}) \n"
-        }
+        })
 
 
 def get_html_template():

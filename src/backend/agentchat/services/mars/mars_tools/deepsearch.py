@@ -1,6 +1,7 @@
 import time
 from typing import Optional
 from langchain.tools import tool
+from langgraph.config import get_stream_writer
 from langchain_core.messages import HumanMessage
 from agentchat.services.deepsearch.stream_graph import StreamingGraph
 
@@ -16,6 +17,7 @@ async def deep_search(user_input: str, user_id: Optional[str] = None):
     Returns:
         返回深度搜索后的信息
     """
+    writer = get_stream_writer()
     messages = [HumanMessage(content=user_input)]
 
     stream_graph = StreamingGraph()
@@ -37,5 +39,6 @@ async def deep_search(user_input: str, user_id: Optional[str] = None):
             event_data["data"] = f"\n #### {emoji} {content}"
         elif chunk_type == "final_result":
             event_data["data"] = f""
-        yield event_data
+        if event_data.get("data"):
+            writer(event_data)
 

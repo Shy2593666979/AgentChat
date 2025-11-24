@@ -116,7 +116,7 @@ def sync_crawl_with_selenium(url):
         driver.quit()
 
 def crawl_today_ai_news(url=None):
-    url = app_settings.mars["daily_url"] if not url else url
+    url = app_settings.default_config.get("mars_daily_url") if not url else url
 
     # 为当前线程创建新的事件循环
     loop = asyncio.new_event_loop()

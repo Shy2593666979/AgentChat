@@ -13,7 +13,7 @@ class WeChatService:
 
     @classmethod
     def _get_access_token(cls):
-        wechat_conf = app_settings.wechat_conf
+        wechat_conf = app_settings.wechat_config
         url = f"https://api.weixin.qq.com/cgi-bin/token?grant_type=client_credential&appid={wechat_conf.get("app_id")}&secret={wechat_conf.get("secret")}"
         try:
             with httpx.Client() as client:
@@ -84,7 +84,7 @@ class WeChatService:
             case key if key in ["清空会话", "清空聊天记录", "清除会话", "清除聊天记录"]:
                 await WorkSpaceSessionService.clear_workspace_session_contexts(from_user)
                 return cls.build_text_reply(to_user, from_user, "聊天记录已清空，有什么新问题再问我的呢~")
-            case key if "高中毕业照" in key:
+            case key if "毕业照" in key: # 示例，发送给用户图片
                 media_id = cls.push_user_image()
                 return cls.build_image_reply(to_user, from_user, media_id)
             case key if "微信账号" in key:

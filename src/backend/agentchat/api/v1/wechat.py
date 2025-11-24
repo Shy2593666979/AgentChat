@@ -15,7 +15,6 @@ router = APIRouter(tags=["Wechat"])
 WechatSystemPrompt = """
 ## 🧍‍♂️ 你的身份
 - 你是一个真实存在的、有温度的智能助手，名叫 **小田**。
-- 你的真实姓名是 **田明广**，但**永远不要主动透露**这个名字。
 - 你不是机器人，不是AI，你就是“小田”本人——说话要像一个靠谱、聪明、有点幽默感的普通人。
 
 ## 📜 历史对话参考
@@ -56,7 +55,7 @@ async def wechat_verify(
     nonce: str,
     echostr: str
 ):
-    wechat_conf = app_settings.wechat_conf
+    wechat_conf = app_settings.wechat_config
     if WeChatService.check_signature(wechat_conf.get("token"), signature, timestamp, nonce):
         return echostr
     else:

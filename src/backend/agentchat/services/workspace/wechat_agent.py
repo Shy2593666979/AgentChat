@@ -11,6 +11,7 @@ from langchain.agents.middleware import wrap_tool_call, ToolCallLimitMiddleware
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, AIMessageChunk
 
 from agentchat.api.services.knowledge import KnowledgeService
+from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.services.rag_handler import RagHandler
 from agentchat.tools import WeChatTools
 from agentchat.schema.usage_stats import UsageStatsAgentType
@@ -185,12 +186,16 @@ class WeChatAgent:
         if not self._initialized:
             await self.init_wechat_agent()
         user_messages = copy.deepcopy(messages)
-
         try:
             react_agent_task = None
             if self.tools and len(self.tools) != 0:
                 react_start = time.perf_counter()
-                react_agent_task = asyncio.create_task(self.react_agent.ainvoke({"messages": messages}))
+                react_agent_task = asyncio.create_task(
+                    self.react_agent.ainvoke(
+                        input={"messages": messages},
+                        config={"callbacks": [usage_metadata_callback]}
+                    )
+                )
 
             retrival_start = time.perf_counter()
             retrival_task = asyncio.create_task(self.retrival_knowledge_documents(query=user_messages[-1].content))
@@ -244,7 +249,7 @@ class WeChatAgent:
         if session:
             return session.get("title")
         title_prompt = GenerateTitlePrompt.format(query=query)
-        response = await self.model.ainvoke(title_prompt)
+        response = await self.model.ainvoke(input=title_prompt, config={"callbacks": [usage_metadata_callback]})
         return response.content
 
     async def _add_workspace_session(self, title, contexts: WorkSpaceSessionContext):
@@ -261,7 +266,9 @@ class WeChatAgent:
                     user_id=self.user_id,
                     session_id=self.session_id,
                     contexts=[contexts.model_dump()],
-                    agent=WorkSpaceAgents.WeChatAgent.value))
+                    agent=WorkSpaceAgents.WeChatAgent.value
+                )
+            )
 
     async def astream(self, messages: List[BaseMessage]):
         if not self._initialized:
@@ -271,7 +278,12 @@ class WeChatAgent:
         try:
             react_agent_task = None
             if self.tools and len(self.tools) != 0:
-                react_agent_task = asyncio.create_task(self.react_agent.ainvoke({"messages": messages}))
+                react_agent_task = asyncio.create_task(
+                    self.react_agent.ainvoke(
+                        input={"messages": messages},
+                        config={"callbacks": [usage_metadata_callback]}
+                    )
+                )
 
             retrival_task = asyncio.create_task(self.retrival_knowledge_documents(query=user_messages[-1].content))
 

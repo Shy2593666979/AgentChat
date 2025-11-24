@@ -5,6 +5,7 @@ import random
 from typing import List, Optional, Union
 from loguru import logger
 from langchain.tools import tool
+from langgraph.config import get_stream_writer
 
 from functools import wraps
 from agentchat.api.services.llm import LLMService
@@ -132,6 +133,7 @@ async def auto_build_agent(
     # func = auto_build_agent
     # original_doc = func.__doc__
     # func.__doc__ = original_doc.replace("{{{user_configs_placeholder}}}", auto_build_prompt)
+    writer = get_stream_writer()
 
     agent_message = ""
     try:
@@ -162,7 +164,7 @@ async def auto_build_agent(
             knowledge_ids=knowledge_ids,
             user_id=user_id,
             system_prompt="",
-            logo_url=app_settings.logo["agent_url"]
+            logo_url=app_settings.default_config.get("agent_logo_url")
         )
         agent_message = f"您的智能体{agent_name}已经创建完毕, 请点击智能体页面进行查看 \n 如果想要创建更多的智能体, 请跟我说哦~"
     except Exception as err:
@@ -172,7 +174,9 @@ async def auto_build_agent(
         conversation_model = ModelManager.get_conversation_model()
         agent_content = Mars_Autobuild_Answer_Prompt.format(agent_info=f"模型：{llm_name}\n 工具: {tools_name}\n MCP 服务: {mcp_servers_name}\n 知识库: {knowledges_name}", agent_message=agent_message)
         async for chunk in conversation_model.astream(agent_content):
-            yield return_chunk_format("response_chunk", chunk.content)
+            writer(
+                return_chunk_format("response_chunk", chunk.content)
+            )
 
         # 按1-3个字符长度拆分字符串形成流式输出的效果
         # start = 0
