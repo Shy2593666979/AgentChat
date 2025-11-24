@@ -171,53 +171,48 @@ const fetchFiles = async (showLoading = true) => {
   }
 }
 
+// 删除文件相关状态
+const showConfirmDialog = ref(false)
+const fileToDelete = ref<KnowledgeFileResponse | null>(null)
+
 // 删除文件
-const handleDelete = async (file: KnowledgeFileResponse) => {
-  console.log('=== 开始删除流程 ===')
-  console.log('点击删除文件:', file)
-  console.log('文件ID:', file.id)
+const handleDelete = (file: KnowledgeFileResponse) => {
+  // 显示确认对话框
+  fileToDelete.value = file
+  showConfirmDialog.value = true
+}
+
+// 确认删除
+const confirmDelete = async () => {
+  if (!fileToDelete.value) return
   
-  // 使用原生确认对话框
-  const confirmed = confirm(`确定要删除文件 "${file.file_name}" 吗？删除后无法恢复。`)
-  console.log('用户确认结果:', confirmed)
-  
-  if (confirmed) {
-    try {
-      console.log('用户确认删除，开始处理...')
-      
-      const deleteData: KnowledgeFileDeleteRequest = {
-        knowledge_file_id: file.id
-      }
-      console.log('准备发送的删除请求数据:', JSON.stringify(deleteData, null, 2))
-      
-      console.log('即将调用 deleteKnowledgeFileAPI...')
-      console.log('deleteKnowledgeFileAPI 函数:', deleteKnowledgeFileAPI)
-      
-      const response = await deleteKnowledgeFileAPI(deleteData)
-      
-      console.log('=== API 调用成功 ===')
-      console.log('完整响应对象:', response)
-      console.log('响应状态码:', response.status)
-      console.log('响应头:', response.headers)
-      console.log('响应数据:', response.data)
-      
-      if (response.data.status_code === 200) {
-        alert('删除成功')
-        await fetchFiles() // 刷新列表
-      } else {
-        alert('删除失败: ' + response.data.status_message)
-      }
-    } catch (error: any) {
-      console.error('=== API 调用失败 ===')
-      console.error('错误对象:', error)
-      console.error('错误消息:', error?.message)
-      console.error('错误响应:', error?.response)
-      console.error('错误请求:', error?.request)
-      alert('删除失败: ' + (error?.message || error))
+  try {
+    const deleteData: KnowledgeFileDeleteRequest = {
+      knowledge_file_id: fileToDelete.value.id
     }
-  } else {
-    console.log('用户取消删除操作')
+    
+    const response = await deleteKnowledgeFileAPI(deleteData)
+    
+    if (response.data.status_code === 200) {
+      ElMessage.success('删除成功')
+      await fetchFiles() // 刷新列表
+    } else {
+      ElMessage.error('删除失败: ' + response.data.status_message)
+    }
+  } catch (error: any) {
+    console.error('删除文件失败:', error)
+    ElMessage.error('删除失败: ' + (error?.message || error))
+  } finally {
+    // 关闭确认对话框
+    showConfirmDialog.value = false
+    fileToDelete.value = null
   }
+}
+
+// 取消删除
+const cancelDelete = () => {
+  showConfirmDialog.value = false
+  fileToDelete.value = null
 }
 
 // 文件上传前处理
@@ -811,6 +806,20 @@ onUnmounted(() => {
             立即上传文件
           </el-button>
         </el-upload>
+      </div>
+    </div>
+
+    <!-- 确认删除对话框 -->
+    <div v-if="showConfirmDialog" class="custom-confirm-dialog">
+      <div class="confirm-dialog-content">
+        <h3 class="dialog-title">确认删除</h3>
+        <div class="dialog-body">
+          确定要删除文件 "{{ fileToDelete?.file_name }}" 吗？删除后无法恢复。
+        </div>
+        <div class="dialog-footer">
+          <button class="btn-cancel" @click="cancelDelete">取消</button>
+          <button class="btn-confirm" @click="confirmDelete">确定</button>
+        </div>
       </div>
     </div>
   </div>
@@ -1871,5 +1880,82 @@ onUnmounted(() => {
 
 :deep(.el-upload) {
   display: inline-block;
+}
+
+.custom-confirm-dialog {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+
+  .confirm-dialog-content {
+    background-color: white;
+    border-radius: 12px;
+    padding: 24px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    width: 350px;
+    max-width: 90%;
+
+    .dialog-title {
+      font-size: 20px;
+      font-weight: 700;
+      color: #333;
+      margin-bottom: 16px;
+    }
+
+    .dialog-body {
+      font-size: 16px;
+      color: #555;
+      margin-bottom: 24px;
+      line-height: 1.6;
+    }
+
+    .dialog-footer {
+      display: flex;
+      justify-content: center;
+      gap: 20px;
+
+      .btn-cancel, .btn-confirm {
+        padding: 10px 20px;
+        border-radius: 8px;
+        font-size: 16px;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.3s ease;
+      }
+
+      .btn-cancel {
+        background-color: #f5f5f5;
+        color: #333;
+        border: 1px solid #ddd;
+        
+        &:hover {
+          background-color: #e5e5e5;
+        }
+      }
+
+      .btn-confirm {
+        background-color: #f56c6c;
+        color: white;
+        border: none;
+        
+        &:hover {
+          background-color: #ff8080;
+          transform: scale(1.05);
+        }
+        
+        &:active {
+          transform: scale(0.95);
+        }
+      }
+    }
+  }
 }
 </style> 
