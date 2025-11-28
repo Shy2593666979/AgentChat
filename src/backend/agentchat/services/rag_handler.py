@@ -91,19 +91,21 @@ class RagHandler:
 
 
     @classmethod
-    async def retrieve_ranked_documents(cls, query, collection_names, index_names, min_score: Optional[float]=None,
+    async def retrieve_ranked_documents(cls, query, collection_names, index_names=None, min_score: Optional[float]=None,
                         top_k: Optional[int]=None, needs_query_rewrite: bool=True):
         """
-            处理 RAG 流程：查询重写、文档检索、重排序、结果过滤和拼接。
+        处理 RAG 流程：查询重写、文档检索、重排序、结果过滤和拼接。
 
-            参数:
-                query (str): 用户查询。
-                knowledges_id (str): 知识库 ID。
-                min_score (float): 文档最低分数阈值，默认为配置中的值。
-                top_k (int): 召回文档的个数。
+        Args:
+            query (str): 用户查询。
+            collection_names (list[str]): 向量知识库 集合ID。
+            index_names (list[str]): ES关键词库 集合ID。
+            min_score (float): 文档最低分数阈值，默认为配置中的值。
+            top_k (int): 召回文档的个数。
+            needs_query_rewrite (bool): 是否需要开启Query重写，默认开启
 
-            返回:
-                str: 拼接后的最终结果。
+        Returns:
+            str: 拼接后的最终结果。
             """
         if min_score is None:
             min_score = app_settings.rag.retrival.get('min_score')
