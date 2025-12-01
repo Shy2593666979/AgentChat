@@ -52,3 +52,15 @@ class WorkSpaceSessionDao:
         async with async_session_getter() as session:
             workspace_session = await session.get(WorkSpaceSession, session_id)
             return workspace_session
+
+    @classmethod
+    async def clear_workspace_session_contexts(cls, session_id):
+        async with async_session_getter() as session:
+            workspace_session = await session.get(WorkSpaceSession, session_id)
+            new_contexts = []
+            workspace_session.contexts = new_contexts  # 重新赋值
+
+            await session.commit()
+            await session.refresh(workspace_session)
+
+        return workspace_session

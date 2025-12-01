@@ -1,9 +1,10 @@
 import json
 import time
-from typing import Optional
-
-from langchain_core.messages import SystemMessage, HumanMessage
 from loguru import logger
+from typing import Optional
+from langchain.tools import tool
+from langchain_core.messages import SystemMessage, HumanMessage
+from langgraph.config import get_stream_writer
 
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.knowledge_file import KnowledgeFileService
@@ -11,17 +12,20 @@ from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.mars import Mars_Generate_Query_Prompt
 from agentchat.services.rag_handler import RagHandler
 
-
+@tool(parse_docstring=True)
 async def query_knowledge(query: str, user_id: Optional[str] = None):
     """
     根据用户的所有知识库进行检索生成一篇报告
 
-    params:
+    Args:
         query: 用户检索知识库的问题信息
+        user_id: 当前用户ID，默认为None
 
-    return:
+    Returns:
         用户问题在知识库中有关的信息
     """
+    writer =get_stream_writer()
+
     conversation_model = ModelManager.get_conversation_model()
 
     knowledges = await KnowledgeService.select_knowledge(user_id)
@@ -48,8 +52,8 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
     messages = [HumanMessage(content=query), SystemMessage(content="\n\n".join(documents))]
 
     async for chunk in conversation_model.astream(messages):
-        yield {
+         writer({
             "type": "response_chunk",
             "time": time.time(),
             "data": chunk.content
-        }
+        })

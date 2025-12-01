@@ -3,7 +3,6 @@ from typing import Optional, List
 from datetime import datetime
 from uuid import uuid4, UUID
 from sqlalchemy import JSON, Column, DateTime, text
-import pytz
 
 from agentchat.database.models.base import SQLModelSerializable
 

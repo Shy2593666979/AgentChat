@@ -1,28 +1,27 @@
 import os
-import subprocess
-from typing import Type
-
 import tempfile
-from langchain.tools import BaseTool
-from pydantic import BaseModel, Field
+from pdf2docx import Converter
+from langchain.tools import tool
+
 from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.utils.file_utils import get_object_name_from_aliyun_url, get_save_tempfile
 from agentchat.utils.helpers import get_now_beijing_time
-from pdf2docx import Converter
-
-class ConvertDocxInput(BaseModel):
-    file_url: str = Field(description='用户上传的OSS路径')
-
-class ConvertDocxTool(BaseTool):
-    name: str = 'convert_to_docx'
-    description: str = '将用户上传的文件解析成Docx'
-    args_schema: Type[BaseModel] = ConvertDocxInput
-
-    def _run(self, file_url):
-        return convert_to_docx(file_url)
 
 
+@tool(parse_docstring=True)
 def convert_to_docx(file_url: str):
+    """
+    将用户上传的 PDF 文件链接转换为 DOCX 文件链接。
+
+    Args:
+        file_url (str): 用户上传的 PDF 文件链接。
+
+    Returns:
+        str: 转换后的 DOCX 文件链接。
+    """
+    return _convert_to_docx(file_url)
+
+def _convert_to_docx(file_url: str):
     """将用户上传的文件解析成Docx"""
     object_name = get_object_name_from_aliyun_url(file_url)
     file_name = file_url.split("/")[-1]

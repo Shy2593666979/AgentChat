@@ -1,15 +1,15 @@
 import asyncio
-
+import time
+import random
+import requests
 from loguru import logger
+
 from requests_html import HTMLSession, AsyncHTMLSession
 from agentchat.settings import app_settings
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
-import requests
 from bs4 import BeautifulSoup
-import time
-import random
 from fake_useragent import UserAgent
 
 
@@ -116,7 +116,7 @@ def sync_crawl_with_selenium(url):
         driver.quit()
 
 def crawl_today_ai_news(url=None):
-    url = app_settings.mars["daily_url"] if not url else url
+    url = app_settings.default_config.get("mars_daily_url") if not url else url
 
     # 为当前线程创建新的事件循环
     loop = asyncio.new_event_loop()

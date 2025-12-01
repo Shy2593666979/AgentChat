@@ -1,11 +1,11 @@
-import asyncio
 import re
 import os
 import base64
-
+import asyncio
 from loguru import logger
-from openai import AsyncOpenAI
 from urllib.parse import urljoin
+
+from agentchat.core.models.manager import ModelManager
 from agentchat.settings import app_settings
 
 
@@ -13,8 +13,7 @@ class MarkdownRewrite:
     def __init__(self, **kwargs):
 
         # LLM 的配置可以放到配置文件config中
-        self.client = AsyncOpenAI(api_key=app_settings.multi_models.qwen_vl.api_key,
-                                  base_url=app_settings.multi_models.qwen_vl.base_url)
+        self.client = ModelManager.get_qwen_vl_model()
 
     async def _get_image_dict(self, markdown_path):
         # 获取Md文件的上层目录路径
@@ -38,9 +37,8 @@ class MarkdownRewrite:
         # 将本地图片转成 base64进行解析描述
         image_type = image_path.split('.')[-1]
         base64_image = await MarkdownRewrite.encode_image(image_path)
-        completion = await self.client.chat.completions.create(
-            model=app_settings.multi_models.qwen_vl.model_name,
-            messages=[
+        response = await self.client.ainvoke(
+            input=[
                 {
                     "role": "system",
                     "content": [{"type": "text", "text": "You are a helpful assistant."}]},
@@ -60,15 +58,15 @@ class MarkdownRewrite:
                 }
             ],
         )
-        logger.debug(f"{image_path} 中的描述信息为 {completion.choices[0].message.content}")
-        return completion.choices[0].message.content
+        logger.debug(f"{image_path} 中的描述信息为 {response.content}")
+        return response.content
 
     async def async_request_vl(self, image, image_path):
         result = await self.request_vl(image_path)
         return image, result
 
     async def get_image_description(self, image_path_dict):
-        # 创建信号量，限制并发数为5
+        # 创建信号量，限制并发数为3
         semaphore = asyncio.Semaphore(3)
 
         async def limited_request(image, image_path):

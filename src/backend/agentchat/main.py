@@ -42,7 +42,7 @@ def register_middleware(app: FastAPI):
     app.add_middleware(TraceIDMiddleware)
 
     # 注册白名单中间件
-    app.add_middleware(WhitelistMiddleware, whitelist_paths=app_settings.whitelist_paths)
+    app.add_middleware(WhitelistMiddleware)
 
 
     return app
@@ -75,8 +75,8 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():
-    app = FastAPI(title=app_settings.server.get('project_name') or "AgentChat",
-                  version=app_settings.server.get('version') or "V2.1.0",
+    app = FastAPI(title=app_settings.server.get("project_name", "AgentChat"),
+                  version=app_settings.server.get("version", "v2.2.0"),
                   lifespan=lifespan)
 
     app = register_middleware(app)

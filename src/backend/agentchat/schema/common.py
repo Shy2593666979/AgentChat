@@ -38,6 +38,7 @@ class MultiModels(BaseModel):
     reasoning_model: ModelConfig = Field(default_factory=ModelConfig)
     conversation_model: ModelConfig = Field(default_factory=ModelConfig)
     tool_call_model: ModelConfig = Field(default_factory=ModelConfig)
+    qwen3_coder: ModelConfig = Field(default_factory=ModelConfig)
     qwen_vl: ModelConfig = Field(default_factory=ModelConfig)
     text2image: ModelConfig = Field(default_factory=ModelConfig)
     embedding: ModelConfig = Field(default_factory=ModelConfig)
@@ -57,6 +58,7 @@ class Rag(BaseModel):
     class Config:
         extra = "allow"
 
+    enable_elasticsearch: bool = Field(default=False)
     enable_summary: bool = Field(default=False)
     retrival: dict = Field(default_factory=dict)
     split: dict = Field(default_factory=dict)

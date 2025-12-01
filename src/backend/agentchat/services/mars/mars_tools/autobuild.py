@@ -4,6 +4,9 @@ import time
 import random
 from typing import List, Optional, Union
 from loguru import logger
+from langchain.tools import tool
+from langgraph.config import get_stream_writer
+
 from functools import wraps
 from agentchat.api.services.llm import LLMService
 from agentchat.api.services.tool import ToolService
@@ -100,6 +103,7 @@ async def construct_auto_build_prompt(user_id: Optional[str]) -> str:
         请根据用户提供的描述以及可选的智能体配置，提取相关信息并匹配到上述参数中。
     """
 
+@tool(parse_docstring=True)
 async def auto_build_agent(
         agent_name: str,
         agent_description: str,
@@ -110,26 +114,26 @@ async def auto_build_agent(
         user_id: Optional[str]=None
 ):
     """
-    自动构建智能体工具, 通过提取用户的输入信息来精准的帮助用户来快速创建一个智能体, 智能体配置必须选择的是可选择配置中的
+    自动构建智能体工具, 通过提取用户的输入信息来精准的帮助用户来快速创建一个智能体, 智能体配置必须选择的是可选择配置中的; 可选择智能体配置:{{{user_configs_placeholder}}}
     
-    params:
-        agent_name(必填): str, 用户想要构建智能体的名称
-        agent_description(必填): str, 对智能体功能、用途及特性的详细描述，帮助系统理解智能体的定位和作用范围
-        llm_name(必填): str, 指定智能体所使用的大语言模型名称，需与系统支持的模型列表匹配，决定智能体的基础能力
+    Args:
+        agent_name: str, 用户想要构建智能体的名称
+        agent_description: str, 对智能体功能、用途及特性的详细描述，帮助系统理解智能体的定位和作用范围
+        llm_name: str, 指定智能体所使用的大语言模型名称，需与系统支持的模型列表匹配，决定智能体的基础能力
         tools_name: List[str], 智能体可调用的工具名称列表，用于扩展智能体的功能边界
         knowledges_name: List[str], 智能体可访问的知识库名称列表，为智能体提供专业领域信息支持
         mcp_servers_name: List[str], 智能体可连接的MCP服务名称列表，用于实现与外部系统的数据交互和功能调用
-    return:
-        返回创建智能体成功或者失败的信息
+        user_id: 当前用户ID，默认为None
 
-    可选择智能体配置:
-        {{{user_configs_placeholder}}}
+    Returns:
+        返回创建智能体成功或者失败的信息
     """
     # # 替换文档字符串中的占位符（用于schema生成）
     # auto_build_prompt = await construct_auto_build_prompt(user_id)
     # func = auto_build_agent
     # original_doc = func.__doc__
     # func.__doc__ = original_doc.replace("{{{user_configs_placeholder}}}", auto_build_prompt)
+    writer = get_stream_writer()
 
     agent_message = ""
     try:
@@ -160,7 +164,7 @@ async def auto_build_agent(
             knowledge_ids=knowledge_ids,
             user_id=user_id,
             system_prompt="",
-            logo_url=app_settings.logo["agent_url"]
+            logo_url=app_settings.default_config.get("agent_logo_url")
         )
         agent_message = f"您的智能体{agent_name}已经创建完毕, 请点击智能体页面进行查看 \n 如果想要创建更多的智能体, 请跟我说哦~"
     except Exception as err:
@@ -170,7 +174,9 @@ async def auto_build_agent(
         conversation_model = ModelManager.get_conversation_model()
         agent_content = Mars_Autobuild_Answer_Prompt.format(agent_info=f"模型：{llm_name}\n 工具: {tools_name}\n MCP 服务: {mcp_servers_name}\n 知识库: {knowledges_name}", agent_message=agent_message)
         async for chunk in conversation_model.astream(agent_content):
-            yield return_chunk_format("response_chunk", chunk.content)
+            writer(
+                return_chunk_format("response_chunk", chunk.content)
+            )
 
         # 按1-3个字符长度拆分字符串形成流式输出的效果
         # start = 0

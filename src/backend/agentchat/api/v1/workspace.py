@@ -12,11 +12,11 @@ from agentchat.schema.schemas import resp_200
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceSimpleTask
 from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.services.workspace.simple_agent import WorkSpaceSimpleAgent
+from agentchat.services.workspace.simple_agent import WorkSpaceSimpleAgent, MCPConfig
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 from agentchat.utils.convert import convert_mcp_config
 
-router = APIRouter(prefix="/workspace")
+router = APIRouter(prefix="/workspace", tags=["WorkSpace"])
 
 
 @router.get("/plugins", summary="获取工作台的可用插件")
@@ -68,7 +68,7 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
     for mcp_id in simple_task.mcp_servers:
         mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
         servers_config.append(
-            convert_mcp_config(mcp_server)
+            MCPConfig(**mcp_server)
         )
 
     simple_agent = WorkSpaceSimpleAgent(

@@ -429,7 +429,13 @@ watch(
           <div v-if="msg.role === 'assistant'" class="ai-message">
             <img src="/src/assets/robot.svg" alt="AI Avatar" class="avatar" />
             <div class="message-content">
-              <MdPreview :editorId="'workspace-ai-' + idx" :modelValue="msg.content" />
+              <!-- 加载转圈器 - 仅在内容为空且正在生成时显示 -->
+              <div v-if="!msg.content && isGenerating && idx === messages.length - 1" class="loading-spinner-container">
+                <div class="loading-spinner"></div>
+                <span class="loading-text">AI正在思考中...</span>
+              </div>
+              <!-- 实际内容 - 有内容时显示 -->
+              <MdPreview v-if="msg.content" :editorId="'workspace-ai-' + idx" :modelValue="msg.content" />
             </div>
           </div>
         </div>
@@ -832,6 +838,17 @@ watch(
   }
   to {
     transform: translate(-50%, -50%) rotate(360deg);
+  }
+}
+
+@keyframes bounce {
+  0%, 80%, 100% {
+    transform: scale(0) translateY(0);
+    opacity: 0.5;
+  }
+  40% {
+    transform: scale(1.2) translateY(-8px);
+    opacity: 1;
   }
 }
 
@@ -1424,6 +1441,30 @@ watch(
       color: #333;
       box-shadow: 0 2px 8px rgba(0,0,0,0.05);
       word-break: break-word;
+
+      // 加载转圈器样式
+      .loading-spinner-container {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        padding: 4px 0;
+        color: #6b7280;
+        font-size: 14px;
+
+        .loading-spinner {
+          width: 16px;
+          height: 16px;
+          border: 2px solid #d1d5db;
+          border-top: 2px solid transparent;
+          border-radius: 50%;
+          animation: spin 1s linear infinite;
+        }
+
+        .loading-text {
+          font-weight: 500;
+          color: #9ca3af;
+        }
+      }
     }
   }
 

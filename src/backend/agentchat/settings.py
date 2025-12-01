@@ -1,23 +1,20 @@
-from types import SimpleNamespace
-
 import yaml
 from loguru import logger
+from types import SimpleNamespace
 from pydantic.v1 import BaseSettings, Field
 
 from agentchat.schema.common import MultiModels, ModelConfig, Tools, Rag
 
 class Settings(BaseSettings):
     aliyun_oss: dict = {}
-    logo: dict = {}
     redis: dict = {}
     mysql: dict = {}
     server: dict = {}
     langfuse: dict = {}
     whitelist_paths: list = []
-    mars: dict = {}
-    memory: dict = {}
-
+    wechat_config: dict = {}
     multi_models: MultiModels = MultiModels()
+    default_config: dict = {}
 
     tools: Tools = Tools()
 

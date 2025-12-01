@@ -7,7 +7,7 @@ from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
 
 from agentchat.api.services.llm import LLMService, LLM_Types
 
-router = APIRouter()
+router = APIRouter(tags=["LLM"])
 
 
 @router.post('/llm/create', response_model=UnifiedResponseModel)

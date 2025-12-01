@@ -12,6 +12,7 @@ class UsageStatsAgentType(str, Enum):
     mars_agent = "Mars-Agent"
     lingseek_agent = "LingSeek-Agent"
     simple_agent = "Simple-Agent"
+    wechat_agent = "WeChat-Agent"
 
 
 class UsageStatsModelType(str, Enum):

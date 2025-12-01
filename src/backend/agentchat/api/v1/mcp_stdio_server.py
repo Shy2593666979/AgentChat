@@ -5,7 +5,7 @@ from agentchat.api.services.mcp_stdio_server import MCPServerService
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.schema.schemas import resp_200, resp_500
 
-router = APIRouter()
+router = APIRouter(tags=["MCP-Stdio-Server"])
 
 
 @router.post("/mcp_stdio_server")

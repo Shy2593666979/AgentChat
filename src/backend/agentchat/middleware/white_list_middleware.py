@@ -1,6 +1,7 @@
-from typing import List, Set
+from typing import List, Set, Optional
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+from agentchat.settings import app_settings
 
 
 class WhitelistChecker:
@@ -32,12 +33,18 @@ class WhitelistChecker:
 class WhitelistMiddleware(BaseHTTPMiddleware):
     """白名单检查中间件类"""
 
-    def __init__(self, app, whitelist_paths: List[str]):
+    def __init__(self, app: FastAPI):
         super().__init__(app)
-        self.whitelist_checker = WhitelistChecker(whitelist_paths)
+        self.whitelist_checker: Optional[WhitelistChecker] = None
 
     async def dispatch(self, request: Request, call_next):
         """处理请求的核心方法"""
+        # 首次请求时才初始化检查器（此时 app_settings 已通过 lifespan 初始化）
+        if not self.whitelist_checker:
+            # 动态读取已初始化的白名单路径，默认空列表避免报错
+            whitelist_paths = app_settings.whitelist_paths or []
+            self.whitelist_checker = WhitelistChecker(whitelist_paths)
+
         request.state.is_whitelisted = self.whitelist_checker.is_whitelisted(request.url.path)
         response = await call_next(request)
         return response

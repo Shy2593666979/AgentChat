@@ -4,7 +4,7 @@ from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.schema.schemas import resp_200, resp_500, UnifiedResponseModel
 from loguru import logger
 
-router = APIRouter()
+router = APIRouter(tags=["History"])
 
 @router.get("/history", response_model=UnifiedResponseModel)
 async def get_dialog_history(dialog_id: str = Query(..., description="对话的ID", embed=True),

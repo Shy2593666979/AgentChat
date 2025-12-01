@@ -7,7 +7,7 @@ from agentchat.schema.dialog import DialogCreateRequest
 from agentchat.schema.schemas import resp_200, resp_500, UnifiedResponseModel
 from agentchat.settings import app_settings
 
-router = APIRouter()
+router = APIRouter(tags=["Dialog"])
 
 
 @router.get("/dialog/list", response_model=UnifiedResponseModel)

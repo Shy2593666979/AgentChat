@@ -1,7 +1,5 @@
-# encoding=utf-8
-from datetime import datetime, timedelta
 import pytz
-
+from datetime import datetime, timedelta
 
 def get_beijing_time():
     # 设置北京时区

@@ -6,7 +6,7 @@ from agentchat.database.models.knowledge_file import Status
 from agentchat.database.models.user import AdminUser
 from agentchat.services.rag.parser import doc_parser
 from agentchat.services.rag_handler import RagHandler
-
+from agentchat.settings import app_settings
 
 class KnowledgeFileService:
     @classmethod
@@ -30,8 +30,9 @@ class KnowledgeFileService:
             chunks = await doc_parser.parse_doc_into_chunks(knowledge_file_id, file_path, knowledge_id)
 
             # 将上传的文件解析成chunks 放到ES 和 Milvus
-            await RagHandler.index_es_documents(knowledge_id, chunks)
             await RagHandler.index_milvus_documents(knowledge_id, chunks)
+            if app_settings.rag.enable_elasticsearch:
+                await RagHandler.index_es_documents(knowledge_id, chunks)
             # 解析状态改为 成功
             await cls.update_parsing_status(knowledge_file_id, Status.success)
         except Exception as err:

@@ -10,6 +10,9 @@ class Reranker:
 
     @classmethod
     async def request_rerank(cls, query, documents):
+        if not documents:
+            return []
+
         headers = {
             "Authorization": f"Bearer {app_settings.multi_models.rerank.api_key}",
             "Content-Type": "application/json"

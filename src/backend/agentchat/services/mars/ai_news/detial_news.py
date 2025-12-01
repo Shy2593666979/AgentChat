@@ -65,7 +65,7 @@ async def yield_crawl_detail_ai_news(output_detail: bool):
     # with ThreadPoolExecutor(max_workers=1) as executor:
     #     result = await loop.run_in_executor(executor, crawl_today_ai_news, None)
 
-    _, links = sync_crawl_with_selenium(app_settings.mars["daily_url"])
+    _, links = sync_crawl_with_selenium(app_settings.default_config.get("mars_daily_url"))
 
     total_news_content = ""
     # yield {

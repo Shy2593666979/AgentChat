@@ -1,27 +1,25 @@
-from loguru import logger
-
 import requests
-from typing import Type
-from langchain.tools import BaseTool
-from pydantic import BaseModel, Field
+from loguru import logger
+from langchain.tools import tool
+
 from agentchat.settings import app_settings
 from agentchat.prompts.tool import WEATHER_PROMPT, MESSAGE_PROMPT
 
 
-class WeatherInput(BaseModel):
-    location: str = Field(description='输入输入想要查询的位置')
+@tool(parse_docstring=True)
+def get_weather(city: str):
+    """
+    查询用户提供城市的天气情况。
 
+    Args:
+        city (str): 用户提供的城市名称。
 
-class WeatherTool(BaseTool):
-    name: str = 'weather'
-    description: str = '帮助用户想要查询的天气'
-    args_schema: Type[BaseModel] = WeatherInput
+    Returns:
+        str: 城市的天气信息。
+    """
+    return _get_weather(city)
 
-    def _run(self, location: str):
-            return get_weather(location)
-
-
-def get_weather(location: str):
+def _get_weather(location: str):
     """帮助用户想要查询的天气"""
     params = {
         'key': app_settings.tools.weather.get('api_key'),

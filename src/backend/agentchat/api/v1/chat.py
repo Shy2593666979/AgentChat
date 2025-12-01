@@ -1,11 +1,9 @@
 import json
-from typing import Annotated, List, Union, Callable
-from urllib.parse import urljoin
-
 import loguru
+from starlette.types import Receive
+from typing import Annotated, List, Union, Callable
 from fastapi import APIRouter, Body, UploadFile, File, Depends
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
-from starlette.types import Receive
 
 from agentchat.api.services.chat import StreamingAgent, AgentConfig
 from agentchat.api.services.history import HistoryService
@@ -13,18 +11,13 @@ from agentchat.api.services.dialog import DialogService
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.chat import SYSTEM_PROMPT
 from agentchat.schema.chat import ConversationReq
-from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
-from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.services.memory.client import memory_client
-from agentchat.services.rag_handler import RagHandler
-from agentchat.settings import app_settings
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
-from agentchat.utils.file_utils import get_aliyun_oss_base_path
 from fastapi.responses import StreamingResponse
 
 from agentchat.utils.helpers import combine_user_input, combine_history_messages
 
-router = APIRouter()
+router = APIRouter(tags=["Completion"])
 
 """
 重写 StreamingResponse类 保证流式输出的时候可随时暂停
@@ -106,7 +99,7 @@ async def chat(*,
         """
         response_content = " "
         try:
-            async for event in chat_agent.ainvoke_streaming(messages):
+            async for event in chat_agent.astream(messages):
                 if event.get("type") == "response_chunk":
                     # 处理AI生成的文本片段：按SSE标准格式封装并流式传输
                     yield f'data: {json.dumps(event)}\n\n'
@@ -126,31 +119,3 @@ async def chat(*,
 
     # 返回SSE流式响应，支持实时前端交互
     return WatchedStreamingResponse(general_generate(), callback=chat_agent.stop_streaming_callback, media_type="text/event-stream")
-
-
-@router.post("/upload", description="上传文件的接口", response_model=UnifiedResponseModel)
-async def upload_file(*,
-                      file: UploadFile = File(description="支持常见的Pdf、Docx、Txt、Jpg等文件"),
-                      login_user: UserPayload = Depends(get_login_user)):
-    try:
-        file_content = await file.read()
-
-        oss_object_name = get_aliyun_oss_base_path(file.filename)
-        sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_object_name)
-
-        aliyun_oss.sign_url_for_get(sign_url)
-        aliyun_oss.upload_file(oss_object_name, file_content)
-
-        return resp_200(sign_url)
-    except Exception as err:
-        return resp_500(message=str(err))
-
-@router.post("/knowledge/retrieval", response_model=UnifiedResponseModel)
-async def retrieval_knowledge(*,
-                              query: str = Body(..., description="用户的问题"),
-                              knowledge_id: Union[str, List[str]] = Body(..., description="知识库ID")):
-    if isinstance(knowledge_id, str):
-        content = await RagHandler.retrieve_ranked_documents(query, [knowledge_id], [knowledge_id])
-    else:
-        content = await RagHandler.retrieve_ranked_documents(query, knowledge_id, knowledge_id)
-    return resp_200(content)

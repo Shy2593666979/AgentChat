@@ -7,12 +7,13 @@ from agentchat.database.models.mcp_server import MCPServerStdioTable, MCPServerT
 
 class MCPServerDao:
     @classmethod
-    async def create_mcp_server(cls, server_name: str, user_id: str, user_name: str,
+    async def create_mcp_server(cls, server_name: str, user_id: str, user_name: str, mcp_as_tool_name: str, description: str,
                                 url: str, type: str, config: dict, tools: list, params: dict, config_enabled: bool, logo_url):
         with session_getter() as session:
             mcp_server = MCPServerTable(server_name=server_name, user_id=user_id, logo_url=logo_url,
                                         user_name=user_name, url=url, type=type, config=config,
-                                        tools=tools, params=params, config_enabled=config_enabled)
+                                        tools=tools, params=params, config_enabled=config_enabled,
+                                        mcp_as_tool_name=mcp_as_tool_name, description=description)
             session.add(mcp_server)
             session.commit()
 
@@ -31,7 +32,7 @@ class MCPServerDao:
             session.commit()
 
     @classmethod
-    async def update_mcp_server(cls, mcp_server_id: str, server_name: str,
+    async def update_mcp_server(cls, mcp_server_id: str, server_name: str, mcp_as_tool_name: str, description: str,
                                 url: str, type: str, config: dict, tools: list, params: dict, logo_url: str):
         with session_getter() as session:
             update_values = {}
@@ -49,6 +50,10 @@ class MCPServerDao:
                 update_values["params"] = params
             if logo_url:
                 update_values["logo_url"] = logo_url
+            if mcp_as_tool_name:
+                update_values["mcp_as_tool_name"] = mcp_as_tool_name
+            if description:
+                update_values["description"] = description
 
             sql = update(MCPServerTable).where(MCPServerTable.mcp_server_id == mcp_server_id).values(**update_values)
             session.exec(sql)

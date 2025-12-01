@@ -5,7 +5,7 @@ from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.schema.schemas import resp_200
 from agentchat.schema.usage_stats import UsageStatsRequest
 
-router = APIRouter(tags=["usage-stats"])
+router = APIRouter(tags=["Usage-Stats"])
 
 @router.post("/usage", summary="根据不同的参数获取用量统计")
 async def get_agentchat_usage(usage_stats: UsageStatsRequest,

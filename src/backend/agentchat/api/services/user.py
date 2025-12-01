@@ -87,7 +87,7 @@ class UserService:
         avatars_url = []
         for file_url in files_url:
             avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
-        return random.choice(avatars_url)
+        return random.choice(avatars_url) if avatars_url else ""
 
     @classmethod
     def get_available_avatars(cls):
@@ -106,6 +106,10 @@ class UserService:
     def update_user_info(cls, user_id, user_avatar, user_description):
         UserDao.update_user_info(user_id, user_avatar, user_description)
 
+    @classmethod
+    def get_user_id_by_name(cls, user_name):
+        user = UserDao.get_user_by_username(user_name)
+        return user.user_id
 
 async def get_login_user(request: Request, authorize: AuthJWT = Depends()) -> UserPayload:
     """

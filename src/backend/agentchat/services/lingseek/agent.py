@@ -8,11 +8,12 @@ from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
+from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
 from agentchat.prompts.template import GuidePromptTemplate
 from agentchat.schema.workspace import WorkSpaceAgents
 from agentchat.schema.usage_stats import UsageStatsAgentType
-from agentchat.services.mcp_agent.agent import MCPConfig
+from agentchat.core.agents.mcp_agent import MCPConfig
 from agentchat.tools import LingSeekPlugins, tavily_search as web_search
 from agentchat.api.services.tool import ToolService
 from agentchat.core.models.manager import ModelManager
@@ -45,7 +46,7 @@ class LingSeekAgent:
         sop_content = ""
         answer = ""
         split_tags = ["<Thought_END>", "</Thought_END>"]
-        async for one in self.conversation_model.astream(lingseek_guide_prompt):
+        async for one in self.conversation_model.astream(input=lingseek_guide_prompt, config={"callbacks": [usage_metadata_callback]}):
             answer += f"{one.content}"
             if sop_flag:
                 yield one
@@ -66,14 +67,14 @@ class LingSeekAgent:
     async def _generate_tasks(self, lingseek_task_prompt):
         conversation_json_model = self.conversation_model.bind(response_format={"type": "json_object"})
 
-        response = await conversation_json_model.ainvoke(lingseek_task_prompt)
+        response = await conversation_json_model.ainvoke(input=lingseek_task_prompt, config={"callbacks": [usage_metadata_callback]})
 
         try:
             content = json.loads(response.content)
             return content
         except Exception as err:
             fix_message = FixJsonPrompt.format(json_content=response.content, json_error=str(err))
-            fix_response = await conversation_json_model.ainvoke(fix_message)
+            fix_response = await conversation_json_model.ainvoke(input=fix_message, config={"callbacks": [usage_metadata_callback]})
             try:
                 fix_content = json.loads(fix_response.content)
                 return fix_content
@@ -82,7 +83,7 @@ class LingSeekAgent:
 
     async def _generate_title(self, query):
         title_prompt = GenerateTitlePrompt.format(query=query)
-        response = await self.conversation_model.ainvoke(title_prompt)
+        response = await self.conversation_model.ainvoke(input=title_prompt, config={"callbacks": [usage_metadata_callback]})
         return response.content
 
     async def _add_workspace_session(self, query, contexts: WorkSpaceSessionContext):
@@ -196,7 +197,7 @@ class LingSeekAgent:
                 step_context=str(step_context)
             )
             step_messages = [SystemMessage(content=step_prompt), HumanMessage(content=lingseek_task.query)]
-            response = await tool_call_model.ainvoke(step_messages)
+            response = await tool_call_model.ainvoke(input=step_messages, config={"callbacks": [usage_metadata_callback]})
 
             tools_messages = await self._parse_function_call_response(response)
 
@@ -246,7 +247,7 @@ class LingSeekAgent:
             tool_args.update(mcp_config)
             text_content, no_text_content = await tool.coroutine(**tool_args)
         else:
-            text_content = LingSeekPlugins[tool_name](**tool_args)
+            text_content = LingSeekPlugins[tool_name].invoke(tool_args)
         return text_content
 
     async def _obtain_lingseek_tools(self, plugins, mcp_servers, enable_web_search=False):
