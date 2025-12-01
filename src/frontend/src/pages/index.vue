@@ -308,7 +308,7 @@ watch(
                 />
               </a>
               <a
-                href="https://uawlh9wstr9.feishu.cn/wiki/QOaLwMDtBiiduWk4YtAcavEsnne?from=from_copylink"
+                href="https://shy2593666979.github.io/agentchat-docs/"
                 target="_blank"
                 class="help-link"
                 title="帮助文档"
