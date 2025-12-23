@@ -1,7 +1,9 @@
 
-<div align="center">
+<div align='center'>
+    <img src="https://github.com/user-attachments/assets/eb9b3b09-e2bf-4c9d-95a0-5c2d9712723d" alt="alt text" width="70%">
+</div>
 
-<img width="500" height="160" alt="AgentChat Logo" src="https://github.com/user-attachments/assets/2e19a214-a87d-473f-a4fd-ee879f4e7149" />
+<div align="center">
 
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12+-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
