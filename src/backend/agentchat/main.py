@@ -1,5 +1,6 @@
+import logging
+import warnings
 from contextlib import asynccontextmanager
-
 from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 from fastapi_jwt_auth import AuthJWT
@@ -12,8 +13,8 @@ from agentchat.middleware.white_list_middleware import WhitelistMiddleware
 from agentchat.settings import initialize_app_settings
 from agentchat.settings import app_settings
 
-import warnings
 warnings.filterwarnings("ignore")
+logging.getLogger("chromadb").setLevel(logging.WARNING)
 
 async def register_router(app: FastAPI):
     from agentchat.api.router import router
@@ -76,7 +77,7 @@ async def lifespan(app: FastAPI):
 
 def create_app():
     app = FastAPI(title=app_settings.server.get("project_name", "AgentChat"),
-                  version=app_settings.server.get("version", "v2.2.0"),
+                  version=app_settings.server.get("version", "v2.3.0"),
                   lifespan=lifespan)
 
     app = register_middleware(app)

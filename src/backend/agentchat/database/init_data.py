@@ -1,9 +1,8 @@
 import json
-
 from loguru import logger
 from sqlmodel import SQLModel
 
-from agentchat.database import engine, SystemUser
+from agentchat.database import engine, SystemUser, ensure_mysql_database
 from agentchat.api.services.agent import AgentService
 from agentchat.api.services.llm import LLMService
 from agentchat.api.services.tool import ToolService
@@ -20,8 +19,9 @@ from agentchat.utils.convert import convert_mcp_config
 # 创建MySQL数据表
 async def init_database():
     try:
+        ensure_mysql_database()
         SQLModel.metadata.create_all(engine)
-        logger.info("Create MySQL Table Successful")
+        logger.success("MySQL tables are ready")
     except Exception as err:
         logger.error(f"Create MySQL Table Error: {err}")
 
@@ -32,15 +32,16 @@ async def init_default_agent():
         # if redis_client.setNx('init_default_agent', '1'):
         result = await AgentService.get_agent()
         if len(result) == 0:
-            logger.info("Begin Init Agent In Mysql")
+            logger.info("Initializing default agents in MySQL")
 
             await insert_tools_to_mysql()  # 初始化工具
             await insert_llm_to_mysql()  # 初始化LLM
             await insert_agent_to_mysql()  # 初始化Agent
+            logger.success("Default agents initialized successfully")
         else:
-            logger.info("Init Agent Already")
+            logger.info("Default agents already initialized")
     except Exception as err:
-        logger.error(f"Init Default Agent Error: {err}")
+        logger.error(f"Failed to initialize default agents: {err}")
 
 
 async def update_system_mcp_server():
@@ -52,7 +53,7 @@ async def update_system_mcp_server():
         else:
             await update_mcp_server_into_mysql(False)
     except Exception as err:
-        logger.error(f"Init System MCP Server Error: {err}")
+        logger.error(f"Failed to initialize system MCP server: {err}")
 
 
 async def insert_agent_to_mysql():
@@ -60,16 +61,18 @@ async def insert_agent_to_mysql():
 
     tools = await ToolService.get_tools_data()
     for tool in tools:
-        await AgentService.create_agent(name=tool["zh_name"] + '助手',
-                                        description=tool["description"],
-                                        user_id=SystemUser,
-                                        llm_id=llm["llm_id"],
-                                        tool_ids=[tool["tool_id"]],
-                                        knowledge_ids=[],
-                                        logo_url=tool["logo_url"],
-                                        is_custom=False,
-                                        mcp_ids=[],
-                                        system_prompt="")
+        await AgentService.create_agent(
+            name=tool["zh_name"] + '助手',
+            description=tool["description"],
+            user_id=SystemUser,
+            llm_id=llm["llm_id"],
+            tool_ids=[tool["tool_id"]],
+            knowledge_ids=[],
+            logo_url=tool["logo_url"],
+            is_custom=False,
+            mcp_ids=[],
+            system_prompt=""
+        )
 
 
 # 认定OS下有一个默认LLM API KEY
@@ -105,7 +108,7 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
         # 超过七天才有更新MCP Server的策略
         if await MCPService.mcp_server_need_update():
             servers = await MCPService.get_all_servers(AdminUser)
-            logger.info("MCP Server 最新版开始更新到数据库！")
+            logger.info("Updating MCP Server to the latest version in the database")
         else:
             return
     else:
@@ -126,8 +129,6 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
             if server["server_name"] == server_name:
                 return server
         return None
-
-
 
     # 解析Params中的工具列表
     async def get_tools_name_from_params(tools_params: dict):
