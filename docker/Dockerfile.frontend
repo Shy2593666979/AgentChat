@@ -7,6 +7,9 @@ WORKDIR /app
 # 📦 设置npm镜像源（加速下载）
 RUN npm config set registry https://registry.npmmirror.com
 
+# 📦 安装curl工具
+RUN apk add --no-cache curl
+
 # 📋 复制package文件
 COPY src/frontend/package*.json ./
 
