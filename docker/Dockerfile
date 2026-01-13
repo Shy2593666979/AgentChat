@@ -18,6 +18,7 @@ COPY requirements.txt .
 # 🚀 安装Python依赖（使用pip镜像源加速）
 RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/
 
+RUN pip install --no-cache-dir gunicorn -i https://pypi.tuna.tsinghua.edu.cn/simple/
 
 #⚠️修复 fastapi-jwt-auth 与 Pydantic 2 的兼容性问题
 #❗目前文件已重写放到backend文件夹可正常导入
