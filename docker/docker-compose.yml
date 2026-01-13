@@ -60,6 +60,14 @@ services:
       # 🗄️ 数据库配置
       DATABASE_URL: mysql://agentchat_user:123456@mysql:3306/agentchat
       REDIS_URL: redis://redis:6379/0
+
+      # 新增：覆盖 mysql endpoint/async_endpoint
+      MYSQL_ENDPOINT: "mysql+pymysql://agentchat_user:123456@mysql:3306/agentchat"
+      MYSQL_ASYNC_ENDPOINT: "mysql+aiomysql://agentchat_user:123456@mysql:3306/agentchat"
+      # 新增：覆盖 redis endpoint
+      REDIS_ENDPOINT: "redis://redis:6379/0"
+      # 新增：覆盖 server host（Docker需要0.0.0.0）
+      SERVER_HOST: "0.0.0.0"
       
       # 🌍 应用配置
       APP_ENV: development
@@ -74,10 +82,11 @@ services:
       QWEN_API_KEY: ${QWEN_API_KEY:-}
       
       TZ: Asia/Shanghai
-#    volumes:
-#      - ../src/backend:/app:cached
-#      - ../data:/app/data
-#      - ../logs:/app/logs
+    # 开发环境热加载
+    # volumes:
+    #   - ../src/backend:/app:cached
+      # - ../data:/app/data
+      # - ../logs:/app/logs
     depends_on:
       mysql:
         condition: service_healthy

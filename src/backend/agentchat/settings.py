@@ -1,3 +1,4 @@
+import os
 import yaml
 from loguru import logger
 from types import SimpleNamespace
@@ -57,5 +58,23 @@ async def initialize_app_settings(file_path: str = None):
 
             for key, value in data.items():
                 setattr(app_settings, key, value)
+
+
+            # ✅ 新增核心逻辑：用环境变量覆盖配置（Docker环境生效）
+            # 覆盖 MySQL 配置
+            if os.getenv("MYSQL_ENDPOINT"):
+                app_settings.mysql["endpoint"] = os.getenv("MYSQL_ENDPOINT")
+            if os.getenv("MYSQL_ASYNC_ENDPOINT"):
+                app_settings.mysql["async_endpoint"] = os.getenv("MYSQL_ASYNC_ENDPOINT")
+            
+            # 覆盖 Redis 配置
+            if os.getenv("REDIS_ENDPOINT"):
+                app_settings.redis["endpoint"] = os.getenv("REDIS_ENDPOINT")
+            
+            # 覆盖 Server 监听地址
+            if os.getenv("SERVER_HOST"):
+                app_settings.server["host"] = os.getenv("SERVER_HOST")
+
+
     except Exception as e:
         logger.error(f"Yaml file loading error: {e}")
