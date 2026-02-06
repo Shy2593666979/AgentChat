@@ -1,6 +1,7 @@
 import json
 import loguru
 from starlette.types import Receive
+from fastapi.responses import StreamingResponse
 from typing import Annotated, List, Union, Callable
 from fastapi import APIRouter, Body, UploadFile, File, Depends
 from langchain_core.messages import HumanMessage, SystemMessage, BaseMessage
@@ -13,8 +14,6 @@ from agentchat.prompts.chat import SYSTEM_PROMPT
 from agentchat.schema.chat import ConversationReq
 from agentchat.services.memory.client import memory_client
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
-from fastapi.responses import StreamingResponse
-
 from agentchat.utils.helpers import combine_user_input, combine_history_messages
 
 router = APIRouter(tags=["Completion"])
