@@ -23,14 +23,15 @@ router = APIRouter(tags=["Completion"])
 重写 StreamingResponse类 保证流式输出的时候可随时暂停
 """
 class WatchedStreamingResponse(StreamingResponse):
-    def __init__(self,
-                 content,
-                 callback: Callable = None,
-                 status_code: int = 200,
-                 headers = None,
-                 media_type: str | None = None,
-                 background = None,
-                 ):
+    def __init__(
+        self,
+        content,
+        callback: Callable = None,
+        status_code: int = 200,
+        headers = None,
+        media_type: str | None = None,
+        background = None,
+    ):
         super().__init__(content, status_code, headers, media_type, background)
 
         self.callback = callback
@@ -47,9 +48,11 @@ class WatchedStreamingResponse(StreamingResponse):
                 break
 
 @router.post("/chat", description="对话接口")
-async def chat(*,
-               conversation_req: ConversationReq = Body(description="传递的会话信息"),
-               login_user: UserPayload = Depends(get_login_user)):
+async def chat(
+    *,
+    conversation_req: ConversationReq,
+    login_user: UserPayload = Depends(get_login_user)
+):
     """
     与AI助手进行实时对话的核心接口
     
@@ -79,7 +82,10 @@ async def chat(*,
     messages: List[BaseMessage] = [SystemMessage(content=SYSTEM_PROMPT if agent_config.system_prompt.strip() == "" else agent_config.system_prompt)]
     if agent_config.enable_memory:
         # 启用向量化记忆模式：通过语义搜索获取相关历史上下文
-        history_messages = await memory_client.search(query=original_user_input, run_id=conversation_req.dialog_id)
+        history_messages = await memory_client.search(
+            query=original_user_input,
+            run_id=conversation_req.dialog_id
+        )
         messages[0].content = SYSTEM_PROMPT.format(history=f"<chat_history>\n {'\n'.join(msg.get('memory', '') for msg in history_messages.get('results'))} </chat_history>")
     else:
         # 传统历史记录模式：从数据库获取完整对话历史并融入系统提示词
@@ -110,12 +116,33 @@ async def chat(*,
                     yield f'data: {json.dumps(event)}\n\n'
         finally:
             if agent_config.enable_memory: # 将完整的助手回复保存到记忆系统，在流式输出完，不影响响应时间
-                await memory_client.add([{"role": "user", "content": original_user_input}, {"role": "assistant", "content": response_content}], run_id=conversation_req.dialog_id)
+                await memory_client.add(
+                    messages=[
+                        {"role": "user", "content": original_user_input},
+                        {"role": "assistant", "content": response_content}
+                    ],
+                    run_id=conversation_req.dialog_id)
             # 将助手回复及相关事件持久化到数据库
-            await HistoryService.save_chat_history("assistant", response_content, events, conversation_req.dialog_id, agent_config.enable_memory)
+            await HistoryService.save_chat_history(
+                role="assistant",
+                content=response_content,
+                events=events,
+                dialog_id=conversation_req.dialog_id,
+                embedding_enable=agent_config.enable_memory
+            )
 
     # 将用户输入持久化到MySQL数据库，用于历史对话记录展示
-    await HistoryService.save_chat_history("user", original_user_input, events, conversation_req.dialog_id, agent_config.enable_memory)
+    await HistoryService.save_chat_history(
+        role="user",
+        content=original_user_input,
+        events=events,
+        dialog_id=conversation_req.dialog_id,
+        embedding_enable=agent_config.enable_memory
+    )
 
     # 返回SSE流式响应，支持实时前端交互
-    return WatchedStreamingResponse(general_generate(), callback=chat_agent.stop_streaming_callback, media_type="text/event-stream")
+    return WatchedStreamingResponse(
+        content=general_generate(),
+        callback=chat_agent.stop_streaming_callback,
+        media_type="text/event-stream"
+    )

@@ -52,7 +52,11 @@ async def update_agent_skill_file(
     login_user: UserPayload = Depends(get_login_user)
 ):
     try:
-        result = await AgentSkillService.update_agent_skill_file(**req.model_dump())
+        result = await AgentSkillService.update_agent_skill_file(
+            target_path=req.path,
+            new_content=req.content,
+            agent_skill_id=req.agent_skill_id,
+        )
         return resp_200(
             data=result
         )

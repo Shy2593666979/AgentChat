@@ -12,19 +12,26 @@ router = APIRouter(tags=["Knowledge"])
 
 
 @router.post("/knowledge/create", response_model=UnifiedResponseModel)
-async def upload_knowledge(*,
-                           knowledge_req: KnowledgeCreateRequest,
-                           login_user: UserPayload = Depends(get_login_user)):
+async def upload_knowledge(
+    *,
+    knowledge_req: KnowledgeCreateRequest,
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
-        await KnowledgeService.create_knowledge(knowledge_req.knowledge_name, knowledge_req.knowledge_desc,
-                                                login_user.user_id)
+        await KnowledgeService.create_knowledge(
+            knowledge_name=knowledge_req.knowledge_name,
+            knowledge_desc=knowledge_req.knowledge_desc,
+            user_id=login_user.user_id
+        )
         return resp_200()
     except Exception as err:
         return resp_500(message=str(err))
 
 
 @router.get("/knowledge/select", response_model=UnifiedResponseModel)
-async def select_knowledge(login_user: UserPayload = Depends(get_login_user)):
+async def select_knowledge(
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         results = await KnowledgeService.select_knowledge(login_user.user_id)
         return resp_200(data=results)
@@ -34,9 +41,11 @@ async def select_knowledge(login_user: UserPayload = Depends(get_login_user)):
 
 
 @router.put("/knowledge/update", response_model=UnifiedResponseModel)
-async def update_knowledge(*,
-                           knowledge_req: KnowledgeUpdateRequest,
-                           login_user: UserPayload = Depends(get_login_user)):
+async def update_knowledge(
+    *,
+    knowledge_req: KnowledgeUpdateRequest,
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         # 验证用户权限
         await KnowledgeService.verify_user_permission(knowledge_req.knowledge_id, login_user.user_id)
@@ -50,8 +59,10 @@ async def update_knowledge(*,
 
 
 @router.delete("/knowledge/delete", response_model=UnifiedResponseModel)
-async def delete_knowledge(knowledge_id: str = Body(embed=True),
-                           login_user: UserPayload = Depends(get_login_user)):
+async def delete_knowledge(
+    knowledge_id: str = Body(embed=True),
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         # 验证用户权限
         await KnowledgeService.verify_user_permission(knowledge_id, login_user.user_id)
@@ -63,9 +74,11 @@ async def delete_knowledge(knowledge_id: str = Body(embed=True),
         return resp_500(message=str(err))
 
 @router.post("/knowledge/retrieval", response_model=UnifiedResponseModel)
-async def retrieval_knowledge(*,
-                              query: str = Body(..., description="用户的问题"),
-                              knowledge_id: Union[str, List[str]] = Body(..., description="知识库ID")):
+async def retrieval_knowledge(
+    *,
+    query: str = Body(..., description="用户的问题"),
+    knowledge_id: Union[str, List[str]] = Body(..., description="知识库ID")
+):
     if isinstance(knowledge_id, str):
         content = await RagHandler.retrieve_ranked_documents(query, [knowledge_id], [knowledge_id])
     else:

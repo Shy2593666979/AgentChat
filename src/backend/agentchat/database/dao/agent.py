@@ -18,14 +18,15 @@ class AgentDao:
         return agent
 
     @classmethod
-    async def create_agent(cls, name: str, description: str, logo_url: str, user_id: str, knowledge_ids: List[str],
-                           llm_id: str, tool_ids: List[str], is_custom: bool, enable_memory: bool, mcp_ids: List[str],
-                           system_prompt: str):
+    async def create_agent(
+            cls,
+            agent: AgentTable
+    ):
         with session_getter() as session:
-            session.add(
-                await cls._get_agent_sql(name, description, logo_url, user_id, knowledge_ids, llm_id, tool_ids,
-                                         is_custom, enable_memory, mcp_ids, system_prompt))
+            session.add(agent)
             session.commit()
+            session.refresh(agent)
+            return agent
 
     @classmethod
     async def get_agent(cls):
@@ -99,31 +100,16 @@ class AgentDao:
             return result
 
     @classmethod
-    async def update_agent_by_id(cls, id: str, name: str, description: str, knowledge_ids: List[str],
-                                 logo_url: str, llm_id: str, tool_ids: List[str], enable_memory: bool,
-                                 mcp_ids: List[str],
-                                 system_prompt):
+    async def update_agent_by_id(
+            cls,
+            agent_id: str,
+            update_values: dict
+    ):
         with session_getter() as session:
-            update_values = {}
-            if name is not None:
-                update_values['name'] = name
-            if description is not None:
-                update_values['description'] = description
-            if llm_id is not None:
-                update_values['llm_id'] = llm_id
-            if tool_ids is not None:
-                update_values['tool_ids'] = tool_ids
-            if knowledge_ids is not None:
-                update_values['knowledge_ids'] = knowledge_ids
-            if enable_memory is not None:
-                update_values['enable_memory'] = enable_memory
-            if mcp_ids is not None:
-                update_values["mcp_ids"] = mcp_ids
-            if system_prompt is not None:
-                update_values["system_prompt"] = system_prompt
-            if logo_url is not None:
-                update_values['logo_url'] = logo_url
-
-            sql = update(AgentTable).where(AgentTable.id == id).values(**update_values)
+            sql = (
+                update(AgentTable)
+                .where(AgentTable.id == agent_id)
+                .values(**update_values)
+            )
             session.exec(sql)
             session.commit()

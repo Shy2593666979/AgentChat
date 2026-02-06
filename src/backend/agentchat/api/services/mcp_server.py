@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Dict, Any
 
 import pytz
 
@@ -10,12 +11,38 @@ from agentchat.database.models.user import AdminUser, SystemUser
 class MCPService:
 
     @classmethod
-    async def create_mcp_server(cls, server_name: str, user_id: str, user_name: str,
-                                url: str, type: str, config: dict, tools: list, params: dict,
-                                config_enabled: bool, logo_url: str, mcp_as_tool_name: str, description: str):
+    async def create_mcp_server(
+            cls,
+            url: str,
+            type: str,
+            tools: list,
+            params: dict,
+            server_name: str,
+            user_id: str,
+            user_name: str,
+            logo_url: str,
+            mcp_as_tool_name: str,
+            description: str,
+            config: dict = None,
+            headers: dict = None,
+            config_enabled: bool = False,
+    ):
         try:
-            return await MCPServerDao.create_mcp_server(server_name, user_id, user_name, mcp_as_tool_name, description,
-                                                        url, type, config, tools, params, config_enabled, logo_url)
+            return await MCPServerDao.create_mcp_server(
+                url=url,
+                type=type,
+                config=config,
+                tools=tools,
+                params=params,
+                server_name=server_name,
+                user_id=user_id,
+                user_name=user_name,
+                mcp_as_tool_name=mcp_as_tool_name,
+                description=description,
+                config_enabled=config_enabled,
+                logo_url=logo_url,
+                headers=headers
+            )
         except Exception as err:
             raise ValueError(f"Create MCP Server Error: {err}")
 
@@ -128,3 +155,44 @@ class MCPService:
         except Exception as err:
             raise ValueError(f"Get MCP Server Ids Error:{err}")
 
+
+    @classmethod
+    def validate_imported_config(cls, payload: Dict[str, Any]):
+        """
+        校验前端传入的 mcpServers 配置
+
+        规则：
+        - 必须包含 mcpServers
+        - mcpServers 必须是 dict
+        - 每个 server 必须包含 type 和 url
+        - headers 可选，但若存在必须是 dict
+        """
+        if "mcpServers" not in payload:
+            raise ValueError("缺少字段: mcpServers")
+
+        mcp_servers = payload["mcpServers"]
+
+        if not isinstance(mcp_servers, dict):
+            raise ValueError("mcpServers 必须是一个字典类型")
+
+        if not mcp_servers:
+            raise ValueError("mcpServers 不能为空")
+
+        for server_name, server_conf in mcp_servers.items():
+            if not isinstance(server_name, str) or not server_name.strip():
+                raise ValueError(f"非法的 mcpServer 名称: {server_name}")
+
+            if not isinstance(server_conf, dict):
+                raise ValueError(f"mcpServer `{server_name}` 配置必须是对象")
+
+            # 必填字段
+            for required_field in ("type", "url"):
+                if required_field not in server_conf:
+                    raise ValueError(f"mcpServer `{server_name}` 缺少必填字段: {required_field}")
+
+                if not server_conf[required_field]:
+                    raise ValueError(f"mcpServer `{server_name}` 字段 `{required_field}` 不能为空")
+
+            # headers 可选
+            if "headers" in server_conf and not isinstance(server_conf["headers"], dict):
+                raise ValueError(f"mcpServer `{server_name}` 的 headers 必须是对象 (dict)")

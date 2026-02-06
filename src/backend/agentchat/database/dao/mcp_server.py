@@ -7,13 +7,38 @@ from agentchat.database.models.mcp_server import MCPServerStdioTable, MCPServerT
 
 class MCPServerDao:
     @classmethod
-    async def create_mcp_server(cls, server_name: str, user_id: str, user_name: str, mcp_as_tool_name: str, description: str,
-                                url: str, type: str, config: dict, tools: list, params: dict, config_enabled: bool, logo_url):
+    async def create_mcp_server(
+            cls,
+            url: str,
+            type: str,
+            config: dict,
+            tools: list,
+            params: dict,
+            config_enabled: bool,
+            logo_url: str,
+            server_name: str,
+            user_id: str,
+            user_name: str,
+            mcp_as_tool_name: str,
+            description: str,
+            headers: dict
+    ):
         with session_getter() as session:
-            mcp_server = MCPServerTable(server_name=server_name, user_id=user_id, logo_url=logo_url,
-                                        user_name=user_name, url=url, type=type, config=config,
-                                        tools=tools, params=params, config_enabled=config_enabled,
-                                        mcp_as_tool_name=mcp_as_tool_name, description=description)
+            mcp_server = MCPServerTable(
+                url=url,
+                type=type,
+                config=config,
+                tools=tools,
+                params=params,
+                headers=headers,
+                server_name=server_name,
+                user_id=user_id,
+                logo_url=logo_url,
+                user_name=user_name,
+                config_enabled=config_enabled,
+                mcp_as_tool_name=mcp_as_tool_name,
+                description=description
+            )
             session.add(mcp_server)
             session.commit()
 

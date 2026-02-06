@@ -1,9 +1,13 @@
 import { request } from '../utils/request'
 
 export interface CreateMCPServerRequest {
-  server_name: string
+  // 服务器名称在后端是可选的（不传则使用导入配置中的名称）
+  server_name?: string
   url: string
-  type: string
+  // 链接类型前端不再由用户选择，统一默认使用后端约定（如 SSE）
+  type?: string
+  // MCP Server 的展示 Logo，非必填，由上传接口返回的 URL 填充
+  logo_url?: string
   config?: any | string
 }
 

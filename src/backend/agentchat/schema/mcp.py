@@ -2,6 +2,9 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from typing import List, Any, Dict, Optional, Literal, Union
 
+from agentchat.settings import app_settings
+
+
 class MCPBaseConfig(BaseModel):
     server_name: str
     transport: str
@@ -39,6 +42,13 @@ class MCPWebsocketConfig(MCPBaseConfig):
     transport: Literal["websocket"] = "websocket"
     url: str
     session_kwargs: Optional[Dict[str, Any]] = None
+
+
+
+class MCPServerImportedReq(BaseModel):
+    server_name: str
+    imported_config: dict
+    logo_url: str = app_settings.default_config.get("mcp_logo_url", "")
 
 
 class MCPResponseFormat(BaseModel):

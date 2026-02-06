@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, UploadProps } from 'element-plus'
 import { Plus, Connection, VideoPlay, Edit, Delete, View, Tools } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
 import mcpIcon from '../../assets/mcp.svg'
@@ -33,13 +33,65 @@ const configStatus = reactive({
   message: '',
 })
 
+// 示例配置JSON
+const exampleConfig = `{
+  "mcpServers": {
+    "amap-maps": {
+      "type": "sse",
+      "url": "Your_URL",
+      "headers": {
+        "Authorization": "Bearer Your_Token"
+      }
+    }
+  }
+}`
+
 // 表单数据
 const formData = ref<CreateMCPServerRequest>({
   server_name: '',
   url: '',
+  // 链接类型不再由前端表单选择，统一采用后端默认值（如 SSE）
   type: 'sse',
-  config: '{}'
+  logo_url: '',
+  config: ''
 })
+
+// Logo 上传相关
+const uploadingLogo = ref(false)
+
+const handleLogoUploadSuccess: UploadProps['onSuccess'] = (response: any) => {
+  // 后端通常返回 { data: 'http://xxx/xxx.png', ... } 或直接是字符串
+  const imageUrl = typeof response === 'string' ? response : response?.data
+  if (imageUrl) {
+    formData.value.logo_url = imageUrl
+    ElMessage.success('Logo 上传成功')
+  } else {
+    ElMessage.error('上传失败，未获取到图片链接')
+  }
+  uploadingLogo.value = false
+}
+
+const handleLogoUploadError: UploadProps['onError'] = (err: any) => {
+  console.error('Logo 上传失败:', err)
+  ElMessage.error('Logo 上传失败，请重试')
+  uploadingLogo.value = false
+}
+
+const beforeLogoUpload: UploadProps['beforeUpload'] = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt2M = file.size / 1024 / 1024 < 2
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件作为 Logo')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB')
+    return false
+  }
+  uploadingLogo.value = true
+  return true
+}
 
 // 用户配置相关数据
 const userConfigData = ref<string>('{}') // 仅保留配置数据，编辑时不预加载
@@ -50,23 +102,26 @@ const formErrors = ref<Record<string, string>>({})
 const validateForm = () => {
   formErrors.value = {}
   
-  if (!formData.value.server_name) {
-    formErrors.value.server_name = '请输入服务器名称'
-  } else if (formData.value.server_name.length < 2 || formData.value.server_name.length > 50) {
-    formErrors.value.server_name = '服务器名称长度在 2 到 50 个字符'
-  }
-  
-  if (!formData.value.url) {
-    formErrors.value.url = '请输入服务器地址'
-  } else {
-    const urlPattern = /^https?:\/\/.+/
-    if (!urlPattern.test(formData.value.url)) {
-      formErrors.value.url = '请输入正确的URL格式'
+  // 服务器名称为可选字段，仅在用户填写时做长度校验
+  if (formData.value.server_name && formData.value.server_name.trim() !== '') {
+    if (formData.value.server_name.length < 2 || formData.value.server_name.length > 50) {
+      formErrors.value.server_name = '服务器名称长度在 2 到 50 个字符'
     }
   }
   
-  if (!formData.value.type) {
-    formErrors.value.type = '请选择连接类型'
+  // Logo为可选字段，不需要验证
+  
+  // 服务器配置验证：必须是有效的JSON格式才能提交
+  if (!formData.value.config || formData.value.config.trim() === '') {
+    formErrors.value.config = '请输入服务器配置'
+  } else {
+    // 验证JSON格式
+    try {
+      const parsed = JSON.parse(formData.value.config.trim())
+      // 验证通过
+    } catch (error) {
+      formErrors.value.config = '配置信息格式不正确，请输入有效的JSON格式'
+    }
   }
   
   return Object.keys(formErrors.value).length === 0
@@ -115,7 +170,8 @@ const handleCreate = () => {
     server_name: '',
     url: '',
     type: 'sse',
-    config: '{}'
+    logo_url: '',
+    config: ''
   }
 }
 
@@ -137,6 +193,7 @@ const handleEdit = (server: MCPServer) => {
     server_name: server.server_name,
     url: server.url,
     type: server.type,
+    logo_url: server.logo_url || '',
     config: '{}' // 编辑时不涉及配置
   }
 }
@@ -166,17 +223,20 @@ const handleSubmit = async () => {
       return
     } else {
       // 创建模式：创建服务器
-      // 处理配置字段
+      // 处理配置字段：解析JSON，如果用户清空了，使用空对象 {}
       let configData = {}
-      if (formData.value.config && typeof formData.value.config === 'string') {
+      if (formData.value.config && typeof formData.value.config === 'string' && formData.value.config.trim() !== '') {
         try {
-          configData = JSON.parse(formData.value.config)
+          const parsed = JSON.parse(formData.value.config.trim())
+          configData = parsed
         } catch (error) {
           formErrors.value.config = '配置信息格式不正确，请输入有效的JSON格式'
+          formLoading.value = false
           return
         }
       } else {
-        configData = formData.value.config || {}
+        // 如果为空或未填写，使用空对象
+        configData = {}
       }
       
       const submitData = {
@@ -754,17 +814,10 @@ const saveUserConfig = async () => {
               </div>
 
               <form @submit.prevent="handleSubmit" class="mcp-form">
-                <!-- 服务器信息 -->
-                <div class="form-section">
-                  <div class="section-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span v-if="editingServer">服务器信息 (只读)</span>
-                    <span v-else>基础信息</span>
-                  </div>
-                  
-                  <div class="form-grid">
+                <!-- 统一表单区域（仅创建时显示） -->
+                <div class="form-section" v-if="!editingServer">
+                  <div class="form-layout">
+                    <!-- 服务器名称 -->
                     <div class="form-group">
                       <label for="server_name">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -776,128 +829,78 @@ const saveUserConfig = async () => {
                         id="server_name"
                         v-model="formData.server_name" 
                         type="text"
-                        placeholder="例如：Weather API Server"
+                        placeholder="例如：Weather-Server"
                         :class="{ 'error': formErrors.server_name }"
-                        :readonly="!!editingServer"
-                        :disabled="!!editingServer"
                       />
                       <span v-if="formErrors.server_name" class="error-text">{{ formErrors.server_name }}</span>
                     </div>
-                    
+
+                    <!-- Logo -->
                     <div class="form-group">
-                      <label for="type">
+                      <label>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 20h9l-3-9H8l-3 9h9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <path d="M12 20v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          <path d="M4 15l4-4 4 4 4-5 4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
-                        连接类型
+                        Logo
                       </label>
-                      <select 
-                        id="type"
-                        v-model="formData.type"
-                        :class="{ 'error': formErrors.type }"
-                        :disabled="!!editingServer"
+                      <el-upload
+                        class="logo-upload-square"
+                        action="/api/v1/upload"
+                        :show-file-list="false"
+                        :on-success="handleLogoUploadSuccess"
+                        :on-error="handleLogoUploadError"
+                        :before-upload="beforeLogoUpload"
+                        accept="image/*"
                       >
-                        <option value="sse">SSE (Server-Sent Events)</option>
-                        <option value="websocket">WebSocket</option>
-                      </select>
-                      <span v-if="formErrors.type" class="error-text">{{ formErrors.type }}</span>
+                        <div v-if="formData.logo_url" class="logo-preview-square">
+                          <img :src="formData.logo_url" alt="logo 预览" />
+                          <div class="logo-overlay">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          </div>
+                        </div>
+                        <div v-else class="logo-upload-placeholder" :class="{ 'uploading': uploadingLogo }">
+                          <svg v-if="!uploadingLogo" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          <span v-else class="uploading-text">上传中...</span>
+                        </div>
+                      </el-upload>
+                      <span v-if="formErrors.logo_url" class="error-text">{{ formErrors.logo_url }}</span>
                     </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="url">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 19c-5 0-5-5.5-7-5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M21 9a9 9 0 0 1-9 9c-4.5 0-4.5-4-6-4h-.5a2.5 2.5 0 0 1 0-5H9a9 9 0 0 1 12 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      服务器地址
-                    </label>
-                    <input 
-                      id="url"
-                      v-model="formData.url" 
-                      type="url"
-                      placeholder="http://localhost:3001/sse"
-                      :class="{ 'error': formErrors.url }"
-                      :readonly="!!editingServer"
-                      :disabled="!!editingServer"
-                    />
-                    <span v-if="formErrors.url" class="error-text">{{ formErrors.url }}</span>
-                    <div class="input-help" v-if="!editingServer">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="#909399" stroke-width="2"/>
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 17h.01" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>请确保服务器地址可以正常访问，支持HTTP和HTTPS协议</span>
-                    </div>
-                    <div class="input-help" v-else>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="#f56c6c" stroke-width="2"/>
-                        <path d="M12 8v4" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 16h.01" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>服务器基础信息不可修改，如需更改请联系管理员</span>
-                    </div>
-                  </div>
-                </div>
 
-
-
-                <!-- 基础配置（仅创建时显示） -->
-                <div class="form-section" v-if="!editingServer">
-                  <div class="section-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="3" stroke="#409eff" stroke-width="2"/>
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span>服务器配置 (可选)</span>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="config">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      服务器默认配置
-                    </label>
-                    <div class="textarea-wrapper">
-                      <textarea 
-                        id="config"
-                        v-model="formData.config" 
-                        rows="8"
-                        placeholder='请输入JSON格式的配置信息，例如：
-
-{
-  "api_key": "default_api_key",
-  "timeout": 30000,
-  "headers": {
-    "User-Agent": "MCP-Client/1.0"
-  }
-}'
-                        :class="{ 'error': formErrors.config }"
-                      ></textarea>
-                      <div class="json-indicator">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M16 3l4 4-4 4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <path d="M8 21l-4-4 4-4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <path d="M15 14l-6-6" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- 服务配置 -->
+                    <div class="form-group form-group-full">
+                      <label for="config">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        JSON
+                        服务配置 <span class="required-mark">*</span>
+                      </label>
+                      <div class="textarea-wrapper">
+                        <textarea 
+                          id="config"
+                          v-model="formData.config" 
+                          rows="8"
+                          :placeholder="exampleConfig"
+                          :class="{ 'error': formErrors.config }"
+                        ></textarea>
+                        <div class="json-indicator">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 3l4 4-4 4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M8 21l-4-4 4-4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M15 14l-6-6" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          JSON
+                        </div>
                       </div>
-                    </div>
-                    <span v-if="formErrors.config" class="error-text">{{ formErrors.config }}</span>
-                    <div class="input-help">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="#67c23a" stroke-width="2"/>
-                        <polyline points="16,12 12,8 8,12" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="12" y1="16" x2="12" y2="8" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>服务器默认配置，所有用户共享。用户可以通过个人配置进行覆盖</span>
+                      <span v-if="formErrors.config" class="error-text">{{ formErrors.config }}</span>
                     </div>
                   </div>
                 </div>
@@ -1269,9 +1272,14 @@ const saveUserConfig = async () => {
 
 .modal-body {
   padding: 24px;
-  overflow-y: auto;
+  overflow: hidden;
   flex: 1;
   background: #fafafa;
+  
+  &.tools-content {
+    overflow-y: auto;
+    max-height: calc(90vh - 140px);
+  }
 }
 
 .modal-footer {
@@ -1346,7 +1354,20 @@ const saveUserConfig = async () => {
       color: #303133;
       font-size: 16px;
       
-// 移除不需要的状态样式
+      .required-mark {
+        color: #f56c6c;
+        margin-left: 4px;
+      }
+    }
+  }
+  
+  .form-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
     }
   }
   
@@ -1361,7 +1382,12 @@ const saveUserConfig = async () => {
   }
   
   .form-group {
-    margin-bottom: 24px;
+    margin-bottom: 0;
+    
+    &.form-group-full {
+      grid-column: 1 / -1;
+      margin-bottom: 0;
+    }
     
     label {
       display: flex;
@@ -1372,12 +1398,9 @@ const saveUserConfig = async () => {
       margin-bottom: 12px;
       font-size: 14px;
       
-      &[for$="_name"]::after,
-      &[for$="_url"]::after,
-      &[for$="_type"]::after {
-        content: " *";
+      .required-mark {
         color: #f56c6c;
-        margin-left: 4px;
+        margin-left: 2px;
       }
       
       svg {
@@ -1434,7 +1457,7 @@ const saveUserConfig = async () => {
       min-height: 100px;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
       line-height: 1.6;
-      font-size: 13px;
+      font-size: 16px;
     }
     
     select {
@@ -1492,6 +1515,112 @@ const saveUserConfig = async () => {
         font-weight: 500;
         border: 1px solid #e4e7ed;
         backdrop-filter: blur(4px);
+      }
+    }
+    
+    // 方形加号上传按钮样式
+    .logo-upload-square {
+      margin-left: 20px;
+      
+      :deep(.el-upload) {
+        width: 100px;
+        height: 100px;
+        border: 2px solid #409eff;
+        border-radius: 8px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: #ecf5ff;
+        display: block;
+        box-sizing: border-box;
+        
+        &:hover {
+          background: #409eff;
+          border-color: #409eff;
+          
+          .logo-upload-placeholder {
+            svg path {
+              stroke: white !important;
+            }
+          }
+        }
+      }
+      
+      .logo-upload-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #409eff;
+        transition: all 0.3s ease;
+        background: transparent;
+        
+        svg {
+          width: 32px;
+          height: 32px;
+          display: block;
+          
+          path {
+            stroke: #409eff !important;
+            stroke-width: 2.5;
+          }
+        }
+        
+        &.uploading {
+          .uploading-text {
+            font-size: 12px;
+            color: #409eff;
+            font-weight: 500;
+          }
+        }
+      }
+      
+      :deep(.el-upload:hover) {
+        .logo-upload-placeholder {
+          color: white;
+          
+          svg path {
+            stroke: white !important;
+          }
+        }
+      }
+      
+      .logo-preview-square {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        img {
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 4px;
+        }
+        
+        .logo-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          
+          &:hover {
+            opacity: 1;
+          }
+        }
       }
     }
   }

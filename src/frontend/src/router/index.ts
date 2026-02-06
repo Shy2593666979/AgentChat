@@ -15,6 +15,7 @@ import McpServer from '../pages/mcp-server'
 import Knowledge from '../pages/knowledge'
 import KnowledgeFile from '../pages/knowledge/knowledge-file.vue'
 import Tool from '../pages/tool'
+import AgentSkill from '../pages/agent-skill'
 import Model from '../pages/model'
 import ModelEditor from '../pages/model/model-editor.vue'
 import Profile from '../pages/profile'
@@ -172,6 +173,14 @@ const routes: RouteRecordRaw[] = [
           current: 'tool'
         },
         component: Tool,
+      },
+      {
+        path: '/agent-skill',
+        name: 'agent-skill',
+        meta: {
+          current: 'agent-skill'
+        },
+        component: AgentSkill,
       },
       {
         path: '/model',

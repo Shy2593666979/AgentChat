@@ -20,6 +20,7 @@ class AgentSkillDao:
                 AgentSkill.id == agent_skill_id
             )
             await session.exec(statement)
+            await session.commit()
 
     @classmethod
     async def get_agent_skills(cls, user_id):

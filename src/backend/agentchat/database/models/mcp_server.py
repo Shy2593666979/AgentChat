@@ -43,6 +43,7 @@ class MCPServerTable(SQLModelSerializable, table=True):
     config: List[dict] = Field(sa_column=Column(JSON), description="配置，如apikey等")
     tools: List[str] = Field(default=[], sa_column=Column(JSON), description="MCP Server的工具列表")
     params: List[dict] = Field(sa_column=Column(JSON), description="输入参数")
+    #headers: Optional[dict] = Field(sa_column=Column(JSON), description="MCP服务请求的Headers鉴权配置")
     config_enabled: bool = Field(False, description="是否需要用户单独配置参数")
     update_time: Optional[datetime] = Field(sa_column=Column(
         DateTime,

@@ -1,34 +1,33 @@
 import json
+from loguru import logger
 from typing import Optional
-
 from fastapi import APIRouter, Body, Depends
 
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.mcp import McpAsToolPrompt
-from agentchat.schema.mcp import MCPResponseFormat
+from agentchat.schema.mcp import MCPResponseFormat, MCPServerImportedReq
 from agentchat.schema.schemas import resp_500, resp_200
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.services.mcp.manager import MCPManager
-from loguru import logger
-
 from agentchat.utils.convert import convert_mcp_config
 
 router = APIRouter(tags=["MCP-Server"])
 
 
 @router.post("/mcp_server")
-async def create_mcp_server(server_name: str = Body(..., description="MCP Server的名称"),
-                            url: str = Body(..., description="MCP Server 的URL"),
-                            type: str = Body(..., description="MCP Server 的连接方式，SSE、Websocket"),
-                            config: dict = Body(None, description="MCP Server 的配置信息"),
-                            logo_url: Optional[str] = Body("xxxx", description="MCP Server 的LOGO"),
-                            login_user: UserPayload = Depends(get_login_user)):
+async def create_mcp_server(
+        req: MCPServerImportedReq,
+        login_user: UserPayload = Depends(get_login_user)
+):
     try:
+        await MCPService.validate_imported_config(req.imported_config)
+        name, info = next(iter(req.imported_config.get("mcpServers", {}).items()))
         server_info = {
-            "server_name": server_name,
-            "type": type,
-            "url": url
+            "server_name": req.server_name or name, # 传入Mcp Server名称优先级更高
+            "type": info.get("type", "sse"),
+            "headers": info.get("headers"),
+            "url": info.get("url")
         }
         mcp_manager = MCPManager(
             [convert_mcp_config(server_info)]
@@ -38,15 +37,27 @@ async def create_mcp_server(server_name: str = Body(..., description="MCP Server
         for key, tools in tools_params.items():
             for tool in tools:
                 tools_name_str.append(tool["name"])
-        config_enabled = True if config else False
 
+        # 每次更新配置需要修改Mcp As Tool的信息
         structured_agent = StructuredResponseAgent(MCPResponseFormat)
         structured_response = structured_agent.get_structured_response(
-            McpAsToolPrompt.format(tools_info=json.dumps(tools_params, indent=4)))
+            McpAsToolPrompt.format(tools_info=json.dumps(tools_params, indent=4))
+        )
 
-        await MCPService.create_mcp_server(server_name, login_user.user_id, login_user.user_name, url, type, config,
-                                           tools_name_str, tools_params.get(server_name), config_enabled, logo_url,
-                                           structured_response.mcp_as_tool_name, structured_response.description)
+        await MCPService.create_mcp_server(
+            tools=tools_name_str,
+            url=info.get("url"),
+            config={},
+            type=info.get("type", "sse"),
+            user_id=login_user.user_id,
+            server_name=req.server_name or name,
+            config_enabled=False,
+            logo_url=req.logo_url,
+            params=tools_params.get(req.server_name or name),
+            user_name=login_user.user_name,
+            description=structured_response.description,
+            mcp_as_tool_name=structured_response.mcp_as_tool_name,
+        )
         return resp_200()
     except Exception as err:
         logger.error(err)
