@@ -1,111 +1,108 @@
-# 服务配置
+# 只做展示
 server:
   host: "127.0.0.1"
   port: 7860
-  project_name: "AgentChat" # 项目名称
-  version: "2.2.0" # 服务版本号
+  project_name: "AgentChat"
+  version: "2.3.0"
 
-# 数据库配置：MySQL (请根据实际配置更改 endpoint)
-# 格式：mysql+pymysql://<user>:<password>@<host>:<port>/<database>
+# 根据自己的MySQL配置更改：mysql+pymysql://账号（root）:账号密码（123456）@主机地址（localhost）:端口号（3306）/数据库名
 mysql:
-  endpoint: "mysql+pymysql://root:123456@localhost:3306/agentchat" # 同步连接配置
-  async_endpoint: "mysql+aiomysql://root:123456@localhost:3306/agentchat" # 异步连接配置
+  endpoint: "mysql+pymysql://root:mingguang0703@localhost:3306/agentchat"
+  async_endpoint: "mysql+aiomysql://root:mingguang0703@localhost:3306/agentchat"
 
-# 缓存配置：Redis
 redis:
-  endpoint: "redis://localhost:6379" # Redis 连接地址
+  endpoint: "redis://localhost:6379"
 
-# 多模型服务配置 (LLM、Embedding、Rerank)
+# 根据自己的LLM配置进行更改
 multi_models:
-  # 对话模型配置
   conversation_model:
-    api_key: "sk-6d47d94f4c734357******"
-    base_url: "https://api.deepseek.com/v1"
-    model_name: "deepseek-chat"
-  # 工具调用/Function Call 模型配置
+    api_key: "sk-fc40dd0604f04142a07***********"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "qwen3-coder-plus"
   tool_call_model:
-    api_key: "sk-fc40dd0604f04142a******"
+    api_key: "sk-fc40dd0604f04142a*********"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model_name: "qwen-plus"
-  # 复杂推理模型配置
   reasoning_model:
-    api_key: "sk-6d47d94f4c734357******"
+    api_key: "sk-6d47d94f4c73435***********"
     base_url: "https://api.deepseek.com/v1"
     model_name: "deepseek-reasoner"
-  # 文生图模型配置
   text2image:
-    api_key: "sk-fc40dd0604f04142a******"
+    api_key: "sk-fc40dd0604f04142**********"
     base_url: "https://dashscope.aliyuncs.com/api/v1/services/aigc/text2image/image-synthesis"
     model_name: "wanx2.0-t2i-turbo"
-  # 多模态 (视觉) 模型配置
   qwen_vl:
-    api_key: "sk-fc40dd0604f04142a******"
+    api_key: "sk-fc40dd0604f04142a07********"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model_name: "qwen-vl-plus"
+  qwen3_coder:
+    api_key: "sk-fc40dd0604f04142a*********"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "qwen3-coder-plus"
 
-  # Embedding 模型配置 (用于向量化)
+  # 根据自己的Embedding配置进行更改
   embedding:
-    api_key: "sk-fc40dd0604f04142a******"
+    api_key: "sk-fc40dd0604f04142a*********"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model_name: "text-embedding-v4"
 
-  # Rerank 模型配置 (用于重排序召回结果)
+  # 根据自己的Rerank配置进行更改
   rerank:
-    api_key: "sk-fc40dd0604f04142a******"
+    api_key: "sk-fc40dd0604f04142*********"
     base_url: "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
     model_name: "gte-rerank-v2"
 
 
-# 外部工具 (Tool) 配置
 tools:
-  # 高德地图天气 API 配置
+  # 使用高德地图上的天气api
   weather:
-    api_key: "fac0ad465078da96a3ec6******"
+    api_key: "fac0ad465078da96a3********"
     endpoint: "https://restapi.amap.com/v3/weather/weatherInfo?parameters"
-  # Tavily 联网搜索 API 配置 (注意配额限制)
+
+  # 使用的tavily上的联网搜索功能， 1000次/month
   tavily:
-    api_key: "tvly-dev-RMf7KBCQLyXhn3******"
-  # SerpApi 上的 Google Search API 配置
+    api_key: "tvly-dev-RMf7KBCQLyXhn3t************"
+
+  # 使用的是serpapi上的Google Search的api
   google:
-    api_key: "cdc3b207606843b4c883849c3a0f833c1305781******"
-  # 阿里云快递查询 API 配置
+    api_key: "cdc3b207606843b4c883849c3a0f833c13057811b*********"
+
+  # 使用的是aliyun上的快递查询api
   delivery:
-    api_key: "df695c94fc644d******"
+    api_key: "df695c94fc644d27b23**********"
     endpoint: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
 
-# RAG (检索增强生成) 配置
 rag:
-  enable_summary: False # 是否对知识库片段进行摘要
-  enable_elasticsearch: False # 是否启用 Elasticsearch 进行关键词搜索
+  enable_summary: False # 是否对片段进行摘要
 
   retrival:
-    top_k: 5  # 知识库召回的最大数量
-    min_score: 0.2 # 知识库召回结果的最小相似度分数阈值
+    top_k: 5  # 知识库召回的数量
+    min_score: 0.2 # 知识库召回的最小分数
 
   split:
-    chunk_size: 500 # 知识库文档分块的最大字符数
-    overlap_size: 100 # 文档分块之间的重叠字符数
+    chunk_size: 500 # 知识库片段的最大字符数
+    overlap_size: 100 # 知识库片段之间的重复字符
 
-  # ES数据库配置，主要做关键词召回
   elasticsearch:
-    hosts: "http://127.0.0.1:9200" # Elasticsearch 连接地址。如果 'enable_elasticsearch' 为 False，则不需要填写。
+    hosts: "http://127.0.0.1:9200"
 
-  # 向量数据库配置 (Vector DB)
+  # vector db根据自己的配置更改
   vector_db:
     host: "127.0.0.1"
     port: "19530"
-    mode: "chroma" # 向量库模式: standalone (Milvus), lite (轻量Milvus), chroma (ChromaDB)
+    mode: "chroma" # standalone 代表完整功能的Milvus; lite是轻量版的Milvus; chroma是更轻量级的向量库，mode 选择 chroma 不需要填host和 port
 
-# 阿里云对象存储 OSS 配置
+
 aliyun_oss:
-  access_key_id: "LTAI5tL85xWWx******"
-  access_key_secret: "MiKCkLCx9qZzxc6DwO7E******"
+  access_key_id: "LTAI5tL85xWWx**********"
+  access_key_secret: "MiKCkLCx9qZzxc6D***********"
   endpoint: "oss-cn-beijing.aliyuncs.com"
-  bucket_name: "agentchat" # OSS 存储桶名称
-  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com" # 访问基础 URL
+  bucket_name: "agentchat"
+  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
 
 # 默认配置 (如图标 URL, 资源链接)
 default_config:
+  mcp_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
   tool_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tool.png" # 工具默认图标 URL
   agent_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png" # Agent 默认图标 URL
   mars_daily_url: "https://news.aibase.com/zh/news" # 外部新闻链接
@@ -126,4 +123,4 @@ langfuse:
   user_id: "LiangTian" # 用户 ID
 
 # 接口白名单路径
-whitelist_paths: [ "/api/v1/login" ]
+whitelist_paths: ["/api/v1/login"]
