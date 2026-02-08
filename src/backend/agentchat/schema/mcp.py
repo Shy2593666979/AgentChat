@@ -50,6 +50,11 @@ class MCPServerImportedReq(BaseModel):
     imported_config: dict
     logo_url: str = app_settings.default_config.get("mcp_logo_url", "")
 
+class MCPServerUpdateReq(BaseModel):
+    server_id: str
+    name: str = None
+    logo_url: str = None
+    imported_config: dict = None
 
 class MCPResponseFormat(BaseModel):
     mcp_as_tool_name: str = Field(..., description="根据该mcp服务下提供的工具描述生成一个工具名称，要求是2-4个英文单词组成，用下划线_隔开")

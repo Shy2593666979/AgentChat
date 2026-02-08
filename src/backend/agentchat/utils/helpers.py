@@ -4,8 +4,26 @@ import re
 import requests
 # from services.agent import AgentService
 from loguru import  logger
+from pydantic import BaseModel
+
 from agentchat.settings import app_settings
 from datetime import datetime, timedelta, timezone
+
+class ImportedConfigInfo(BaseModel):
+    name: str
+    url: str
+    type: str = "sse"
+    headers: dict = None
+
+def parse_imported_config(imported_config):
+    name, info = next(iter(imported_config.get("mcpServers", {}).items()))
+
+    return ImportedConfigInfo(
+        name=name,
+        url=info.get("url"),
+        type=info.get("type"),
+        headers=info.get("headers")
+    )
 
 
 def combine_history_messages(history_messages):

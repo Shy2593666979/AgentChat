@@ -1,9 +1,11 @@
 import json
 import random
-
 import rsa
 import hashlib
+from base64 import b64decode
 from fastapi_jwt_auth import AuthJWT
+from fastapi import Request, Depends, HTTPException
+
 
 from agentchat.services.aliyun_oss import aliyun_oss
 from agentchat.services.redis import redis_client
@@ -12,8 +14,6 @@ from agentchat.database.models.role import AdminRole
 from agentchat.api.errcode.user import UserNameAlreadyExistError
 from agentchat.settings import app_settings
 from agentchat.utils.hash import md5_hash
-from base64 import b64decode
-from fastapi import Request, Depends, HTTPException
 from agentchat.database.models.user import UserTable
 from agentchat.database.dao.user import UserDao
 from agentchat.utils.constants import RSA_KEY

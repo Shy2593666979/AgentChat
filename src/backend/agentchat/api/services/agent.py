@@ -7,8 +7,6 @@ from agentchat.schema.agent import AgentCreateReq
 
 class AgentService:
 
-    # ---------- 内部工具 ----------
-
     @staticmethod
     def _to_dict_list(results):
         """
@@ -31,8 +29,6 @@ class AgentService:
         owner_id = await cls.get_agent_user_id(agent_id)
         if user_id != owner_id:
             raise ValueError("没有权限访问")
-
-    # ---------- 写操作 ----------
 
     @classmethod
     async def create_agent(
@@ -173,7 +169,7 @@ class AgentService:
         判断 Agent 是否为自定义类型
         """
         agent = await AgentDao.select_agent_by_name(
-            name,
+            name=name,
         )
         return agent.is_custom if agent else False
 
@@ -246,6 +242,6 @@ class AgentService:
         返回字典或 None
         """
         agent = await AgentDao.select_agent_by_id(
-            agent_id,
+            agent_id=agent_id,
         )
         return agent.to_dict() if agent else None
