@@ -25,6 +25,10 @@
 ### 🚀 一键启动
 
 ```bash
+# 0️⃣ 配置应用（必须先完成！）
+vim src/backend/agentchat/config.yaml
+# 修改数据库连接、API密钥等配置
+
 # 1️⃣ 进入docker目录
 cd docker
 
@@ -49,39 +53,83 @@ chmod +x start.sh stop.sh
 
 ## 🔧 配置说明
 
-### 📝 环境变量配置
+### ⚠️ 重要提示
 
-首次运行时，系统会自动创建 `docker.env` 文件：
+**AgentChat 使用 `config.yaml` 文件进行配置，而不是环境变量！**
+
+在启动 Docker 容器之前，您必须先修改配置文件：
 
 ```bash
-# 复制配置模板
-cp docker.env.example docker.env
-
-# 编辑配置文件
-vim docker.env  # 或使用你喜欢的编辑器
+# 编辑配置文件（必须在启动前完成）
+vim ../src/backend/agentchat/config.yaml
 ```
 
 ### 🤖 必要配置项
 
-```bash
-# OpenAI配置（必填）
-OPENAI_API_KEY=sk-your-openai-api-key
+打开 `src/backend/agentchat/config.yaml` 并修改以下配置：
 
-# Anthropic配置（可选）
-ANTHROPIC_API_KEY=sk-ant-your-key
+#### 1️⃣ 数据库配置（必填）
 
-# 其他AI模型...
+```yaml
+mysql:
+  endpoint: "mysql+pymysql://root:your-password@mysql:3306/agentchat"
+  async_endpoint: "mysql+aiomysql://root:your-password@mysql:3306/agentchat"
+
+redis:
+  endpoint: "redis://redis:6379"
 ```
 
-### 🔐 安全配置
+> � **注意**：Docker 环境中，主机名使用服务名（`mysql`、`redis`），而不是 `localhost`
 
-```bash
-# 生产环境请务必修改
-JWT_SECRET_KEY=your-super-secret-key
+#### 2️⃣ AI 模型配置（必填）
 
-# 数据库密码
-MYSQL_PASSWORD=your-secure-password
+```yaml
+multi_models:
+  # 对话模型
+  conversation_model:
+    api_key: "your-api-key"
+    base_url: "https://api.openai.com/v1"
+    model_name: "gpt-4"
+  
+  # 工具调用模型
+  tool_call_model:
+    api_key: "your-api-key"
+    base_url: "https://api.openai.com/v1"
+    model_name: "gpt-4"
+  
+  # Embedding 模型
+  embedding:
+    api_key: "your-api-key"
+    base_url: "https://api.openai.com/v1"
+    model_name: "text-embedding-3-small"
 ```
+
+#### 3️⃣ 可选配置
+
+```yaml
+# RAG 向量数据库（如需使用知识库功能）
+rag:
+  vector_db:
+    host: "your-milvus-host"
+    port: "19530"
+    mode: "chroma"
+
+# 对象存储（如需文件上传功能）
+aliyun_oss:
+  access_key_id: "your-access-key"
+  access_key_secret: "your-secret"
+  endpoint: "oss-cn-beijing.aliyuncs.com"
+  bucket_name: "your-bucket"
+```
+
+### 🔐 Docker 环境配置注意事项
+
+在 Docker 环境中，请确保：
+
+1. **数据库主机名**：使用 `mysql` 而不是 `localhost`
+2. **Redis 主机名**：使用 `redis` 而不是 `localhost`
+3. **服务端口**：保持 `config.yaml` 中的端口配置为 `7860`
+4. **API 密钥**：填写真实有效的 API 密钥
 
 ---
 
@@ -223,11 +271,13 @@ docker-compose up -d mysql
 <summary><b>🚀 API密钥错误</b></summary>
 
 ```bash
-# 检查环境变量
-docker-compose exec backend printenv | grep API_KEY
+# 检查配置文件
+cat ../src/backend/agentchat/config.yaml
 
-# 重新设置环境变量
-vim docker.env
+# 修改配置文件
+vim ../src/backend/agentchat/config.yaml
+
+# 重启后端服务使配置生效
 docker-compose restart backend
 ```
 

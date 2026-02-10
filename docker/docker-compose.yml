@@ -57,22 +57,6 @@ services:
     ports:
       - "7860:7860"
     environment:
-      # 🗄️ 数据库配置
-      DATABASE_URL: mysql://agentchat_user:123456@mysql:3306/agentchat
-      REDIS_URL: redis://redis:6379/0
-      
-      # 🌍 应用配置
-      APP_ENV: development
-      LOG_LEVEL: info
-      
-      # 🔐 安全配置
-      JWT_SECRET_KEY: your-super-secret-jwt-key-change-in-production
-      
-      # 🤖 AI模型配置（请在.env文件中设置）
-      OPENAI_API_KEY: ${OPENAI_API_KEY:-}
-      ANTHROPIC_API_KEY: ${ANTHROPIC_API_KEY:-}
-      QWEN_API_KEY: ${QWEN_API_KEY:-}
-      
       TZ: Asia/Shanghai
 #    volumes:
 #      - ../src/backend:/app:cached
