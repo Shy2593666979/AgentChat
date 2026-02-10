@@ -46,5 +46,11 @@
     "zh_name": "文生图",
     "description": "将用户的图片描述生成一张照片",
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/text2image.png"
+  },
+  {
+    "en_name": "bocha_search",
+    "zh_name": "bocha联网搜索",
+    "description": "帮助用户使用bocha搜索相关信息",
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bocha.png"
   }
 ]

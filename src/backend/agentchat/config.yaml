@@ -68,6 +68,10 @@ tools:
   # SerpApi 上的 Google Search API 配置
   google:
     api_key: "cdc3b207606843b4c883849c3a0f833c1305781******"
+  # BoCha 联网搜索 API 配置
+  bocha:
+    api_key: "sk-**********************"
+    url: "https://api.bochaai.com/v1/web-search"
   # 阿里云快递查询 API 配置
   delivery:
     api_key: "df695c94fc644d******"
