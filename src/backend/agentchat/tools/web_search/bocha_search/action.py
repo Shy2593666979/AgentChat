@@ -33,7 +33,7 @@ def bocha_search(
         str: 格式化的搜索结果或错误信息
     """
 
-    url = 'https://api.bochaai.com/v1/web-search'
+    url = app_settings.tools.bocha.get("url")
     headers = {
         'Authorization': f'Bearer {app_settings.tools.bocha.get("api_key")}',  # 请替换为你的API密钥
         # 'Authorization': f'Bearer sk-**************',  # 请替换为你的API密钥
