@@ -52,6 +52,7 @@ class Tools(BaseModel):
     tavily: dict = Field(default_factory=dict)
     google: dict = Field(default_factory=dict)
     delivery: dict = Field(default_factory=dict)
+    bocha: dict = Field(default_factory=dict)
 
 
 class Rag(BaseModel):
