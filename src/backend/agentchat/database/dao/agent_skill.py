@@ -1,3 +1,5 @@
+from typing import Sequence, List
+
 from sqlmodel import delete, select
 from agentchat.database.session import async_session_getter
 from agentchat.database.models.agent_skill import AgentSkill
@@ -39,6 +41,21 @@ class AgentSkillDao:
             )
             result = await session.exec(statement)
             return result.first()
+
+    @classmethod
+    async def get_agent_skills_by_ids(
+        cls,
+        agent_skill_ids: List[str],
+    ) -> List[AgentSkill]:
+        if not agent_skill_ids:
+            return []
+
+        async with async_session_getter() as session:
+            statement = select(AgentSkill).where(
+                AgentSkill.id.in_(agent_skill_ids)
+            )
+            result = await session.exec(statement)
+            return result.all()
 
 
     @classmethod

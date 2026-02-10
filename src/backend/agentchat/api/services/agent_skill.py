@@ -45,6 +45,11 @@ class AgentSkillService:
         return result.to_dict()
 
     @classmethod
+    async def get_agent_skills_by_ids(cls, agent_skill_ids):
+        results = await AgentSkillDao.get_agent_skills_by_ids(agent_skill_ids)
+        return results
+
+    @classmethod
     async def update_agent_skill_file(cls, agent_skill_id, target_path, new_content):
         agent_skill = await AgentSkillDao.get_agent_skill_by_id(agent_skill_id)
         agent_skill_copy = agent_skill.folder.copy()
@@ -126,3 +131,20 @@ class AgentSkillService:
         agent_skill.folder = agent_skill_copy
         await AgentSkillDao.update_agent_skill(agent_skill)
         return agent_skill.model_dump()
+
+    @staticmethod
+    def get_skill_md_content(data):
+        """
+        从给定的 JSON 数据中提取 SKILL.md 文件的 content。
+
+        Args:
+            data (dict): 解析后的 JSON 字典（不是字符串）
+
+        Returns:
+            str: SKILL.md 的内容，如果没找到则返回空字符串
+        """
+        folder = data.get("folder", [])
+        for item in folder:
+            if item.get("name") == "SKILL.md" and item.get("type") == "file":
+                return item.get("content", "")
+        return ""

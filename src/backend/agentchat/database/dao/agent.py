@@ -19,8 +19,8 @@ class AgentDao:
 
     @classmethod
     async def create_agent(
-            cls,
-            agent: AgentTable
+        cls,
+        agent: AgentTable
     ):
         with session_getter() as session:
             session.add(agent)
