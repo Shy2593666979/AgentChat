@@ -1,6 +1,7 @@
 from agentchat.tools.send_email.action import send_email
 from agentchat.tools.web_search.google_search.action import google_search
 from agentchat.tools.web_search.tavily_search.action import tavily_search
+from agentchat.tools.web_search.bocha_search.action import bocha_search
 from agentchat.tools.arxiv.action import get_arxiv
 from agentchat.tools.get_weather.action import get_weather
 from agentchat.tools.delivery.action import get_delivery_info
@@ -13,6 +14,7 @@ from agentchat.tools.image2text.action import image_to_text
 AgentTools = [
     send_email,
     tavily_search,
+    bocha_search,
     get_weather,
     get_arxiv,
     get_delivery_info,
@@ -34,6 +36,7 @@ AgentToolsWithName = {
     "image_to_text": image_to_text,
     "convert_to_pdf": convert_to_pdf,
     "convert_to_docx": convert_to_docx,
+    "bocha_search": bocha_search,
 }
 
 WorkSpacePlugins = AgentToolsWithName
@@ -45,4 +48,5 @@ WeChatTools = {
     "get_arxiv": get_arxiv,
     "get_weather": get_weather,
     "text_to_image": text_to_image,
+    "bocha_search": bocha_search,
 }
