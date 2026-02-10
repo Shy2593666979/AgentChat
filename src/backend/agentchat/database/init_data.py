@@ -2,7 +2,7 @@ import json
 from loguru import logger
 from sqlmodel import SQLModel
 
-from agentchat.database import engine, SystemUser, ensure_mysql_database, AgentTable
+from agentchat.database import engine, SystemUser, ensure_mysql_database, AgentTable, ToolTable
 from agentchat.api.services.agent import AgentService
 from agentchat.api.services.llm import LLMService
 from agentchat.api.services.tool import ToolService
@@ -11,11 +11,10 @@ from agentchat.database.dao.agent import AgentDao
 from agentchat.database.models.user import AdminUser
 from agentchat.prompts.mcp import McpAsToolPrompt
 from agentchat.schema.mcp import MCPResponseFormat
-from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.settings import app_settings
 from agentchat.utils.convert import convert_mcp_config
-
+from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 
 # 创建MySQL数据表
 async def init_database():
@@ -65,7 +64,7 @@ async def insert_agent_to_mysql():
         tool["zh_name"] += '助手'
         await AgentDao.create_agent(
             AgentTable(
-                **tool,
+                **ToolTable(**tool).model_dump(exclude={"user_id"}),
                 user_id=SystemUser,
                 is_custom=False,
                 llm_id=llm.get("llm_id")
@@ -157,12 +156,15 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
             McpAsToolPrompt.format(tools_info=json.dumps(params, indent=4)))
 
         if has_mcp_server:
+            update_values = {
+                "tools": tools_name,
+                "params": params,
+                "mcp_as_tool_name": structured_response.mcp_as_tool_name,
+                "description": structured_response.description
+            }
             await MCPService.update_mcp_server(
-                tools=tools_name,
-                params=params,
-                mcp_server_id=server["mcp_server_id"],
-                mcp_as_tool_name=structured_response.mcp_as_tool_name,
-                description=structured_response.description
+                server_id=server["mcp_server_id"],
+                update_data=update_values
             )
         else:
             await MCPService.create_mcp_server(

@@ -1,11 +1,9 @@
 import copy
 import time
 import asyncio
-from langchain.tools import ToolRuntime
 from loguru import logger
-from pydantic.v1 import BaseModel
+from pydantic import BaseModel
 from typing import List, Dict, Any, AsyncGenerator, Callable, NotRequired
-
 from langgraph.runtime import Runtime
 from langgraph.types import Command
 from langchain_core.tools import BaseTool, tool
@@ -15,7 +13,10 @@ from langgraph.config import get_stream_writer
 from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, HumanMessage, AIMessageChunk
 from langchain.agents.middleware import LLMToolSelectorMiddleware, ModelRequest, ModelResponse, AgentMiddleware
 
+from agentchat.api.services.agent_skill import AgentSkillService
+from agentchat.core.agents.skill_agent import SkillAgent
 from agentchat.core.callbacks import usage_metadata_callback
+from agentchat.database import AgentSkill
 from agentchat.tools import AgentToolsWithName
 from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
@@ -34,14 +35,16 @@ class StreamAgentState(AgentState):
 MAX_TOOLS_SIZE = 10
 
 class AgentConfig(BaseModel):
+    user_id: str
+    llm_id: str
     mcp_ids: List[str]
     knowledge_ids: List[str]
     tool_ids: List[str]
+    agent_skill_ids: List[str]
     system_prompt: str
     enable_memory: bool = False
     name: str = None
-    user_id: str
-    llm_id: str
+
 
 
 class EmitEventAgentMiddleware(AgentMiddleware):
@@ -105,7 +108,7 @@ class EmitEventAgentMiddleware(AgentMiddleware):
             })
             return ToolMessage(content=str(err), name=request.tool_call["name"], tool_call_id=request.tool_call["id"])
 
-class StreamingAgent:
+class GeneralAgent:
     def __init__(self, agent_config: AgentConfig):
         self.agent_config = agent_config
 
@@ -116,6 +119,7 @@ class StreamingAgent:
         self.tools = []
         self.mcp_agent_as_tools = []
         self.middlewares = []
+        self.skill_agent_as_tools = []
 
         # 流式事件队列
         self.event_queue = asyncio.Queue()
@@ -134,6 +138,8 @@ class StreamingAgent:
         self.mcp_agent_as_tools = await self.setup_mcp_agent_as_tools()
 
         self.tools = await self.setup_tools()
+
+        self.skill_agent_as_tools = await self.setup_agent_skill_as_tools()
 
         await self.setup_knowledge_tool()
         await self.setup_language_model()
@@ -168,7 +174,7 @@ class StreamingAgent:
     def setup_react_agent(self):
         return create_agent(
             model=self.conversation_model,
-            tools=self.tools + self.mcp_agent_as_tools,
+            tools=self.tools + self.mcp_agent_as_tools + self.skill_agent_as_tools,
             #tools=[self.search_tool] if len(self.tools + self.mcp_agent_as_tools) >= MAX_TOOLS_SIZE else self.tools + self.mcp_agent_as_tools,
             middleware=self.middlewares,
             state_schema=StreamAgentState
@@ -224,6 +230,28 @@ class StreamingAgent:
             if agent_tool:
                 tools.append(agent_tool)
         return tools
+
+    async def setup_agent_skill_as_tools(self) -> List[BaseTool]:
+        agent_skill_as_tools = []
+        agent_skills = await AgentSkillService.get_agent_skills_by_ids(self.agent_config.agent_skill_ids)
+
+        def create_skill_agent_as_tool(agent_skill: AgentSkill):
+
+            @tool(agent_skill.name, description=agent_skill.description)
+            async def call_skill_agent(query: str):
+                """调用技能Agent"""
+                skill_agent = SkillAgent(agent_skill, self.agent_config.user_id)
+                await skill_agent.init_skill_agent()
+                messages = await skill_agent.ainvoke([HumanMessage(content=query)])
+                return "\n".join([message.content for message in messages])
+
+            return call_skill_agent
+
+        for agent_skill in agent_skills:
+            agent_skill_as_tools.append(create_skill_agent_as_tool(agent_skill))
+
+        return agent_skill_as_tools
+
 
     async def setup_mcp_agent_as_tools(self):
         mcp_agent_as_tools = []

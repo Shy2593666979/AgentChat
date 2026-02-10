@@ -7,7 +7,7 @@ from agentchat.api.services.llm import LLMService
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.tool import ToolService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
-from agentchat.prompts.chat import SYSTEM_PROMPT
+from agentchat.prompts.completion import SYSTEM_PROMPT
 from agentchat.schema.schemas import resp_200
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceSimpleTask

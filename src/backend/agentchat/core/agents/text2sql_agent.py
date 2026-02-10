@@ -6,7 +6,7 @@ from loguru import logger
 from urllib.parse import urlparse
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
-from agentchat.prompts.chat import Text2SQLGeneratePrompt, Text2SQLSummaryPrompt
+from agentchat.prompts.completion import Text2SQLGeneratePrompt, Text2SQLSummaryPrompt
 from agentchat.core.models.manager import ModelManager
 from agentchat.settings import app_settings
 

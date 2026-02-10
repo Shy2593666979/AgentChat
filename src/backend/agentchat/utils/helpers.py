@@ -2,9 +2,8 @@ import json
 import os
 import re
 import requests
-# from services.agent import AgentService
 from loguru import  logger
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 from agentchat.settings import app_settings
 from datetime import datetime, timedelta, timezone
@@ -13,7 +12,7 @@ class ImportedConfigInfo(BaseModel):
     name: str
     url: str
     type: str = "sse"
-    headers: dict = None
+    headers: dict | None = None
 
 def parse_imported_config(imported_config):
     name, info = next(iter(imported_config.get("mcpServers", {}).items()))
@@ -26,7 +25,20 @@ def parse_imported_config(imported_config):
     )
 
 
-def combine_history_messages(history_messages):
+def build_completion_system_prompt(system_prompt, history):
+    if "{history}" in system_prompt:
+        system_prompt = system_prompt.format(
+            history=f"<chat_history>\n{history}\n</chat_history>"
+        )
+    else:
+        system_prompt += f"""
+        📜 对话历史
+        - {history}
+        """
+    return system_prompt
+
+
+def build_completion_history_messages(history_messages):
     """
     examples:
         <chat_history>
@@ -65,7 +77,7 @@ def check_or_create(path):
     else:
         os.makedirs(path)
 
-def combine_user_input(user_input, file_url):
+def build_completion_user_input(user_input, file_url):
     if file_url:
         return f"{user_input}, 上传的文件链接：{file_url}"
     else:

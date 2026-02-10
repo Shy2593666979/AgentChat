@@ -15,7 +15,7 @@ from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceAgents
 from agentchat.api.services.tool import ToolService
 from agentchat.services.mcp.manager import MCPManager
-from agentchat.prompts.chat import GenerateTitlePrompt
+from agentchat.prompts.completion import GenerateTitlePrompt
 from agentchat.utils.convert import convert_mcp_config
 from agentchat.core.models.manager import ModelManager
 from agentchat.api.services.mcp_user_config import MCPUserConfigService

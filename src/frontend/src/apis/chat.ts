@@ -16,7 +16,7 @@ export interface UploadResponse {
 export function sendMessage(data: Chat, onmessage: any, onclose: any) {
   const ctrl = new AbortController();
 
-  fetchEventSource('/api/v1/chat', {
+  fetchEventSource('/api/v1/completion', {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',

@@ -10,7 +10,7 @@ from langchain.agents.middleware import AgentState, wrap_tool_call, before_agent
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.core.models.manager import ModelManager
-from agentchat.prompts.chat import CALL_END_PROMPT
+from agentchat.prompts.completion import CALL_END_PROMPT
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.utils.convert import convert_mcp_config
 

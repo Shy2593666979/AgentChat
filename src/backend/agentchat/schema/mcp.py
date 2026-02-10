@@ -1,5 +1,5 @@
 from pathlib import Path
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, model_validator
 from typing import List, Any, Dict, Optional, Literal, Union
 
 from agentchat.settings import app_settings
@@ -49,6 +49,12 @@ class MCPServerImportedReq(BaseModel):
     server_name: str
     imported_config: dict
     logo_url: str = app_settings.default_config.get("mcp_logo_url", "")
+
+    @model_validator(mode="after")
+    def set_default_logo_url(self):
+        if not self.logo_url:
+            self.logo_url = app_settings.default_config.get("mcp_logo_url", "")
+        return self
 
 class MCPServerUpdateReq(BaseModel):
     server_id: str
