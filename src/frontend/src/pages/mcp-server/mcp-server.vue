@@ -8,9 +8,11 @@ import {
   createMCPServerAPI, 
   getMCPServersAPI, 
   deleteMCPServerAPI, 
+  updateMCPServerAPI,
   updateMCPUserConfigAPI,
   type MCPServer, 
   type CreateMCPServerRequest, 
+  type UpdateMCPServerRequest,
   type MCPServerTool,
   type MCPUserConfigUpdateRequest
 } from '../../apis/mcp-server'
@@ -20,9 +22,11 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const toolsDialogVisible = ref(false)
 const configDialogVisible = ref(false)
+const deleteDialogVisible = ref(false)
 const formLoading = ref(false)
 const editingServer = ref<MCPServer | null>(null)
 const configuringServer = ref<MCPServer | null>(null)
+const deletingServer = ref<MCPServer | null>(null)
 const selectedServerTools = ref<MCPServerTool[]>([])
 const selectedServerName = ref('')
 let jsonEditor: monaco.editor.IStandaloneCodeEditor | null = null
@@ -49,12 +53,12 @@ const exampleConfig = `{
 // 表单数据
 const formData = ref<CreateMCPServerRequest>({
   server_name: '',
-  url: '',
-  // 链接类型不再由前端表单选择，统一采用后端默认值（如 SSE）
-  type: 'sse',
   logo_url: '',
-  config: ''
+  imported_config: {}
 })
+
+// 用于表单输入的字符串版本
+const configString = ref('')
 
 // Logo 上传相关
 const uploadingLogo = ref(false)
@@ -112,16 +116,17 @@ const validateForm = () => {
   // Logo为可选字段，不需要验证
   
   // 服务器配置验证：必须是有效的JSON格式才能提交
-  if (!formData.value.config || formData.value.config.trim() === '') {
-    formErrors.value.config = '请输入服务器配置'
-  } else {
+  if (configString.value && configString.value.trim() !== '') {
     // 验证JSON格式
     try {
-      const parsed = JSON.parse(formData.value.config.trim())
+      const parsed = JSON.parse(configString.value.trim())
       // 验证通过
     } catch (error) {
-      formErrors.value.config = '配置信息格式不正确，请输入有效的JSON格式'
+      formErrors.value.imported_config = '配置信息格式不正确，请输入有效的JSON格式'
     }
+  } else if (!editingServer.value) {
+    // 仅创建模式下配置为必填
+    formErrors.value.imported_config = '请输入服务器配置'
   }
   
   return Object.keys(formErrors.value).length === 0
@@ -168,11 +173,10 @@ const handleCreate = () => {
   // 重置表单
   formData.value = {
     server_name: '',
-    url: '',
-    type: 'sse',
     logo_url: '',
-    config: ''
+    imported_config: {}
   }
+  configString.value = ''
 }
 
 const handleEdit = (server: MCPServer) => {
@@ -188,13 +192,27 @@ const handleEdit = (server: MCPServer) => {
   // 阻止背景滚动
   document.body.style.overflow = 'hidden'
   
-  // 填充服务器基本信息到表单（编辑时只编辑基本信息，不包含配置）
+  // 填充服务器信息到表单，包括配置
   formData.value = {
     server_name: server.server_name,
-    url: server.url,
-    type: server.type,
     logo_url: server.logo_url || '',
-    config: '{}' // 编辑时不涉及配置
+    imported_config: {}
+  }
+  
+  // 直接使用服务器的imported_config
+  if (server.imported_config) {
+    configString.value = JSON.stringify(server.imported_config, null, 2)
+  } else {
+    // 如果没有imported_config，使用url和type重构（兼容旧数据）
+    const importedConfig = {
+      mcpServers: {
+        [server.server_name]: {
+          type: server.type,
+          url: server.url
+        }
+      }
+    }
+    configString.value = JSON.stringify(importedConfig, null, 2)
   }
 }
 
@@ -217,20 +235,45 @@ const handleSubmit = async () => {
   formLoading.value = true
   try {
     if (editingServer.value) {
-      // 编辑模式：更新服务器基本信息（不包含配置）
-      ElMessage.info('编辑功能暂未实现，请联系管理员')
-      closeDialog()
-      return
+      // 编辑模式：更新服务器信息（包括配置）
+      // 处理配置字段：解析JSON
+      let configData = undefined
+      if (configString.value && configString.value.trim() !== '') {
+        try {
+          const parsed = JSON.parse(configString.value.trim())
+          configData = parsed
+        } catch (error) {
+          formErrors.value.imported_config = '配置信息格式不正确，请输入有效的JSON格式'
+          formLoading.value = false
+          return
+        }
+      }
+      
+      const updateData: UpdateMCPServerRequest = {
+        server_id: editingServer.value.mcp_server_id,
+        name: formData.value.server_name,
+        logo_url: formData.value.logo_url,
+        imported_config: configData
+      }
+      
+      const response = await updateMCPServerAPI(updateData)
+      if (response.data.status_code === 200) {
+        ElMessage.success('更新MCP服务器成功')
+        closeDialog()
+        await fetchServers()
+      } else {
+        ElMessage.error(response.data.status_message || '更新失败')
+      }
     } else {
       // 创建模式：创建服务器
       // 处理配置字段：解析JSON，如果用户清空了，使用空对象 {}
       let configData = {}
-      if (formData.value.config && typeof formData.value.config === 'string' && formData.value.config.trim() !== '') {
+      if (configString.value && configString.value.trim() !== '') {
         try {
-          const parsed = JSON.parse(formData.value.config.trim())
+          const parsed = JSON.parse(configString.value.trim())
           configData = parsed
         } catch (error) {
-          formErrors.value.config = '配置信息格式不正确，请输入有效的JSON格式'
+          formErrors.value.imported_config = '配置信息格式不正确，请输入有效的JSON格式'
           formLoading.value = false
           return
         }
@@ -240,8 +283,9 @@ const handleSubmit = async () => {
       }
       
       const submitData = {
-        ...formData.value,
-        config: configData
+        server_name: formData.value.server_name,
+        logo_url: formData.value.logo_url,
+        imported_config: configData
       }
       
       const response = await createMCPServerAPI(submitData)
@@ -312,14 +356,29 @@ const handleDelete = async (server: MCPServer) => {
     return
   }
   
-  if (!confirm(`确定要删除MCP服务器 "${server.server_name}" 吗？`)) {
-    return
-  }
+  // 显示自定义删除确认对话框
+  deletingServer.value = server
+  deleteDialogVisible.value = true
+  // 阻止背景滚动
+  document.body.style.overflow = 'hidden'
+}
+
+const closeDeleteDialog = () => {
+  deleteDialogVisible.value = false
+  deletingServer.value = null
+  // 恢复背景滚动
+  document.body.style.overflow = 'auto'
+}
+
+const confirmDelete = async () => {
+  if (!deletingServer.value) return
   
+  formLoading.value = true
   try {
-    const response = await deleteMCPServerAPI(server.mcp_server_id)
+    const response = await deleteMCPServerAPI(deletingServer.value.mcp_server_id)
     if (response.data.status_code === 200) {
       ElMessage.success('删除成功')
+      closeDeleteDialog()
       await fetchServers() // 刷新列表
     } else {
       ElMessage.error(response.data.status_message || '删除失败')
@@ -327,6 +386,8 @@ const handleDelete = async (server: MCPServer) => {
   } catch (error) {
     console.error('删除MCP服务器失败:', error)
     ElMessage.error('删除失败')
+  } finally {
+    formLoading.value = false
   }
 }
 
@@ -814,8 +875,8 @@ const saveUserConfig = async () => {
               </div>
 
               <form @submit.prevent="handleSubmit" class="mcp-form">
-                <!-- 统一表单区域（仅创建时显示） -->
-                <div class="form-section" v-if="!editingServer">
+                <!-- 统一表单区域 -->
+                <div class="form-section">
                   <div class="form-layout">
                     <!-- 服务器名称 -->
                     <div class="form-group">
@@ -873,7 +934,7 @@ const saveUserConfig = async () => {
 
                     <!-- 服务配置 -->
                     <div class="form-group form-group-full">
-                      <label for="config">
+                      <label for="imported_config">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
                           <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                           <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
@@ -881,15 +942,15 @@ const saveUserConfig = async () => {
                           <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                           <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        服务配置 <span class="required-mark">*</span>
+                        服务配置 <span v-if="!editingServer" class="required-mark">*</span>
                       </label>
                       <div class="textarea-wrapper">
                         <textarea 
-                          id="config"
-                          v-model="formData.config" 
+                          id="imported_config"
+                          v-model="configString" 
                           rows="8"
                           :placeholder="exampleConfig"
-                          :class="{ 'error': formErrors.config }"
+                          :class="{ 'error': formErrors.imported_config }"
                         ></textarea>
                         <div class="json-indicator">
                           <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -900,7 +961,15 @@ const saveUserConfig = async () => {
                           JSON
                         </div>
                       </div>
-                      <span v-if="formErrors.config" class="error-text">{{ formErrors.config }}</span>
+                      <span v-if="formErrors.imported_config" class="error-text">{{ formErrors.imported_config }}</span>
+                      <span v-if="editingServer" class="help-text">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="10" stroke="#909399" stroke-width="2"/>
+                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <line x1="12" y1="17" x2="12.01" y2="17" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        编辑模式下，如果不修改配置可以保持原样，只修改需要更新的字段
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -1196,6 +1265,86 @@ const saveUserConfig = async () => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 删除确认弹窗 -->
+    <Teleport to="body">
+      <div v-if="deleteDialogVisible" class="modal-overlay" @click.self="closeDeleteDialog">
+        <div class="modal-dialog delete-dialog">
+          <div class="modal-header delete-header">
+            <div class="warning-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(245, 108, 108, 0.1)"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="12" y1="17" x2="12.01" y2="17" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3>确认删除</h3>
+            <button class="close-btn" @click="closeDeleteDialog">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="modal-body delete-body">
+            <div class="delete-warning">
+              <p class="warning-text">
+                您确定要删除MCP服务器 
+                <strong class="server-name-highlight">{{ deletingServer?.server_name }}</strong> 
+                吗？
+              </p>
+              <div class="warning-details">
+                <div class="detail-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="#e6a23c" stroke-width="2"/>
+                    <path d="M12 8v4" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 16h.01" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span>此操作将永久删除该服务器配置</span>
+                </div>
+                <div class="detail-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="#e6a23c" stroke-width="2"/>
+                    <path d="M12 8v4" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 16h.01" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span>相关的工具和配置也将被移除</span>
+                </div>
+                <div class="detail-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="#e6a23c" stroke-width="2"/>
+                    <path d="M12 8v4" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 16h.01" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span>此操作不可恢复，请谨慎操作</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer delete-footer">
+            <button type="button" @click="closeDeleteDialog" class="btn btn-cancel">
+              取消
+            </button>
+            <button 
+              type="button" 
+              @click="confirmDelete"
+              :disabled="formLoading"
+              class="btn btn-danger"
+            >
+              <span v-if="formLoading" class="loading-spinner"></span>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1232,6 +1381,10 @@ const saveUserConfig = async () => {
   
   &.tools-dialog {
     max-width: 800px;
+  }
+  
+  &.delete-dialog {
+    max-width: 480px;
   }
 }
 
@@ -1289,6 +1442,126 @@ const saveUserConfig = async () => {
   justify-content: flex-end;
   gap: 12px;
   background: #fff;
+}
+
+// 删除对话框样式
+.delete-dialog {
+  .delete-header {
+    background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+    border-bottom-color: #fde2e2;
+    position: relative;
+    padding-left: 60px;
+    
+    .warning-icon {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    h3 {
+      color: #f56c6c;
+    }
+  }
+  
+  .delete-body {
+    padding: 24px;
+  }
+  
+  .delete-warning {
+    .warning-text {
+      font-size: 16px;
+      color: #303133;
+      margin: 0 0 20px 0;
+      line-height: 1.6;
+      
+      .server-name-highlight {
+        color: #f56c6c;
+        font-weight: 600;
+        padding: 2px 6px;
+        background: rgba(245, 108, 108, 0.1);
+        border-radius: 4px;
+      }
+    }
+    
+    .warning-details {
+      background: #fef0f0;
+      border: 1px solid #fde2e2;
+      border-radius: 8px;
+      padding: 16px;
+      
+      .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 12px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        
+        span {
+          font-size: 14px;
+          color: #606266;
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+  
+  .delete-footer {
+    background: #fafafa;
+    
+    .btn-danger {
+      background: #f56c6c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      
+      &:hover:not(:disabled) {
+        background: #f78989;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+      }
+      
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      
+      .loading-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // 表单样式
@@ -1476,6 +1749,25 @@ const saveUserConfig = async () => {
       font-size: 12px;
       margin-top: 6px;
       font-weight: 500;
+    }
+    
+    .help-text {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-size: 12px;
+      color: #909399;
+      margin-top: 8px;
+      line-height: 1.5;
+      padding: 8px 12px;
+      background: #f5f7fa;
+      border-radius: 4px;
+      border-left: 3px solid #409eff;
+      
+      svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
     }
     
     .input-help {

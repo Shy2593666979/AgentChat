@@ -22,7 +22,7 @@ async def create_mcp_server(
     login_user: UserPayload = Depends(get_login_user)
 ):
     try:
-        await MCPService.validate_imported_config(req.imported_config)
+        MCPService.validate_imported_config(req.imported_config)
         name, info = next(iter(req.imported_config.get("mcpServers", {}).items()))
         server_info = {
             "server_name": req.server_name or name, # 传入Mcp Server名称优先级更高
@@ -120,7 +120,6 @@ async def update_mcp_server(
         mcp_server = await MCPService.get_mcp_server_from_id(req.server_id)
 
         update_data = {}
-
         if req.imported_config and req.imported_config != mcp_server["imported_config"]:
 
             imported_config_info = parse_imported_config(req.imported_config)
