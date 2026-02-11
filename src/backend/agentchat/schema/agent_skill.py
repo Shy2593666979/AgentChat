@@ -1,5 +1,5 @@
 from typing import List, Any
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 
 class AgentSkillFile(BaseModel):
     name: str
@@ -36,3 +36,6 @@ class AgentSkillFileDeleteReq(BaseModel):
     path: str
     name: str
     agent_skill_id: str
+
+class AgentSkillResponseFormat(BaseModel):
+    as_tool_name: str = Field(..., description="根据提供的信息生成一个Skill名称，要求是2-4个英文单词组成，用下划线_隔开，必须以skill结尾")

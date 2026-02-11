@@ -7,6 +7,7 @@ from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.config import get_stream_writer
 from langgraph.prebuilt.tool_node import ToolCallRequest
 
+from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.core.models.manager import ModelManager
 from agentchat.database import AgentSkill
 from agentchat.schema.agent_skill import AgentSkillFolder, AgentSkillFile
@@ -250,7 +251,10 @@ class SkillAgent:
         if not self._initialized:
             await self.init_skill_agent()
 
-        result = await self.react_agent.ainvoke({"messages": messages})
+        result = await self.react_agent.ainvoke(
+            input={"messages": messages},
+            config={"callbacks": [usage_metadata_callback]}
+        )
         filtered_messages = [
             msg for msg in result["messages"]
             if not isinstance(msg, (HumanMessage, SystemMessage))

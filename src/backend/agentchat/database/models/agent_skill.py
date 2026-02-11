@@ -12,6 +12,7 @@ class AgentSkill(SQLModelSerializable, table=True):
     name: str = Field(..., description="Agent Skill的名称")
     description: str = Field(..., description="Agent Skill的描述信息")
     user_id: str = Field(..., description="Agent Skill的拥有者")
+    as_tool_name: Optional[str] = Field(description="Agent Skill当作Tool的名称")
     folder: Optional[Dict] = Field(
         sa_column=Column(JSON),
         description="存放的是Agent Skill的目录以及文件信息"

@@ -1,6 +1,9 @@
+from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.database.dao.agent_skill import AgentSkillDao
 from agentchat.database.models.agent_skill import AgentSkill
-from agentchat.schema.agent_skill import AgentSkillCreateReq, AgentSkillFile, AgentSkillFolder
+from agentchat.prompts.skill import AgentSkillAsToolPrompt
+from agentchat.schema.agent_skill import AgentSkillCreateReq, AgentSkillFile, AgentSkillFolder, AgentSkillResponseFormat
+
 
 def default_agent_skill_folder(name, description):
     default_skill_readme = f"""
@@ -21,9 +24,18 @@ class AgentSkillService:
 
     @classmethod
     async def create_agent_skill(cls, agent_skill_req: AgentSkillCreateReq, user_id):
+        structured_agent = StructuredResponseAgent(AgentSkillResponseFormat)
+        structured_response = structured_agent.get_structured_response(
+            AgentSkillAsToolPrompt.format(
+                name=agent_skill_req.name,
+                description=agent_skill_req.description
+            )
+        )
+
         agent_skill = AgentSkill(
             **agent_skill_req.model_dump(),
             user_id=user_id,
+            as_tool_name=structured_response.as_tool_name,
             folder=default_agent_skill_folder(agent_skill_req.name, agent_skill_req.description)
         )
 
