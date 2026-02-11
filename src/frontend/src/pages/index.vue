@@ -658,7 +658,7 @@ watch(
     .sidebar-footer {
       margin-top: auto;
       padding: 0 24px 24px;
-      display: flex;
+      display: none; /* 暂时隐藏帮助链接 */
       justify-content: center;
       align-items: center;
 
@@ -742,7 +742,7 @@ watch(
   
   .el-menu-item {
     border-radius: 16px;
-    margin: 8px 16px;
+    margin: 10px 16px;
     padding: 0 20px;
     height: 56px;
     line-height: 56px;

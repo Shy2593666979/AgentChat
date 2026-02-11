@@ -2,12 +2,12 @@ import threading
 from typing import Any
 from loguru import logger
 from typing_extensions import override
-
 from langchain_core.callbacks import BaseCallbackHandler
 from langchain_core.messages import AIMessage
 from langchain_core.messages.ai import UsageMetadata, add_usage
 from langchain_core.outputs import ChatGeneration, LLMResult
 
+from agentchat.database import SystemUser
 from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.utils.contexts import get_user_id_context, get_agent_name_context
 
@@ -65,7 +65,7 @@ class UsageMetadataCallbackHandler(BaseCallbackHandler):
         record = {
             'model': model_name,
             "agent": agent_name,
-            "user_id": user_id,
+            "user_id": user_id or SystemUser,
             'input_tokens': usage_metadata.get("input_tokens", 0),
             'output_tokens': usage_metadata.get("output_tokens", 0),
         }

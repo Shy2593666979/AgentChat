@@ -76,9 +76,11 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():
-    app = FastAPI(title=app_settings.server.get("project_name", "AgentChat"),
-                  version=app_settings.server.get("version", "v2.3.0"),
-                  lifespan=lifespan)
+    app = FastAPI(
+        title=app_settings.server.get("project_name", "AgentChat"),
+        version=app_settings.server.get("version", "v2.3.0"),
+        lifespan=lifespan
+    )
 
     app = register_middleware(app)
 

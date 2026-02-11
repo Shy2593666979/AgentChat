@@ -48,8 +48,10 @@ class AgentConfig(BaseModel):
 
 
 class EmitEventAgentMiddleware(AgentMiddleware):
-    def __init__(self):
+    def __init__(self, name_resolver_func):
         super().__init__()
+
+        self.name_resolver_func = name_resolver_func
 
     async def aafter_model(
         self, state: StreamAgentState, runtime: Runtime
@@ -65,9 +67,9 @@ class EmitEventAgentMiddleware(AgentMiddleware):
         }
 
     async def awrap_model_call(
-            self,
-            request: ModelRequest,
-            handler: Callable[[ModelRequest], ModelResponse],
+        self,
+        request: ModelRequest,
+        handler: Callable[[ModelRequest], ModelResponse],
     ) -> ModelResponse:
         try:
             if available_tools := request.state.get("available_tools", []):
@@ -79,31 +81,32 @@ class EmitEventAgentMiddleware(AgentMiddleware):
             raise ValueError(err)
 
     async def awrap_tool_call(
-            self,
-            request: ToolCallRequest,
-            handler: Callable[[ToolCallRequest], ToolMessage | Command],
+        self,
+        request: ToolCallRequest,
+        handler: Callable[[ToolCallRequest], ToolMessage | Command],
     ) -> ToolMessage | Command:
         writer = get_stream_writer()
         tool_call_count = request.state.get("tool_call_count", 0)
         # 发送工具分析开始事件
+        tool_type, display_tool_name = self.name_resolver_func(request.tool_call["name"])
         writer({
             "status": "START",
-            "title": f"执行可用工具: {request.tool_call["name"]}",
-            "message": f"正在调用插件工具 {request.tool_call["name"]}..."
+            "title": f"执行可用{tool_type}: {display_tool_name}",
+            "message": f"正在调用插件工具 {display_tool_name}..."
             })
         request.state["tool_call_count"] = tool_call_count + 1
         try:
             tool_result = await handler(request)
             writer({
                 "status": "END",
-                "title": f"执行可用工具: {request.tool_call["name"]}",
+                "title": f"执行可用{tool_type}: {display_tool_name}",
                 "message": tool_result.content
                 })
             return tool_result
         except Exception as err:
             writer({
                 "status": "ERROR",
-                "title": f"执行可用工具: {request.tool_call["name"]}",
+                "title": f"执行可用{tool_type}: {display_tool_name}",
                 "message": str(err)
             })
             return ToolMessage(content=str(err), name=request.tool_call["name"], tool_call_id=request.tool_call["id"])
@@ -120,6 +123,7 @@ class GeneralAgent:
         self.mcp_agent_as_tools = []
         self.middlewares = []
         self.skill_agent_as_tools = []
+        self.tool_metadata_map: Dict[str, Dict[str, str]] = {}
 
         # 流式事件队列
         self.event_queue = asyncio.Queue()
@@ -155,7 +159,7 @@ class GeneralAgent:
             max_tools=3 # 限制每次选择最多 3个工具
         )
 
-        emit_event_middleware = EmitEventAgentMiddleware()
+        emit_event_middleware = EmitEventAgentMiddleware(self.get_tool_display_name)
 
         return [emit_event_middleware]
 
@@ -237,7 +241,7 @@ class GeneralAgent:
 
         def create_skill_agent_as_tool(agent_skill: AgentSkill):
 
-            @tool(agent_skill.name, description=agent_skill.description)
+            @tool(agent_skill.as_tool_name, description=agent_skill.description)
             async def call_skill_agent(query: str):
                 """调用技能Agent"""
                 skill_agent = SkillAgent(agent_skill, self.agent_config.user_id)
@@ -248,6 +252,10 @@ class GeneralAgent:
             return call_skill_agent
 
         for agent_skill in agent_skills:
+            self.tool_metadata_map[agent_skill.as_tool_name] = {
+                "name": agent_skill.name,  # 技能的中文/友好名称
+                "type": "Skill"
+            }
             agent_skill_as_tools.append(create_skill_agent_as_tool(agent_skill))
 
         return agent_skill_as_tools
@@ -255,7 +263,6 @@ class GeneralAgent:
 
     async def setup_mcp_agent_as_tools(self):
         mcp_agent_as_tools = []
-
 
         def create_mcp_agent_as_tool(mcp_agent, mcp_as_tool_name, description):
             @tool(mcp_as_tool_name, description=description)
@@ -279,8 +286,19 @@ class GeneralAgent:
             mcp_agent = MCPAgent(mcp_config, self.agent_config.user_id)
             await mcp_agent.init_mcp_agent()
 
-            mcp_agent_as_tools.append(create_mcp_agent_as_tool(mcp_agent, mcp_server.get("mcp_as_tool_name"), mcp_server.get("description")))
+            tool_name = mcp_server.get("mcp_as_tool_name")
+            description = mcp_server.get("description")
 
+            # 更新元数据映射
+            self.tool_metadata_map[tool_name] = {
+                "name": mcp_config.server_name,
+                "type": "MCP"
+            }
+
+            # 创建并添加工具
+            mcp_agent_as_tools.append(
+                create_mcp_agent_as_tool(mcp_agent, tool_name, description)
+            )
         return mcp_agent_as_tools
 
     async def setup_knowledge_tool(self):
@@ -340,3 +358,21 @@ class GeneralAgent:
     def stop_streaming_callback(self):
         self.stop_streaming = True
 
+    def get_tool_display_name(self, tool_name: str):
+        """
+        根据工具的原始名称，解析出带有类型后缀的展示名称
+        例如:
+        - "gaode_weather" -> "执行Skill：高德天气"
+        - "mcp_filesystem" -> "执行MCP：文件系统"
+        - "search" -> "执行工具：search"
+        """
+        metadata = self.tool_metadata_map.get(tool_name)
+
+        if not metadata:
+            # 如果没有记录元数据，直接返回原始名称
+            return tool_name
+
+        friendly_name = metadata.get("name", tool_name)
+        tool_type = metadata.get("type", "工具")
+
+        return tool_type, friendly_name
