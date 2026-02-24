@@ -3,7 +3,7 @@ from datetime import datetime
 from agentchat.database.models.tool import ToolTable
 from sqlmodel import Session, select, and_, update, desc, delete, or_
 from typing import List
-from agentchat.database.session import session_getter
+from agentchat.database.session import session_getter, async_session_getter
 
 
 class ToolDao:
@@ -16,21 +16,11 @@ class ToolDao:
         return tool
 
     @classmethod
-    async def create_tool(cls, zh_name: str, en_name: str,
-                          user_id: str, description: str, logo_url: str):
-        tool = await cls._get_tool(zh_name=zh_name, en_name=en_name, logo_url=logo_url,
-                                   user_id=user_id, description=description)
-
-        with session_getter() as session:
-            session.add(tool)
-            session.commit()
-
-    @classmethod
-    async def delete_tool_by_id(cls, tool_id: str):
-        with session_getter() as session:
-            sql = delete(ToolTable).where(ToolTable.tool_id == tool_id)
-            session.exec(sql)
-            session.commit()
+    async def delete_user_defined_tool(cls, tool_id: str):
+        async with async_session_getter() as session:
+            statement = delete(ToolTable).where(ToolTable.tool_id == tool_id)
+            await session.exec(statement)
+            await session.commit()
 
     @classmethod
     async def update_tool_by_id(cls, tool_id: str, zh_name: str, en_name: str,
@@ -65,10 +55,12 @@ class ToolDao:
             return result
 
     @classmethod
-    async def get_all_tools(cls):
-        with session_getter() as session:
-            sql = select(ToolTable)
-            result = session.exec(sql).all()
+    async def get_all_tools(cls, user_id):
+        async with async_session_getter() as session:
+            statement = select(ToolTable).where(
+                ToolTable.user_id == user_id
+            )
+            result = await session.exec(statement)
             return result
 
     @classmethod
@@ -90,9 +82,13 @@ class ToolDao:
     @classmethod
     async def get_tool_ids_from_name(cls, tool_names: List[str], user_id):
         with session_getter() as session:
-            sql = select(ToolTable).where(and_(ToolTable.en_name.in_(tool_names),
-                                               ToolTable.user_id == user_id))
-            tools = session.exec(sql)
+            statement = select(ToolTable).where(
+                and_(
+                    ToolTable.display_name.in_(tool_names),
+                    ToolTable.user_id == user_id
+                )
+            )
+            tools = session.exec(statement)
             return tools.all()
 
     @classmethod
@@ -101,3 +97,37 @@ class ToolDao:
             sql = select(ToolTable).where(ToolTable.en_name == en_name)
             tool = session.exec(sql)
             return tool.first()
+
+    @classmethod
+    async def create_user_defined_tool(cls, tool: ToolTable):
+        async with async_session_getter() as session:
+            session.add(tool)
+            await session.commit()
+            await session.refresh(tool)
+            return tool
+
+    @classmethod
+    async def create_default_tool(cls, tool):
+        async with async_session_getter() as session:
+            session.add(tool)
+            await session.commit()
+            await session.refresh(tool)
+            return tool
+
+    @classmethod
+    async def get_user_defined_tools(cls, user_id):
+        async with async_session_getter() as session:
+            statement = select(ToolTable).where(
+                ToolTable.user_id == user_id
+            )
+            result = await session.exec(statement)
+            return result
+
+    @classmethod
+    async def update_user_defined_tool(cls, tool_id, update_values):
+        async with async_session_getter() as session:
+            statement = update(ToolTable).where(
+                ToolTable.tool_id == tool_id
+            ).values(**update_values)
+            await session.exec(statement)
+            await session.commit()
