@@ -1,5 +1,5 @@
 from datetime import datetime
-from typing import Union, Dict, Any, ClassVar, Set
+from typing import Union, Dict, Any, ClassVar, Set, Optional, List
 
 from sqlmodel.main import IncEx
 from typing_extensions import Literal
@@ -29,10 +29,15 @@ class SQLModelSerializable(SQLModel):
     model_config = ConfigDict(from_attributes=True)
 
     # 使用ClassVar标注类变量，不会被视为模型字段
-    hide_fields: ClassVar[list[str]] = [] # "api_key"
+    hide_fields: ClassVar[list[str]] = []
 
-    def to_dict(self):
-        result = self.model_dump(exclude=self.hide_fields)
+    def to_dict(self, hide_fields: Optional[List[str]] = None):
+        if not hide_fields:
+            final_hide_fields = self.hide_fields  # 使用类默认值
+        else:
+            final_hide_fields = hide_fields       # 使用传入的参数
+
+        result = self.model_dump(exclude=final_hide_fields)
         for column in result:
             value = getattr(self, column)
             if isinstance(value, datetime):

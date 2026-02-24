@@ -70,36 +70,48 @@ const fetchKnowledges = async () => {
   }
 }
 
+// 删除知识库对话框控制
+const deleteDialogVisible = ref(false)
+const deleteLoading = ref(false)
+const knowledgeToDelete = ref<KnowledgeListType | null>(null)
+
 // 删除知识库
 const handleDelete = async (knowledge: KnowledgeListType) => {
+  // 显示删除确认对话框
+  knowledgeToDelete.value = knowledge
+  deleteDialogVisible.value = true
+}
+
+// 确认删除知识库
+const confirmDelete = async () => {
+  if (!knowledgeToDelete.value) return
+  
+  deleteLoading.value = true
   try {
-    await ElMessageBox.confirm(
-      `确定要删除知识库"${knowledge.name}"吗？删除后无法恢复。`,
-      '确认删除',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-    
     const deleteData: KnowledgeDeleteRequest = {
-      knowledge_id: knowledge.id
+      knowledge_id: knowledgeToDelete.value.id
     }
     
     const response = await deleteKnowledgeAPI(deleteData)
     if (response.data.status_code === 200) {
       ElMessage.success('删除成功')
+      deleteDialogVisible.value = false
       await fetchKnowledges() // 刷新列表
     } else {
       ElMessage.error('删除失败: ' + response.data.status_message)
     }
   } catch (error: any) {
-    if (error !== 'cancel') {
-      console.error('删除知识库失败:', error)
-      ElMessage.error('删除失败')
-    }
+    console.error('删除知识库失败:', error)
+    ElMessage.error('删除失败')
+  } finally {
+    deleteLoading.value = false
   }
+}
+
+// 取消删除
+const cancelDelete = () => {
+  deleteDialogVisible.value = false
+  knowledgeToDelete.value = null
 }
 
 // 格式化时间
@@ -244,86 +256,99 @@ onMounted(() => {
 <template>
   <div class="knowledge-page">
     <div class="page-header">
-      <h2>
-        <img :src="knowledgeIcon" class="knowledge-icon" alt="Knowledge" />
-        知识库管理
-      </h2>
-      <el-button type="primary" :icon="Plus" @click="openCreateDialog">
-        创建知识库
-      </el-button>
+      <div class="header-title">
+        <img :src="knowledgeIcon" alt="知识库" class="title-icon" />
+        <h2>知识库管理</h2>
+      </div>
+      <div class="header-actions">
+        <el-button type="primary" :icon="Plus" @click="openCreateDialog">
+          创建知识库
+        </el-button>
+      </div>
     </div>
 
-    <div class="knowledge-list" v-loading="loading">
-      <div class="knowledge-grid">
+    <div class="knowledge-container" v-loading="loading">
+      <!-- 列表头部 -->
+      <div class="list-header" v-if="knowledges.length > 0">
+        <div class="col-name">
+          <el-icon><Folder /></el-icon>
+          <span>名称</span>
+        </div>
+        <div class="col-desc">
+          <el-icon><Document /></el-icon>
+          <span>描述</span>
+        </div>
+        <div class="col-files">
+          <el-icon><Document /></el-icon>
+          <span>文件数</span>
+        </div>
+        <div class="col-size">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm-1 6h-3v3h-2v-3h-3v-2h3V7h2v3h3v2z" fill="currentColor"/>
+          </svg>
+          <span>存储大小</span>
+        </div>
+        <div class="col-time">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10 10-4.5 10-10S17.5 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.5-13H11v6l5.2 3.2.8-1.3-4.5-2.7V7z" fill="currentColor"/>
+          </svg>
+          <span>创建时间</span>
+        </div>
+        <div class="col-actions">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zM20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" fill="currentColor"/>
+          </svg>
+          <span>操作</span>
+        </div>
+      </div>
+      
+      <!-- 列表内容 -->
+      <div class="knowledge-list" v-if="knowledges.length > 0">
         <div 
           v-for="knowledge in knowledges" 
           :key="knowledge.id" 
-          class="knowledge-card"
+          class="knowledge-row"
+          @click="goToFileManagement(knowledge)"
         >
-                        <h3 class="knowledge-name" :title="knowledge.name">
-                <span class="name-icon">
-                  <svg viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg" width="20" height="20">
-                    <path d="M728.18789136 299.43681581v-115.21390618c0-70.94069728-58.12476839-128.93601185-128.93601186-128.93601185H161.05067457c-70.94069728 0-128.93601185 58.12476839-128.93601185 128.93601185v274.31265976l0.51781531-127.25311211" fill="#73c7ff"></path>
-                    <path d="M72.89261827 458.6650232l-81.68536494-0.12945381V184.22290963c0-93.59511703 76.24830419-169.97287506 169.97287506-169.97287506h438.07175111c93.59511703 0 169.97287506 76.24830419 169.97287507 169.97287506v115.21390618h-81.68536494v-115.21390618c0-48.54518518-39.61287111-88.1580563-88.1580563-88.1580563H161.05067457c-48.54518518 0-88.1580563 39.61287111-88.1580563 88.1580563v147.18900148h0.51781531l-0.51781531 127.25311209z m0 0" fill="#4880FF"></path>
-                    <path d="M874.47071605 1003.53618173H160.79176691c-44.92047803 0-89.32314075-21.23042765-121.94550518-58.6425837-30.5511032-34.95253333-48.02736987-80.26137283-48.02736988-124.66403556V464.74935309c0-93.59511703 76.24830419-169.84342124 169.97287506-169.84342124H874.47071605c93.59511703 0 169.97287506 76.24830419 169.97287506 169.84342124v355.48020938c0 44.40266272-17.47626667 89.71150222-48.02736987 124.66403556-32.62236445 37.41215605-77.02502717 58.6425837-121.94550519 58.6425837zM160.79176691 376.5912968c-48.54518518 0-88.1580563 39.61287111-88.1580563 88.15805629v355.48020938c0 24.46677333 10.48576 51.0048079 27.83257286 70.94069728 10.09739852 11.52139061 31.19837235 30.68055703 60.32548344 30.68055705H874.47071605c29.12711111 0 50.35753876-19.15916642 60.32548345-30.68055705 17.34681283-19.93588939 27.83257283-46.47392395 27.83257285-70.94069728V464.74935309c0-48.54518518-39.61287111-88.1580563-88.1580563-88.15805629H160.79176691z m0 0" fill="#4880FF"></path>
-                  </svg>
-                </span>
-                <span class="name-text">{{ knowledge.name }}</span>
-              </h3>
-          
-          <div class="knowledge-info">
-            <div class="knowledge-stats">
-              <div class="stat-item files">
-                <div class="stat-icon">
-                  <el-icon><Document /></el-icon>
-                </div>
-                <div class="stat-content">
-                  <span class="stat-label">文件数量</span>
-                  <span class="stat-value">{{ knowledge.count }}</span>
-                </div>
+          <div class="col-name">
+            <div class="knowledge-info">
+              <div class="knowledge-avatar">
+                <img :src="knowledgeIcon" alt="Knowledge" />
               </div>
-              <div class="stat-item size">
-                <div class="stat-icon">
-                  📁
-                </div>
-                <div class="stat-content">
-                  <span class="stat-label">存储大小</span>
-                  <span class="stat-value">{{ knowledge.file_size }}</span>
-                </div>
-              </div>
-            </div>
-            
-            <div class="knowledge-time">
-              <div class="time-item created">
-                <span class="time-icon">🎯</span>
-                <div class="time-content">
-                  <span class="time-label">创建时间</span>
-                  <span class="time-value">{{ formatTime(knowledge.create_time) }}</span>
-                </div>
-              </div>
-              <div class="time-item updated">
-                <span class="time-icon">🔄</span>
-                <div class="time-content">
-                  <span class="time-label">更新时间</span>
-                  <span class="time-value">{{ formatTime(knowledge.update_time) }}</span>
-                </div>
-              </div>
+              <span class="knowledge-name">{{ knowledge.name }}</span>
             </div>
           </div>
-          
-          <div class="knowledge-actions">
-            <button class="action-btn primary" @click="goToFileManagement(knowledge)">
-              <span class="btn-icon">📁</span>
-              <span class="btn-text">管理文件</span>
-            </button>
-            <button class="action-btn secondary" @click="openEditDialog(knowledge)">
-              <span class="btn-icon">✏️</span>
-              <span class="btn-text">编辑</span>
-            </button>
-            <button class="action-btn danger" @click="handleDelete(knowledge)">
-              <span class="btn-icon">🗑️</span>
-              <span class="btn-text">删除</span>
-            </button>
+          <div class="col-desc">
+            <span class="knowledge-desc">{{ knowledge.description || '-' }}</span>
+          </div>
+          <div class="col-files">
+            <span class="file-badge">
+              <el-icon><Document /></el-icon>
+              {{ knowledge.count }}
+            </span>
+          </div>
+          <div class="col-size">
+            <span class="size-text">{{ knowledge.file_size }}</span>
+          </div>
+          <div class="col-time">
+            <span class="time-text">{{ formatTime(knowledge.create_time) }}</span>
+          </div>
+          <div class="col-actions" @click.stop>
+            <el-tooltip content="管理文件" placement="top">
+              <button class="action-btn view-btn" @click.stop="goToFileManagement(knowledge)">
+                <el-icon><Folder /></el-icon>
+              </button>
+            </el-tooltip>
+            <el-tooltip content="编辑" placement="top">
+              <button class="action-btn edit-btn" @click.stop="openEditDialog(knowledge)">
+                <el-icon><Edit /></el-icon>
+              </button>
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <button class="action-btn delete-btn" @click.stop="handleDelete(knowledge)">
+                <el-icon><Delete /></el-icon>
+              </button>
+            </el-tooltip>
           </div>
         </div>
       </div>
@@ -449,218 +474,268 @@ onMounted(() => {
         </div>
       </div>
     </div>
+
+    <!-- 删除确认对话框 -->
+    <div v-if="deleteDialogVisible" class="dialog-overlay" @click="cancelDelete">
+      <div class="delete-dialog-container" @click.stop>
+        <!-- 对话框主体 -->
+        <div class="delete-dialog-body">
+          <p v-if="knowledgeToDelete">
+            确定要删除知识库 <strong>"{{ knowledgeToDelete.name }}"</strong> 吗？删除后无法恢复。
+          </p>
+        </div>
+        
+        <!-- 对话框底部 -->
+        <div class="delete-dialog-footer">
+          <button 
+            class="delete-dialog-btn cancel-btn" 
+            @click="cancelDelete"
+            :disabled="deleteLoading"
+          >
+            取消
+          </button>
+          <button 
+            class="delete-dialog-btn confirm-btn" 
+            :disabled="deleteLoading"
+            @click="confirmDelete"
+          >
+            {{ deleteLoading ? '删除中...' : '确认删除' }}
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
 <style lang="scss" scoped>
 .knowledge-page {
-  padding: 16px;
-  height: 100%;
-  min-height: calc(100vh - 60px);
-  background-color: #f5f7fa;
+  padding: 32px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
-    background: linear-gradient(to right, #ffffff, #f8fafc);
-    padding: 16px 20px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    position: relative;
-    overflow: hidden;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 20px 28px;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.6);
 
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #4880FF, #73c7ff, #67c23a);
-    }
-
-    h2 {
-      margin: 0;
-      font-size: 26px;
-      font-weight: 700;
+    .header-title {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: linear-gradient(90deg, #4880FF, #73c7ff); // 与knowledge.svg图标颜色匹配
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      gap: 14px;
       
-      .knowledge-icon {
-        width: 32px;
-        height: 32px;
+      .title-icon {
+        width: 36px;
+        height: 36px;
+      }
+      
+      h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #1B7CE4, #409eff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
     }
 
-    .el-button {
-      font-weight: 600;
-      letter-spacing: 0.025em;
-      border-radius: 12px;
-      padding: 12px 24px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+    .header-actions {
+      .el-button {
+        font-weight: 600;
+        letter-spacing: 0.025em;
+        border-radius: 12px;
+        padding: 12px 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+        }
       }
     }
   }
   
-  .knowledge-list {
-    height: calc(100% - 60px);
+  .knowledge-container {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.6);
+    overflow: hidden;
     
-    .knowledge-grid {
+    .list-header {
       display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+      grid-template-columns: 2fr 3fr 1fr 1fr 1.2fr 1.5fr;
       gap: 16px;
+      padding: 16px 24px;
+      background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+      border-bottom: 2px solid #e1e5e9;
+      font-weight: 600;
+      font-size: 13px;
+      color: #606266;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
       
-      .knowledge-card {
-        background: white;
-        border-radius: 10px;
-        padding: 16px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-        border: 1px solid #e1e5e9;
-        transition: all 0.3s ease;
+      > div {
+        display: flex;
+        align-items: center;
+        gap: 6px;
         
-        &:hover {
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.15);
-          transform: translateY(-2px);
-        }
-        
-        .knowledge-header {
-          display: flex;
-          justify-content: space-between;
-          align-items: center;
-          margin-bottom: 15px;
-          
-          .knowledge-icon {
-            color: #4f81ff;
-          }
-        }
-        
-        .knowledge-info {
-          .knowledge-name {
-            font-size: 18px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin: 0 0 8px 0;
-          }
-          
-
-          
-          .knowledge-stats {
-            display: flex;
-            gap: 15px;
-            margin-bottom: 15px;
-            
-            .stat-item {
-              font-size: 14px; /* 从12px增加到14px */
-              font-weight: 500; /* 增加字重 */
-              color: #888;
-              display: flex;
-              align-items: center;
-              gap: 4px;
-            }
-          }
-          
-          .knowledge-time {
-            font-size: 13px; /* 从12px增加到13px */
-            font-weight: 500; /* 增加字重 */
-            color: #999;
-            line-height: 1.4;
-          }
-        }
-        
-        .knowledge-actions {
-          margin-top: 12px;
-          display: flex;
-          gap: 8px;
-          justify-content: flex-end;
-        }
-        
-        .action-btn {
-          display: flex;
-          align-items: center;
-          gap: 6px;
-          padding: 8px 12px;
-          border: 1px solid #e1e5e9;
-          border-radius: 8px;
-          font-size: 13px;
-          font-weight: 500;
-          cursor: pointer;
-          transition: all 0.2s ease;
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          color: #606266;
-          min-width: 70px;
-          justify-content: center;
-        }
-        
-        .action-btn:hover {
-          transform: translateY(-1px);
-          box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-        }
-        
-        .action-btn.primary {
-          background: linear-gradient(135deg, #409eff 0%, #66b1ff 100%);
-          color: white;
-          border-color: #409eff;
-        }
-        
-        .action-btn.primary:hover {
-          background: linear-gradient(135deg, #66b1ff 0%, #85c1ff 100%);
-          box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-        }
-        
-        .action-btn.secondary {
-          background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-          color: #606266;
-          border-color: #e1e5e9;
-        }
-        
-        .action-btn.secondary:hover {
-          background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-          border-color: #409eff;
-          color: #409eff;
-        }
-        
-        .action-btn.danger {
-          background: linear-gradient(135deg, #fef0f0 0%, #fde2e2 100%);
-          color: #f56c6c;
-          border-color: #fbc4c4;
-        }
-        
-        .action-btn.danger:hover {
-          background: linear-gradient(135deg, #fde2e2 0%, #fbbfbf 100%);
-          border-color: #f56c6c;
-          box-shadow: 0 4px 12px rgba(245, 108, 108, 0.2);
-        }
-        
-        .action-btn .btn-icon {
+        .el-icon, svg {
           font-size: 14px;
-        }
-        
-        .action-btn .btn-text {
-          font-size: 13px;
-          font-weight: 500;
+          color: #909399;
         }
       }
     }
     
-    .empty-state {
-      text-align: center;
-      padding: 60px 20px;
-      color: #999;
-      
-      p {
-        margin-top: 20px;
-        font-size: 16px;
+    .knowledge-list {
+      .knowledge-row {
+        display: grid;
+        grid-template-columns: 2fr 3fr 1fr 1fr 1.2fr 1.5fr;
+        gap: 16px;
+        padding: 20px 24px;
+        border-bottom: 1px solid #f0f2f5;
+        transition: all 0.2s ease;
+        cursor: pointer;
+        align-items: center;
+        
+        &:hover {
+          background: linear-gradient(135deg, #f8f9fa 0%, #f1f3f5 100%);
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+        }
+        
+        &:last-child {
+          border-bottom: none;
+        }
+        
+        .col-name {
+          .knowledge-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            
+            .knowledge-avatar {
+              width: 40px;
+              height: 40px;
+              border-radius: 10px;
+              background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              
+              img {
+                width: 24px;
+                height: 24px;
+              }
+            }
+            
+            .knowledge-name {
+              font-size: 15px;
+              font-weight: 600;
+              color: #303133;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+          }
+        }
+        
+        .col-desc {
+          .knowledge-desc {
+            font-size: 14px;
+            color: #606266;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            display: block;
+          }
+        }
+        
+        .col-files {
+          .file-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 12px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #1976d2;
+            
+            .el-icon {
+              font-size: 14px;
+            }
+          }
+        }
+        
+        .col-size {
+          .size-text {
+            font-size: 14px;
+            font-weight: 500;
+            color: #606266;
+          }
+        }
+        
+        .col-time {
+          .time-text {
+            font-size: 13px;
+            color: #909399;
+          }
+        }
+        
+        .col-actions {
+          display: flex;
+          gap: 8px;
+          justify-content: flex-end;
+          
+          .action-btn {
+            width: 36px;
+            height: 36px;
+            border: 1px solid #e1e5e9;
+            border-radius: 8px;
+            background: white;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #606266;
+            
+            .el-icon {
+              font-size: 18px;
+            }
+            
+            &:hover {
+              transform: translateY(-2px);
+              box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            }
+            
+            &.view-btn:hover {
+              background: #409eff;
+              border-color: #409eff;
+              color: white;
+            }
+            
+            &.edit-btn:hover {
+              background: #67c23a;
+              border-color: #67c23a;
+              color: white;
+            }
+            
+            &.delete-btn:hover {
+              background: #f56c6c;
+              border-color: #f56c6c;
+              color: white;
+            }
+          }
+        }
       }
     }
   }
@@ -834,198 +909,6 @@ onMounted(() => {
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
-
-
-
-
-.knowledge-grid .knowledge-card .knowledge-name {
-  margin: 0 0 12px 0;
-  padding: 14px 18px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  color: #303133;
-  border-radius: 8px;
-  font-size: 18px;
-  font-weight: 600;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  letter-spacing: -0.01em;
-  line-height: 1.3;
-  border: 1px solid #e1e5e9;
-  cursor: help;
-  transition: all 0.2s ease;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  width: 100%;
-  box-sizing: border-box;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.knowledge-grid .knowledge-card .knowledge-name:hover {
-  transform: translateY(-1px);
-  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
-  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-}
-
-.knowledge-grid .knowledge-card .knowledge-name .name-icon {
-  flex-shrink: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-
-.knowledge-grid .knowledge-card .knowledge-name .name-icon svg {
-  width: 26px;
-  height: 26px;
-  fill: #409eff;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-name .name-text {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  flex: 1;
-  min-width: 0;
-}
-
-
-
-/* 美化知识库统计信息样式 */
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats {
-  display: flex;
-  gap: 12px;
-  margin-bottom: 12px;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 8px 12px;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 10px;
-  border: 1px solid #e1e5e9;
-  transition: all 0.3s ease;
-  flex: 1;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-item:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.12);
-  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-item.files {
-  border-left: 4px solid #409eff;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-item.size {
-  border-left: 4px solid #67c23a;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-icon {
-  font-size: 18px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  width: 32px;
-  height: 32px;
-  border-radius: 8px;
-  background: rgba(64, 158, 255, 0.15);
-  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-icon .el-icon {
-  color: #409eff;
-  font-size: 16px;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex: 1;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-label {
-  font-size: 10px;
-  color: #909399;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-  margin-bottom: 1px;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-stats .stat-value {
-  font-size: 14px;
-  font-weight: 700;
-  color: #303133;
-  font-family: 'SF Pro Display', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-}
-
-/* 美化时间信息样式 */
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time {
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-item {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 10px;
-  background: linear-gradient(135deg, #fafbfc 0%, #f1f3f4 100%);
-  border-radius: 8px;
-  border: 1px solid #e8eaec;
-  transition: all 0.2s ease;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-item:hover {
-  background: linear-gradient(135deg, #f0f2f5 0%, #e6e8eb 100%);
-  transform: scale(1.02);
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-item.created {
-  border-left: 3px solid #e6a23c;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-item.updated {
-  border-left: 3px solid #67c23a;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-icon {
-  font-size: 16px;
-  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.1));
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-content {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
-  flex: 1;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-label {
-  font-size: 10px;
-  color: #909399;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.3px;
-}
-
-.knowledge-grid .knowledge-card .knowledge-info .knowledge-time .time-value {
-  font-size: 13px;
-  font-weight: 600;
-  color: #606266;
-  font-family: 'SF Mono', Monaco, Consolas, 'Liberation Mono', monospace;
-  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.05);
-}
-
 /* 空状态样式 */
 .empty-state {
   display: flex;
@@ -1068,6 +951,74 @@ onMounted(() => {
   .create-btn {
     padding: 12px 24px;
     font-size: 16px;
+  }
+}
+
+/* 删除确认对话框样式 */
+.delete-dialog-container {
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+  width: 400px;
+  max-width: 90vw;
+  overflow: hidden;
+}
+
+.delete-dialog-body {
+  padding: 30px;
+  
+  p {
+    margin: 0;
+    font-size: 16px;
+    color: #303133;
+    line-height: 1.6;
+    
+    strong {
+      color: #f56c6c;
+      font-weight: 600;
+    }
+  }
+}
+
+.delete-dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 20px 30px;
+  background: #f8fafc;
+  border-top: 1px solid #e4e7ed;
+}
+
+.delete-dialog-btn {
+  padding: 10px 24px;
+  border: none;
+  border-radius: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  
+  &:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+  }
+  
+  &.cancel-btn {
+    background: #f5f7fa;
+    color: #606266;
+    
+    &:hover:not(:disabled) {
+      background: #e4e7ed;
+    }
+  }
+  
+  &.confirm-btn {
+    background: #f56c6c;
+    color: white;
+    
+    &:hover:not(:disabled) {
+      background: #f78989;
+    }
   }
 }
 </style> 

@@ -1,13 +1,15 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import { ref, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Plus, Edit, Delete, Connection, Cpu, Search, Refresh, Calendar, ChatDotRound, RefreshRight, Star, Link, Timer } from '@element-plus/icons-vue'
+import { Plus, Edit, Delete, Connection, Cpu, Search, Refresh, Calendar, ChatDotRound, RefreshRight, Star, Link, Timer, View, Hide } from '@element-plus/icons-vue'
 import modelIcon from '../../assets/model.svg'
 import { 
   getVisibleLLMsAPI, 
   createLLMAPI, 
+  updateLLMAPI,
   deleteLLMAPI,
+  searchLLMsAPI,
   type LLMResponse,
   type CreateLLMRequest
 } from '../../apis/llm'
@@ -20,9 +22,15 @@ const loading = ref(false)
 const searchKeyword = ref('')
 const llmTypes = ref<string[]>(['LLM', 'Embedding', 'Rerank'])
 
-// 创建对话框控制
+// 防抖定时器
+let searchTimer: ReturnType<typeof setTimeout> | null = null
+
+// 创建/编辑对话框控制
 const createDialogVisible = ref(false)
 const createLoading = ref(false)
+const isEditMode = ref(false)
+const editingModelId = ref('')
+const showApiKey = ref(false)
 
 // 删除确认对话框控制
 const deleteDialogVisible = ref(false)
@@ -66,8 +74,36 @@ const fetchModels = async () => {
 }
 
 // 搜索模型
-const searchModels = () => {
-  fetchModels()
+const searchModels = async () => {
+  if (!searchKeyword.value.trim()) {
+    // 如果搜索关键词为空，则获取所有模型
+    fetchModels()
+    return
+  }
+  
+  loading.value = true
+  try {
+    const response = await searchLLMsAPI({ llm_name: searchKeyword.value.trim() })
+    
+    if (response.data.status_code === 200) {
+      const data = response.data.data || {}
+      const allModels: LLMResponse[] = []
+      
+      Object.values(data).forEach((typeModels: any) => {
+        if (Array.isArray(typeModels)) {
+          allModels.push(...typeModels)
+        }
+      })
+      
+      models.value = allModels
+    } else {
+      ElMessage.error(response.data.status_message || '搜索模型失败')
+    }
+  } catch (error) {
+    ElMessage.error('搜索模型失败')
+  } finally {
+    loading.value = false
+  }
 }
 
 // 清空搜索
@@ -78,6 +114,9 @@ const clearSearch = () => {
 
 // 打开创建对话框
 const openCreateDialog = () => {
+  isEditMode.value = false
+  editingModelId.value = ''
+  showApiKey.value = false
   createDialogVisible.value = true
   // 重置表单
   Object.assign(createForm.value, {
@@ -89,27 +128,64 @@ const openCreateDialog = () => {
   })
 }
 
-// 创建模型
+// 打开编辑对话框
+const openEditDialog = (model: LLMResponse) => {
+  isEditMode.value = true
+  editingModelId.value = model.llm_id
+  showApiKey.value = false
+  createDialogVisible.value = true
+  // 填充表单
+  Object.assign(createForm.value, {
+    model: model.model,
+    api_key: model.api_key,
+    base_url: model.base_url,
+    provider: model.provider,
+    llm_type: model.llm_type
+  })
+}
+
+// 创建或更新模型
 const handleCreate = async () => {
   // 检查必填字段
-  if (!createForm.value.model || !createForm.value.api_key || !createForm.value.base_url || !createForm.value.provider || !createForm.value.llm_type) {
+  if (!createForm.value.model || !createForm.value.api_key || !createForm.value.base_url || !createForm.value.provider) {
     ElMessage.error('请填写所有必填字段')
     return
   }
   
   createLoading.value = true
   try {
-    const response = await createLLMAPI(createForm.value)
-    
-    if (response.data.status_code === 200) {
-      ElMessage.success('创建成功')
-      createDialogVisible.value = false
-      fetchModels()
+    if (isEditMode.value) {
+      // 编辑模式 - 调用更新接口
+      const response = await updateLLMAPI({
+        llm_id: editingModelId.value,
+        model: createForm.value.model,
+        api_key: createForm.value.api_key,
+        base_url: createForm.value.base_url,
+        provider: createForm.value.provider,
+        llm_type: createForm.value.llm_type
+      })
+      
+      if (response.data.status_code === 200) {
+        ElMessage.success('更新成功')
+        createDialogVisible.value = false
+        fetchModels()
+      } else {
+        ElMessage.error('更新失败: ' + (response.data.status_message || '未知错误'))
+      }
     } else {
-      ElMessage.error('创建失败: ' + (response.data.status_message || '未知错误'))
+      // 创建模式
+      const response = await createLLMAPI(createForm.value)
+      
+      if (response.data.status_code === 200) {
+        ElMessage.success('创建成功')
+        createDialogVisible.value = false
+        fetchModels()
+      } else {
+        ElMessage.error('创建失败: ' + (response.data.status_message || '未知错误'))
+      }
     }
   } catch (error) {
-    ElMessage.error('创建失败，请检查输入并稍后重试')
+    ElMessage.error((isEditMode.value ? '更新' : '创建') + '失败，请检查输入并稍后重试')
   } finally {
     createLoading.value = false
   }
@@ -245,6 +321,19 @@ const formatTimeFriendly = (timeStr: string) => {
   }
 }
 
+// 监听搜索关键词变化，实时搜索（带防抖）
+watch(searchKeyword, (newValue) => {
+  // 清除之前的定时器
+  if (searchTimer) {
+    clearTimeout(searchTimer)
+  }
+  
+  // 设置新的定时器，300ms后执行搜索
+  searchTimer = setTimeout(() => {
+    searchModels()
+  }, 300)
+})
+
 onMounted(() => {
   fetchModels()
 })
@@ -254,17 +343,16 @@ onMounted(() => {
   <div class="model-page">
     <!-- 页面头部 -->
     <div class="page-header">
-      <h2>
-        <img :src="modelIcon" class="model-icon" alt="Model" />
-        模型管理
-      </h2>
+      <div class="header-title">
+        <img :src="modelIcon" alt="模型" class="title-icon" />
+        <h2>模型管理</h2>
+      </div>
       <div class="header-actions">
         <div class="search-box">
           <el-input
             v-model="searchKeyword"
-            placeholder="🔍 搜索模型名称或提供商..."
+            placeholder=" 搜索模型名称..."
             :prefix-icon="Search"
-            @keyup.enter="searchModels"
             clearable
             @clear="clearSearch"
             style="width: 300px"
@@ -278,7 +366,7 @@ onMounted(() => {
             :loading="loading"
             class="refresh-btn"
           >
-            🔄 刷新
+             刷新
           </el-button>
           <el-button 
             type="primary" 
@@ -286,143 +374,97 @@ onMounted(() => {
             @click="openCreateDialog"
             class="add-btn"
           >
-            🚀 添加模型
+             添加模型
           </el-button>
         </div>
       </div>
     </div>
 
     <!-- 模型列表 -->
-    <div class="model-list" v-loading="loading">
-      <div class="model-grid" v-if="models.length > 0">
-        <!-- 模型卡片，增强设计感 -->
+    <div class="model-container" v-loading="loading">
+      <!-- 列表头部 -->
+      <div class="list-header" v-if="models.length > 0">
+        <div class="col-name">模型名称</div>
+        <div class="col-provider">提供商</div>
+        <div class="col-type">模型类型</div>
+        <div class="col-url">Base URL</div>
+        <div class="col-actions">操作</div>
+      </div>
+
+      <!-- 列表内容 -->
+      <div class="model-list" v-if="models.length > 0">
         <div 
           v-for="model in models" 
           :key="model.llm_id" 
-          class="model-card"
-          :class="[model.llm_type.toLowerCase(), isOfficialModel(model) ? 'official-model' : '']"
+          class="model-row"
         >
-          <!-- 卡片背景装饰 -->
-          <div class="card-decoration">
-            <div class="deco-circle circle-1"></div>
-            <div class="deco-circle circle-2"></div>
-            <div class="deco-line line-1"></div>
-            <div class="deco-line line-2"></div>
+          <div class="col-name">
+            <div class="name-info">
+              <div class="provider-avatar" :class="model.llm_type.toLowerCase()">
+                <span>{{ model.model?.[0] || '?' }}</span>
+              </div>
+              <span class="model-name">{{ model.model }}</span>
+              <span class="official-tag" v-if="isOfficialModel(model)">官方</span>
+            </div>
           </div>
-
-          <!-- 顶部类型标签 -->
-          <div class="model-badge">
-            <span class="badge-icon">
-              <el-icon v-if="model.llm_type === 'LLM'"><ChatDotRound /></el-icon>
-              <el-icon v-else-if="model.llm_type === 'Embedding'"><Connection /></el-icon>
-              <el-icon v-else><RefreshRight /></el-icon>
+          <div class="col-provider">
+            <span class="provider-name">{{ model.provider }}</span>
+          </div>
+          <div class="col-type">
+            <span class="type-badge" :class="model.llm_type.toLowerCase()">
+              {{ model.llm_type }}
             </span>
-            <span class="badge-text">{{ model.llm_type }}</span>
           </div>
-          
-          <!-- 官方标记 -->
-          <div class="official-badge" v-if="isOfficialModel(model)">
-            <el-icon><Star /></el-icon>
-            <span>官方</span>
+          <div class="col-url">
+            <el-tooltip 
+              :content="model.base_url" 
+              placement="top" 
+              :show-after="500"
+              effect="light"
+              popper-class="url-tooltip"
+            >
+              <span class="url-text">{{ truncateUrl(model.base_url, 40) }}</span>
+            </el-tooltip>
           </div>
-
-          <div class="card-content">
-            <!-- 模型信息 -->
-            <div class="model-header">
-              <div class="model-avatar" :class="model.llm_type.toLowerCase()">
-                <span v-if="model.provider === 'OpenAI'" class="provider-icon">O</span>
-                <span v-else-if="model.provider === 'Anthropic'" class="provider-icon">A</span>
-                <span v-else-if="model.provider === 'Google'" class="provider-icon">G</span>
-                <span v-else class="provider-icon">{{ model.provider[0] }}</span>
-              </div>
-              
-              <div class="model-title">
-                <h3 class="model-name">{{ model.model }}</h3>
-                <div class="model-provider">{{ model.provider }}</div>
-              </div>
-            </div>
-            
-            <!-- 模型详情 -->
-            <div class="model-details">
-              <!-- 优化基础URL和创建时间显示 -->
-              <div class="detail-item">
-                <div class="detail-icon">
-                  <el-icon><Link /></el-icon>
-                </div>
-                <div class="detail-content">
-                  <div class="detail-label url-label">
-                    <span>基础URL</span>
-                  </div>
-                  <el-tooltip 
-                    :content="model.base_url" 
-                    placement="top" 
-                    :show-after="500"
-                    effect="light"
-                    popper-class="url-tooltip"
-                  >
-                    <div class="detail-value url-value">{{ truncateUrl(model.base_url, 38) }}</div>
-                  </el-tooltip>
-                </div>
-              </div>
-
-              <div class="detail-item">
-                <div class="detail-icon">
-                  <el-icon><Timer /></el-icon>
-                </div>
-                <div class="detail-content">
-                  <div class="detail-label date-label">
-                    <span>创建时间</span>
-                  </div>
-                  <div class="detail-value date-value">{{ formatTimeFriendly(model.create_time) }}</div>
-                </div>
-              </div>
-            </div>
-            
-            <!-- 操作按钮 -->
-            <div class="card-actions">
-              <el-button 
-                size="default" 
-                :type="isOfficialModel(model) ? 'info' : 'primary'"
-                @click.stop="goToModelEditor(model)"
+          <div class="col-actions" @click.stop>
+            <el-tooltip content="编辑" placement="top">
+              <button 
+                class="action-btn edit-btn" 
+                @click="openEditDialog(model)"
                 :disabled="isOfficialModel(model)"
-                :title="isOfficialModel(model) ? '官方模型不可编辑' : '编辑模型'"
-                class="action-btn edit-btn"
                 :class="{ 'disabled': isOfficialModel(model) }"
               >
                 <el-icon><Edit /></el-icon>
-                <span>编辑</span>
-              </el-button>
-              <el-button 
-                size="default" 
-                :type="isOfficialModel(model) ? 'info' : 'danger'"
-                @click.stop="deleteModel(model)"
+              </button>
+            </el-tooltip>
+            <el-tooltip content="删除" placement="top">
+              <button 
+                class="action-btn delete-btn" 
+                @click="deleteModel(model)"
                 :disabled="isOfficialModel(model)"
-                :title="isOfficialModel(model) ? '官方模型不可删除' : '删除模型'"
-                class="action-btn delete-btn"
                 :class="{ 'disabled': isOfficialModel(model) }"
               >
                 <el-icon><Delete /></el-icon>
-                <span>删除</span>
-              </el-button>
-            </div>
+              </button>
+            </el-tooltip>
           </div>
         </div>
       </div>
-      
+
       <!-- 空状态 -->
-      <div v-else-if="!loading" class="empty-state">
+      <div v-if="models.length === 0 && !loading" class="empty-state">
         <div class="empty-icon">
           <span class="empty-emoji">🤖</span>
         </div>
-        <h3>🎉 暂无模型</h3>
-        <p>🌟 点击下方按钮创建您的第一个AI模型吧！</p>
+        <h3>暂无模型</h3>
+        <p>点击上方按钮添加您的第一个AI模型</p>
         <el-button 
           type="primary" 
           :icon="Plus"
           @click="openCreateDialog"
           size="large"
         >
-          🚀 立即创建
+          添加模型
         </el-button>
       </div>
     </div>
@@ -432,103 +474,72 @@ onMounted(() => {
       <div class="dialog-container" @click.stop>
         <!-- 对话框主体 -->
         <div class="dialog-body">
-          <div class="form-grid">
-            <!-- 基本信息区域 -->
-            <div class="form-section">
-              <div class="section-header">
-                <h4>📝 基本信息</h4>
-              </div>
-              
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="label-text">模型名称</span>
-                  <span class="required-mark">*</span>
-                </label>
-                <div class="input-wrapper">
-                  <input 
-                    v-model="createForm.model"
-                    type="text" 
-                    placeholder="例如：gpt-4, claude-3.5-sonnet"
-                    maxlength="50"
-                    class="form-input"
-                  />
-                  <span class="char-count">{{ createForm.model.length }}/50</span>
-                </div>
-              </div>
-              
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="label-text">提供商</span>
-                  <span class="required-mark">*</span>
-                </label>
-                <div class="input-wrapper">
-                  <input 
-                    v-model="createForm.provider"
-                    type="text" 
-                    placeholder="例如：OpenAI, Anthropic, 阿里云"
-                    maxlength="50"
-                    class="form-input"
-                  />
-                  <span class="char-count">{{ createForm.provider.length }}/50</span>
-                </div>
-              </div>
-              
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="label-text">模型类型</span>
-                  <span class="required-mark">*</span>
-                </label>
-                <div class="select-wrapper">
-                  <select v-model="createForm.llm_type" class="form-select">
-                    <option value="LLM">🤖 LLM - 大语言模型</option>
-                    <option value="Embedding">🔗 Embedding - 嵌入模型</option>
-                    <option value="Rerank">📈 Rerank - 重排序模型</option>
-                  </select>
-                  <div class="select-arrow">
-                    <span>▼</span>
-                  </div>
-                </div>
+          <div class="form-row">
+            <div class="form-item">
+              <label class="form-label">
+                <span class="label-text">模型名称</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <input 
+                  v-model="createForm.model"
+                  type="text" 
+                  placeholder="例如：qwen-max"
+                  maxlength="50"
+                  class="form-input"
+                />
               </div>
             </div>
-            
-            <!-- 连接配置区域 -->
-            <div class="form-section">
-              <div class="section-header">
-                <h4>🔧 连接配置</h4>
+
+            <div class="form-item">
+              <label class="form-label">
+                <span class="label-text">提供商</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <input 
+                  v-model="createForm.provider"
+                  type="text" 
+                  placeholder="例如：通义千问"
+                  maxlength="50"
+                  class="form-input"
+                />
               </div>
-              
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="label-text">基础URL</span>
-                  <span class="required-mark">*</span>
-                </label>
-                <div class="input-wrapper">
-                  <input 
-                    v-model="createForm.base_url"
-                    type="text" 
-                    placeholder="例如：https://api.openai.com/v1"
-                    maxlength="200"
-                    class="form-input"
-                  />
-                  <span class="char-count">{{ createForm.base_url.length }}/200</span>
-                </div>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label">
+                <span class="label-text">基础URL</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper">
+                <input 
+                  v-model="createForm.base_url"
+                  type="text" 
+                  placeholder="例如：https://api.openai.com/v1"
+                  maxlength="200"
+                  class="form-input"
+                />
               </div>
-              
-              <div class="form-item">
-                <label class="form-label">
-                  <span class="label-text">API密钥</span>
-                  <span class="required-mark">*</span>
-                </label>
-                <div class="input-wrapper">
-                  <input 
-                    v-model="createForm.api_key"
-                    type="password" 
-                    placeholder="请输入您的API密钥"
-                    maxlength="200"
-                    class="form-input"
-                  />
-                  <span class="char-count">{{ createForm.api_key.length }}/200</span>
-                </div>
+            </div>
+
+            <div class="form-item">
+              <label class="form-label">
+                <span class="label-text">API密钥</span>
+                <span class="required-mark">*</span>
+              </label>
+              <div class="input-wrapper api-key-wrapper">
+                <input 
+                  v-model="createForm.api_key"
+                  :type="showApiKey ? 'text' : 'password'" 
+                  placeholder="请输入您的API密钥"
+                  maxlength="200"
+                  class="form-input api-key-input"
+                />
+                <span class="toggle-password" @click="showApiKey = !showApiKey">
+                  <el-icon v-if="showApiKey"><View /></el-icon>
+                  <el-icon v-else><Hide /></el-icon>
+                </span>
               </div>
             </div>
           </div>
@@ -545,8 +556,8 @@ onMounted(() => {
           </button>
           <button 
             class="dialog-btn confirm-btn" 
-            :class="{ 'disabled': !createForm.model || !createForm.api_key || !createForm.base_url || !createForm.provider || !createForm.llm_type }"
-            :disabled="!createForm.model || !createForm.api_key || !createForm.base_url || !createForm.provider || !createForm.llm_type || createLoading"
+            :class="{ 'disabled': !createForm.model || !createForm.api_key || !createForm.base_url || !createForm.provider }"
+            :disabled="!createForm.model || !createForm.api_key || !createForm.base_url || !createForm.provider || createLoading"
             @click.stop="handleCreate"
           >
             <span v-if="createLoading" class="btn-icon loading">⏳</span>
@@ -591,52 +602,39 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .model-page {
-  padding: 30px;
-  min-height: calc(100vh - 60px);
-  background-color: #f5f7fa;
+  padding: 32px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 32px;
-    background: linear-gradient(to right, #ffffff, #f8fafc);
-    padding: 28px;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 20px 28px;
     border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    position: relative;
-    overflow: hidden;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.6);
     
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #409eff, #67c23a, #e6a23c);
-    }
-    
-    h2 {
-      font-size: 26px;
-      font-weight: 700;
-      margin: 0;
+    .header-title {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: linear-gradient(90deg, #409eff, #3a7be2); // 添加渐变效果，蓝色系
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      gap: 14px;
       
-      .model-icon {
-        width: 32px;
-        height: 32px;
+      .title-icon {
+        width: 36px;
+        height: 36px;
       }
       
-      &::before {
-        content: '';
-        display: none; // 隐藏原来的表情符号
+      h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #409eff, #3a7be2);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
     }
     
@@ -698,503 +696,265 @@ onMounted(() => {
     }
   }
   
-  .model-list {
+  // 列表容器
+  .model-container {
+    background: #ffffff;
+    border-radius: 16px;
+    border: 1px solid #e5e7eb;
+    overflow: hidden;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.02);
     min-height: 300px;
-    position: relative;
-    
-    .model-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(340px, 1fr));
-      gap: 24px;
+
+    // 列表头部
+    .list-header {
+      display: flex;
+      align-items: center;
+      padding: 14px 24px;
+      background: #f8fafc;
+      border-bottom: 1px solid #e5e7eb;
+      font-size: 12px;
+      font-weight: 600;
+      color: #64748b;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+
+      .col-name { flex: 0 0 240px; }
+      .col-provider { flex: 0 0 120px; }
+      .col-type { flex: 0 0 120px; text-align: center; padding-right: 64px; }
+      .col-url { flex: 1; min-width: 200px; padding-left: 32px; }
+      .col-actions { flex: 0 0 100px; text-align: right; }
     }
-    
-    .model-card {
-      background-color: #fff;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      transition: all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1);
-      overflow: hidden;
-      border: 1px solid #ebeef5;
-      position: relative;
-      z-index: 1;
-      
-      &:hover {
-        transform: translateY(-8px);
-        box-shadow: 0 12px 28px rgba(0, 0, 0, 0.12);
-        
-        .card-decoration {
-          .deco-circle {
-            opacity: 0.8;
-          }
-          
-          .deco-line {
-            opacity: 0.7;
-          }
-        }
-        
-        .model-badge {
-          transform: translateY(0) scale(1.05);
-        }
-      }
-      
-      &.official-model {
-        box-shadow: 0 8px 24px rgba(64, 158, 255, 0.15);
-        border: 1px solid rgba(64, 158, 255, 0.3);
-        
-        .card-decoration {
-          opacity: 0.8;
-        }
-      }
-      
-      &.llm {
-        border-top: 3px solid #409eff;
-      }
-      
-      &.embedding {
-        border-top: 3px solid #67c23a;
-      }
-      
-      &.rerank {
-        border-top: 3px solid #e6a23c;
-      }
-      
-      .card-decoration {
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        pointer-events: none;
-        opacity: 0.3;
-        transition: opacity 0.3s;
-        z-index: -1;
-        
-        .deco-circle {
-          position: absolute;
-          border-radius: 50%;
-          opacity: 0.4;
-          transition: all 0.6s;
-          
-          &.circle-1 {
-            width: 160px;
-            height: 160px;
-            right: -60px;
-            bottom: -60px;
-            background: radial-gradient(circle, rgba(64, 158, 255, 0.2) 0%, rgba(64, 158, 255, 0) 70%);
-          }
-          
-          &.circle-2 {
-            width: 120px;
-            height: 120px;
-            top: -40px;
-            left: -40px;
-            background: radial-gradient(circle, rgba(103, 194, 58, 0.2) 0%, rgba(103, 194, 58, 0) 70%);
-          }
-        }
-        
-        .deco-line {
-          position: absolute;
-          opacity: 0.3;
-          transition: all 0.6s;
-          
-          &.line-1 {
-            height: 2px;
-            width: 100%;
-            top: 50%;
-            left: 0;
-            background: linear-gradient(90deg, transparent, rgba(64, 158, 255, 0.3), transparent);
-          }
-          
-          &.line-2 {
-            width: 2px;
-            height: 100%;
-            top: 0;
-            left: 70%;
-            background: linear-gradient(180deg, transparent, rgba(103, 194, 58, 0.3), transparent);
-          }
-        }
-      }
-      
-      .model-badge {
-        position: absolute;
-        top: 20px;
-        right: 20px;
-        padding: 8px 16px;
-        background: rgba(255, 255, 255, 0.9);
-        border-radius: 30px;
+
+    // 列表内容
+    .model-list {
+      .model-row {
         display: flex;
         align-items: center;
-        gap: 8px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-        transition: all 0.3s;
-        backdrop-filter: blur(4px);
-        border: 1px solid rgba(235, 238, 245, 0.6);
-        z-index: 2;
-        
-        .badge-icon {
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          
-          .el-icon {
-            font-size: 16px;
-            color: #409eff;
+        padding: 16px 24px;
+        border-bottom: 1px solid #f1f5f9;
+        transition: all 0.2s ease;
+
+        &:last-child {
+          border-bottom: none;
+        }
+
+        &:hover {
+          background: #f8fafc;
+
+          .col-name .name-info .provider-avatar {
+            transform: scale(1.05);
+            box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.1);
+          }
+
+          .col-actions .action-btn {
+            opacity: 1;
           }
         }
-        
-        .badge-text {
-          font-size: 14px;
-          font-weight: 600;
-          color: #303133;
-        }
-      }
-      
-      .official-badge {
-        position: absolute;
-        top: 20px;
-        left: 20px;
-        padding: 6px 12px;
-        background: #fef6e4;
-        border: 1px solid #f8d4a5;
-        border-radius: 30px;
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        z-index: 2;
-        
-        .el-icon {
-          color: #e6a23c;
-          font-size: 14px;
-        }
-        
-        span {
-          font-size: 12px;
-          font-weight: 600;
-          color: #e6a23c;
-        }
-      }
-      
-      .card-content {
-        padding: 30px 24px 24px;
-      }
-      
-      .model-header {
-        display: flex;
-        align-items: center;
-        margin-bottom: 28px;
-        
-        .model-avatar {
-          width: 60px;
-          height: 60px;
-          border-radius: 16px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          margin-right: 20px;
-          flex-shrink: 0;
-          position: relative;
-          overflow: hidden;
-          
-          &::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0) 100%);
-            z-index: 1;
-          }
-          
-          .provider-icon {
-            font-size: 28px;
-            font-weight: 700;
-            color: white;
-            z-index: 2;
-            position: relative;
-          }
-          
-          &.llm {
-            background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
-            box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
-          }
-          
-          &.embedding {
-            background: linear-gradient(135deg, #67c23a 0%, #529b2e 100%);
-            box-shadow: 0 6px 16px rgba(103, 194, 58, 0.3);
-          }
-          
-          &.rerank {
-            background: linear-gradient(135deg, #e6a23c 0%, #d9b55b 100%);
-            box-shadow: 0 6px 16px rgba(230, 162, 60, 0.3);
+
+        .col-name {
+          flex: 0 0 240px;
+
+          .name-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+
+            .provider-avatar {
+              width: 36px;
+              height: 36px;
+              border-radius: 10px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              flex-shrink: 0;
+              transition: all 0.2s ease;
+              color: white;
+              font-size: 16px;
+              font-weight: 700;
+
+              &.llm {
+                background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
+              }
+              &.embedding {
+                background: linear-gradient(135deg, #67c23a 0%, #529b2e 100%);
+              }
+              &.rerank {
+                background: linear-gradient(135deg, #e6a23c 0%, #d9b55b 100%);
+              }
+            }
+
+            .model-name {
+              font-size: 15px;
+              font-weight: 600;
+              color: #1e293b;
+              white-space: nowrap;
+              overflow: hidden;
+              text-overflow: ellipsis;
+            }
+
+            .official-tag {
+              font-size: 11px;
+              font-weight: 600;
+              color: #e6a23c;
+              background: #fef6e4;
+              border: 1px solid #f8d4a5;
+              border-radius: 20px;
+              padding: 2px 8px;
+              flex-shrink: 0;
+            }
           }
         }
-        
-        .model-title {
-          .model-name {
-            font-size: 20px;
-            font-weight: 700;
-            color: #303133;
-            margin: 0 0 8px 0;
-            line-height: 1.2;
-          }
-          
-          .model-provider {
-            font-size: 15px;
+
+        .col-provider {
+          flex: 0 0 120px;
+          padding-right: 8px;
+
+          .provider-name {
+            font-size: 14px;
             font-weight: 500;
-            color: #606266;
+            color: #64748b;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
           }
         }
-      }
-      
-      .model-details {
-        background: #f8f9fa;
-        border-radius: 12px;
-        padding: 16px;
-        margin-bottom: 24px;
-        border: 1px solid #ebeef5;
-        
-        .detail-item {
-          display: flex;
-          align-items: flex-start;
-          margin-bottom: 16px;
-          
-          &:last-child {
-            margin-bottom: 0;
+
+        .col-type {
+          flex: 0 0 120px;
+          text-align: center;
+          padding-right: 64px;
+
+          .type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 4px 10px;
+            border-radius: 20px;
+            font-size: 13px;
+            font-weight: 500;
+
+            .el-icon {
+              font-size: 14px;
+            }
+
+            &.llm {
+              background: rgba(64, 158, 255, 0.1);
+              color: #409eff;
+            }
+            &.embedding {
+              background: rgba(103, 194, 58, 0.1);
+              color: #67c23a;
+            }
+            &.rerank {
+              background: rgba(230, 162, 60, 0.1);
+              color: #e6a23c;
+            }
           }
-          
-          .detail-icon {
+        }
+
+        .col-url {
+          flex: 1;
+          min-width: 200px;
+          padding-left: 32px;
+          padding-right: 16px;
+
+          .url-text {
+            font-size: 13px;
+            color: #64748b;
+            font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            display: block;
+          }
+        }
+
+        .col-actions {
+          flex: 0 0 100px;
+          display: flex;
+          justify-content: flex-end;
+          gap: 8px;
+
+          .action-btn {
+            width: 32px;
+            height: 32px;
+            border: 1px solid transparent;
+            border-radius: 8px;
+            cursor: pointer;
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 8px;
-            background: rgba(64, 158, 255, 0.1);
-            margin-right: 16px;
-            flex-shrink: 0;
-            
+            transition: all 0.2s ease;
+            opacity: 0.6;
+            background: transparent;
+
             .el-icon {
               font-size: 16px;
+            }
+
+            &.edit-btn {
               color: #409eff;
-            }
-          }
-          
-          .detail-content {
-            flex: 1;
-            
-            .detail-label {
-              font-size: 13px;
-              color: #909399;
-              margin-bottom: 8px;
-              font-weight: 500;
-              display: flex;
-              align-items: center;
-              
-              span {
-                position: relative;
-                padding: 0 4px;
-                z-index: 1;
-              }
-              
-              &.url-label span {
-                color: #409eff;
-                font-weight: 600;
-                
-                &::before {
-                  content: '';
-                  position: absolute;
-                  bottom: 0;
-                  left: 0;
-                  right: 0;
-                  height: 6px;
-                  background-color: rgba(64, 158, 255, 0.15);
-                  z-index: -1;
-                  border-radius: 3px;
-                }
-              }
-              
-              &.date-label span {
-                color: #67c23a;
-                font-weight: 600;
-                
-                &::before {
-                  content: '';
-                  position: absolute;
-                  bottom: 0;
-                  left: 0;
-                  right: 0;
-                  height: 6px;
-                  background-color: rgba(103, 194, 58, 0.15);
-                  z-index: -1;
-                  border-radius: 3px;
-                }
+
+              &:hover:not(.disabled) {
+                background: rgba(64, 158, 255, 0.1);
+                border-color: rgba(64, 158, 255, 0.3);
+                opacity: 1;
               }
             }
-            
-            .detail-value {
-              font-size: 14px;
-              font-weight: 500;
-              color: #606266;
-              word-break: break-all;
-              
-              &.url-value {
-                font-family: 'Menlo', 'Monaco', 'Courier New', monospace;
-                background: linear-gradient(to right, #409eff, #5cadff);
-                -webkit-background-clip: text;
-                -webkit-text-fill-color: transparent;
-                background-clip: text;
-                cursor: pointer;
-                position: relative;
-                display: inline-block;
-                padding: 2px 6px;
-                border-radius: 4px;
-                background-color: rgba(64, 158, 255, 0.1);
-                border: 1px dashed rgba(64, 158, 255, 0.3);
-                
-                &:hover {
-                  background-color: rgba(64, 158, 255, 0.15);
-                  border-color: rgba(64, 158, 255, 0.5);
-                }
-              }
-              
-              &.date-value {
-                font-family: 'Inter', sans-serif;
-                font-weight: 600;
-                color: #67c23a;
-                letter-spacing: 0.5px;
-                background-color: rgba(103, 194, 58, 0.1);
-                padding: 2px 10px;
-                border-radius: 12px;
-                display: inline-block;
+
+            &.delete-btn {
+              color: #f56c6c;
+
+              &:hover:not(.disabled) {
+                background: rgba(245, 108, 108, 0.1);
+                border-color: rgba(245, 108, 108, 0.3);
+                opacity: 1;
               }
             }
-          }
-        }
-      }
-      
-      .card-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: 12px;
-        
-        .action-btn {
-          transition: all 0.3s;
-          border-radius: 8px;
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
-          min-width: 90px;
-          justify-content: center;
-          
-          .el-icon {
-            font-size: 16px;
-          }
-          
-          &:hover:not(.disabled) {
-            transform: translateY(-3px);
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
-          }
-          
-          &.edit-btn:not(.disabled) {
-            background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
-            border: none;
-            
-            &:hover {
-              background: linear-gradient(135deg, #66b1ff 0%, #409eff 100%);
-            }
-          }
-          
-          &.delete-btn:not(.disabled) {
-            background: linear-gradient(135deg, #f56c6c 0%, #e45656 100%);
-            border: none;
-            
-            &:hover {
-              background: linear-gradient(135deg, #f78989 0%, #f56c6c 100%);
-            }
-          }
-          
-          &.disabled {
-            opacity: 0.7;
-            cursor: not-allowed;
-            
-            &:hover {
-              transform: none;
-              box-shadow: 0 2px 12px rgba(0, 0, 0, 0.05);
+
+            &.disabled {
+              opacity: 0.3;
+              cursor: not-allowed;
             }
           }
         }
       }
     }
-    
+
+    // 空状态
     .empty-state {
       text-align: center;
       padding: 80px 30px;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
-      position: relative;
-      overflow: hidden;
-      
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: linear-gradient(90deg, #409eff, #67c23a, #e6a23c);
-      }
-      
+
       .empty-icon {
-        margin-bottom: 24px;
-        position: relative;
-        
-        &::after {
-          content: '';
-          position: absolute;
-          bottom: -10px;
-          left: 50%;
-          transform: translateX(-50%);
-          width: 60px;
-          height: 4px;
-          background: linear-gradient(90deg, #409eff, #67c23a);
-          border-radius: 2px;
-        }
-        
-        .empty-emoji {
-          font-size: 64px;
-          opacity: 0.8;
-        }
-      }
-      
-      h3 {
-        font-size: 22px;
-        font-weight: 600;
-        color: #303133;
         margin-bottom: 16px;
+
+        .empty-emoji {
+          font-size: 56px;
+          opacity: 0.6;
+        }
       }
-      
+
+      h3 {
+        font-size: 18px;
+        font-weight: 600;
+        color: #475569;
+        margin-bottom: 8px;
+      }
+
       p {
-        font-size: 16px;
-        color: #606266;
-        margin-bottom: 32px;
-        max-width: 500px;
-        margin-left: auto;
-        margin-right: auto;
+        font-size: 14px;
+        color: #94a3b8;
+        margin-bottom: 24px;
       }
-      
+
       .el-button {
-        padding: 12px 24px;
-        font-size: 16px;
-        font-weight: 500;
         border-radius: 8px;
         background: linear-gradient(135deg, #409eff 0%, #3a7be2 100%);
         border: none;
         box-shadow: 0 4px 12px rgba(64, 158, 255, 0.2);
         transition: all 0.3s;
-        
+
         &:hover {
           transform: translateY(-2px);
           box-shadow: 0 6px 16px rgba(64, 158, 255, 0.3);
@@ -1218,35 +978,48 @@ onMounted(() => {
 @media (max-width: 768px) {
   .model-page {
     padding: 20px;
-    
+
     .page-header {
       flex-direction: column;
       align-items: stretch;
       gap: 16px;
       padding: 20px;
-      
+
       h2 {
         text-align: center;
         justify-content: center;
       }
-      
+
       .header-actions {
         flex-direction: column;
         align-items: stretch;
-        
+
         .search-box {
           margin-right: 0;
           margin-bottom: 12px;
         }
-        
+
         .action-buttons {
           justify-content: center;
         }
       }
     }
-    
-    .model-list .model-grid {
-      grid-template-columns: 1fr;
+
+    .model-container {
+      .list-header {
+        display: none;
+      }
+
+      .model-list .model-row {
+        flex-wrap: wrap;
+        gap: 8px;
+
+        .col-name { flex: 1 1 100%; }
+        .col-provider { flex: 1 1 50%; }
+        .col-type { flex: 1 1 50%; text-align: left; }
+        .col-url { flex: 1 1 100%; }
+        .col-actions { flex: 1 1 100%; justify-content: flex-start; }
+      }
     }
   }
 }
@@ -1298,8 +1071,8 @@ onMounted(() => {
   box-shadow: 
     0 20px 60px rgba(0, 0, 0, 0.3),
     0 8px 32px rgba(0, 0, 0, 0.15);
-  width: 88%;
-  max-width: 750px;
+  width: 92%;
+  max-width: 500px;
   max-height: 88vh;
   overflow: hidden;
   animation: slideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -1316,42 +1089,15 @@ onMounted(() => {
   background: #fafbfc;
 }
 
-.form-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 36px;
-}
-
-.form-section {
-  background: white;
-  border-radius: 14px;
-  padding: 22px;
-  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-  border: 1px solid #e2e8f0;
-}
-
-.section-header {
-  margin-bottom: 20px;
-  padding-bottom: 14px;
-  border-bottom: 2px solid #f1f5f9;
-}
-
-.section-header h4 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 700;
-  color: #1a202c;
+.form-row {
   display: flex;
-  align-items: center;
-  gap: 8px;
+  flex-direction: column;
+  gap: 20px;
 }
 
 .form-item {
-  margin-bottom: 20px;
-}
-
-.form-item:last-child {
-  margin-bottom: 0;
+  flex: 1;
+  min-width: 0;
 }
 
 .form-label {
@@ -1379,6 +1125,36 @@ onMounted(() => {
   position: relative;
 }
 
+.api-key-wrapper {
+  display: flex;
+  align-items: center;
+}
+
+.api-key-input {
+  padding-right: 44px !important;
+}
+
+.toggle-password {
+  position: absolute;
+  right: 14px;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: #9ca3af;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.2s ease;
+
+  .el-icon {
+    font-size: 18px;
+  }
+
+  &:hover {
+    color: #4f46e5;
+  }
+}
+
 .form-input {
   width: 100%;
   padding: 16px 20px;
@@ -1402,42 +1178,6 @@ onMounted(() => {
 .form-input::placeholder {
   color: #9ca3af;
   font-weight: 400;
-}
-
-.form-select {
-  width: 100%;
-  padding: 16px 50px 16px 20px;
-  border: 2px solid #e5e7eb;
-  border-radius: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  color: #1f2937;
-  background: white;
-  cursor: pointer;
-  transition: all 0.3s ease;
-  appearance: none;
-  box-sizing: border-box;
-}
-
-.form-select:focus {
-  outline: none;
-  border-color: #4f46e5;
-  box-shadow: 0 0 0 4px rgba(79, 70, 229, 0.1);
-}
-
-.select-arrow {
-  position: absolute;
-  right: 20px;
-  top: 50%;
-  transform: translateY(-50%);
-  pointer-events: none;
-  color: #6b7280;
-  font-size: 12px;
-  transition: transform 0.3s ease;
-}
-
-.select-wrapper:hover .select-arrow {
-  transform: translateY(-50%) rotate(180deg);
 }
 
 .char-count {
@@ -1558,13 +1298,9 @@ onMounted(() => {
     padding: 24px 20px;
   }
   
-  .form-grid {
-    grid-template-columns: 1fr;
-    gap: 20px;
-  }
-  
-  .form-section {
-    padding: 16px;
+  .form-row {
+    flex-direction: column;
+    gap: 16px;
   }
   
   .dialog-footer {

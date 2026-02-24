@@ -476,18 +476,6 @@ const getFileSizeColor = (size: number) => {
   return '#f56c6c' // 红色 >= 10MB
 }
 
-// 获取状态动画类
-const getStatusAnimationClass = (status: string) => {
-  if (status.includes('🚀') || status.includes('进行')) {
-    return 'status-pulse'
-  } else if (status.includes('✅') || status.includes('完成')) {
-    return 'status-success-glow'
-  } else if (status.includes('❌') || status.includes('失败')) {
-    return '' // 失败状态不需要动画
-  }
-  return ''
-}
-
 onMounted(() => {
   // 调试：检查API函数是否正确导入
   console.log('检查API函数导入:')
@@ -599,8 +587,7 @@ onUnmounted(() => {
                   <div v-else class="loading-spinner"></div>
                 </div>
                 <div class="btn-text-wrapper">
-                  <span class="btn-main-text">{{ uploading ? '上传中' : '上传文件' }}</span>
-                  <span class="btn-sub-text">{{ uploading ? '请稍候...' : '支持多种格式' }}</span>
+                  <span class="btn-main-text">{{ uploading ? '上传中...' : '上传文件' }}</span>
                 </div>
               </button>
             </div>
@@ -611,86 +598,37 @@ onUnmounted(() => {
 
     <!-- 文件列表 -->
     <div class="file-list" v-loading="loading">
-      <!-- 文件列表头部工具栏 -->
-      <div v-if="files.length > 0" class="file-toolbar">
-        <div class="toolbar-left">
-          <h3 class="list-title">
-            <span class="title-icon">📋</span>
-            文件列表
-          </h3>
-        </div>
-        <div class="toolbar-right">
-          <div class="view-options">
-            <div class="sort-wrapper">
-              <div class="sort-label">
-                <span class="sort-icon">⚡</span>
-                <span class="sort-text">排序</span>
-              </div>
-              <div class="sort-dropdown">
-                <select 
-                  class="sort-select" 
-                  v-model="sortType" 
-                  @change="handleSortChange"
-                >
-                  <option value="time">🕐 按时间</option>
-                  <option value="name">📝 按名称</option>
-                  <option value="size">📏 按大小</option>
-                  <option value="status">⚡ 按状态</option>
-                </select>
-                <div class="dropdown-arrow">
-                  <span class="arrow-icon">▼</span>
-                </div>
-              </div>
-              <button 
-                class="sort-order-btn" 
-                @click="sortOrder = sortOrder === 'desc' ? 'asc' : 'desc'"
-                :title="sortOrder === 'desc' ? '点击升序排列' : '点击降序排列'"
-              >
-                <span v-if="sortOrder === 'desc'" class="sort-order-icon">⬇️</span>
-                <span v-else class="sort-order-icon">⬆️</span>
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-      
       <div v-if="files.length > 0" class="file-table">
         <table class="custom-table">
           <thead>
             <tr>
               <th class="col-name">
                 <span class="th-content">
-                  <span class="th-icon">📄</span>
                   文件名
                 </span>
               </th>
               <th class="col-type">
                 <span class="th-content">
-                  <span class="th-icon">🏷️</span>
                   类型
                 </span>
               </th>
               <th class="col-size">
                 <span class="th-content">
-                  <span class="th-icon">📏</span>
                   大小
                 </span>
               </th>
               <th class="col-status">
                 <span class="th-content">
-                  <span class="th-icon">⚡</span>
                   状态
                 </span>
               </th>
               <th class="col-time">
                 <span class="th-content">
-                  <span class="th-icon">🕐</span>
                   时间
                 </span>
               </th>
               <th class="col-action">
                 <span class="th-content">
-                  <span class="th-icon">⚙️</span>
                   操作
                 </span>
               </th>
@@ -725,7 +663,7 @@ onUnmounted(() => {
                 </span>
               </td>
               <td class="col-status">
-                <span class="status-tag" :class="[getStatusClass(file.status), getStatusAnimationClass(file.status)]">
+                <span class="status-tag" :class="getStatusClass(file.status)">
                   <span class="status-display">{{ file.status }}</span>
                 </span>
               </td>
@@ -827,35 +765,23 @@ onUnmounted(() => {
 
 <style lang="scss" scoped>
 .knowledge-file-page {
-  padding: 24px;
+  padding: 32px;
   height: 100%;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(135deg, #f8f9ff 0%, #f0f4ff 100%);
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   min-height: 100vh;
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 16px;
-    padding: 16px 24px;
-    background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
+    margin-bottom: 24px;
+    padding: 20px 28px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
     border-radius: 16px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    position: relative;
-    overflow: hidden;
-    
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 4px;
-      background: linear-gradient(90deg, #667eea 0%, #764ba2 50%, #4facfe 100%);
-    }
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.6);
     
     .header-left {
       display: flex;
@@ -870,17 +796,16 @@ onUnmounted(() => {
         .nav-title {
           display: flex;
           align-items: center;
-          gap: 8px;
+          gap: 10px;
           
           .title-icon {
-            font-size: 18px;
+            font-size: 16px;
           }
           
           .title-text {
-            font-size: 16px;
-            font-weight: 700;
-            color: #2c3e50;
-            letter-spacing: 0.5px;
+            font-size: 18px;
+            font-weight: 600;
+            color: #303133;
           }
         }
       
@@ -888,17 +813,18 @@ onUnmounted(() => {
           display: flex;
           align-items: center;
           font-size: 14px;
-          font-weight: 500;
           
           .breadcrumb-item {
             display: flex;
             align-items: center;
             gap: 8px;
             color: #606266;
-            transition: all 0.3s ease;
+            transition: all 0.2s ease;
+            padding: 8px 14px;
+            border-radius: 8px;
             
             .breadcrumb-icon {
-              font-size: 16px;
+              font-size: 14px;
             }
             
             .breadcrumb-text {
@@ -907,45 +833,27 @@ onUnmounted(() => {
             
             &.clickable {
               cursor: pointer;
-              padding: 10px 16px;
-              border-radius: 12px;
-              background: rgba(255, 255, 255, 0.6);
-              backdrop-filter: blur(10px);
-              border: 1px solid rgba(255, 255, 255, 0.3);
+              background: #f5f7fa;
               
               &:hover {
-                background: rgba(64, 158, 255, 0.1);
+                background: #e4e7ed;
                 color: #409eff;
-                transform: translateY(-2px);
-                box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
-                border-color: rgba(64, 158, 255, 0.3);
-              }
-              
-              &:active {
-                transform: translateY(0);
               }
             }
             
             &.current {
               color: #409eff;
               font-weight: 600;
-              background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(100, 200, 255, 0.1) 100%);
-              border: 1px solid rgba(64, 158, 255, 0.2);
-              
-              &:hover {
-                background: linear-gradient(135deg, rgba(64, 158, 255, 0.2) 0%, rgba(100, 200, 255, 0.2) 100%);
-                box-shadow: 0 6px 20px rgba(64, 158, 255, 0.25);
-              }
+              background: rgba(64, 158, 255, 0.1);
             }
           }
           
           .breadcrumb-separator {
-            margin: 0 16px;
+            margin: 0 8px;
             
             .separator-icon {
-              color: #409eff;
-              font-size: 12px;
-              opacity: 0.7;
+              color: #909399;
+              font-size: 10px;
             }
           }
         }
@@ -965,34 +873,28 @@ onUnmounted(() => {
           display: flex;
           align-items: center;
           gap: 10px;
-          padding: 12px 16px;
+          padding: 10px 16px;
           background: white;
-          border-radius: 12px;
-          box-shadow: 0 2px 12px rgba(0, 0, 0, 0.06);
-          border: 1px solid rgba(255, 255, 255, 0.8);
-          backdrop-filter: blur(10px);
-          transition: all 0.3s ease;
-          min-width: 100px;
+          border-radius: 10px;
+          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+          border: 1px solid #e1e5e9;
+          transition: all 0.2s ease;
+          min-width: 90px;
             
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
-            }
+          &:hover {
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+          }
             
-                    .stat-icon-wrapper {
+          .stat-icon-wrapper {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 32px;
-            height: 32px;
-            border-radius: 10px;
+            width: 28px;
+            height: 28px;
+            border-radius: 8px;
             
             .stat-icon {
-              font-size: 16px;
-            }
-            
-            .processing-icon {
-              animation: rocketLaunch 2s infinite;
+              font-size: 14px;
             }
           }
           
@@ -1001,46 +903,43 @@ onUnmounted(() => {
             flex-direction: column;
             
             .stat-number {
-              font-size: 16px;
-              font-weight: 700;
+              font-size: 15px;
+              font-weight: 600;
               line-height: 1;
               margin-bottom: 2px;
             }
             
             .stat-label {
               font-size: 11px;
-              opacity: 0.7;
+              color: #909399;
               font-weight: 500;
             }
           }
             
           &.total {
             .stat-icon-wrapper {
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              .stat-icon {
-                filter: invert(1);
-              }
+              background: #e3f2fd;
             }
             .stat-number {
-              color: #667eea;
+              color: #1976d2;
             }
           }
           
           &.processing {
             .stat-icon-wrapper {
-              background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
+              background: #fff3e0;
             }
             .stat-number {
-              color: #f59e0b;
+              color: #f57c00;
             }
           }
           
           &.success {
             .stat-icon-wrapper {
-              background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
+              background: #e8f5e9;
             }
             .stat-number {
-              color: #10b981;
+              color: #388e3c;
             }
           }
         }
@@ -1049,9 +948,9 @@ onUnmounted(() => {
           display: flex;
           align-items: center;
           gap: 8px;
-          padding: 10px 12px;
+          padding: 8px 12px;
           background: rgba(64, 158, 255, 0.1);
-          border-radius: 10px;
+          border-radius: 8px;
           border: 1px solid rgba(64, 158, 255, 0.2);
           
           .sync-animation {
@@ -1059,8 +958,8 @@ onUnmounted(() => {
             gap: 3px;
             
             .sync-dot {
-              width: 5px;
-              height: 5px;
+              width: 4px;
+              height: 4px;
               background: #409eff;
               border-radius: 50%;
               animation: syncWave 1.5s infinite ease-in-out;
@@ -1082,42 +981,33 @@ onUnmounted(() => {
           .upload-btn-custom {
             display: flex;
             align-items: center;
-            gap: 10px;
-            padding: 12px 20px;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            gap: 8px;
+            padding: 10px 20px;
+            background: #409eff;
             border: none;
-            border-radius: 12px;
+            border-radius: 10px;
             color: white;
             font-weight: 600;
             cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 16px rgba(79, 172, 254, 0.3);
+            transition: all 0.2s ease;
+            font-size: 14px;
             
             &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 6px 20px rgba(79, 172, 254, 0.4);
-            }
-            
-            &:active {
-              transform: translateY(0);
+              background: #66b1ff;
             }
             
             .btn-icon-wrapper {
               display: flex;
               align-items: center;
               justify-content: center;
-              width: 28px;
-              height: 28px;
-              background: rgba(255, 255, 255, 0.2);
-              border-radius: 6px;
               
               .btn-icon {
-                font-size: 16px;
+                font-size: 14px;
               }
               
               .loading-spinner {
-                width: 16px;
-                height: 16px;
+                width: 14px;
+                height: 14px;
                 border: 2px solid rgba(255, 255, 255, 0.3);
                 border-top: 2px solid white;
                 border-radius: 50%;
@@ -1127,25 +1017,16 @@ onUnmounted(() => {
             
             .btn-text-wrapper {
               display: flex;
-              flex-direction: column;
-              align-items: flex-start;
+              align-items: center;
               
               .btn-main-text {
-                font-size: 13px;
+                font-size: 14px;
                 font-weight: 600;
-                line-height: 1;
-                margin-bottom: 2px;
-              }
-              
-              .btn-sub-text {
-                font-size: 10px;
-                opacity: 0.8;
-                line-height: 1;
               }
             }
             
             &.uploading {
-              background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
+              background: #74b9ff;
               cursor: not-allowed;
             }
           }
@@ -1158,160 +1039,6 @@ onUnmounted(() => {
     flex: 1;
     overflow: hidden;
     
-    .file-toolbar {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 16px;
-      padding: 16px 24px;
-      background: white;
-      border-radius: 12px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-      
-      .toolbar-left {
-        .list-title {
-          display: flex;
-          align-items: center;
-          gap: 10px;
-          margin: 0;
-          padding: 8px 16px;
-          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-          border-radius: 12px;
-          color: white;
-          font-size: 16px;
-          font-weight: 700;
-          box-shadow: 0 3px 12px rgba(240, 147, 251, 0.3);
-          letter-spacing: 0.5px;
-          
-          .title-icon {
-            font-size: 18px;
-            filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.2));
-          }
-        }
-      }
-      
-      .toolbar-right {
-        .view-options {
-          display: flex;
-          align-items: center;
-          
-          .sort-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            
-            .sort-label {
-              display: flex;
-              align-items: center;
-              gap: 6px;
-              padding: 8px 12px;
-              background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-              border-radius: 10px;
-              color: white;
-              font-size: 13px;
-              font-weight: 600;
-              box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-              
-              .sort-icon {
-                font-size: 14px;
-              }
-              
-              .sort-text {
-                letter-spacing: 0.5px;
-              }
-            }
-            
-            .sort-dropdown {
-              position: relative;
-              display: flex;
-              align-items: center;
-              
-              .sort-select {
-                appearance: none;
-                padding: 10px 40px 10px 16px;
-                border: 2px solid #e1e5e9;
-                border-radius: 12px;
-                background: linear-gradient(135deg, #ffffff 0%, #f8f9ff 100%);
-                color: #2c3e50;
-                font-size: 13px;
-                font-weight: 500;
-                cursor: pointer;
-                transition: all 0.3s ease;
-                min-width: 120px;
-                box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-                
-                &:hover {
-                  border-color: #409eff;
-                  box-shadow: 0 4px 16px rgba(64, 158, 255, 0.2);
-                  transform: translateY(-1px);
-                }
-                
-                &:focus {
-                  outline: none;
-                  border-color: #409eff;
-                  box-shadow: 0 0 0 3px rgba(64, 158, 255, 0.2);
-                  transform: translateY(-1px);
-                }
-                
-                option {
-                  padding: 8px 12px;
-                  background: white;
-                  color: #2c3e50;
-                  font-weight: 500;
-                }
-              }
-              
-              .dropdown-arrow {
-                position: absolute;
-                right: 12px;
-                top: 50%;
-                transform: translateY(-50%);
-                pointer-events: none;
-                
-                .arrow-icon {
-                  color: #409eff;
-                  font-size: 10px;
-                  transition: transform 0.2s ease;
-                }
-              }
-              
-              &:hover .dropdown-arrow .arrow-icon {
-                transform: scale(1.2);
-              }
-            }
-          }
-          
-          .sort-order-btn {
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            width: 36px;
-            height: 36px;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            transition: all 0.3s ease;
-            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
-            
-            .sort-order-icon {
-              font-size: 14px;
-              filter: invert(1);
-            }
-            
-            &:hover {
-              transform: translateY(-2px);
-              box-shadow: 0 4px 16px rgba(102, 126, 234, 0.4);
-            }
-            
-            &:active {
-              transform: translateY(0);
-            }
-          }
-        }
-      }
-    }
-    
     .file-table {
       height: 100%;
       
@@ -1319,49 +1046,36 @@ onUnmounted(() => {
         width: 100%;
         border-collapse: collapse;
         background: white;
-        border-radius: 16px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border: 1px solid #e1e5e9;
         
         th {
-          background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-          color: white;
+          background: #f5f7fa;
+          color: #606266;
           font-weight: 600;
-          padding: 16px 20px;
-          text-align: left;
-          border-bottom: none;
-          font-size: 14px;
-          position: relative;
+          padding: 14px 20px;
+          text-align: center;
+          border-bottom: 2px solid #e1e5e9;
+          font-size: 13px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
           
           .th-content {
             display: flex;
             align-items: center;
-            gap: 8px;
-            
-            .th-icon {
-              font-size: 16px;
-              opacity: 0.9;
-            }
-          }
-          
-          &:first-child {
-            border-top-left-radius: 16px;
-          }
-          
-          &:last-child {
-            border-top-right-radius: 16px;
+            justify-content: center;
+            gap: 6px;
           }
         }
         
         .file-row {
-          border-bottom: 1px solid rgba(0, 0, 0, 0.05);
-          transition: all 0.3s ease;
-          position: relative;
+          border-bottom: 1px solid #f0f2f5;
+          transition: all 0.2s ease;
           
           &:hover {
-            background: linear-gradient(135deg, rgba(79, 172, 254, 0.05) 0%, rgba(0, 242, 254, 0.05) 100%);
-            transform: translateY(-1px);
-            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            background: #f8f9fa;
           }
           
           &:last-child {
@@ -1369,9 +1083,8 @@ onUnmounted(() => {
           }
           
           &.temp-file {
-            background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(100, 200, 255, 0.1) 100%);
-            border-left: 4px solid #409eff;
-            animation: uploadPulse 2s infinite;
+            background: rgba(64, 158, 255, 0.05);
+            border-left: 3px solid #409eff;
           }
         }
         
@@ -1379,12 +1092,13 @@ onUnmounted(() => {
           padding: 16px 20px;
           vertical-align: middle;
           font-size: 14px;
-          color: #2c3e50;
-          font-weight: 500;
+          color: #606266;
+          text-align: center;
         }
         
         .col-name {
           min-width: 200px;
+          text-align: left;
         }
         
         .col-type, .col-size, .col-status {
@@ -1410,15 +1124,13 @@ onUnmounted(() => {
           display: flex;
           align-items: center;
           justify-content: center;
-          width: 40px;
-          height: 40px;
-          background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
-          border-radius: 12px;
-          box-shadow: 0 4px 12px rgba(240, 147, 251, 0.3);
+          width: 36px;
+          height: 36px;
+          background: #e3f2fd;
+          border-radius: 8px;
           
           .file-icon {
-            font-size: 20px;
-            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.2));
+            font-size: 18px;
           }
           
           .upload-overlay {
@@ -1428,14 +1140,14 @@ onUnmounted(() => {
             right: 0;
             bottom: 0;
             background: rgba(64, 158, 255, 0.8);
-            border-radius: 12px;
+            border-radius: 8px;
             display: flex;
             align-items: center;
             justify-content: center;
             
             .upload-progress {
-              width: 20px;
-              height: 20px;
+              width: 16px;
+              height: 16px;
               border: 2px solid white;
               border-top: 2px solid transparent;
               border-radius: 50%;
@@ -1455,26 +1167,24 @@ onUnmounted(() => {
             text-overflow: ellipsis;
             white-space: nowrap;
             font-weight: 600;
-            color: #2c3e50;
-            font-size: 15px;
+            color: #303133;
+            font-size: 14px;
           }
           
           .temp-badge {
             display: flex;
             align-items: center;
             gap: 4px;
-            background: linear-gradient(135deg, #4facfe 0%, #00f2fe 100%);
+            background: #409eff;
             color: white;
-            padding: 4px 8px;
-            border-radius: 12px;
+            padding: 2px 8px;
+            border-radius: 10px;
             font-size: 11px;
             font-weight: 600;
             width: fit-content;
-            box-shadow: 0 2px 8px rgba(79, 172, 254, 0.3);
-            animation: pulse 2s infinite;
             
             .badge-icon {
-              font-size: 12px;
+              font-size: 10px;
             }
           }
         }
@@ -1482,20 +1192,21 @@ onUnmounted(() => {
       
       .type-tag {
         display: inline-block;
-        padding: 6px 12px;
-        background: linear-gradient(135deg, #a8edea 0%, #fed6e3 100%);
-        color: #2c3e50;
-        border-radius: 16px;
+        padding: 4px 10px;
+        background: #e3f2fd;
+        color: #1976d2;
+        border-radius: 12px;
         font-size: 12px;
         font-weight: 600;
-        box-shadow: 0 2px 8px rgba(168, 237, 234, 0.3);
       }
       
       .size-tag {
-        display: flex;
+        display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 4px;
-        font-weight: 600;
+        font-weight: 500;
+        font-size: 13px;
         
         .size-icon {
           font-size: 14px;
@@ -1503,13 +1214,14 @@ onUnmounted(() => {
       }
       
       .time-info {
-        display: flex;
+        display: inline-flex;
         align-items: center;
+        justify-content: center;
         gap: 6px;
         
         .time-icon {
           font-size: 14px;
-          opacity: 0.7;
+          color: #909399;
         }
         
         .time-text {
@@ -1518,60 +1230,40 @@ onUnmounted(() => {
         }
       }
       
-              .status-tag {
+      .status-tag {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        padding: 6px 12px;
+        border-radius: 12px;
+        font-size: 12px;
+        font-weight: 600;
+        min-width: 80px;
+        
+        .status-display {
           display: flex;
           align-items: center;
-          justify-content: center;
-          padding: 8px 12px;
-          border-radius: 20px;
-          font-size: 12px;
-          font-weight: 600;
-          min-width: 80px;
-          
-          .status-display {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-          }
+          gap: 4px;
+        }
         
         &.status-success {
-          background: linear-gradient(135deg, #84fab0 0%, #8fd3f4 100%);
-          color: #0d5f3c;
-          box-shadow: 0 4px 12px rgba(132, 250, 176, 0.3);
+          background: #e8f5e9;
+          color: #388e3c;
         }
         
         &.status-process {
-          background: linear-gradient(135deg, #ffecd2 0%, #fcb69f 100%);
-          color: #b45309;
-          box-shadow: 0 4px 12px rgba(252, 182, 159, 0.3);
+          background: #fff3e0;
+          color: #f57c00;
         }
         
         &.status-fail {
-          background: linear-gradient(135deg, #ffeaa7 0%, #fab1a0 100%);
-          color: #d63031;
-          box-shadow: 0 4px 12px rgba(250, 177, 160, 0.3);
+          background: #ffebee;
+          color: #d32f2f;
         }
         
         &.status-default {
-          background: linear-gradient(135deg, #ddd6fe 0%, #e879f9 100%);
-          color: #6b7280;
-          box-shadow: 0 4px 12px rgba(221, 214, 254, 0.3);
-        }
-        
-                  &.status-pulse {
-            animation: pulse 2s infinite;
-            
-            .status-display {
-              animation: rocketLaunch 2s infinite;
-            }
-          }
-        
-                  &.status-success-glow {
-            animation: glow 2s infinite;
-          }
-        
-        .rotating {
-          animation: rotate 2s linear infinite;
+          background: #f5f7fa;
+          color: #909399;
         }
       }
       
@@ -1583,56 +1275,40 @@ onUnmounted(() => {
         .delete-btn {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
-          color: white;
-          border: none;
-          border-radius: 12px;
+          gap: 4px;
+          padding: 6px 12px;
+          background: white;
+          color: #f56c6c;
+          border: 1px solid #f56c6c;
+          border-radius: 8px;
           cursor: pointer;
           font-size: 12px;
           font-weight: 600;
-          transition: all 0.3s ease;
-          box-shadow: 0 4px 12px rgba(255, 107, 107, 0.3);
+          transition: all 0.2s ease;
           
           .btn-icon {
             font-size: 14px;
           }
           
-          .btn-text {
-            font-size: 12px;
-          }
-          
           &:hover {
-            background: linear-gradient(135deg, #ee5a52 0%, #e74c3c 100%);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 107, 107, 0.4);
-          }
-          
-          &:active {
-            transform: translateY(0);
+            background: #f56c6c;
+            color: white;
           }
         }
         
         .uploading-indicator {
           display: flex;
           align-items: center;
-          gap: 6px;
-          padding: 8px 16px;
-          background: linear-gradient(135deg, #74b9ff 0%, #0984e3 100%);
-          color: white;
-          border-radius: 12px;
+          gap: 4px;
+          padding: 6px 12px;
+          background: rgba(64, 158, 255, 0.1);
+          color: #409eff;
+          border-radius: 8px;
           font-size: 12px;
           font-weight: 600;
-          box-shadow: 0 4px 12px rgba(116, 185, 255, 0.3);
           
           .uploading-icon {
             font-size: 14px;
-            animation: pulse 2s infinite;
-          }
-          
-          .uploading-text {
-            font-size: 12px;
           }
         }
       }
@@ -1645,8 +1321,9 @@ onUnmounted(() => {
       justify-content: center;
       height: 500px;
       background: white;
-      border-radius: 16px;
-      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
+      border-radius: 12px;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+      border: 1px solid #e1e5e9;
       padding: 40px;
       
       .empty-illustration {
@@ -1659,8 +1336,8 @@ onUnmounted(() => {
           justify-content: center;
           
           .cloud-icon {
-            font-size: 80px;
-            opacity: 0.8;
+            font-size: 60px;
+            opacity: 0.6;
           }
           
           .cloud-files {
@@ -1675,7 +1352,7 @@ onUnmounted(() => {
             gap: 8px;
             
             .file-float {
-              font-size: 20px;
+              font-size: 16px;
               animation: float 3s ease-in-out infinite;
               
               &:nth-child(1) {
@@ -1698,41 +1375,40 @@ onUnmounted(() => {
         display: flex;
         align-items: center;
         gap: 8px;
-        font-size: 24px;
+        font-size: 20px;
         font-weight: 600;
-        color: #2c3e50;
+        color: #303133;
         margin: 0 0 12px 0;
         
         .title-icon {
-          font-size: 28px;
+          font-size: 22px;
         }
       }
       
       .empty-description {
-        font-size: 16px;
-        color: #606266;
+        font-size: 14px;
+        color: #909399;
         margin: 0 0 24px 0;
         text-align: center;
-        line-height: 1.5;
       }
       
       .empty-features {
         display: flex;
-        gap: 20px;
+        gap: 16px;
         margin-bottom: 32px;
         
         .feature-item {
           display: flex;
           flex-direction: column;
           align-items: center;
-          gap: 8px;
-          padding: 16px;
-          background: linear-gradient(135deg, #f8f9ff 0%, #e3f2fd 100%);
-          border-radius: 12px;
-          min-width: 100px;
+          gap: 6px;
+          padding: 12px;
+          background: #f5f7fa;
+          border-radius: 8px;
+          min-width: 90px;
           
           .feature-icon {
-            font-size: 24px;
+            font-size: 20px;
           }
           
           .feature-text {
@@ -1745,74 +1421,12 @@ onUnmounted(() => {
       }
       
       .empty-upload-btn {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-        border: none;
-        border-radius: 12px;
-        padding: 16px 32px;
-        font-size: 16px;
-        font-weight: 600;
-        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.3);
-        transition: all 0.3s ease;
-        
         .btn-icon {
-          margin-right: 8px;
-          font-size: 18px;
-        }
-        
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 30px rgba(102, 126, 234, 0.4);
+          margin-right: 6px;
+          font-size: 16px;
         }
       }
     }
-  }
-}
-
-@keyframes rotate {
-  from {
-    transform: rotate(0deg);
-  }
-  to {
-    transform: rotate(360deg);
-  }
-}
-
-@keyframes pulse {
-  0% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-  50% {
-    transform: scale(1.05);
-    opacity: 1;
-  }
-  100% {
-    transform: scale(1);
-    opacity: 0.7;
-  }
-}
-
-@keyframes glow {
-  0% {
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-  }
-  50% {
-    box-shadow: 0 0 10px rgba(255, 215, 0, 0.8);
-  }
-  100% {
-    box-shadow: 0 0 5px rgba(255, 215, 0, 0.5);
-  }
-}
-
-@keyframes shake {
-  0%, 100% {
-    transform: translateX(0);
-  }
-  20%, 60% {
-    transform: translateX(-3px);
-  }
-  40%, 80% {
-    transform: translateX(3px);
   }
 }
 
@@ -1825,45 +1439,18 @@ onUnmounted(() => {
   }
 }
 
-@keyframes uploadPulse {
-  0% {
-    border-left-color: #409eff;
-    background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(100, 200, 255, 0.1) 100%);
-  }
-  50% {
-    border-left-color: #74b9ff;
-    background: linear-gradient(135deg, rgba(116, 185, 255, 0.15) 0%, rgba(132, 220, 255, 0.15) 100%);
-  }
-  100% {
-    border-left-color: #409eff;
-    background: linear-gradient(135deg, rgba(64, 158, 255, 0.1) 0%, rgba(100, 200, 255, 0.1) 100%);
-  }
-}
-
 @keyframes float {
   0% {
-    transform: translateY(0px) rotate(0deg);
-    opacity: 0.7;
+    transform: translateY(0px);
+    opacity: 0.6;
   }
   50% {
-    transform: translateY(-10px) rotate(180deg);
+    transform: translateY(-8px);
     opacity: 1;
   }
   100% {
-    transform: translateY(0px) rotate(360deg);
-    opacity: 0.7;
-  }
-}
-
-@keyframes rocketLaunch {
-  0% {
     transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-3px);
-  }
-  100% {
-    transform: translateY(0px);
+    opacity: 0.6;
   }
 }
 
@@ -1898,21 +1485,21 @@ onUnmounted(() => {
     background-color: white;
     border-radius: 12px;
     padding: 24px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
     text-align: center;
-    width: 350px;
+    width: 400px;
     max-width: 90%;
 
     .dialog-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #333;
+      font-size: 18px;
+      font-weight: 600;
+      color: #303133;
       margin-bottom: 16px;
     }
 
     .dialog-body {
-      font-size: 16px;
-      color: #555;
+      font-size: 14px;
+      color: #606266;
       margin-bottom: 24px;
       line-height: 1.6;
     }
@@ -1920,39 +1507,33 @@ onUnmounted(() => {
     .dialog-footer {
       display: flex;
       justify-content: center;
-      gap: 20px;
+      gap: 12px;
 
       .btn-cancel, .btn-confirm {
-        padding: 10px 20px;
+        padding: 8px 20px;
         border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
+        font-size: 14px;
+        font-weight: 500;
         cursor: pointer;
-        transition: all 0.3s ease;
+        transition: all 0.2s ease;
+        border: none;
       }
 
       .btn-cancel {
-        background-color: #f5f5f5;
-        color: #333;
-        border: 1px solid #ddd;
+        background-color: #f5f7fa;
+        color: #606266;
         
         &:hover {
-          background-color: #e5e5e5;
+          background-color: #e4e7ed;
         }
       }
 
       .btn-confirm {
         background-color: #f56c6c;
         color: white;
-        border: none;
         
         &:hover {
-          background-color: #ff8080;
-          transform: scale(1.05);
-        }
-        
-        &:active {
-          transform: scale(0.95);
+          background-color: #f78989;
         }
       }
     }

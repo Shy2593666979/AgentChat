@@ -1,5 +1,5 @@
 from agentchat.services.rag.doc_parser.pdf import pdf_parser
-from agentchat.services.transform_paper.convert_pdf import convert_to_pdf
+from agentchat.services.convert_files.convert_pdf import convert_to_pdf
 
 
 class PPTXParser:

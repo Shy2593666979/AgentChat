@@ -35,8 +35,10 @@ async def chat_mars(user_input: str = Body(..., description="用户输入", embe
     memory_messages = await memory_client.search(query=user_input, user_id=login_user.user_id)
     memory_content = str([f"- {msg.get('memory', '')} \n" for msg in memory_messages.get('results', [])])
 
-    messages: List[BaseMessage] = [SystemMessage(content=Mars_System_Prompt.format(memory_content=memory_content)),
-                                   HumanMessage(content=user_input)]
+    messages: List[BaseMessage] = [
+        SystemMessage(content=Mars_System_Prompt.format(memory_content=memory_content)),
+        HumanMessage(content=user_input)
+    ]
 
     async def general_generate():
         final_response = ""
@@ -45,13 +47,18 @@ async def chat_mars(user_input: str = Body(..., description="用户输入", embe
             if chunk.get("type") == "response_chunk":
                 final_response += chunk.get("data", "")
 
-        await memory_client.add(user_id=login_user.user_id, messages=[{"role": "user", "content": user_input}, {"role": "assistant", "content": final_response}])
+        await memory_client.add(
+            user_id=login_user.user_id,
+            messages=[{"role": "user", "content": user_input}, {"role": "assistant", "content": final_response}]
+        )
 
     return StreamingResponse(general_generate(), media_type="text/event-stream")
 
 @router.post("/mars/example")
-async def chat_mars_example(example_id: int = Body(..., description="例子ID", embed=True),
-                            login_user: UserPayload = Depends(get_login_user)):
+async def chat_mars_example(
+    example_id: int = Body(..., description="例子ID", embed=True),
+    login_user: UserPayload = Depends(get_login_user)
+):
     # 设置全局变量
     set_user_id_context(login_user.user_id)
     set_agent_name_context(UsageStatsAgentType.mars_agent)
@@ -71,8 +78,10 @@ async def chat_mars_example(example_id: int = Body(..., description="例子ID", 
     elif example_id == MarsExampleEnum.Deep_Search:
         user_input = "使用深度搜索查泰山游玩攻略"
 
-    messages: List[BaseMessage] = [SystemMessage(content=Mars_System_Prompt.format(memory_content="")),
-                                   HumanMessage(content=user_input)]
+    messages: List[BaseMessage] = [
+        SystemMessage(content=Mars_System_Prompt.format(memory_content="")),
+        HumanMessage(content=user_input)
+    ]
 
     async def general_generate():
         async for chunk in mars_agent.ainvoke_stream(messages):

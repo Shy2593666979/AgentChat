@@ -550,13 +550,13 @@ watch(
                             <img 
                               v-if="plugin.logo_url" 
                               :src="plugin.logo_url" 
-                              :alt="plugin.zh_name || plugin.name"
+                              :alt="plugin.display_name"
                               class="item-icon-img"
                             />
                             <img v-else src="../../../assets/plugin.svg" alt="工具" class="item-icon-img" />
                           </div>
                           <div class="item-content">
-                            <div class="item-text">{{ plugin.zh_name || plugin.name || plugin.tool_name }}</div>
+                            <div class="item-text">{{ plugin.display_name }}</div>
                             <div class="item-desc">{{ plugin.description || '暂无描述' }}</div>
                           </div>
                         </div>

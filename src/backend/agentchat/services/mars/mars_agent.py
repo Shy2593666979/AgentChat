@@ -94,7 +94,7 @@ class MarsAgent:
         ) -> ToolMessage | Command:
             request.tool_call["args"].update({"user_id": self.mars_config.user_id})
             tool_result = await handler(request)
-            return ToolMessage(content=tool_result, tool_call_id=request.tool_call["id"])
+            return ToolMessage(content=tool_result, name=request.tool_call["name"], tool_call_id=request.tool_call["id"])
 
         return [tool_call_limiter, handler_after_model, handler_tool_call]
 

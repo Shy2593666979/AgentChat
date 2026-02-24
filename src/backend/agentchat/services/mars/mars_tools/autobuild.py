@@ -14,6 +14,8 @@ from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.agent import AgentService
 from agentchat.core.models.manager import ModelManager
+from agentchat.database import AgentTable
+from agentchat.database.dao.agent import AgentDao
 from agentchat.prompts.mars import Mars_Autobuild_Answer_Prompt
 from agentchat.settings import app_settings
 
@@ -75,7 +77,7 @@ async def construct_auto_build_prompt(user_id: Optional[str]) -> str:
     llms_info = "\n".join([f"{idx+1}. 模型名称: {llm["model"]}, 提供商: {llm["provider"]}"
                            for idx, llm in enumerate(llms_result.get("LLM", []))])
 
-    tools_info = "\n".join([f"{idx+1}. 插件工具名称: {tool['en_name']}, 工具描述: {tool['description']}"
+    tools_info = "\n".join([f"{idx+1}. 插件工具名称: {tool['display_name']}, 工具描述: {tool['description']}"
                             for idx, tool in enumerate(tools_result)])
 
     mcp_servers_info = "\n".join([f"{idx+1}. MCP 服务名称: {mcp_server['server_name']}"
@@ -147,24 +149,34 @@ async def auto_build_agent(
             agent_message = error_message
             raise ValueError(error_message)
 
-        llm_id = await LLMService.get_llm_id_from_name(llm_name, user_id)
-
-        tool_ids = await ToolService.get_tool_ids_from_name(tools_name if isinstance(tools_name, List) else [tools_name] , user_id)
-
-        knowledge_ids = await KnowledgeService.get_knowledge_ids_from_name(knowledges_name if isinstance(knowledges_name, List) else [knowledges_name], user_id)
-
-        mcp_server_ids = await MCPService.get_mcp_server_ids_from_name(mcp_servers_name if isinstance(mcp_servers_name, List) else [mcp_servers_name], user_id)
-
-        await AgentService.create_agent(
-            name=agent_name,
-            description=agent_description,
-            llm_id=llm_id,
-            tool_ids=tool_ids,
-            mcp_ids=mcp_server_ids,
-            knowledge_ids=knowledge_ids,
+        llm_id = await LLMService.get_llm_id_from_name(
+            llm_name=llm_name,
+            user_id=user_id
+        )
+        tool_ids = await ToolService.get_tool_ids_from_name(
             user_id=user_id,
-            system_prompt="",
-            logo_url=app_settings.default_config.get("agent_logo_url")
+            tool_names=tools_name if isinstance(tools_name, List) else [tools_name]
+        )
+        knowledge_ids = await KnowledgeService.get_knowledge_ids_from_name(
+            user_id=user_id,
+            knowledges_name=knowledges_name if isinstance(knowledges_name, List) else [knowledges_name],
+        )
+        mcp_server_ids = await MCPService.get_mcp_server_ids_from_name(
+            user_id=user_id,
+            mcp_servers_name=mcp_servers_name if isinstance(mcp_servers_name, List) else [mcp_servers_name],
+        )
+
+        await AgentDao.create_agent(
+            AgentTable(
+                name=agent_name,
+                description=agent_description,
+                llm_id=llm_id,
+                tool_ids=tool_ids,
+                mcp_ids=mcp_server_ids,
+                knowledge_ids=knowledge_ids,
+                user_id=user_id,
+                logo_url=app_settings.default_config.get("agent_logo_url")
+            )
         )
         agent_message = f"您的智能体{agent_name}已经创建完毕, 请点击智能体页面进行查看 \n 如果想要创建更多的智能体, 请跟我说哦~"
     except Exception as err:

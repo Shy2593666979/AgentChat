@@ -15,6 +15,8 @@ from agentchat.services.mcp.manager import MCPManager
 from agentchat.settings import app_settings
 from agentchat.utils.convert import convert_mcp_config
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
+from agentchat.utils.helpers import get_provider_from_model
+
 
 # 创建MySQL数据表
 async def init_database():
@@ -29,7 +31,6 @@ async def init_database():
 # 初始化默认工具
 async def init_default_agent():
     try:
-        # if redis_client.setNx('init_default_agent', '1'):
         result = await AgentService.get_agent()
         if len(result) == 0:
             logger.info("Initializing default agents in MySQL")
@@ -61,10 +62,11 @@ async def insert_agent_to_mysql():
 
     tools = await ToolService.get_tools_data()
     for tool in tools:
-        tool["zh_name"] += '助手'
+        tool["name"] = tool["display_name"] + "助手"
         await AgentDao.create_agent(
             AgentTable(
-                **ToolTable(**tool).model_dump(exclude={"user_id"}),
+                **ToolTable(**tool).model_dump(exclude={"user_id", "tool_id"}),
+                tool_ids=[tool["tool_id"]],
                 user_id=SystemUser,
                 is_custom=False,
                 llm_id=llm.get("llm_id")
@@ -77,13 +79,12 @@ async def insert_llm_to_mysql():
     api_key = app_settings.multi_models.conversation_model.api_key
     base_url = app_settings.multi_models.conversation_model.base_url
     model = app_settings.multi_models.conversation_model.model_name
-    llm_type = 'LLM'
-    provider = 'Qwen'
+    provider = get_provider_from_model(model)
 
     await LLMService.create_llm(
         user_id=SystemUser,
         model=model,
-        llm_type=llm_type,
+        llm_type="LLM",
         api_key=api_key,
         base_url=base_url,
         provider=provider
@@ -95,17 +96,12 @@ async def insert_tools_to_mysql():
     tools = await load_default_tool()
 
     for tool in tools:
-        zh_name = tool['zh_name']
-        en_name = tool['en_name']
-        logo_url = tool['logo_url']
-        description = tool['description']
-
-        await ToolService.create_tool(
-            zh_name=zh_name,
-            en_name=en_name,
-            logo_url=logo_url,
-            description=description,
-            user_id=SystemUser
+        await ToolService.create_default_tool(
+            ToolTable(
+                **tool,
+                user_id=SystemUser,
+                is_user_defined=False
+            )
         )
 
 
