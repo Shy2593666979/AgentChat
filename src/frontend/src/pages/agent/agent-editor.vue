@@ -386,7 +386,7 @@ const loadToolOptions = async () => {
       
       toolOptions.value = rawData.map(tool => ({
         ...tool,
-        name: tool.zh_name || tool.en_name
+        name: tool.display_name
       }))
       
       console.log(`✅ 成功加载 ${toolOptions.value.length} 个工具`)
@@ -982,55 +982,6 @@ defineExpose({ loadAgent })
                         <img :src="tool.logo_url || '/src/assets/tool/default.png'" class="option-logo" :alt="tool.name" />
                         <span class="option-name">{{ tool.name }}</span>
                         <span class="option-badge tool-badge">TOOL</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-              </div>
-            </div>
-
-            <!-- 工具 -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('tools')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.tools" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>工具</span>
-                </div>
-                <div class="section-badge">
-                  <el-badge :value="formData.tool_ids.length" class="badge" />
-                </div>
-              </div>
-              <div v-show="collapseItems.tools" class="section-content">
-                <el-form-item label="选择工具">
-                  <el-select
-                    v-model="formData.tool_ids"
-                    multiple
-                    placeholder="🔍 搜索或选择工具"
-                    class="form-select"
-                    :loading="dataLoading.tool"
-                    filterable
-                    clearable
-                    collapse-tags
-                    collapse-tags-tooltip
-                    :max-collapse-tags="3"
-                  >
-                    <template #prefix>
-                      <span v-if="dataLoading.tool" style="color: #c2410c; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
-                      <span v-else style="color: #c2410c; font-size: 12px; font-weight: 600;">🔧 {{ toolOptions.length }}个工具</span>
-                    </template>
-                    <el-option
-                      v-for="tool in toolOptions"
-                      :key="tool.tool_id"
-                      :label="tool.name"
-                      :value="tool.tool_id"
-                    >
-                      <div class="custom-option">
-                        <img :src="tool.logo_url || '/src/assets/robot.svg'" class="option-logo" :alt="tool.name" />
-                        <span class="option-name">{{ tool.name }}</span>
-                        <span class="option-badge tool-badge">Tool</span>
                       </div>
                     </el-option>
                   </el-select>

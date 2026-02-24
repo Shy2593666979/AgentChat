@@ -471,53 +471,27 @@ onMounted(() => {
   <div class="skill-page">
     <!-- 页面头部 - 增强设计 -->
     <div class="page-header">
-      <div class="header-background">
-        <div class="bg-gradient"></div>
-        <div class="bg-pattern"></div>
+      <div class="header-title">
+        <img :src="skillIcon" alt="Skill" class="title-icon" />
+        <h2>Agent Skill</h2>
       </div>
-      <div class="header-content">
-        <div class="header-left">
-          <div class="title-wrapper">
-            <div class="icon-container">
-              <img :src="skillIcon" class="skill-icon" alt="Skill" />
-            </div>
-            <div class="title-text">
-              <h1>Agent Skill</h1>
-              <p class="subtitle">创建和管理智能体技能，赋予 AI 更多专业能力</p>
-            </div>
-          </div>
-        </div>
-        <div class="header-right">
-          <div class="stats-cards">
-            <div class="stat-card">
-              <div class="stat-icon">
-                <el-icon><Files /></el-icon>
-              </div>
-              <div class="stat-info">
-                <span class="stat-label">总 Skill 数：</span>
-                <span class="stat-value">{{ skills.length }}</span>
-              </div>
-            </div>
-          </div>
-          <div class="header-actions">
-            <el-button 
-              :icon="Refresh" 
-              @click="handleRefresh" 
-              :loading="loading"
-              class="refresh-btn"
-            >
-              刷新
-            </el-button>
-            <el-button 
-              type="primary" 
-              :icon="Plus" 
-              @click="showCreateDialog = true"
-              class="create-btn"
-            >
-              创建 Skill
-            </el-button>
-          </div>
-        </div>
+      <div class="header-actions">
+        <el-button 
+          :icon="Refresh" 
+          @click="handleRefresh" 
+          :loading="loading"
+          class="refresh-btn"
+        >
+          刷新
+        </el-button>
+        <el-button 
+          type="primary" 
+          :icon="Plus" 
+          @click="showCreateDialog = true"
+          class="create-btn"
+        >
+          创建 Skill
+        </el-button>
       </div>
     </div>
 
@@ -1832,189 +1806,57 @@ onMounted(() => {
 
 <style lang="scss" scoped>
 .skill-page {
-  min-height: 100%;
-  background: linear-gradient(180deg, #f8fafc 0%, #f1f5f9 100%);
-  padding: 24px;
+  padding: 32px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   
   // 页面头部
   .page-header {
-    position: relative;
-    border-radius: 16px;
-    overflow: hidden;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 24px;
-    background: #ffffff;
-    border: 1px solid #e5e7eb;
-    box-shadow: 0 10px 30px rgba(15, 23, 42, 0.06);
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 20px 28px;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.6);
     
-    .header-background {
-      display: none;
-    }
-    
-    .header-content {
-      position: relative;
+    .header-title {
       display: flex;
-      justify-content: space-between;
       align-items: center;
-      padding: 24px;
-      gap: 24px;
+      gap: 14px;
       
-      .header-left {
-        .title-wrapper {
-          display: flex;
-          align-items: center;
-          gap: 16px;
-          
-          .icon-container {
-            width: 60px;
-            height: 60px;
-            background: linear-gradient(135deg, #e8f2ff 0%, #dbeafe 100%);
-            border-radius: 16px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border: 1px solid #c7ddff;
-            
-            .skill-icon {
-              width: 36px;
-              height: 36px;
-            }
-          }
-          
-          .title-text {
-            h1 {
-              margin: 0 0 6px;
-              font-size: 26px;
-              font-weight: 700;
-              color: #1f2937;
-            }
-            
-            .subtitle {
-              margin: 0;
-              font-size: 14px;
-              color: #64748b;
-            }
-          }
-        }
+      .title-icon {
+        width: 36px;
+        height: 36px;
       }
       
-      .header-right {
-        display: flex;
-        align-items: center;
-        gap: 16px;
-        
-        .stats-cards {
-          .stat-card {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            background: #f8fafc;
-            border: 1px solid #e5e7eb;
-            border-radius: 12px;
-            height: 40px;            // 与右侧按钮高度保持一致
-            padding: 0 16px;         // 垂直方向用高度控制，方便内容垂直居中
-            
-            .stat-icon {
-              width: 36px;
-              height: 36px;
-              background: #e8f2ff;
-              border-radius: 10px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              color: #1B7CE4;
-              font-size: 18px;
-            }
-            
-            .stat-info {
-              display: flex;
-              align-items: center;
-              gap: 4px;
-              
-              .stat-label {
-                font-size: 14px;
-                color: #64748b;
-              }
-              
-              .stat-value {
-                font-size: 18px;
-                font-weight: 700;
-                color: #1f2937;
-                line-height: 1;
-              }
-            }
-          }
-        }
-        
+      h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #1B7CE4, #409eff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+    }
+    
     .header-actions {
-          display: flex;
-          gap: 12px;
-          
-          .refresh-btn {
-            height: 40px;
-            padding: 0 20px;
-            background: #ffffff;
-            border: 1px solid #e2e8f0;
-            color: #64748b;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 14px;
-            transition: all 0.2s ease;
-            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
-            
-            &:hover {
-              background: #f8fafc;
-              border-color: #cbd5e1;
-              color: #1B7CE4;
-              transform: translateY(-1px);
-              box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-            }
-            
-            &:active {
-              transform: translateY(0);
-            }
-          }
-          
-          .create-btn {
-            height: 40px;
-            padding: 0 24px;
-            background: linear-gradient(135deg, #1B7CE4 0%, #0ea5e9 100%);
-            border: none;
-            color: #ffffff;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 14px;
-            box-shadow: 0 4px 12px rgba(27, 124, 228, 0.25);
-            transition: all 0.2s ease;
-            position: relative;
-            overflow: hidden;
-            
-            &::after {
-              content: '';
-              position: absolute;
-              top: 0;
-              left: 0;
-              width: 100%;
-              height: 100%;
-              background: linear-gradient(to bottom, rgba(255, 255, 255, 0.1), transparent);
-              opacity: 0;
-              transition: opacity 0.2s;
-            }
-            
-            &:hover {
-              filter: brightness(1.05);
-              transform: translateY(-1px);
-              box-shadow: 0 6px 16px rgba(27, 124, 228, 0.35);
-              
-              &::after {
-                opacity: 1;
-              }
-            }
-            
-            &:active {
-              transform: translateY(0);
-              filter: brightness(0.95);
-            }
-          }
+      display: flex;
+      gap: 12px;
+      
+      :deep(.el-button) {
+        border-radius: 12px;
+        font-weight: 600;
+        padding: 12px 24px;
+        font-size: 14px;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 6px 20px rgba(75, 142, 230, 0.3);
         }
       }
     }

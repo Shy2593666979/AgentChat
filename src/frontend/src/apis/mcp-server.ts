@@ -167,3 +167,15 @@ export const deleteMCPUserConfigAPI = (config_id: string) => {
     data: { config_id }
   })
 }
+
+// 获取默认MCP Server Logo
+export const getDefaultMCPLogoAPI = () => {
+  return request<{
+    status_code: number
+    status_message: string
+    data: { logo_url: string }
+  }>({
+    url: '/api/v1/mcp_server/logo',
+    method: 'GET'
+  })
+}

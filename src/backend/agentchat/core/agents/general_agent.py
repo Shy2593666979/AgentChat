@@ -6,7 +6,7 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, AsyncGenerator, Callable, NotRequired
 from langgraph.runtime import Runtime
 from langgraph.types import Command
-from langchain_core.tools import BaseTool, tool
+from langchain_core.tools import BaseTool, tool, StructuredTool
 from langchain.tools.tool_node import ToolCallRequest
 from langchain.agents import create_agent, AgentState
 from langgraph.config import get_stream_writer
@@ -24,6 +24,8 @@ from agentchat.api.services.tool import ToolService
 from agentchat.services.rag_handler import RagHandler
 from agentchat.core.agents.mcp_agent import MCPAgent, MCPConfig
 from agentchat.api.services.mcp_server import MCPService
+from agentchat.tools.openapi_tool.adapter import OpenAPIToolAdapter
+
 
 class StreamAgentState(AgentState):
     tool_call_count: NotRequired[int]
@@ -227,12 +229,48 @@ class GeneralAgent:
 
 
     async def setup_tools(self) -> List[BaseTool]:
+        def create_openapi_tool_executor(tool_adapter, tool_name):
+            """闭包创建一个执行OpenAPI Tool的方法"""
+            async def _execute_wrapper(**kwargs):
+                return await tool_adapter.execute(
+                    _tool_name=tool_name,
+                    **kwargs
+                )
+
+            return _execute_wrapper
+
         tools = []
-        tools_name = await ToolService.get_tool_name_by_id(self.agent_config.tool_ids)
-        for name in tools_name:
-            agent_tool = AgentToolsWithName.get(name)
-            if agent_tool:
-                tools.append(agent_tool)
+        db_tools = await ToolService.get_tools_from_id(self.agent_config.tool_ids)
+        for db_tool in db_tools:
+            if db_tool.is_user_defined:
+                tool_adapter = OpenAPIToolAdapter(
+                    auth_config=db_tool.auth_config,
+                    openapi_schema=db_tool.openapi_schema
+                )
+
+                for openapi_tool in tool_adapter.tools:
+                    tools.append(
+                        StructuredTool(
+                            name=openapi_tool["function"].get("name", ""),
+                            description=openapi_tool["function"].get("description", ""),
+                            coroutine=create_openapi_tool_executor(tool_adapter, openapi_tool["function"].get("name")),
+                            args_schema=openapi_tool
+                        )
+                    )
+
+                    self.tool_metadata_map[openapi_tool["function"].get("name", "")] = {
+                        "name": db_tool.display_name,
+                        "type": "工具"
+                    }
+            else:
+                agent_tool = AgentToolsWithName.get(db_tool.name)
+                if agent_tool:
+                    tools.append(agent_tool)
+                self.tool_metadata_map[db_tool.name] = {
+                    "name": db_tool.display_name,
+                    "type": "工具"
+                }
+
         return tools
 
     async def setup_agent_skill_as_tools(self) -> List[BaseTool]:
@@ -370,7 +408,7 @@ class GeneralAgent:
 
         if not metadata:
             # 如果没有记录元数据，直接返回原始名称
-            return tool_name
+            return "工具", tool_name
 
         friendly_name = metadata.get("name", tool_name)
         tool_type = metadata.get("type", "工具")

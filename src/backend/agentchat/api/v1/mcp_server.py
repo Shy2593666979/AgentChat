@@ -1,6 +1,5 @@
 import json
 from loguru import logger
-from typing import Optional
 from fastapi import APIRouter, Body, Depends
 
 from agentchat.api.services.mcp_server import MCPService
@@ -10,6 +9,7 @@ from agentchat.schema.mcp import MCPResponseFormat, MCPServerImportedReq, MCPSer
 from agentchat.schema.schemas import resp_500, resp_200
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.services.mcp.manager import MCPManager
+from agentchat.settings import app_settings
 from agentchat.utils.convert import convert_mcp_config
 from agentchat.utils.helpers import parse_imported_config
 
@@ -176,3 +176,12 @@ async def update_mcp_server(
     except Exception as err:
         logger.error(err)
         return resp_500()
+
+@router.get("/mcp_server/logo", summary="获得MCP服务的默认头像")
+async def get_mcp_default_logo(
+    login_user: UserPayload = Depends(get_login_user)
+):
+    return resp_200({
+        "logo_url": app_settings.default_config.get("mcp_logo_url")
+    })
+

@@ -10,6 +10,7 @@ import {
   deleteMCPServerAPI, 
   updateMCPServerAPI,
   updateMCPUserConfigAPI,
+  getDefaultMCPLogoAPI,
   type MCPServer, 
   type CreateMCPServerRequest, 
   type UpdateMCPServerRequest,
@@ -29,6 +30,7 @@ const configuringServer = ref<MCPServer | null>(null)
 const deletingServer = ref<MCPServer | null>(null)
 const selectedServerTools = ref<MCPServerTool[]>([])
 const selectedServerName = ref('')
+const expandedToolIndex = ref<number | null>(null) // 当前展开的工具索引
 let jsonEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 配置状态
@@ -164,7 +166,7 @@ const fetchServers = async () => {
   }
 }
 
-const handleCreate = () => {
+const handleCreate = async () => {
   editingServer.value = null
   dialogVisible.value = true
   formErrors.value = {}
@@ -177,6 +179,16 @@ const handleCreate = () => {
     imported_config: {}
   }
   configString.value = ''
+  
+  // 获取默认logo
+  try {
+    const response = await getDefaultMCPLogoAPI()
+    if (response.data.status_code === 200) {
+      formData.value.logo_url = response.data.data.logo_url
+    }
+  } catch (error) {
+    console.error('获取默认logo失败:', error)
+  }
 }
 
 const handleEdit = (server: MCPServer) => {
@@ -402,8 +414,18 @@ const viewTools = (server: MCPServer) => {
 
 const closeToolsDialog = () => {
   toolsDialogVisible.value = false
+  expandedToolIndex.value = null // 重置展开状态
   // 恢复背景滚动
   document.body.style.overflow = 'auto'
+}
+
+// 切换工具详情展开/收起
+const toggleToolDetail = (index: number) => {
+  if (expandedToolIndex.value === index) {
+    expandedToolIndex.value = null
+  } else {
+    expandedToolIndex.value = index
+  }
 }
 
 // 处理个人配置
@@ -681,17 +703,19 @@ const saveUserConfig = async () => {
 <template>
   <div class="mcp-server-page">
     <div class="page-header">
-      <h2>
-        <img :src="mcpIcon" class="mcp-icon" alt="MCP" />
-        MCP Server管理
-      </h2>
-      <el-button type="primary" :icon="Plus" @click="handleCreate">
-        添加服务器
-      </el-button>
+      <div class="header-title">
+        <img :src="mcpIcon" alt="MCP" class="title-icon" />
+        <h2>MCP Server管理</h2>
+      </div>
+      <div class="header-actions">
+        <el-button type="primary" :icon="Plus" @click="handleCreate">
+          添加服务器
+        </el-button>
+      </div>
     </div>
 
     <div class="server-list">
-      <el-table :data="servers || []" style="width: 100%" :table-layout="'fixed'">
+      <el-table v-if="servers.length > 0" :data="servers || []" style="width: 100%">
         <!-- 头像列 -->
         <el-table-column label="头像" width="80" align="center">
           <template #default="{ row }">
@@ -705,7 +729,7 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <el-table-column prop="server_name" label="服务器名称" width="150" align="center">
+        <el-table-column prop="server_name" label="服务器名称" min-width="150" align="center">
           <template #default="{ row }">
             <div class="server-name" :class="{ 'official-server': String(row.user_id) === '0' }">
               <span class="name">{{ row.server_name }}</span>
@@ -725,7 +749,7 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <el-table-column prop="type" label="连接类型" width="130" align="center">
+        <el-table-column prop="type" label="连接类型" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="row.type === 'sse' ? 'primary' : 'success'">
               {{ row.type.toUpperCase() }}
@@ -734,7 +758,7 @@ const saveUserConfig = async () => {
         </el-table-column>
         
         <!-- 可用工具数量列 -->
-        <el-table-column label="可用工具" width="170" align="center">
+        <el-table-column label="可用工具" width="140" align="center">
           <template #default="{ row }">
             <div class="tools-count">
               <el-button 
@@ -752,7 +776,7 @@ const saveUserConfig = async () => {
         </el-table-column>
         
         <!-- 配置状态列 -->
-        <el-table-column label="配置状态" width="130" align="center">
+        <el-table-column label="配置状态" width="110" align="center">
           <template #default="{ row }">
             <div class="config-status">
               <el-tag 
@@ -768,7 +792,7 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <el-table-column label="创建时间" width="210" align="center" fixed="right">
+        <el-table-column label="创建时间" min-width="180" align="center">
           <template #default="{ row }">
             <div class="create-time">
               <span>{{ new Date(row.create_time).toLocaleString() }}</span>
@@ -776,59 +800,52 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <!-- 编辑列 -->
-        <el-table-column label="编辑" width="150" align="center" fixed="right">
+        <!-- 操作列 -->
+        <el-table-column label="操作" width="180" align="center">
           <template #default="{ row }">
-            <el-button 
-              v-if="String(row.user_id) !== '0'"
-              size="small" 
-              type="primary"
-              :icon="Edit"
-              @click="handleEdit(row)"
-              title="编辑"
-              round
-            >
-              编辑
-            </el-button>
-            <el-button 
-              v-else
-              size="small" 
-              type="info"
-              :icon="Edit"
-              disabled
-              :title="`${row.server_name} MCP Server 为官方所有，不能编辑`"
-              round
-            >
-              编辑
-            </el-button>
-          </template>
-        </el-table-column>
-        
-        <!-- 删除列 -->
-        <el-table-column label="删除" width="150" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button 
-              v-if="String(row.user_id) !== '0'"
-              size="small" 
-              type="danger" 
-              :icon="Delete"
-              @click="handleDelete(row)"
-              title="删除"
-              round
-            >
-              删除
-            </el-button>
-            <el-button 
-              v-else
-              size="small" 
-              type="info" 
-              :icon="Delete"
-              disabled
-              :title="`${row.server_name} MCP Server 为官方所有，不能删除`"
-              round
-            >
-              删除
-            </el-button>
+            <div class="action-buttons">
+              <el-button 
+                v-if="String(row.user_id) !== '0'"
+                size="small" 
+                type="primary"
+                :icon="Edit"
+                @click="handleEdit(row)"
+                title="编辑"
+              >
+                编辑
+              </el-button>
+              <el-button 
+                v-else
+                size="small" 
+                type="info"
+                :icon="Edit"
+                disabled
+                :title="`${row.server_name} MCP Server 为官方所有，不能编辑`"
+              >
+                编辑
+              </el-button>
+              
+              <el-button 
+                v-if="String(row.user_id) !== '0'"
+                size="small" 
+                type="danger" 
+                :icon="Delete"
+                @click="handleDelete(row)"
+                title="删除"
+              >
+                删除
+              </el-button>
+              <el-button 
+                v-else
+                size="small" 
+                type="info" 
+                :icon="Delete"
+                disabled
+                :title="`${row.server_name} MCP Server 为官方所有，不能删除`"
+              >
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -1041,9 +1058,11 @@ const saveUserConfig = async () => {
                 <div 
                   v-for="(tool, index) in selectedServerTools" 
                   :key="index"
-                  class="tool-card"
+                  class="tool-item"
+                  :class="{ 'expanded': expandedToolIndex === index }"
+                  @click="toggleToolDetail(index)"
                 >
-                  <div class="tool-header">
+                  <div class="tool-summary">
                     <div class="tool-info">
                       <div class="tool-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -1052,86 +1071,92 @@ const saveUserConfig = async () => {
                       </div>
                       <div class="tool-text">
                         <h4 class="tool-name">{{ tool.name }}</h4>
-                        <span class="tool-tag">Function</span>
+                        <p class="tool-description">{{ tool.description || '暂无描述' }}</p>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div class="tool-description">
-                    <p>{{ tool.description || '暂无描述' }}</p>
-                  </div>
-                  
-                  <div class="tool-schema" v-if="tool.input_schema">
-                    <div class="schema-header">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <polyline points="16 18 22 12 16 6" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polyline points="8 6 2 12 8 18" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <div class="tool-expand-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
-                      <span>参数结构</span>
                     </div>
-                    
-                    <div class="schema-content">
-                      <div class="schema-meta">
-                        <div class="meta-item" v-if="tool.input_schema.type">
-                          <span class="meta-label">类型:</span>
-                          <span class="meta-value type">{{ tool.input_schema.type }}</span>
-                        </div>
-                        <div class="meta-item" v-if="tool.input_schema.title">
-                          <span class="meta-label">标题:</span>
-                          <span class="meta-value">{{ tool.input_schema.title }}</span>
-                        </div>
-                      </div>
-                      
-                      <div v-if="tool.input_schema.required?.length" class="required-section">
-                        <div class="section-title">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M9 12l2 2 4-4" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </div>
+                  
+                  <!-- 展开的详细信息 -->
+                  <transition name="expand">
+                    <div v-if="expandedToolIndex === index" class="tool-details" @click.stop>
+                      <div class="tool-schema" v-if="tool.input_schema">
+                        <div class="schema-header">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <polyline points="16 18 22 12 16 6" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="8 6 2 12 8 18" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                           </svg>
-                          <span>必填参数</span>
+                          <span>参数结构</span>
                         </div>
-                        <div class="required-params">
-                          <span 
-                            v-for="param in tool.input_schema.required" 
-                            :key="param"
-                            class="required-param"
-                          >
-                            {{ param }}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div v-if="tool.input_schema.properties" class="properties-section">
-                        <div class="section-title">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#67c23a" stroke-width="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5" stroke="#67c23a" stroke-width="2"/>
-                            <path d="M21 15l-5-5L5 21l5-5z" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                          <span>参数详情</span>
-                        </div>
-                        <div class="properties-grid">
-                          <div 
-                            v-for="(prop, propName) in tool.input_schema.properties" 
-                            :key="propName"
-                            class="property-card"
-                          >
-                            <div class="property-header">
-                              <span class="property-name">{{ propName }}</span>
-                              <span class="property-type">{{ prop.type }}</span>
+                        
+                        <div class="schema-content">
+                          <div class="schema-meta">
+                            <div class="meta-item" v-if="tool.input_schema.type">
+                              <span class="meta-label">类型:</span>
+                              <span class="meta-value type">{{ tool.input_schema.type }}</span>
                             </div>
-                            <div class="property-body">
-                              <p v-if="prop.description" class="property-desc">{{ prop.description }}</p>
-                              <div v-if="prop.default !== undefined" class="property-default">
-                                <span class="default-label">默认值:</span>
-                                <code class="default-value">{{ prop.default }}</code>
+                            <div class="meta-item" v-if="tool.input_schema.title">
+                              <span class="meta-label">标题:</span>
+                              <span class="meta-value">{{ tool.input_schema.title }}</span>
+                            </div>
+                          </div>
+                          
+                          <div v-if="tool.input_schema.required?.length" class="required-section">
+                            <div class="section-title">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9 12l2 2 4-4" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <span>必填参数</span>
+                            </div>
+                            <div class="required-params">
+                              <span 
+                                v-for="param in tool.input_schema.required" 
+                                :key="param"
+                                class="required-param"
+                              >
+                                {{ param }}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div v-if="tool.input_schema.properties" class="properties-section">
+                            <div class="section-title">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#67c23a" stroke-width="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5" stroke="#67c23a" stroke-width="2"/>
+                                <path d="M21 15l-5-5L5 21l5-5z" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <span>参数详情</span>
+                            </div>
+                            <div class="properties-grid">
+                              <div 
+                                v-for="(prop, propName) in tool.input_schema.properties" 
+                                :key="propName"
+                                class="property-card"
+                              >
+                                <div class="property-header">
+                                  <span class="property-name">{{ propName }}</span>
+                                  <span class="property-type">{{ prop.type }}</span>
+                                </div>
+                                <div class="property-body">
+                                  <p v-if="prop.description" class="property-desc">{{ prop.description }}</p>
+                                  <div v-if="prop.default !== undefined" class="property-default">
+                                    <span class="default-label">默认值:</span>
+                                    <code class="default-value">{{ prop.default }}</code>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </transition>
                 </div>
               </div>
             </div>
@@ -2060,27 +2085,40 @@ const saveUserConfig = async () => {
     }
     
     .tools-list {
-      .tool-card {
+      .tool-item {
         background: white;
         border: 1px solid #ebeef5;
         border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        margin-bottom: 12px;
+        overflow: hidden;
         transition: all 0.2s ease;
+        cursor: pointer;
         
         &:hover {
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          border-color: #409eff;
+          box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
         }
         
-        .tool-header {
-          margin-bottom: 16px;
+        &.expanded {
+          border-color: #409eff;
+          box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+          
+          .tool-expand-icon svg {
+            transform: rotate(180deg);
+          }
+        }
+        
+        .tool-summary {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 24px;
           
           .tool-info {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 12px;
+            flex: 1;
             
             .tool-icon {
               width: 40px;
@@ -2094,184 +2132,187 @@ const saveUserConfig = async () => {
             }
             
             .tool-text {
+              flex: 1;
+              
               .tool-name {
-                margin: 0 0 4px 0;
-                font-size: 18px;
+                margin: 0 0 6px 0;
+                font-size: 16px;
                 font-weight: 600;
                 color: #303133;
               }
               
-              .tool-tag {
-                background: #ecf5ff;
-                color: #409eff;
-                border: 1px solid #b3d8ff;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 500;
-                display: inline-block;
+              .tool-description {
+                margin: 0;
+                color: #606266;
+                font-size: 14px;
+                line-height: 1.5;
               }
+            }
+          }
+          
+          .tool-expand-icon {
+            flex-shrink: 0;
+            color: #909399;
+            transition: all 0.3s ease;
+            
+            svg {
+              transition: transform 0.3s ease;
             }
           }
         }
         
-        .tool-description {
-          color: #606266;
-          line-height: 1.6;
-          margin-bottom: 20px;
-          font-size: 14px;
+        .tool-details {
+          border-top: 1px solid #ebeef5;
+          padding: 0 24px 20px 24px;
           
-          p {
-            margin: 0;
-          }
-        }
-        
-        .tool-schema {
-          background: #f8f9fa;
-          border: 1px solid #ebeef5;
-          border-radius: 8px;
-          padding: 20px;
-          
-          .schema-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e4e7ed;
-            font-weight: 600;
-            color: #303133;
-            font-size: 14px;
-          }
-          
-          .schema-content {
-            .schema-meta {
+          .tool-schema {
+            background: #f8f9fa;
+            border: 1px solid #ebeef5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            
+            .schema-header {
+              display: flex;
+              align-items: center;
+              gap: 8px;
               margin-bottom: 16px;
-              
-              .meta-item {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-bottom: 8px;
+              padding-bottom: 12px;
+              border-bottom: 1px solid #e4e7ed;
+              font-weight: 600;
+              color: #303133;
+              font-size: 14px;
+            }
+            
+            .schema-content {
+              .schema-meta {
+                margin-bottom: 16px;
                 
-                .meta-label {
-                  font-weight: 500;
-                  color: #606266;
-                  min-width: 60px;
-                }
-                
-                .meta-value {
-                  color: #303133;
+                .meta-item {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 8px;
                   
-                  &.type {
-                    background: #f0f2f5;
-                    padding: 2px 8px;
-                    border-radius: 4px;
-                    font-size: 12px;
+                  .meta-label {
                     font-weight: 500;
+                    color: #606266;
+                    min-width: 60px;
                   }
-                }
-              }
-            }
-            
-            .required-section {
-              margin-bottom: 16px;
-              
-              .section-title {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                margin-bottom: 12px;
-                font-weight: 600;
-                color: #f56c6c;
-                font-size: 14px;
-              }
-              
-              .required-params {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                
-                .required-param {
-                  background: #fef0f0;
-                  color: #f56c6c;
-                  border: 1px solid #fbc4c4;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  font-size: 12px;
-                  font-weight: 500;
-                }
-              }
-            }
-            
-            .properties-section {
-              .section-title {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                margin-bottom: 12px;
-                font-weight: 600;
-                color: #67c23a;
-                font-size: 14px;
-              }
-              
-              .properties-grid {
-                display: grid;
-                gap: 12px;
-                
-                .property-card {
-                  background: white;
-                  border: 1px solid #ebeef5;
-                  border-radius: 6px;
-                  padding: 16px;
                   
-                  .property-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 8px;
+                  .meta-value {
+                    color: #303133;
                     
-                    .property-name {
-                      font-weight: 600;
-                      color: #303133;
-                      font-size: 14px;
-                    }
-                    
-                    .property-type {
-                      background: #ecf5ff;
-                      color: #409eff;
+                    &.type {
+                      background: #f0f2f5;
                       padding: 2px 8px;
                       border-radius: 4px;
                       font-size: 12px;
                       font-weight: 500;
                     }
                   }
+                }
+              }
+              
+              .required-section {
+                margin-bottom: 16px;
+                
+                .section-title {
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  margin-bottom: 12px;
+                  font-weight: 600;
+                  color: #f56c6c;
+                  font-size: 14px;
+                }
+                
+                .required-params {
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 8px;
                   
-                  .property-body {
-                    .property-desc {
-                      color: #606266;
-                      font-size: 13px;
-                      line-height: 1.5;
-                      margin: 0 0 8px 0;
-                    }
+                  .required-param {
+                    background: #fef0f0;
+                    color: #f56c6c;
+                    border: 1px solid #fbc4c4;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: 500;
+                  }
+                }
+              }
+              
+              .properties-section {
+                .section-title {
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  margin-bottom: 12px;
+                  font-weight: 600;
+                  color: #67c23a;
+                  font-size: 14px;
+                }
+                
+                .properties-grid {
+                  display: grid;
+                  gap: 12px;
+                  
+                  .property-card {
+                    background: white;
+                    border: 1px solid #ebeef5;
+                    border-radius: 6px;
+                    padding: 16px;
                     
-                    .property-default {
+                    .property-header {
                       display: flex;
+                      justify-content: space-between;
                       align-items: center;
-                      gap: 6px;
+                      margin-bottom: 8px;
                       
-                      .default-label {
-                        font-size: 12px;
-                        color: #909399;
+                      .property-name {
+                        font-weight: 600;
+                        color: #303133;
+                        font-size: 14px;
                       }
                       
-                      .default-value {
-                        background: #f4f4f5;
-                        color: #303133;
-                        padding: 2px 6px;
-                        border-radius: 3px;
+                      .property-type {
+                        background: #ecf5ff;
+                        color: #409eff;
+                        padding: 2px 8px;
+                        border-radius: 4px;
                         font-size: 12px;
-                        font-family: 'Monaco', 'Menlo', monospace;
+                        font-weight: 500;
+                      }
+                    }
+                    
+                    .property-body {
+                      .property-desc {
+                        color: #606266;
+                        font-size: 13px;
+                        line-height: 1.5;
+                        margin: 0 0 8px 0;
+                      }
+                      
+                      .property-default {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        
+                        .default-label {
+                          font-size: 12px;
+                          color: #909399;
+                        }
+                        
+                        .default-value {
+                          background: #f4f4f5;
+                          color: #303133;
+                          padding: 2px 6px;
+                          border-radius: 3px;
+                          font-size: 12px;
+                          font-family: 'Monaco', 'Menlo', monospace;
+                        }
                       }
                     }
                   }
@@ -2282,64 +2323,72 @@ const saveUserConfig = async () => {
         }
       }
     }
+    
+    // 展开动画
+    .expand-enter-active,
+    .expand-leave-active {
+      transition: all 0.3s ease;
+      max-height: 2000px;
+      overflow: hidden;
+    }
+    
+    .expand-enter-from,
+    .expand-leave-to {
+      max-height: 0;
+      opacity: 0;
+    }
   }
 }
 
 .mcp-server-page {
-  padding: 24px;
-  min-height: calc(100vh - 60px);
-  background-color: #f5f7fa;
+  padding: 32px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 28px;
-    background: linear-gradient(to right, #ffffff, #f8fafc);
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    position: relative;
-    overflow: hidden;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 20px 28px;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.6);
     
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #409eff, #67c23a, #e6a23c);
-    }
-    
-    h2 {
-      font-size: 26px;
-      font-weight: 700;
-      margin: 0;
+    .header-title {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: linear-gradient(90deg, #1B7CE4, #409eff); // 与mcp.svg图标颜色匹配
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      gap: 14px;
       
-      .mcp-icon {
-        width: 32px;
-        height: 32px;
+      .title-icon {
+        width: 36px;
+        height: 36px;
+      }
+      
+      h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #1B7CE4, #409eff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
     }
     
-    .el-button {
-      font-weight: 600;
-      letter-spacing: 0.025em;
-      border-radius: 12px;
-      padding: 12px 24px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+    .header-actions {
+      .el-button {
+        font-weight: 600;
+        letter-spacing: 0.025em;
+        border-radius: 12px;
+        padding: 12px 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+        }
       }
     }
   }
@@ -2524,6 +2573,25 @@ const saveUserConfig = async () => {
       color: #6b7280;
       font-weight: 500;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      
+      .el-button {
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: translateY(-1px);
+        }
+      }
     }
     
     :deep(.el-table__fixed-right) {
