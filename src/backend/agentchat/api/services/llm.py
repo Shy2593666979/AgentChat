@@ -63,7 +63,9 @@ class LLMService:
         return cls._group_by_type(result)
 
     @classmethod
-    async def get_all_llm(cls):
+    async def get_all_llm(cls, user_id):
+        if user_id != AdminUser:
+            raise ValueError("无权限访问模型数据")
         llms = await LLMDao.get_all_llm()
         result = [llm.to_dict() for llm in llms]
         return cls._group_by_type(result, hide_api_key=True)
@@ -84,9 +86,23 @@ class LLMService:
         return [llm.to_dict() for llm in llms]
 
     @classmethod
-    async def get_llm_id_from_name(cls, llm_name: str, user_id: str):
+    async def get_llm_id_from_name(
+        cls,
+        llm_name: str,
+        user_id: str
+    ):
         llm = await LLMDao.get_llm_id_from_name(llm_name, user_id)
         if llm:
             return llm.llm_id
         llm = await LLMDao.get_llm_id_from_name(llm_name, SystemUser)
         return llm.llm_id if llm else None
+
+    @classmethod
+    async def search_llms_by_name(
+        cls,
+        user_id,
+        llm_name
+    ):
+        results = await LLMDao.search_llms_by_name(user_id, llm_name)
+        return [result.to_dict(["api_key"]) for result in results]
+

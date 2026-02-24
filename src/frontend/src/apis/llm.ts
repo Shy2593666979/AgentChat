@@ -102,4 +102,13 @@ export function deleteLLMAPI(data: { llm_id: string }) {
     method: 'DELETE',
     data
   })
+}
+
+// 搜索大模型
+export function searchLLMsAPI(data: { llm_name: string }) {
+  return request<ApiResponse<Record<string, LLMResponse[]>>>({
+    url: '/api/v1/llm/search',
+    method: 'POST',
+    data
+  })
 } 

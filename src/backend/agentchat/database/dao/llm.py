@@ -1,5 +1,7 @@
-from sqlmodel import select, and_, update, delete
-from agentchat.database.session import session_getter
+from sqlmodel import select, and_, update, delete, or_
+
+from agentchat.database import SystemUser
+from agentchat.database.session import session_getter, async_session_getter
 from agentchat.database.models.llm import LLMTable
 
 
@@ -110,3 +112,17 @@ class LLMDao:
                     )
                 )
             ).first()
+
+    @classmethod
+    async def search_llms_by_name(cls, user_id, llm_name):
+        async with async_session_getter() as session:
+            statement = select(LLMTable).where(
+                or_(
+                    LLMTable.user_id == user_id,
+                    LLMTable.user_id == SystemUser
+                ),
+                LLMTable.model.ilike(f"%{llm_name}%")
+            )
+
+            result = await session.exec(statement)
+            return result.all()

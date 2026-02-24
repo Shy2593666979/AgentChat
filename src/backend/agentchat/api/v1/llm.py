@@ -1,106 +1,117 @@
-from loguru import logger
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, HTTPException
 
 from agentchat.api.services.user import get_login_user, UserPayload
-from agentchat.schema.common import CreateLLMRequest, UpdateLLMRequest
-from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
+from agentchat.schema.llm import LLMUpdateReq, LLMCreateReq, LLMDeleteReq, LLMSearchReq
+from agentchat.schema.schemas import resp_200, resp_500
 from agentchat.api.services.llm import LLMService, LLM_Types
 
-router = APIRouter(tags=["LLM"])
+router = APIRouter(tags=["LLM"], prefix="/llm")
 
 
-@router.post("/llm/create", response_model=UnifiedResponseModel)
+@router.post("/create", summary="用户进行创建模型")
 async def create_llm(
-    *,
-    llm_request: CreateLLMRequest,
+    req: LLMCreateReq,
     login_user: UserPayload = Depends(get_login_user)
 ):
     try:
         await LLMService.create_llm(
             user_id=login_user.user_id,
-            **llm_request.model_dump()
+            **req.model_dump()
         )
         return resp_200()
     except Exception as err:
-        logger.exception("Create LLM failed")
-        return resp_500(message=str(err))
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.delete("/llm/delete", response_model=UnifiedResponseModel)
+@router.delete("/delete", summary="用户删除自己的模型")
 async def delete_llm(
-    llm_id: str = Body(..., embed=True, description="大模型的ID"),
+    req: LLMDeleteReq,
     login_user: UserPayload = Depends(get_login_user)
 ):
     try:
         await LLMService.verify_user_permission(
-            llm_id=llm_id,
+            llm_id=req.llm_id,
             user_id=login_user.user_id
         )
-        await LLMService.delete_llm(llm_id)
+        await LLMService.delete_llm(req.llm_id)
         return resp_200()
     except Exception as err:
-        logger.exception("Delete LLM failed")
-        return resp_500(message=str(err))
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.put("/llm/update", response_model=UnifiedResponseModel)
+@router.put("/update", summary="用户更新模型")
 async def update_llm(
-    *,
-    llm_request: UpdateLLMRequest,
+    req: LLMUpdateReq,
     login_user: UserPayload = Depends(get_login_user)
 ):
     try:
         await LLMService.verify_user_permission(
-            llm_id=llm_request.llm_id,
+            llm_id=req.llm_id,
             user_id=login_user.user_id
         )
-        await LLMService.update_llm(**llm_request.model_dump())
+        await LLMService.update_llm(**req.model_dump())
         return resp_200()
     except Exception as err:
-        logger.exception("Update LLM failed")
-        return resp_500(message=str(err))
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.get("/llm/all", response_model=UnifiedResponseModel)
-async def get_all_llm(login_user: UserPayload = Depends(get_login_user)):
+@router.get("/all", summary="获得所有的模型列表")
+async def get_all_llm(
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
-        result = await LLMService.get_all_llm()
+        result = await LLMService.get_all_llm(login_user.user_id)
         return resp_200(data=result)
     except Exception as err:
-        logger.exception("Get all LLM failed")
-        return resp_500(message=str(err))
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.post("/llm/personal", response_model=UnifiedResponseModel)
-async def get_personal_llm(login_user: UserPayload = Depends(get_login_user)):
+@router.post("/personal", summary="获取用户仅自己创建的模型")
+async def get_personal_llm(
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         result = await LLMService.get_personal_llm(login_user.user_id)
         return resp_200(data=result)
     except Exception as err:
-        logger.exception("Get personal LLM failed")
-        return resp_500(message=str(err))
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.post("/llm/visible", response_model=UnifiedResponseModel)
-async def get_visible_llm(login_user: UserPayload = Depends(get_login_user)):
+@router.post("/visible", summary="获取用户仅自己可见的模型")
+async def get_visible_llm(
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         result = await LLMService.get_visible_llm(login_user.user_id)
         return resp_200(data=result)
     except Exception as err:
-        logger.exception("Get visible LLM failed")
-        return resp_500(message=str(err))
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.get("/agent/models", response_model=UnifiedResponseModel)
-async def get_all_agent_models(login_user: UserPayload = Depends(get_login_user)):
+@router.get("/agent/models", summary="获取Agent中可用的模型")
+async def get_all_agent_models(
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         result = await LLMService.get_visible_llm(login_user.user_id)
         return resp_200(data=result.get("LLM", []))
     except Exception as err:
-        logger.exception("Get agent models failed")
-        return resp_500(message=str(err))
+        raise HTTPException(status_code=500, detail=str(err))
+
+@router.post("/search", summary="根据用户名称进行搜索模型")
+async def search_models(
+    req: LLMSearchReq,
+    login_user: UserPayload = Depends(get_login_user)
+):
+    try:
+        result = await LLMService.search_llms_by_name(login_user.user_id, req.llm_name)
+        return resp_200({"LLM": result})
+    except Exception as err:
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.get("/llm/schema", response_model=UnifiedResponseModel)
-async def get_llm_type(login_user: UserPayload = Depends(get_login_user)):
+@router.get("/schema", summary="模型格式")
+async def get_llm_type(
+    login_user: UserPayload = Depends(get_login_user)
+):
     return resp_200(data=LLM_Types)
