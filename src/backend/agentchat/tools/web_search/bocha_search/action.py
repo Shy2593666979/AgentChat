@@ -33,10 +33,9 @@ def bocha_search(
         str: 格式化的搜索结果或错误信息
     """
 
-    url = app_settings.tools.bocha.get("url")
+    url = app_settings.tools.bocha.get("endpoint")
     headers = {
         'Authorization': f'Bearer {app_settings.tools.bocha.get("api_key")}',  # 请替换为你的API密钥
-        # 'Authorization': f'Bearer sk-**************',  # 请替换为你的API密钥
         'Content-Type': 'application/json'
     }
     # 构建请求体（只包含非 None 值）
