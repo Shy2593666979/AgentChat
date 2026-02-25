@@ -68,11 +68,16 @@ tools:
   # SerpApi 上的 Google Search API 配置
   google:
     api_key: "cdc3b207606843b4c883849c3a0f833c13057811b*********"
-
   # 使用的是aliyun上的快递查询api
   delivery:
     api_key: "df695c94fc644d******"
     endpoint: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
+  # BoCha 联网搜索 API 配置
+  bocha:
+    api_key: "sk-**********************"
+    endpoint: "https://api.bochaai.com/v1/web-search"
+
+
 
 # RAG (检索增强生成) 配置
 rag:
@@ -108,7 +113,7 @@ aliyun_oss:
 # 默认配置 (如图标 URL, 资源链接)
 default_config:
   mcp_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
-  tool_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tool.png" # 工具默认图标 URL
+  tool_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/default.png" # 工具默认图标 URL
   agent_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png" # Agent 默认图标 URL
   mars_daily_url: "https://news.aibase.com/zh/news" # 外部新闻链接
   memory_collection_name: "memory" # 记忆存储的集合名称
