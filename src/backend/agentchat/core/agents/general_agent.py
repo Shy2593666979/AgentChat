@@ -356,7 +356,12 @@ class GeneralAgent:
             )
             return knowledge_message
 
-        self.tools.append(retrival_knowledge)
+        if self.agent_config.knowledge_ids: # 当绑定知识库ID后才 As Tool
+            self.tools.append(retrival_knowledge)
+            self.tool_metadata_map[retrival_knowledge.name] = {
+                "name": "检索知识库",
+                "type": "工具"
+            }
 
 
     async def astream(self, messages: List[BaseMessage]) -> AsyncGenerator[Dict[str, Any], None]:
