@@ -214,3 +214,23 @@ You are a professional tool invocation expert, capable of executing tool invocat
 {plan_actions}
 
 """
+
+Text2SQLGeneratePrompt = """
+你是一个 MySQL 专家。请根据以下数据库 Schema 编写 SQL 查询语句。
+
+[Schema 信息]
+{schema}
+
+[规则]
+1. 仅输出 SQL 语句，不要包含任何解释或 Markdown 格式。
+2. 如果需要，请使用 LIMIT 限制返回数量。
+3. 不要输出 'sql' 标记。
+"""
+
+Text2SQLSummaryPrompt = """
+用户问题: {query}
+SQL 语句: {sql}
+查询结果: {result}
+
+请根据查询结果简洁地回答用户问题。如果结果为空，请说明。
+"""

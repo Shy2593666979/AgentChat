@@ -1,4 +1,5 @@
 from datetime import datetime, timedelta
+from typing import Dict, Any
 
 import pytz
 
@@ -10,47 +11,62 @@ from agentchat.database.models.user import AdminUser, SystemUser
 class MCPService:
 
     @classmethod
-    async def create_mcp_server(cls, server_name: str, user_id: str, user_name: str,
-                                url: str, type: str, config: dict, tools: list, params: dict,
-                                config_enabled: bool, logo_url: str, mcp_as_tool_name: str, description: str):
-        try:
-            return await MCPServerDao.create_mcp_server(server_name, user_id, user_name, mcp_as_tool_name, description,
-                                                        url, type, config, tools, params, config_enabled, logo_url)
-        except Exception as err:
-            raise ValueError(f"Create MCP Server Error: {err}")
+    async def create_mcp_server(
+        cls,
+        url: str,
+        type: str,
+        tools: list,
+        params: dict,
+        server_name: str,
+        user_id: str,
+        user_name: str,
+        logo_url: str,
+        mcp_as_tool_name: str,
+        description: str,
+        config: dict = None,
+        imported_config: dict = None,
+        config_enabled: bool = False,
+    ):
+        return await MCPServerDao.create_mcp_server(
+            url=url,
+            type=type,
+            config=config,
+            tools=tools,
+            params=params,
+            server_name=server_name,
+            user_id=user_id,
+            user_name=user_name,
+            mcp_as_tool_name=mcp_as_tool_name,
+            description=description,
+            config_enabled=config_enabled,
+            logo_url=logo_url,
+            imported_config=imported_config
+        )
 
     @classmethod
     async def get_mcp_server_from_id(cls, mcp_server_id):
-        try:
-            result = await MCPServerDao.get_mcp_server_from_id(mcp_server_id)
-            return result.to_dict()
-        except Exception as err:
-            raise ValueError(f"Get MCP Server From ID Error: {err}")
+        result = await MCPServerDao.get_mcp_server_from_id(mcp_server_id)
+        return result.to_dict()
+
 
     @classmethod
-    async def update_mcp_server(cls, mcp_server_id: str, server_name: str = None, url: str = None, type: str = None,
-                                mcp_as_tool_name=None, description=None, config: dict = None, tools: list = None,
-                                params: dict = None, logo_url: str = None):
-        try:
-            return await MCPServerDao.update_mcp_server(mcp_server_id, server_name, mcp_as_tool_name, description, url,
-                                                        type, config, tools, params, logo_url)
-        except Exception as err:
-            raise ValueError(f"Update MCP Server Error: {err}")
+    async def update_mcp_server(cls, server_id: str, update_data: dict):
+        if not update_data:
+            return
+
+        return await MCPServerDao.update_mcp_server(
+            mcp_server_id=server_id,
+            update_data=update_data
+        )
 
     @classmethod
     async def get_server_from_tool_name(cls, tool_name):
-        try:
-            results = await MCPServerDao.get_server_from_tool_name(tool_name)
-            return results.to_dict()
-        except Exception as err:
-            raise ValueError(f"Get Server From Tool Name Error: {err}")
+        results = await MCPServerDao.get_server_from_tool_name(tool_name)
+        return results.to_dict()
 
     @classmethod
     async def delete_server_from_id(cls, mcp_server_id):
-        try:
-            return await MCPServerDao.delete_mcp_server(mcp_server_id)
-        except Exception as err:
-            raise ValueError(f"Delete Server From ID Error: {err}")
+        return await MCPServerDao.delete_mcp_server(mcp_server_id)
 
     @classmethod
     async def verify_user_permission(cls, server_id, user_id, action: str="update"):
@@ -63,22 +79,19 @@ class MCPService:
 
     @classmethod
     async def get_all_servers(cls, user_id):
-        try:
-            # 管理员可看见所有用户的MCP Server
-            if user_id in (AdminUser, SystemUser):
-                all_servers = await MCPServerDao.get_all_mcp_servers()
-            else:
-                personal_servers = await MCPServerDao.get_mcp_servers_from_user(user_id)
-                admin_servers = await MCPServerDao.get_mcp_servers_from_user(SystemUser)
-                all_servers = personal_servers + admin_servers
-            all_servers = [server.to_dict() for server in all_servers]
-            for server in all_servers:
-                user_config = await MCPUserConfigService.show_mcp_user_config(user_id, server["mcp_server_id"])
-                if user_config.get("config"):
-                    server["config"] = user_config.get("config")
-            return all_servers
-        except Exception as err:
-            raise ValueError(f"Get All Servers Error: {err}")
+        # 管理员可看见所有用户的MCP Server
+        if user_id in (AdminUser, SystemUser):
+            all_servers = await MCPServerDao.get_all_mcp_servers()
+        else:
+            personal_servers = await MCPServerDao.get_mcp_servers_from_user(user_id)
+            admin_servers = await MCPServerDao.get_mcp_servers_from_user(SystemUser)
+            all_servers = personal_servers + admin_servers
+        all_servers = [server.to_dict() for server in all_servers]
+        for server in all_servers:
+            user_config = await MCPUserConfigService.show_mcp_user_config(user_id, server["mcp_server_id"])
+            if user_config.get("config"):
+                server["config"] = user_config.get("config")
+        return all_servers
 
     @classmethod
     async def mcp_server_need_update(cls):
@@ -94,37 +107,72 @@ class MCPService:
 
     @classmethod
     async def get_mcp_tools_info(cls, server_id):
-        try:
-            server = await MCPServerDao.get_mcp_server_from_id(server_id)
-            server = server.to_dict()
-            tools_info = []
-            for param in server["params"]:
-                tool_schema = []
-                properties = param["input_schema"]["properties"]
-                required = param["input_schema"].get("required", [])
-                for param_key, param_value in properties.items():
-                    tool_schema.append({
-                        "name": param_key,
-                        "description": param_value.get("description", ""),
-                        "type": param_value.get("type"),
-                        "required": True if param_key in required else False
-                    })
-
-                tools_info.append({
-                    "tool_name": param["name"],
-                    "tool_description": param.get("description", ""),
-                    "tool_schema": tool_schema
+        server = await MCPServerDao.get_mcp_server_from_id(server_id)
+        server = server.to_dict()
+        tools_info = []
+        for param in server["params"]:
+            tool_schema = []
+            properties = param["input_schema"]["properties"]
+            required = param["input_schema"].get("required", [])
+            for param_key, param_value in properties.items():
+                tool_schema.append({
+                    "name": param_key,
+                    "description": param_value.get("description", ""),
+                    "type": param_value.get("type"),
+                    "required": True if param_key in required else False
                 })
-            return tools_info
-        except Exception as err:
-            raise ValueError(f"Get MCP Tools Info Error:{err}")
+
+            tools_info.append({
+                "tool_name": param["name"],
+                "tool_description": param.get("description", ""),
+                "tool_schema": tool_schema
+            })
+        return tools_info
 
     @classmethod
     async def get_mcp_server_ids_from_name(cls, mcp_servers_name, user_id):
-        try:
-            mcp_servers = await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, user_id)
-            mcp_servers.extend(await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, SystemUser))
-            return [mcp_server.mcp_server_id for mcp_server in mcp_servers]
-        except Exception as err:
-            raise ValueError(f"Get MCP Server Ids Error:{err}")
+        mcp_servers = await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, user_id)
+        mcp_servers.extend(await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, SystemUser))
+        return [mcp_server.mcp_server_id for mcp_server in mcp_servers]
 
+
+    @classmethod
+    def validate_imported_config(cls, payload: Dict[str, Any]):
+        """
+        校验前端传入的 mcpServers 配置
+
+        规则：
+        - 必须包含 mcpServers
+        - mcpServers 必须是 dict
+        - 每个 server 必须包含 type 和 url
+        - headers 可选，但若存在必须是 dict
+        """
+        if "mcpServers" not in payload:
+            raise ValueError("缺少字段: mcpServers")
+
+        mcp_servers = payload["mcpServers"]
+
+        if not isinstance(mcp_servers, dict):
+            raise ValueError("mcpServers 必须是一个字典类型")
+
+        if not mcp_servers:
+            raise ValueError("mcpServers 不能为空")
+
+        for server_name, server_conf in mcp_servers.items():
+            if not isinstance(server_name, str) or not server_name.strip():
+                raise ValueError(f"非法的 mcpServer 名称: {server_name}")
+
+            if not isinstance(server_conf, dict):
+                raise ValueError(f"mcpServer `{server_name}` 配置必须是对象")
+
+            # 必填字段
+            for required_field in ("type", "url"):
+                if required_field not in server_conf:
+                    raise ValueError(f"mcpServer `{server_name}` 缺少必填字段: {required_field}")
+
+                if not server_conf[required_field]:
+                    raise ValueError(f"mcpServer `{server_name}` 字段 `{required_field}` 不能为空")
+
+            # headers 可选
+            if "headers" in server_conf and not isinstance(server_conf["headers"], dict):
+                raise ValueError(f"mcpServer `{server_name}` 的 headers 必须是对象 (dict)")

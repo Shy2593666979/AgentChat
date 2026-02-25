@@ -279,7 +279,7 @@ onMounted(() => {
             size="large"
             style="border-radius: 12px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border: none;"
           >
-            🤖 创建智能体
+            创建智能体
           </el-button>
         </div>
       </div>

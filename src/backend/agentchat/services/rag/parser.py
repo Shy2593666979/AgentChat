@@ -1,14 +1,21 @@
 import os
 import asyncio
 
-from agentchat.settings import app_settings
+from agentchat.services.rag.doc_parser.excel import excel_to_txt
+from agentchat.services.rag.doc_parser.image import image_to_txt
+from agentchat.services.rag.doc_parser.other_file import other_file_to_txt
+from agentchat.services.rag.doc_parser.pptx import pptx_parser
 from agentchat.core.models.manager import ModelManager
-from agentchat.schema.chunk import ChunkModel
 from agentchat.services.rag.doc_parser.docx import docx_parser
 from agentchat.services.rag.doc_parser.pdf import pdf_parser
 from agentchat.services.rag.doc_parser.text import text_parser
 from agentchat.services.rag.doc_parser.markdown import markdown_parser
+from agentchat.schema.chunk import ChunkModel
+from agentchat.settings import app_settings
 
+IMAGE_SUFFIXES = {"jpg", "jpeg", "png", "bmp", "webp", "tiff"}
+TEXT_LIKE_SUFFIXES = {"txt", "json", "html", "htm", "csv"}
+EXCEL_SUFFIXES = {"xls", "xlsx"}
 
 class DocParser:
 
@@ -24,6 +31,17 @@ class DocParser:
             chunks = await docx_parser.parse_into_chunks(file_id, file_path, knowledge_id)
         elif file_suffix == 'pdf':
             chunks = await pdf_parser.parse_into_chunks(file_id, file_path, knowledge_id)
+        elif file_suffix == 'pptx':
+            chunks = await pptx_parser.parse_into_chunks(file_id, file_path, knowledge_id)
+        elif file_suffix in IMAGE_SUFFIXES: # 图片类型
+            new_file_path = image_to_txt(file_path)
+            chunks = await text_parser.parse_into_chunks(file_id, new_file_path, knowledge_id)
+        elif file_suffix in EXCEL_SUFFIXES: # 表格类型
+            new_file_path = excel_to_txt(file_path)
+            chunks = await text_parser.parse_into_chunks(file_id, new_file_path, knowledge_id)
+        elif file_suffix in TEXT_LIKE_SUFFIXES: # 可转化成Txt文件类型
+            new_file_path = other_file_to_txt(file_path)
+            chunks = await text_parser.parse_into_chunks(file_id, new_file_path, knowledge_id)
         """其他文档"""
 
         # 当开启chunk总结时才有该步骤

@@ -1,85 +1,103 @@
-from typing import Optional
 from loguru import logger
-from fastapi import APIRouter, Depends, Body
+from fastapi import APIRouter, Depends, Body, HTTPException
 
+from agentchat.database import ToolTable
 from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.api.services.tool import ToolService
-from agentchat.schema.tool import ToolCreateRequest, ToolUpdateRequest
+from agentchat.schema.tool import ToolCreateReq, ToolUpdateReq, ToolDeleteReq
+from agentchat.settings import app_settings
+from agentchat.tools.openapi_tool.adapter import OpenAPIToolAdapter
 
-router = APIRouter(tags=["Tool"])
+router = APIRouter(tags=["Tool"], prefix="/tool")
 
-
-@router.post('/tool/create', response_model=UnifiedResponseModel)
-async def create_tool(*,
-                      tool_request: ToolCreateRequest,
-                      login_user: UserPayload = Depends(get_login_user)):
+@router.post("/create", response_model=UnifiedResponseModel)
+async def create_tool(
+    *,
+    req: ToolCreateReq,
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
-        results = await ToolService.create_tool(user_id=login_user.user_id, zh_name=tool_request.zh_name,
-                                                en_name=tool_request.en_name, description=tool_request.description,
-                                                logo_url=tool_request.logo_url)
-        return resp_200(data=results)
+        if req.openapi_schema: # 验证上传的OpenAPI Schema是否有效
+            OpenAPIToolAdapter.validate_openapi_schema(req.openapi_schema)
+
+        result = await ToolService.create_user_defined_tool(
+            ToolTable(
+                **req.model_dump(),
+                user_id=login_user.user_id,
+                is_user_defined=True,
+            )
+        )
+        return resp_200(data=result)
     except Exception as err:
-        logger.error(err)
-        return resp_500(message=str(err))
+        logger.error(f"创建工具失败：{err}")
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.get('/tool/all', response_model=UnifiedResponseModel)
-async def get_tool(login_user: UserPayload = Depends(get_login_user)):
+@router.post("/all", summary="获取当前用户可见的所有工具")
+async def get_all_tools(
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
-        results = await ToolService.get_all_tools()
-        return resp_200(data=results)
+        result = await ToolService.get_all_tools(login_user.user_id)
+        return resp_200(data=result)
     except Exception as err:
-        logger.error(err)
-        return resp_500(message=str(err))
+        logger.error(f"获取用户可见工具失败：{err}")
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.post('/tool/own', response_model=UnifiedResponseModel)
-async def get_personal_tool(login_user: UserPayload = Depends(get_login_user)):
+@router.post("/user_defined", summary="获得用户自定义的工具")
+async def get_user_defined_tools(
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
-        results = await ToolService.get_personal_tool_by_user(user_id=login_user.user_id)
-        return resp_200(data=results)
+        result = await ToolService.get_user_defined_tools(login_user.user_id)
+        return resp_200(data=result)
     except Exception as err:
-        logger.error(err)
-        return resp_500(message=str(err))
+        logger.error(f"获取用户自定义工具失败：{err}")
+        raise HTTPException(status_code=500, detail=str(err))
 
 
-@router.post('/tool/visible', response_model=UnifiedResponseModel)
-async def get_visible_tool(login_user: UserPayload = Depends(get_login_user)):
-    try:
-        results = await ToolService.get_visible_tool_by_user(user_id=login_user.user_id)
-        return resp_200(data=results)
-    except Exception as err:
-        logger.error(err)
-        return resp_500(message=str(err))
-
-
-@router.delete('/tool/delete', response_model=UnifiedResponseModel)
-async def delete_tool(tool_id: str = Body(embed=True, description='工具的ID'),
-                      login_user: UserPayload = Depends(get_login_user)):
+@router.post("/delete", response_model=UnifiedResponseModel)
+async def delete_user_defined_tool(
+    req: ToolDeleteReq,
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         # 验证用户权限
-        await ToolService.verify_user_permission(tool_id, login_user.user_id)
+        await ToolService.verify_user_permission(req.tool_id, login_user.user_id)
 
-        await ToolService.delete_tool(tool_id=tool_id)
+        await ToolService.delete_user_defined_tool(tool_id=req.tool_id)
         return resp_200()
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))
 
 
-@router.put('/tool/update', response_model=UnifiedResponseModel)
-async def update_tool(*,
-                      tool_request: ToolUpdateRequest,
-                      login_user: UserPayload = Depends(get_login_user)):
+@router.post("/update", summary="修改用户自定义的工具")
+async def update_user_defined_tool(
+    req: ToolUpdateReq,
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
-        # 验证用户权限
-        await ToolService.verify_user_permission(tool_request.tool_id, login_user.user_id)
+        if req.openapi_schema:
+            OpenAPIToolAdapter.validate_openapi_schema(req.openapi_schema)
 
-        await ToolService.update_tool(tool_id=tool_request.tool_id, logo_url=tool_request.logo_url,
-                                      en_name=tool_request.en_name, zh_name=tool_request.zh_name,
-                                      description=tool_request.description)
+        # 验证用户权限
+        await ToolService.verify_user_permission(req.tool_id, login_user.user_id)
+
+        await ToolService.update_user_defined_tool(
+            tool_id=req.tool_id,
+            update_values=req.model_dump(exclude_none=True, exclude={"tool_id"})
+        )
         return resp_200()
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))
+
+
+@router.get("/default_logo", summary="获得工具默认的头像")
+async def get_default_tol_logo(
+    login_user: UserPayload = Depends(get_login_user)
+):
+    return resp_200(data={"logo_url": app_settings.default_config.get("tool_logo_url")})

@@ -2,13 +2,43 @@ import json
 import os
 import re
 import requests
-# from services.agent import AgentService
 from loguru import  logger
+from pydantic import BaseModel, Field
+
 from agentchat.settings import app_settings
 from datetime import datetime, timedelta, timezone
 
+class ImportedConfigInfo(BaseModel):
+    name: str
+    url: str
+    type: str = "sse"
+    headers: dict | None = None
 
-def combine_history_messages(history_messages):
+def parse_imported_config(imported_config):
+    name, info = next(iter(imported_config.get("mcpServers", {}).items()))
+
+    return ImportedConfigInfo(
+        name=name,
+        url=info.get("url"),
+        type=info.get("type"),
+        headers=info.get("headers")
+    )
+
+
+def build_completion_system_prompt(system_prompt, history):
+    if "{history}" in system_prompt:
+        system_prompt = system_prompt.format(
+            history=f"<chat_history>\n{history}\n</chat_history>"
+        )
+    else:
+        system_prompt += f"""
+        📜 对话历史
+        - {history}
+        """
+    return system_prompt
+
+
+def build_completion_history_messages(history_messages):
     """
     examples:
         <chat_history>
@@ -47,7 +77,7 @@ def check_or_create(path):
     else:
         os.makedirs(path)
 
-def combine_user_input(user_input, file_url):
+def build_completion_user_input(user_input, file_url):
     if file_url:
         return f"{user_input}, 上传的文件链接：{file_url}"
     else:
@@ -73,6 +103,52 @@ def get_now_beijing_time(delta: int = 0):
 
     return current_time
 
+
+def get_provider_from_model(model_name):
+    MODEL_PROVIDER_MAP = {
+        # 阿里系
+        "qwen": "通义千问",
+        # OpenAI系
+        "gpt": "OpenAI",
+        "o1": "OpenAI",
+        # 深度求索
+        "deepseek": "深度求索",
+        # 百度系
+        "ernie": "百度文心一言",
+        "wenxin": "百度文心一言",
+        # 字节系
+        "doubao": "字节跳动",
+        # 科大讯飞
+        "xinghuo": "科大讯飞",
+        # Anthropic
+        "claude": "Anthropic",
+        # 谷歌
+        "gemini": "Google",
+        "gemma": "Google",
+        # 智谱AI
+        "glm": "智谱AI",
+        # 360
+        "kimi": "KiMi",
+        # 商汤
+        "sensechat": "商汤商量",
+        # MiniMax
+        "abab": "MiniMax"
+    }
+
+    # 空值处理
+    if not isinstance(model_name, str) or model_name.strip() == "":
+        return "未知服务商"
+
+    # 统一转为小写进行匹配
+    model_name_lower = model_name.strip().lower()
+
+    # 遍历匹配规则
+    for keyword, provider in MODEL_PROVIDER_MAP.items():
+        if keyword in model_name_lower:
+            return provider
+
+    # 未匹配到的默认返回
+    return "未知服务商"
 
 def check_input(user_input):
     # 定义正则表达式，匹配大小写字母、数字

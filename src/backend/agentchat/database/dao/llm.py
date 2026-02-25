@@ -1,24 +1,31 @@
-from sqlmodel import Session, select, and_, update, desc, delete
-from agentchat.database.session import session_getter
+from sqlmodel import select, and_, update, delete, or_
+
+from agentchat.database import SystemUser
+from agentchat.database.session import session_getter, async_session_getter
 from agentchat.database.models.llm import LLMTable
-from datetime import datetime
 
 
 class LLMDao:
 
     @classmethod
-    async def _create_llm(cls, model: str, base_url: str, llm_type: str,
-                          api_key: str, provider: str, user_id: str):
-        llm = LLMTable(model=model, base_url=base_url,
-                       api_key=api_key, provider=provider, user_id=user_id)
-        return llm
-
-    @classmethod
-    async def create_llm(cls, model: str, base_url: str, llm_type: str,
-                         api_key: str, provider: str, user_id: str):
+    async def create_llm(
+        cls,
+        model: str,
+        base_url: str,
+        llm_type: str,
+        api_key: str,
+        provider: str,
+        user_id: str
+    ):
         with session_getter() as session:
-            llm = await cls._create_llm(model=model, base_url=base_url, llm_type=llm_type,
-                                        api_key=api_key, provider=provider, user_id=user_id)
+            llm = LLMTable(
+                model=model,
+                base_url=base_url,
+                api_key=api_key,
+                provider=provider,
+                user_id=user_id,
+                llm_type=llm_type
+            )
             session.add(llm)
             session.commit()
 
@@ -30,64 +37,92 @@ class LLMDao:
             session.commit()
 
     @classmethod
-    async def update_llm(cls, llm_id: str, base_url: str, llm_type: str,
-                         model: str, api_key: str, provider: str):
-        with session_getter() as session:
-            update_values = {}
-            if base_url:
-                update_values['base_url'] = base_url
-            if model:
-                update_values['model'] = model
-            if api_key:
-                update_values['api_key'] = api_key
-            if provider:
-                update_values['provider'] = provider
-            if llm_type:
-                update_values['llm_type'] = llm_type
+    async def update_llm(
+        cls,
+        llm_id: str,
+        model: str = None,
+        base_url: str = None,
+        api_key: str = None,
+        provider: str = None,
+        llm_type: str = None
+    ):
+        update_values = {
+            k: v for k, v in {
+                "model": model,
+                "base_url": base_url,
+                "api_key": api_key,
+                "provider": provider,
+                "llm_type": llm_type
+            }.items() if v is not None
+        }
 
-            sql = update(LLMTable).where(LLMTable.llm_id == llm_id).values(**update_values)
+        if not update_values:
+            return
+
+        with session_getter() as session:
+            sql = (
+                update(LLMTable)
+                .where(LLMTable.llm_id == llm_id)
+                .values(**update_values)
+            )
             session.exec(sql)
             session.commit()
 
     @classmethod
     async def get_llm_by_user(cls, user_id: str):
         with session_getter() as session:
-            sql = select(LLMTable).where(LLMTable.user_id == user_id)
-            result = session.exec(sql).all()
-            return result
+            return session.exec(
+                select(LLMTable).where(LLMTable.user_id == user_id)
+            ).all()
 
     @classmethod
     async def get_llm_by_id(cls, llm_id: str):
         with session_getter() as session:
-            sql = select(LLMTable).where(LLMTable.llm_id == llm_id)
-            result = session.exec(sql).first()
-            return result
+            return session.exec(
+                select(LLMTable).where(LLMTable.llm_id == llm_id)
+            ).first()
 
     @classmethod
     async def get_all_llm(cls):
         with session_getter() as session:
-            sql = select(LLMTable)
-            result = session.exec(sql).all()
-            return result
+            return session.exec(select(LLMTable)).all()
 
     @classmethod
     async def get_user_id_by_llm(cls, llm_id: str):
         with session_getter() as session:
-            sql = select(LLMTable).where(LLMTable.llm_id == llm_id)
-            llm = session.exec(sql).first()
-            return llm
+            return session.exec(
+                select(LLMTable).where(LLMTable.llm_id == llm_id)
+            ).first()
 
     @classmethod
     async def get_llm_by_type(cls, llm_type: str):
         with session_getter() as session:
-            sql = select(LLMTable).where(LLMTable.llm_type == llm_type)
-            result = session.exec(sql).all()
-            return result
+            return session.exec(
+                select(LLMTable).where(LLMTable.llm_type == llm_type)
+            ).all()
 
     @classmethod
-    async def get_llm_id_from_name(cls, llm_name, user_id):
+    async def get_llm_id_from_name(cls, llm_name: str, user_id: str):
         with session_getter() as session:
-            sql = select(LLMTable).where(and_(LLMTable.model == llm_name,
-                                              LLMTable.user_id == user_id))
-            result = session.exec(sql)
-            return result.first()
+            return session.exec(
+                select(LLMTable).where(
+                    and_(
+                        LLMTable.model == llm_name,
+                        LLMTable.user_id == user_id
+                    )
+                )
+            ).first()
+
+    @classmethod
+    async def search_llms_by_name(cls, user_id, llm_name):
+        async with async_session_getter() as session:
+            statement = select(LLMTable).where(
+                or_(
+                    LLMTable.user_id == user_id,
+                    LLMTable.user_id == SystemUser
+                ),
+                LLMTable.model.ilike(f"%{llm_name}%")
+            )
+
+            result = await session.exec(statement)
+            return result.all()

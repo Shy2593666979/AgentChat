@@ -10,9 +10,11 @@ from agentchat.utils.file_utils import get_aliyun_oss_base_path
 router = APIRouter(tags=["Upload"])
 
 @router.post("/upload", description="上传文件的接口", response_model=UnifiedResponseModel)
-async def upload_file(*,
-                      file: UploadFile = File(description="支持常见的Pdf、Docx、Txt、Jpg等文件"),
-                      login_user: UserPayload = Depends(get_login_user)):
+async def upload_file(
+    *,
+    file: UploadFile = File(description="支持常见的Pdf、Docx、Txt、Jpg等文件"),
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         file_content = await file.read()
 

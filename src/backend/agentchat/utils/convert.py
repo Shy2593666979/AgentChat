@@ -26,6 +26,7 @@ def convert_mcp_config(servers_info: dict | list):
             if server_info.get("type") == "sse":
                 return MCPSSEConfig(
                     url=server_info.get("url"),
+                    headers=server_info.get("headers"),
                     server_name=server_info.get("server_name")
                 )
             elif server_info.get("type") == "websocket":
@@ -36,6 +37,7 @@ def convert_mcp_config(servers_info: dict | list):
             elif server_info.get("type") == "streamable_http":
                 return MCPStreamableHttpConfig(
                     url=server_info.get("url"),
+                    headers=server_info.get("headers"),
                     server_name=server_info.get("server_name")
                 )
             else:

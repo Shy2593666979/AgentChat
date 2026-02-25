@@ -1,10 +1,19 @@
 import { request } from '../utils/request'
 
 export interface CreateMCPServerRequest {
-  server_name: string
-  url: string
-  type: string
-  config?: any | string
+  // 服务器名称在后端是可选的（不传则使用导入配置中的名称）
+  server_name?: string
+  // MCP Server 的展示 Logo，非必填，由上传接口返回的 URL 填充
+  logo_url?: string
+  // 导入的配置，包含服务器连接信息
+  imported_config: any
+}
+
+export interface UpdateMCPServerRequest {
+  server_id: string
+  name?: string
+  logo_url?: string
+  imported_config?: any
 }
 
 export interface MCPServerTool {
@@ -39,6 +48,7 @@ export interface MCPServer {
   user_name: string
   create_time: string
   update_time: string
+  imported_config?: any
 }
 
 export interface MCPServerResponse {
@@ -70,6 +80,15 @@ export const getMCPServersAPI = () => {
   })
 }
 
+// 更新MCP服务器
+export const updateMCPServerAPI = (data: UpdateMCPServerRequest) => {
+  return request<MCPServerSingleResponse>({
+    url: '/api/v1/mcp_server',
+    method: 'PUT',
+    data
+  })
+}
+
 // 删除MCP服务器
 export const deleteMCPServerAPI = (server_id: string) => {
   return request<MCPServerSingleResponse>({
@@ -77,7 +96,16 @@ export const deleteMCPServerAPI = (server_id: string) => {
     method: 'DELETE',
     data: { server_id }
   })
-} 
+}
+
+// 获取MCP工具信息
+export const getMCPToolsAPI = (server_id: string) => {
+  return request<any>({
+    url: '/api/v1/mcp_tools',
+    method: 'GET',
+    data: { server_id }
+  })
+}
 
 // MCP用户配置相关接口
 export interface MCPUserConfigCreateRequest {
@@ -137,5 +165,17 @@ export const deleteMCPUserConfigAPI = (config_id: string) => {
     url: '/api/v1/mcp_user_config/delete',
     method: 'DELETE',
     data: { config_id }
+  })
+}
+
+// 获取默认MCP Server Logo
+export const getDefaultMCPLogoAPI = () => {
+  return request<{
+    status_code: number
+    status_message: string
+    data: { logo_url: string }
+  }>({
+    url: '/api/v1/mcp_server/logo',
+    method: 'GET'
   })
 }

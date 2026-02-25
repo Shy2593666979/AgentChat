@@ -13,9 +13,11 @@ router = APIRouter(tags=["Knowledge-File"])
 
 
 @router.post('/knowledge_file/create', response_model=UnifiedResponseModel)
-async def upload_file(knowledge_id: str = Body(..., description="知识库的ID"),
-                      file_url: str = Body(..., description="文件上传后返回的URL"),
-                      login_user: UserPayload = Depends(get_login_user)):
+async def upload_file(
+    knowledge_id: str = Body(..., description="知识库的ID"),
+    file_url: str = Body(..., description="文件上传后返回的URL"),
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         # 获取本地临时文件路径
         file_name = file_url.split("/")[-1]
@@ -31,15 +33,24 @@ async def upload_file(knowledge_id: str = Body(..., description="知识库的ID"
         parts = name_part.split("_")
         file_name = "_".join(parts[:-1]) + f".{ext_part}"
 
-        await KnowledgeFileService.create_knowledge_file(file_name, local_file_path, knowledge_id, login_user.user_id, file_url, file_size_bytes)
+        await KnowledgeFileService.create_knowledge_file(
+            file_name=file_name,
+            file_path=local_file_path,
+            knowledge_id=knowledge_id,
+            user_id=login_user.user_id,
+            oss_url=file_url,
+            file_size_bytes=file_size_bytes
+        )
         return resp_200()
     except Exception as err:
         return resp_500(message=str(err))
 
 
 @router.get('/knowledge_file/select', response_model=UnifiedResponseModel)
-async def select_knowledge_file(knowledge_id: str = Query(...),
-                                login_user: UserPayload = Depends(get_login_user)):
+async def select_knowledge_file(
+    knowledge_id: str = Query(...),
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         # 验证用户权限
         await KnowledgeService.verify_user_permission(knowledge_id, login_user.user_id)
@@ -51,8 +62,10 @@ async def select_knowledge_file(knowledge_id: str = Query(...),
 
 
 @router.delete('/knowledge_file/delete', response_model=UnifiedResponseModel)
-async def delete_knowledge_file(knowledge_file_id: str = Body(..., embed=True),
-                                login_user: UserPayload = Depends(get_login_user)):
+async def delete_knowledge_file(
+    knowledge_file_id: str = Body(..., embed=True),
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         # 验证用户权限
         await KnowledgeFileService.verify_user_permission(knowledge_file_id, login_user.user_id)
@@ -63,8 +76,10 @@ async def delete_knowledge_file(knowledge_file_id: str = Body(..., embed=True),
         return resp_500(message=str(err))
 
 @router.get("/knowledge_file/status", response_model=UnifiedResponseModel)
-async def get_knowledge_file_status(knowledge_file_id: str = Body(..., embed=True),
-                                login_user: UserPayload = Depends(get_login_user)):
+async def get_knowledge_file_status(
+    knowledge_file_id: str = Body(..., embed=True),
+    login_user: UserPayload = Depends(get_login_user)
+):
     try:
         # 验证用户权限
         await KnowledgeFileService.verify_user_permission(knowledge_file_id, login_user.user_id)

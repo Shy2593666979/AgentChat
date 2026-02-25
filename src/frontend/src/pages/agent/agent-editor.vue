@@ -21,6 +21,7 @@ import { getVisibleLLMsAPI, getAgentModelsAPI, type LLMResponse } from '../../ap
 import { getVisibleToolsAPI, type ToolResponse } from '../../apis/tool'
 import { getMCPServersAPI, type MCPServer } from '../../apis/mcp-server'
 import { getKnowledgeListAPI, type KnowledgeResponse } from '../../apis/knowledge'
+import { getAgentSkillsAPI, type AgentSkill } from '../../apis/agent-skill'
 import { Agent, AgentFormData } from '../../type'
 import { uploadFileAPI } from '../../apis/file'
 
@@ -49,6 +50,7 @@ const formData = reactive<AgentFormData>({
   mcp_ids: [],
   system_prompt: '',
   knowledge_ids: [],
+  agent_skill_ids: [],
   enable_memory: false
 })
 
@@ -59,6 +61,7 @@ const collapseItems = ref({
   memory: false,
   knowledge: false,
   tools: false,
+  mcp: false,
   skills: false
 })
 
@@ -66,6 +69,7 @@ const collapseItems = ref({
 const llmOptions = ref<Array<LLMResponse & { name: string }>>([])
 const toolOptions = ref<Array<ToolResponse & { name: string; icon: string }>>([])
 const mcpOptions = ref<Array<MCPServer & { name: string; icon: string }>>([])
+const agentSkillOptions = ref<Array<AgentSkill & { name: string; icon: string }>>([])
 const knowledgeOptions = ref<Array<KnowledgeResponse & { 
   knowledge_id: string
   knowledge_name: string 
@@ -79,6 +83,7 @@ const dataLoading = ref({
   llm: false,
   tool: false,
   mcp: false,
+  agentSkill: false,
   knowledge: false
 })
 
@@ -116,6 +121,11 @@ const loadAgent = (agent?: Agent) => {
       ? agent.mcp_ids.filter(id => id) // 过滤空值
       : []
     
+    // 处理agent_skill_ids字段映射 - 确保与选择器的value一致
+    const processedAgentSkillIds = Array.isArray(agent.agent_skill_ids) 
+      ? agent.agent_skill_ids.filter(id => id) // 过滤空值
+      : []
+    
     Object.assign(formData, {
       name: agent.name || '',
       description: agent.description || '',
@@ -125,6 +135,7 @@ const loadAgent = (agent?: Agent) => {
       mcp_ids: processedMcpIds,
       system_prompt: agent.system_prompt || '',
       knowledge_ids: processedKnowledgeIds,
+      agent_skill_ids: processedAgentSkillIds,
       enable_memory: agent.enable_memory || false
     })
     
@@ -162,6 +173,7 @@ const loadAgent = (agent?: Agent) => {
       mcp_ids: [],
       system_prompt: '',
       knowledge_ids: [],
+      agent_skill_ids: [],
       enable_memory: false
     })
     fileList.value = []
@@ -243,6 +255,7 @@ const saveAgent = async () => {
       mcp_ids: formData.mcp_ids,
       system_prompt: formData.system_prompt,
       knowledge_ids: formData.knowledge_ids,
+      agent_skill_ids: formData.agent_skill_ids,
       enable_memory: formData.enable_memory
     }
     
@@ -373,7 +386,7 @@ const loadToolOptions = async () => {
       
       toolOptions.value = rawData.map(tool => ({
         ...tool,
-        name: tool.zh_name || tool.en_name
+        name: tool.display_name
       }))
       
       console.log(`✅ 成功加载 ${toolOptions.value.length} 个工具`)
@@ -414,6 +427,29 @@ const loadMCPOptions = async () => {
     ElMessage.error('加载MCP服务器列表失败')
   } finally {
     dataLoading.value.mcp = false
+  }
+}
+
+// 加载Agent Skill数据
+const loadAgentSkillOptions = async () => {
+  try {
+    dataLoading.value.agentSkill = true
+    const response = await getAgentSkillsAPI()
+    
+    if (response.data.status_code === 200) {
+      const skillData = response.data.data || []
+      agentSkillOptions.value = skillData.map(skill => ({
+        ...skill,
+        name: skill.name,
+        icon: '🎯'
+      }))
+      console.log(`✅ 成功加载 ${agentSkillOptions.value.length} 个Agent Skill`)
+    }
+  } catch (error) {
+    console.error('加载Agent Skill失败:', error)
+    ElMessage.error('加载Agent Skill列表失败')
+  } finally {
+    dataLoading.value.agentSkill = false
   }
 }
 
@@ -521,6 +557,7 @@ const loadAgentFromAPI = async (agentId: string) => {
         mcp_ids: agentData.mcp_ids || [],
         system_prompt: agentData.system_prompt,
         knowledge_ids: agentData.knowledge_ids || [],
+        agent_skill_ids: agentData.agent_skill_ids || [],
         enable_memory: agentData.enable_memory,
         created_time: new Date().toISOString()
       }
@@ -555,6 +592,7 @@ const initializeData = async () => {
       loadLLMOptions(),
       loadToolOptions(),
       loadMCPOptions(),
+      loadAgentSkillOptions(),
       loadKnowledgeOptions()
     ])
     
@@ -563,6 +601,7 @@ const initializeData = async () => {
     console.log('  - 大模型:', llmOptions.value.length, '个')
     console.log('  - 工具:', toolOptions.value.length, '个')
     console.log('  - MCP:', mcpOptions.value.length, '个')
+    console.log('  - Agent Skill:', agentSkillOptions.value.length, '个')
     console.log('  - 知识库:', knowledgeOptions.value.length, '个')
     
     // 如果没有数据，添加一些测试数据
@@ -950,21 +989,21 @@ defineExpose({ loadAgent })
               </div>
             </div>
 
-            <!-- 技能 -->
+            <!-- MCP -->
             <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('skills')">
+              <div class="section-header" @click="toggleCollapse('mcp')">
                 <div class="section-title">
                   <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.skills" />
+                    <ArrowDown v-if="collapseItems.mcp" />
                     <ArrowRight v-else />
                   </el-icon>
-                  <span>技能（MCP）</span>
+                  <span>MCP</span>
                 </div>
                 <div class="section-badge">
                   <el-badge :value="formData.mcp_ids.length" class="badge" />
                 </div>
               </div>
-              <div v-show="collapseItems.skills" class="section-content">
+              <div v-show="collapseItems.mcp" class="section-content">
                 <el-form-item label="MCP服务">
                   <el-select
                     v-model="formData.mcp_ids"
@@ -982,7 +1021,7 @@ defineExpose({ loadAgent })
                       <span v-if="dataLoading.mcp" style="color: #7c2d12; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
                       <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;">⚡ {{ mcpOptions.length }}个服务</span>
                     </template>
-                                        <el-option
+                    <el-option
                       v-for="mcp in mcpOptions"
                       :key="mcp.mcp_server_id"
                       :label="mcp.name"
@@ -992,6 +1031,55 @@ defineExpose({ loadAgent })
                         <img :src="mcp.logo_url || '/src/assets/robot.svg'" class="option-logo" :alt="mcp.name" />
                         <span class="option-name">{{ mcp.name }}</span>
                         <span class="option-badge mcp-badge">MCP</span>
+                      </div>
+                    </el-option>
+                  </el-select>
+                </el-form-item>
+              </div>
+            </div>
+
+            <!-- 技能（Skill） -->
+            <div class="config-section">
+              <div class="section-header" @click="toggleCollapse('skills')">
+                <div class="section-title">
+                  <el-icon class="section-icon">
+                    <ArrowDown v-if="collapseItems.skills" />
+                    <ArrowRight v-else />
+                  </el-icon>
+                  <span>技能（Skill）</span>
+                </div>
+                <div class="section-badge">
+                  <el-badge :value="formData.agent_skill_ids.length" class="badge" />
+                </div>
+              </div>
+              <div v-show="collapseItems.skills" class="section-content">
+                <el-form-item label="选择技能">
+                  <el-select
+                    v-model="formData.agent_skill_ids"
+                    multiple
+                    placeholder="🔍 搜索或选择Agent Skill"
+                    class="form-select"
+                    :loading="dataLoading.agentSkill"
+                    filterable
+                    clearable
+                    collapse-tags
+                    collapse-tags-tooltip
+                    :max-collapse-tags="2"
+                  >
+                    <template #prefix>
+                      <span v-if="dataLoading.agentSkill" style="color: #7c2d12; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
+                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;">🎯 {{ agentSkillOptions.length }}个技能</span>
+                    </template>
+                    <el-option
+                      v-for="skill in agentSkillOptions"
+                      :key="skill.id"
+                      :label="skill.name"
+                      :value="skill.id"
+                    >
+                      <div class="custom-option">
+                        <img src="/src/assets/skill.svg" class="option-logo" :alt="skill.name" />
+                        <span class="option-name">{{ skill.name }}</span>
+                        <span class="option-badge skill-badge">Skill</span>
                       </div>
                     </el-option>
                   </el-select>
@@ -1811,6 +1899,11 @@ defineExpose({ loadAgent })
     &.mcp-badge {
       background: #e9d5ff !important;
       color: #7c2d12 !important;
+    }
+    
+    &.skill-badge {
+      background: #fef3c7 !important;
+      color: #92400e !important;
     }
   }
 }

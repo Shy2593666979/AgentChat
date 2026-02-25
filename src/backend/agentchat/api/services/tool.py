@@ -1,27 +1,32 @@
-from agentchat.database import SystemUser
+import asyncio
+from typing import List, Union
+
+from agentchat.database import SystemUser, ToolTable
 from agentchat.database.models.user import AdminUser
 from agentchat.database.dao.tool import ToolDao
-from typing import List, Union
-from agentchat.schema.schemas import resp_200, resp_500
-from loguru import logger
 
 
 class ToolService:
 
     @classmethod
-    async def create_tool(cls, user_id: str, zh_name: str, en_name: str, description: str, logo_url: str):
-        try:
-            await ToolDao.create_tool(user_id=user_id, zh_name=zh_name, logo_url=logo_url,
-                                      en_name=en_name, description=description)
-        except Exception as err:
-            raise ValueError(f'Create Tool Appear Error: {err}')
+    async def create_default_tool(
+        cls,
+        default_tool: ToolTable
+    ):
+        result = await ToolDao.create_default_tool(default_tool)
+        return result
 
     @classmethod
-    async def delete_tool(cls, tool_id: str):
-        try:
-            await ToolDao.delete_tool_by_id(tool_id=tool_id)
-        except Exception as err:
-            raise ValueError(f'Delete Tool Appear Error: {err}')
+    async def create_user_defined_tool(
+        cls,
+        tool: ToolTable
+    ):
+        result = await ToolDao.create_user_defined_tool(tool)
+        return result
+
+    @classmethod
+    async def delete_user_defined_tool(cls, tool_id: str):
+        await ToolDao.delete_user_defined_tool(tool_id=tool_id)
 
     @classmethod
     async def verify_user_permission(cls, tool_id, user_id):
@@ -57,26 +62,38 @@ class ToolService:
             raise ValueError(f'Get All Tool By User Appear Error: {err}')
 
     @classmethod
-    async def get_all_tools(cls):
-        try:
-            tools = await ToolDao.get_all_tools()
+    async def get_all_tools(cls, user_id: str) -> list[dict]:
+        """获取用户工具 + 系统默认工具"""
+        if user_id == SystemUser:
+            tools = await ToolDao.get_all_tools(SystemUser)
             return [tool.to_dict() for tool in tools]
-        except Exception as err:
-            raise ValueError(f'Get All Tools Appear Error: {err}')
+
+        tools, default_tools = await asyncio.gather(
+            ToolDao.get_all_tools(user_id),
+            ToolDao.get_all_tools(SystemUser),
+        )
+
+        # 转成 list 再合并
+        return [tool.to_dict() for tool in [*tools, *default_tools]]
 
     @classmethod
     async def get_tool_name_by_id(cls, tool_id: Union[List[str], str]):
         try:
-            if isinstance(tool_id, str):
-                tools = await ToolDao.get_tool_name_by_id(tool_id=[tool_id])
-            else:
-                tools = await ToolDao.get_tool_name_by_id(tool_id=tool_id)
-            result = []
-            for tool in tools:
-                result.append(tool.en_name)
+            tool_ids = [tool_id] if isinstance(tool_id, str) else tool_id
+            tools = await ToolDao.get_tool_name_by_id(tool_id=tool_ids)
+            result = [tool.en_name for tool in tools]
             return result
         except Exception as err:
             raise ValueError(f'Get Tool name by Id appear Err: {err}')
+
+    @classmethod
+    async def get_tools_from_id(
+        cls,
+        tool_ids: Union[List[str], str]
+    ) -> List[ToolTable]:
+        tool_ids = [tool_ids] if isinstance(tool_ids, str) else tool_ids
+        tools = await ToolDao.get_tool_name_by_id(tool_id=tool_ids)
+        return tools
 
     @classmethod
     async def _get_user_by_tool_id(cls, tool_id: str):
@@ -89,7 +106,7 @@ class ToolService:
     @classmethod
     async def get_tools_data(cls):
         try:
-            tools = await ToolDao.get_all_tools()
+            tools = await ToolDao.get_all_tools(SystemUser)
             return [tool.to_dict() for tool in tools]
         except Exception as err:
             raise ValueError(f'Get tools data appear Error: {err}')
@@ -122,3 +139,12 @@ class ToolService:
             return None
         except Exception as err:
             raise ValueError(f"Convert Zh name Error:{err}")
+
+    @classmethod
+    async def get_user_defined_tools(cls, user_id):
+        tools = await ToolDao.get_user_defined_tools(user_id)
+        return [tool.to_dict() for tool in tools]
+
+    @classmethod
+    async def update_user_defined_tool(cls, tool_id, update_values):
+        await ToolDao.update_user_defined_tool(tool_id, update_values)

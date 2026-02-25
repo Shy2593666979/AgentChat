@@ -51,34 +51,41 @@ class HistoryService:
 
     @classmethod
     async def save_es_documents(cls, index_name, content):
-        chunks = [ChunkModel(chunk_id=uuid4().hex,
-                             content=content,
-                             file_id='history_rag',
-                             knowledge_id=index_name,
-                             summary="history_rag",
-                             update_time=get_now_beijing_time(),
-                             file_name='history_rag')]
+        chunk = ChunkModel(
+            chunk_id=uuid4().hex,
+            content=content,
+            file_id="history_rag",
+            knowledge_id=index_name,
+            summary="history_rag",
+            update_time=get_now_beijing_time(),
+            file_name="history_rag",
+        )
+
+        chunks = [chunk]
 
         await es_client.index_documents(index_name, chunks)
 
     @classmethod
     async def save_milvus_documents(cls, collection_name, content):
-        chunks = [ChunkModel(chunk_id=uuid4().hex,
-                             content=content,
-                             file_id='history_rag',
-                             knowledge_id=collection_name,
-                             update_time=get_now_beijing_time(),
-                             summary="history_rag",
-                             file_name='history_rag')]
+        chunk = ChunkModel(
+            chunk_id=uuid4().hex,
+            content=content,
+            file_id='history_rag',
+            knowledge_id=collection_name,
+            update_time=get_now_beijing_time(),
+            summary="history_rag",
+            file_name='history_rag'
+        )
+        chunks = [chunk]
 
         await milvus_client.insert(collection_name, chunks)
 
     @classmethod
-    async def save_chat_history(cls, role, content, events, dialog_id, embedding_enable: bool=False):
+    async def save_chat_history(cls, role, content, events, dialog_id, memory_enable: bool=False):
         await cls.create_history(role, content, events, dialog_id)
 
         # 目前都已经改成使用Memory功能，历史记录只存数据库中
-        # if embedding_enable:
+        # if memory_enable:
         #     documents = f"{role}: \n {content}"
         #     await cls.save_es_documents(dialog_id, documents)
         #     await cls.save_milvus_documents(dialog_id, documents)

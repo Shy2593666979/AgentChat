@@ -22,6 +22,7 @@ class AgentTable(SQLModelSerializable, table=True):
     enable_memory: bool = Field(default=True, description="是否开启记忆功能")
     mcp_ids: List[str] = Field(default=[], sa_column=Column(JSON), description="Agent绑定的MCP Server")
     tool_ids: List[str] = Field(default=[], sa_column=Column(JSON), description="Agent绑定的工具列表")
+    agent_skill_ids: List[str] = Field(default=[], sa_column=Column(JSON), description="Agent绑定的技能")
     knowledge_ids: List[str] = Field(default=[], sa_column=Column(JSON), description="Agent 绑定的知识库")
 
     # 修改时间，默认为当前时间戳，自动更新

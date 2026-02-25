@@ -110,6 +110,7 @@ export interface Agent {
   mcp_ids: string[]
   system_prompt: string
   knowledge_ids: string[]
+  agent_skill_ids?: string[]
   enable_memory: boolean
   created_time?: string
   updated_time?: string
@@ -126,6 +127,7 @@ export interface AgentFormData {
   mcp_ids: string[]
   system_prompt: string
   knowledge_ids: string[]
+  agent_skill_ids: string[]
   enable_memory: boolean
 }
 

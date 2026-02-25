@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
+import { ElMessage, ElMessageBox, UploadProps } from 'element-plus'
 import { Plus, Connection, VideoPlay, Edit, Delete, View, Tools } from '@element-plus/icons-vue'
 import * as monaco from 'monaco-editor'
 import mcpIcon from '../../assets/mcp.svg'
@@ -8,9 +8,12 @@ import {
   createMCPServerAPI, 
   getMCPServersAPI, 
   deleteMCPServerAPI, 
+  updateMCPServerAPI,
   updateMCPUserConfigAPI,
+  getDefaultMCPLogoAPI,
   type MCPServer, 
   type CreateMCPServerRequest, 
+  type UpdateMCPServerRequest,
   type MCPServerTool,
   type MCPUserConfigUpdateRequest
 } from '../../apis/mcp-server'
@@ -20,11 +23,14 @@ const loading = ref(false)
 const dialogVisible = ref(false)
 const toolsDialogVisible = ref(false)
 const configDialogVisible = ref(false)
+const deleteDialogVisible = ref(false)
 const formLoading = ref(false)
 const editingServer = ref<MCPServer | null>(null)
 const configuringServer = ref<MCPServer | null>(null)
+const deletingServer = ref<MCPServer | null>(null)
 const selectedServerTools = ref<MCPServerTool[]>([])
 const selectedServerName = ref('')
+const expandedToolIndex = ref<number | null>(null) // 当前展开的工具索引
 let jsonEditor: monaco.editor.IStandaloneCodeEditor | null = null
 
 // 配置状态
@@ -33,13 +39,65 @@ const configStatus = reactive({
   message: '',
 })
 
+// 示例配置JSON
+const exampleConfig = `{
+  "mcpServers": {
+    "amap-maps": {
+      "type": "sse",
+      "url": "Your_URL",
+      "headers": {
+        "Authorization": "Bearer Your_Token"
+      }
+    }
+  }
+}`
+
 // 表单数据
 const formData = ref<CreateMCPServerRequest>({
   server_name: '',
-  url: '',
-  type: 'sse',
-  config: '{}'
+  logo_url: '',
+  imported_config: {}
 })
+
+// 用于表单输入的字符串版本
+const configString = ref('')
+
+// Logo 上传相关
+const uploadingLogo = ref(false)
+
+const handleLogoUploadSuccess: UploadProps['onSuccess'] = (response: any) => {
+  // 后端通常返回 { data: 'http://xxx/xxx.png', ... } 或直接是字符串
+  const imageUrl = typeof response === 'string' ? response : response?.data
+  if (imageUrl) {
+    formData.value.logo_url = imageUrl
+    ElMessage.success('Logo 上传成功')
+  } else {
+    ElMessage.error('上传失败，未获取到图片链接')
+  }
+  uploadingLogo.value = false
+}
+
+const handleLogoUploadError: UploadProps['onError'] = (err: any) => {
+  console.error('Logo 上传失败:', err)
+  ElMessage.error('Logo 上传失败，请重试')
+  uploadingLogo.value = false
+}
+
+const beforeLogoUpload: UploadProps['beforeUpload'] = (file: File) => {
+  const isImage = file.type.startsWith('image/')
+  const isLt2M = file.size / 1024 / 1024 < 2
+
+  if (!isImage) {
+    ElMessage.error('只能上传图片文件作为 Logo')
+    return false
+  }
+  if (!isLt2M) {
+    ElMessage.error('图片大小不能超过 2MB')
+    return false
+  }
+  uploadingLogo.value = true
+  return true
+}
 
 // 用户配置相关数据
 const userConfigData = ref<string>('{}') // 仅保留配置数据，编辑时不预加载
@@ -50,23 +108,27 @@ const formErrors = ref<Record<string, string>>({})
 const validateForm = () => {
   formErrors.value = {}
   
-  if (!formData.value.server_name) {
-    formErrors.value.server_name = '请输入服务器名称'
-  } else if (formData.value.server_name.length < 2 || formData.value.server_name.length > 50) {
-    formErrors.value.server_name = '服务器名称长度在 2 到 50 个字符'
-  }
-  
-  if (!formData.value.url) {
-    formErrors.value.url = '请输入服务器地址'
-  } else {
-    const urlPattern = /^https?:\/\/.+/
-    if (!urlPattern.test(formData.value.url)) {
-      formErrors.value.url = '请输入正确的URL格式'
+  // 服务器名称为可选字段，仅在用户填写时做长度校验
+  if (formData.value.server_name && formData.value.server_name.trim() !== '') {
+    if (formData.value.server_name.length < 2 || formData.value.server_name.length > 50) {
+      formErrors.value.server_name = '服务器名称长度在 2 到 50 个字符'
     }
   }
   
-  if (!formData.value.type) {
-    formErrors.value.type = '请选择连接类型'
+  // Logo为可选字段，不需要验证
+  
+  // 服务器配置验证：必须是有效的JSON格式才能提交
+  if (configString.value && configString.value.trim() !== '') {
+    // 验证JSON格式
+    try {
+      const parsed = JSON.parse(configString.value.trim())
+      // 验证通过
+    } catch (error) {
+      formErrors.value.imported_config = '配置信息格式不正确，请输入有效的JSON格式'
+    }
+  } else if (!editingServer.value) {
+    // 仅创建模式下配置为必填
+    formErrors.value.imported_config = '请输入服务器配置'
   }
   
   return Object.keys(formErrors.value).length === 0
@@ -104,7 +166,7 @@ const fetchServers = async () => {
   }
 }
 
-const handleCreate = () => {
+const handleCreate = async () => {
   editingServer.value = null
   dialogVisible.value = true
   formErrors.value = {}
@@ -113,9 +175,19 @@ const handleCreate = () => {
   // 重置表单
   formData.value = {
     server_name: '',
-    url: '',
-    type: 'sse',
-    config: '{}'
+    logo_url: '',
+    imported_config: {}
+  }
+  configString.value = ''
+  
+  // 获取默认logo
+  try {
+    const response = await getDefaultMCPLogoAPI()
+    if (response.data.status_code === 200) {
+      formData.value.logo_url = response.data.data.logo_url
+    }
+  } catch (error) {
+    console.error('获取默认logo失败:', error)
   }
 }
 
@@ -132,12 +204,27 @@ const handleEdit = (server: MCPServer) => {
   // 阻止背景滚动
   document.body.style.overflow = 'hidden'
   
-  // 填充服务器基本信息到表单（编辑时只编辑基本信息，不包含配置）
+  // 填充服务器信息到表单，包括配置
   formData.value = {
     server_name: server.server_name,
-    url: server.url,
-    type: server.type,
-    config: '{}' // 编辑时不涉及配置
+    logo_url: server.logo_url || '',
+    imported_config: {}
+  }
+  
+  // 直接使用服务器的imported_config
+  if (server.imported_config) {
+    configString.value = JSON.stringify(server.imported_config, null, 2)
+  } else {
+    // 如果没有imported_config，使用url和type重构（兼容旧数据）
+    const importedConfig = {
+      mcpServers: {
+        [server.server_name]: {
+          type: server.type,
+          url: server.url
+        }
+      }
+    }
+    configString.value = JSON.stringify(importedConfig, null, 2)
   }
 }
 
@@ -160,28 +247,57 @@ const handleSubmit = async () => {
   formLoading.value = true
   try {
     if (editingServer.value) {
-      // 编辑模式：更新服务器基本信息（不包含配置）
-      ElMessage.info('编辑功能暂未实现，请联系管理员')
-      closeDialog()
-      return
+      // 编辑模式：更新服务器信息（包括配置）
+      // 处理配置字段：解析JSON
+      let configData = undefined
+      if (configString.value && configString.value.trim() !== '') {
+        try {
+          const parsed = JSON.parse(configString.value.trim())
+          configData = parsed
+        } catch (error) {
+          formErrors.value.imported_config = '配置信息格式不正确，请输入有效的JSON格式'
+          formLoading.value = false
+          return
+        }
+      }
+      
+      const updateData: UpdateMCPServerRequest = {
+        server_id: editingServer.value.mcp_server_id,
+        name: formData.value.server_name,
+        logo_url: formData.value.logo_url,
+        imported_config: configData
+      }
+      
+      const response = await updateMCPServerAPI(updateData)
+      if (response.data.status_code === 200) {
+        ElMessage.success('更新MCP服务器成功')
+        closeDialog()
+        await fetchServers()
+      } else {
+        ElMessage.error(response.data.status_message || '更新失败')
+      }
     } else {
       // 创建模式：创建服务器
-      // 处理配置字段
+      // 处理配置字段：解析JSON，如果用户清空了，使用空对象 {}
       let configData = {}
-      if (formData.value.config && typeof formData.value.config === 'string') {
+      if (configString.value && configString.value.trim() !== '') {
         try {
-          configData = JSON.parse(formData.value.config)
+          const parsed = JSON.parse(configString.value.trim())
+          configData = parsed
         } catch (error) {
-          formErrors.value.config = '配置信息格式不正确，请输入有效的JSON格式'
+          formErrors.value.imported_config = '配置信息格式不正确，请输入有效的JSON格式'
+          formLoading.value = false
           return
         }
       } else {
-        configData = formData.value.config || {}
+        // 如果为空或未填写，使用空对象
+        configData = {}
       }
       
       const submitData = {
-        ...formData.value,
-        config: configData
+        server_name: formData.value.server_name,
+        logo_url: formData.value.logo_url,
+        imported_config: configData
       }
       
       const response = await createMCPServerAPI(submitData)
@@ -252,14 +368,29 @@ const handleDelete = async (server: MCPServer) => {
     return
   }
   
-  if (!confirm(`确定要删除MCP服务器 "${server.server_name}" 吗？`)) {
-    return
-  }
+  // 显示自定义删除确认对话框
+  deletingServer.value = server
+  deleteDialogVisible.value = true
+  // 阻止背景滚动
+  document.body.style.overflow = 'hidden'
+}
+
+const closeDeleteDialog = () => {
+  deleteDialogVisible.value = false
+  deletingServer.value = null
+  // 恢复背景滚动
+  document.body.style.overflow = 'auto'
+}
+
+const confirmDelete = async () => {
+  if (!deletingServer.value) return
   
+  formLoading.value = true
   try {
-    const response = await deleteMCPServerAPI(server.mcp_server_id)
+    const response = await deleteMCPServerAPI(deletingServer.value.mcp_server_id)
     if (response.data.status_code === 200) {
       ElMessage.success('删除成功')
+      closeDeleteDialog()
       await fetchServers() // 刷新列表
     } else {
       ElMessage.error(response.data.status_message || '删除失败')
@@ -267,6 +398,8 @@ const handleDelete = async (server: MCPServer) => {
   } catch (error) {
     console.error('删除MCP服务器失败:', error)
     ElMessage.error('删除失败')
+  } finally {
+    formLoading.value = false
   }
 }
 
@@ -281,8 +414,18 @@ const viewTools = (server: MCPServer) => {
 
 const closeToolsDialog = () => {
   toolsDialogVisible.value = false
+  expandedToolIndex.value = null // 重置展开状态
   // 恢复背景滚动
   document.body.style.overflow = 'auto'
+}
+
+// 切换工具详情展开/收起
+const toggleToolDetail = (index: number) => {
+  if (expandedToolIndex.value === index) {
+    expandedToolIndex.value = null
+  } else {
+    expandedToolIndex.value = index
+  }
 }
 
 // 处理个人配置
@@ -560,17 +703,19 @@ const saveUserConfig = async () => {
 <template>
   <div class="mcp-server-page">
     <div class="page-header">
-      <h2>
-        <img :src="mcpIcon" class="mcp-icon" alt="MCP" />
-        MCP Server管理
-      </h2>
-      <el-button type="primary" :icon="Plus" @click="handleCreate">
-        添加服务器
-      </el-button>
+      <div class="header-title">
+        <img :src="mcpIcon" alt="MCP" class="title-icon" />
+        <h2>MCP Server管理</h2>
+      </div>
+      <div class="header-actions">
+        <el-button type="primary" :icon="Plus" @click="handleCreate">
+          添加服务器
+        </el-button>
+      </div>
     </div>
 
     <div class="server-list">
-      <el-table :data="servers || []" style="width: 100%" :table-layout="'fixed'">
+      <el-table v-if="servers.length > 0" :data="servers || []" style="width: 100%">
         <!-- 头像列 -->
         <el-table-column label="头像" width="80" align="center">
           <template #default="{ row }">
@@ -584,7 +729,7 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <el-table-column prop="server_name" label="服务器名称" width="150" align="center">
+        <el-table-column prop="server_name" label="服务器名称" min-width="150" align="center">
           <template #default="{ row }">
             <div class="server-name" :class="{ 'official-server': String(row.user_id) === '0' }">
               <span class="name">{{ row.server_name }}</span>
@@ -604,7 +749,7 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <el-table-column prop="type" label="连接类型" width="130" align="center">
+        <el-table-column prop="type" label="连接类型" width="110" align="center">
           <template #default="{ row }">
             <el-tag :type="row.type === 'sse' ? 'primary' : 'success'">
               {{ row.type.toUpperCase() }}
@@ -613,7 +758,7 @@ const saveUserConfig = async () => {
         </el-table-column>
         
         <!-- 可用工具数量列 -->
-        <el-table-column label="可用工具" width="170" align="center">
+        <el-table-column label="可用工具" width="140" align="center">
           <template #default="{ row }">
             <div class="tools-count">
               <el-button 
@@ -631,7 +776,7 @@ const saveUserConfig = async () => {
         </el-table-column>
         
         <!-- 配置状态列 -->
-        <el-table-column label="配置状态" width="130" align="center">
+        <el-table-column label="配置状态" width="110" align="center">
           <template #default="{ row }">
             <div class="config-status">
               <el-tag 
@@ -647,7 +792,7 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <el-table-column label="创建时间" width="210" align="center" fixed="right">
+        <el-table-column label="创建时间" min-width="180" align="center">
           <template #default="{ row }">
             <div class="create-time">
               <span>{{ new Date(row.create_time).toLocaleString() }}</span>
@@ -655,59 +800,52 @@ const saveUserConfig = async () => {
           </template>
         </el-table-column>
         
-        <!-- 编辑列 -->
-        <el-table-column label="编辑" width="150" align="center" fixed="right">
+        <!-- 操作列 -->
+        <el-table-column label="操作" width="180" align="center">
           <template #default="{ row }">
-            <el-button 
-              v-if="String(row.user_id) !== '0'"
-              size="small" 
-              type="primary"
-              :icon="Edit"
-              @click="handleEdit(row)"
-              title="编辑"
-              round
-            >
-              编辑
-            </el-button>
-            <el-button 
-              v-else
-              size="small" 
-              type="info"
-              :icon="Edit"
-              disabled
-              :title="`${row.server_name} MCP Server 为官方所有，不能编辑`"
-              round
-            >
-              编辑
-            </el-button>
-          </template>
-        </el-table-column>
-        
-        <!-- 删除列 -->
-        <el-table-column label="删除" width="150" align="center" fixed="right">
-          <template #default="{ row }">
-            <el-button 
-              v-if="String(row.user_id) !== '0'"
-              size="small" 
-              type="danger" 
-              :icon="Delete"
-              @click="handleDelete(row)"
-              title="删除"
-              round
-            >
-              删除
-            </el-button>
-            <el-button 
-              v-else
-              size="small" 
-              type="info" 
-              :icon="Delete"
-              disabled
-              :title="`${row.server_name} MCP Server 为官方所有，不能删除`"
-              round
-            >
-              删除
-            </el-button>
+            <div class="action-buttons">
+              <el-button 
+                v-if="String(row.user_id) !== '0'"
+                size="small" 
+                type="primary"
+                :icon="Edit"
+                @click="handleEdit(row)"
+                title="编辑"
+              >
+                编辑
+              </el-button>
+              <el-button 
+                v-else
+                size="small" 
+                type="info"
+                :icon="Edit"
+                disabled
+                :title="`${row.server_name} MCP Server 为官方所有，不能编辑`"
+              >
+                编辑
+              </el-button>
+              
+              <el-button 
+                v-if="String(row.user_id) !== '0'"
+                size="small" 
+                type="danger" 
+                :icon="Delete"
+                @click="handleDelete(row)"
+                title="删除"
+              >
+                删除
+              </el-button>
+              <el-button 
+                v-else
+                size="small" 
+                type="info" 
+                :icon="Delete"
+                disabled
+                :title="`${row.server_name} MCP Server 为官方所有，不能删除`"
+              >
+                删除
+              </el-button>
+            </div>
           </template>
         </el-table-column>
       </el-table>
@@ -754,17 +892,10 @@ const saveUserConfig = async () => {
               </div>
 
               <form @submit.prevent="handleSubmit" class="mcp-form">
-                <!-- 服务器信息 -->
+                <!-- 统一表单区域 -->
                 <div class="form-section">
-                  <div class="section-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <path d="M12 2L2 7V17L12 22L22 17V7L12 2Z" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span v-if="editingServer">服务器信息 (只读)</span>
-                    <span v-else>基础信息</span>
-                  </div>
-                  
-                  <div class="form-grid">
+                  <div class="form-layout">
+                    <!-- 服务器名称 -->
                     <div class="form-group">
                       <label for="server_name">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -776,128 +907,86 @@ const saveUserConfig = async () => {
                         id="server_name"
                         v-model="formData.server_name" 
                         type="text"
-                        placeholder="例如：Weather API Server"
+                        placeholder="例如：Weather-Server"
                         :class="{ 'error': formErrors.server_name }"
-                        :readonly="!!editingServer"
-                        :disabled="!!editingServer"
                       />
                       <span v-if="formErrors.server_name" class="error-text">{{ formErrors.server_name }}</span>
                     </div>
-                    
+
+                    <!-- Logo -->
                     <div class="form-group">
-                      <label for="type">
+                      <label>
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M12 20h9l-3-9H8l-3 9h9z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <path d="M12 20v-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <path d="M4 4h16v16H4z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                          <path d="M4 15l4-4 4 4 4-5 4 5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
                         </svg>
-                        连接类型
+                        Logo
                       </label>
-                      <select 
-                        id="type"
-                        v-model="formData.type"
-                        :class="{ 'error': formErrors.type }"
-                        :disabled="!!editingServer"
+                      <el-upload
+                        class="logo-upload-square"
+                        action="/api/v1/upload"
+                        :show-file-list="false"
+                        :on-success="handleLogoUploadSuccess"
+                        :on-error="handleLogoUploadError"
+                        :before-upload="beforeLogoUpload"
+                        accept="image/*"
                       >
-                        <option value="sse">SSE (Server-Sent Events)</option>
-                        <option value="websocket">WebSocket</option>
-                      </select>
-                      <span v-if="formErrors.type" class="error-text">{{ formErrors.type }}</span>
+                        <div v-if="formData.logo_url" class="logo-preview-square">
+                          <img :src="formData.logo_url" alt="logo 预览" />
+                          <div class="logo-overlay">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                              <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                          </div>
+                        </div>
+                        <div v-else class="logo-upload-placeholder" :class="{ 'uploading': uploadingLogo }">
+                          <svg v-if="!uploadingLogo" width="32" height="32" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M12 5v14M5 12h14" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          <span v-else class="uploading-text">上传中...</span>
+                        </div>
+                      </el-upload>
+                      <span v-if="formErrors.logo_url" class="error-text">{{ formErrors.logo_url }}</span>
                     </div>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="url">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M9 19c-5 0-5-5.5-7-5.5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M21 9a9 9 0 0 1-9 9c-4.5 0-4.5-4-6-4h-.5a2.5 2.5 0 0 1 0-5H9a9 9 0 0 1 12 0z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      服务器地址
-                    </label>
-                    <input 
-                      id="url"
-                      v-model="formData.url" 
-                      type="url"
-                      placeholder="http://localhost:3001/sse"
-                      :class="{ 'error': formErrors.url }"
-                      :readonly="!!editingServer"
-                      :disabled="!!editingServer"
-                    />
-                    <span v-if="formErrors.url" class="error-text">{{ formErrors.url }}</span>
-                    <div class="input-help" v-if="!editingServer">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="#909399" stroke-width="2"/>
-                        <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 17h.01" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>请确保服务器地址可以正常访问，支持HTTP和HTTPS协议</span>
-                    </div>
-                    <div class="input-help" v-else>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="#f56c6c" stroke-width="2"/>
-                        <path d="M12 8v4" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M12 16h.01" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>服务器基础信息不可修改，如需更改请联系管理员</span>
-                    </div>
-                  </div>
-                </div>
 
-
-
-                <!-- 基础配置（仅创建时显示） -->
-                <div class="form-section" v-if="!editingServer">
-                  <div class="section-title">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                      <circle cx="12" cy="12" r="3" stroke="#409eff" stroke-width="2"/>
-                      <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                    </svg>
-                    <span>服务器配置 (可选)</span>
-                  </div>
-                  
-                  <div class="form-group">
-                    <label for="config">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      服务器默认配置
-                    </label>
-                    <div class="textarea-wrapper">
-                      <textarea 
-                        id="config"
-                        v-model="formData.config" 
-                        rows="8"
-                        placeholder='请输入JSON格式的配置信息，例如：
-
-{
-  "api_key": "default_api_key",
-  "timeout": 30000,
-  "headers": {
-    "User-Agent": "MCP-Client/1.0"
-  }
-}'
-                        :class="{ 'error': formErrors.config }"
-                      ></textarea>
-                      <div class="json-indicator">
-                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                          <path d="M16 3l4 4-4 4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <path d="M8 21l-4-4 4-4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          <path d="M15 14l-6-6" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <!-- 服务配置 -->
+                    <div class="form-group form-group-full">
+                      <label for="imported_config">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <polyline points="14,2 14,8 20,8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <line x1="16" y1="13" x2="8" y2="13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <line x1="16" y1="17" x2="8" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <polyline points="10,9 9,9 8,9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                         </svg>
-                        JSON
+                        服务配置 <span v-if="!editingServer" class="required-mark">*</span>
+                      </label>
+                      <div class="textarea-wrapper">
+                        <textarea 
+                          id="imported_config"
+                          v-model="configString" 
+                          rows="8"
+                          :placeholder="exampleConfig"
+                          :class="{ 'error': formErrors.imported_config }"
+                        ></textarea>
+                        <div class="json-indicator">
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M16 3l4 4-4 4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M8 21l-4-4 4-4" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path d="M15 14l-6-6" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                          JSON
+                        </div>
                       </div>
-                    </div>
-                    <span v-if="formErrors.config" class="error-text">{{ formErrors.config }}</span>
-                    <div class="input-help">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <circle cx="12" cy="12" r="10" stroke="#67c23a" stroke-width="2"/>
-                        <polyline points="16,12 12,8 8,12" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <line x1="12" y1="16" x2="12" y2="8" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                      </svg>
-                      <span>服务器默认配置，所有用户共享。用户可以通过个人配置进行覆盖</span>
+                      <span v-if="formErrors.imported_config" class="error-text">{{ formErrors.imported_config }}</span>
+                      <span v-if="editingServer" class="help-text">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                          <circle cx="12" cy="12" r="10" stroke="#909399" stroke-width="2"/>
+                          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                          <line x1="12" y1="17" x2="12.01" y2="17" stroke="#909399" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        编辑模式下，如果不修改配置可以保持原样，只修改需要更新的字段
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -969,9 +1058,11 @@ const saveUserConfig = async () => {
                 <div 
                   v-for="(tool, index) in selectedServerTools" 
                   :key="index"
-                  class="tool-card"
+                  class="tool-item"
+                  :class="{ 'expanded': expandedToolIndex === index }"
+                  @click="toggleToolDetail(index)"
                 >
-                  <div class="tool-header">
+                  <div class="tool-summary">
                     <div class="tool-info">
                       <div class="tool-icon">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
@@ -980,86 +1071,92 @@ const saveUserConfig = async () => {
                       </div>
                       <div class="tool-text">
                         <h4 class="tool-name">{{ tool.name }}</h4>
-                        <span class="tool-tag">Function</span>
+                        <p class="tool-description">{{ tool.description || '暂无描述' }}</p>
                       </div>
                     </div>
-                  </div>
-                  
-                  <div class="tool-description">
-                    <p>{{ tool.description || '暂无描述' }}</p>
-                  </div>
-                  
-                  <div class="tool-schema" v-if="tool.input_schema">
-                    <div class="schema-header">
-                      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                        <polyline points="16 18 22 12 16 6" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                        <polyline points="8 6 2 12 8 18" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    <div class="tool-expand-icon">
+                      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <polyline points="6 9 12 15 18 9" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                       </svg>
-                      <span>参数结构</span>
                     </div>
-                    
-                    <div class="schema-content">
-                      <div class="schema-meta">
-                        <div class="meta-item" v-if="tool.input_schema.type">
-                          <span class="meta-label">类型:</span>
-                          <span class="meta-value type">{{ tool.input_schema.type }}</span>
-                        </div>
-                        <div class="meta-item" v-if="tool.input_schema.title">
-                          <span class="meta-label">标题:</span>
-                          <span class="meta-value">{{ tool.input_schema.title }}</span>
-                        </div>
-                      </div>
-                      
-                      <div v-if="tool.input_schema.required?.length" class="required-section">
-                        <div class="section-title">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path d="M9 12l2 2 4-4" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  </div>
+                  
+                  <!-- 展开的详细信息 -->
+                  <transition name="expand">
+                    <div v-if="expandedToolIndex === index" class="tool-details" @click.stop>
+                      <div class="tool-schema" v-if="tool.input_schema">
+                        <div class="schema-header">
+                          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <polyline points="16 18 22 12 16 6" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            <polyline points="8 6 2 12 8 18" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
                           </svg>
-                          <span>必填参数</span>
+                          <span>参数结构</span>
                         </div>
-                        <div class="required-params">
-                          <span 
-                            v-for="param in tool.input_schema.required" 
-                            :key="param"
-                            class="required-param"
-                          >
-                            {{ param }}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      <div v-if="tool.input_schema.properties" class="properties-section">
-                        <div class="section-title">
-                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                            <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#67c23a" stroke-width="2"/>
-                            <circle cx="8.5" cy="8.5" r="1.5" stroke="#67c23a" stroke-width="2"/>
-                            <path d="M21 15l-5-5L5 21l5-5z" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                          <span>参数详情</span>
-                        </div>
-                        <div class="properties-grid">
-                          <div 
-                            v-for="(prop, propName) in tool.input_schema.properties" 
-                            :key="propName"
-                            class="property-card"
-                          >
-                            <div class="property-header">
-                              <span class="property-name">{{ propName }}</span>
-                              <span class="property-type">{{ prop.type }}</span>
+                        
+                        <div class="schema-content">
+                          <div class="schema-meta">
+                            <div class="meta-item" v-if="tool.input_schema.type">
+                              <span class="meta-label">类型:</span>
+                              <span class="meta-value type">{{ tool.input_schema.type }}</span>
                             </div>
-                            <div class="property-body">
-                              <p v-if="prop.description" class="property-desc">{{ prop.description }}</p>
-                              <div v-if="prop.default !== undefined" class="property-default">
-                                <span class="default-label">默认值:</span>
-                                <code class="default-value">{{ prop.default }}</code>
+                            <div class="meta-item" v-if="tool.input_schema.title">
+                              <span class="meta-label">标题:</span>
+                              <span class="meta-value">{{ tool.input_schema.title }}</span>
+                            </div>
+                          </div>
+                          
+                          <div v-if="tool.input_schema.required?.length" class="required-section">
+                            <div class="section-title">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                                <path d="M9 12l2 2 4-4" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <span>必填参数</span>
+                            </div>
+                            <div class="required-params">
+                              <span 
+                                v-for="param in tool.input_schema.required" 
+                                :key="param"
+                                class="required-param"
+                              >
+                                {{ param }}
+                              </span>
+                            </div>
+                          </div>
+                          
+                          <div v-if="tool.input_schema.properties" class="properties-section">
+                            <div class="section-title">
+                              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2" stroke="#67c23a" stroke-width="2"/>
+                                <circle cx="8.5" cy="8.5" r="1.5" stroke="#67c23a" stroke-width="2"/>
+                                <path d="M21 15l-5-5L5 21l5-5z" stroke="#67c23a" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                              </svg>
+                              <span>参数详情</span>
+                            </div>
+                            <div class="properties-grid">
+                              <div 
+                                v-for="(prop, propName) in tool.input_schema.properties" 
+                                :key="propName"
+                                class="property-card"
+                              >
+                                <div class="property-header">
+                                  <span class="property-name">{{ propName }}</span>
+                                  <span class="property-type">{{ prop.type }}</span>
+                                </div>
+                                <div class="property-body">
+                                  <p v-if="prop.description" class="property-desc">{{ prop.description }}</p>
+                                  <div v-if="prop.default !== undefined" class="property-default">
+                                    <span class="default-label">默认值:</span>
+                                    <code class="default-value">{{ prop.default }}</code>
+                                  </div>
+                                </div>
                               </div>
                             </div>
                           </div>
                         </div>
                       </div>
                     </div>
-                  </div>
+                  </transition>
                 </div>
               </div>
             </div>
@@ -1193,6 +1290,86 @@ const saveUserConfig = async () => {
         </div>
       </div>
     </Teleport>
+
+    <!-- 删除确认弹窗 -->
+    <Teleport to="body">
+      <div v-if="deleteDialogVisible" class="modal-overlay" @click.self="closeDeleteDialog">
+        <div class="modal-dialog delete-dialog">
+          <div class="modal-header delete-header">
+            <div class="warning-icon">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="rgba(245, 108, 108, 0.1)"/>
+                <line x1="12" y1="9" x2="12" y2="13" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="12" y1="17" x2="12.01" y2="17" stroke="#f56c6c" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </div>
+            <h3>确认删除</h3>
+            <button class="close-btn" @click="closeDeleteDialog">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M18 6L6 18M6 6l12 12" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+            </button>
+          </div>
+          
+          <div class="modal-body delete-body">
+            <div class="delete-warning">
+              <p class="warning-text">
+                您确定要删除MCP服务器 
+                <strong class="server-name-highlight">{{ deletingServer?.server_name }}</strong> 
+                吗？
+              </p>
+              <div class="warning-details">
+                <div class="detail-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="#e6a23c" stroke-width="2"/>
+                    <path d="M12 8v4" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 16h.01" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span>此操作将永久删除该服务器配置</span>
+                </div>
+                <div class="detail-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="#e6a23c" stroke-width="2"/>
+                    <path d="M12 8v4" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 16h.01" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span>相关的工具和配置也将被移除</span>
+                </div>
+                <div class="detail-item">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <circle cx="12" cy="12" r="10" stroke="#e6a23c" stroke-width="2"/>
+                    <path d="M12 8v4" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                    <path d="M12 16h.01" stroke="#e6a23c" stroke-width="2" stroke-linecap="round"/>
+                  </svg>
+                  <span>此操作不可恢复，请谨慎操作</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          
+          <div class="modal-footer delete-footer">
+            <button type="button" @click="closeDeleteDialog" class="btn btn-cancel">
+              取消
+            </button>
+            <button 
+              type="button" 
+              @click="confirmDelete"
+              :disabled="formLoading"
+              class="btn btn-danger"
+            >
+              <span v-if="formLoading" class="loading-spinner"></span>
+              <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <polyline points="3 6 5 6 21 6" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="10" y1="11" x2="10" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                <line x1="14" y1="11" x2="14" y2="17" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+              </svg>
+              确认删除
+            </button>
+          </div>
+        </div>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -1229,6 +1406,10 @@ const saveUserConfig = async () => {
   
   &.tools-dialog {
     max-width: 800px;
+  }
+  
+  &.delete-dialog {
+    max-width: 480px;
   }
 }
 
@@ -1269,9 +1450,14 @@ const saveUserConfig = async () => {
 
 .modal-body {
   padding: 24px;
-  overflow-y: auto;
+  overflow: hidden;
   flex: 1;
   background: #fafafa;
+  
+  &.tools-content {
+    overflow-y: auto;
+    max-height: calc(90vh - 140px);
+  }
 }
 
 .modal-footer {
@@ -1281,6 +1467,126 @@ const saveUserConfig = async () => {
   justify-content: flex-end;
   gap: 12px;
   background: #fff;
+}
+
+// 删除对话框样式
+.delete-dialog {
+  .delete-header {
+    background: linear-gradient(135deg, #fff5f5 0%, #fff0f0 100%);
+    border-bottom-color: #fde2e2;
+    position: relative;
+    padding-left: 60px;
+    
+    .warning-icon {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+    }
+    
+    h3 {
+      color: #f56c6c;
+    }
+  }
+  
+  .delete-body {
+    padding: 24px;
+  }
+  
+  .delete-warning {
+    .warning-text {
+      font-size: 16px;
+      color: #303133;
+      margin: 0 0 20px 0;
+      line-height: 1.6;
+      
+      .server-name-highlight {
+        color: #f56c6c;
+        font-weight: 600;
+        padding: 2px 6px;
+        background: rgba(245, 108, 108, 0.1);
+        border-radius: 4px;
+      }
+    }
+    
+    .warning-details {
+      background: #fef0f0;
+      border: 1px solid #fde2e2;
+      border-radius: 8px;
+      padding: 16px;
+      
+      .detail-item {
+        display: flex;
+        align-items: flex-start;
+        gap: 10px;
+        margin-bottom: 12px;
+        
+        &:last-child {
+          margin-bottom: 0;
+        }
+        
+        svg {
+          flex-shrink: 0;
+          margin-top: 2px;
+        }
+        
+        span {
+          font-size: 14px;
+          color: #606266;
+          line-height: 1.5;
+        }
+      }
+    }
+  }
+  
+  .delete-footer {
+    background: #fafafa;
+    
+    .btn-danger {
+      background: #f56c6c;
+      color: white;
+      border: none;
+      padding: 10px 20px;
+      border-radius: 6px;
+      font-size: 14px;
+      font-weight: 500;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      
+      &:hover:not(:disabled) {
+        background: #f78989;
+        transform: translateY(-1px);
+        box-shadow: 0 4px 12px rgba(245, 108, 108, 0.3);
+      }
+      
+      &:active:not(:disabled) {
+        transform: translateY(0);
+      }
+      
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      
+      .loading-spinner {
+        width: 14px;
+        height: 14px;
+        border: 2px solid rgba(255, 255, 255, 0.3);
+        border-top-color: white;
+        border-radius: 50%;
+        animation: spin 0.6s linear infinite;
+      }
+    }
+  }
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 // 表单样式
@@ -1346,7 +1652,20 @@ const saveUserConfig = async () => {
       color: #303133;
       font-size: 16px;
       
-// 移除不需要的状态样式
+      .required-mark {
+        color: #f56c6c;
+        margin-left: 4px;
+      }
+    }
+  }
+  
+  .form-layout {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+    
+    @media (max-width: 768px) {
+      grid-template-columns: 1fr;
     }
   }
   
@@ -1361,7 +1680,12 @@ const saveUserConfig = async () => {
   }
   
   .form-group {
-    margin-bottom: 24px;
+    margin-bottom: 0;
+    
+    &.form-group-full {
+      grid-column: 1 / -1;
+      margin-bottom: 0;
+    }
     
     label {
       display: flex;
@@ -1372,12 +1696,9 @@ const saveUserConfig = async () => {
       margin-bottom: 12px;
       font-size: 14px;
       
-      &[for$="_name"]::after,
-      &[for$="_url"]::after,
-      &[for$="_type"]::after {
-        content: " *";
+      .required-mark {
         color: #f56c6c;
-        margin-left: 4px;
+        margin-left: 2px;
       }
       
       svg {
@@ -1434,7 +1755,7 @@ const saveUserConfig = async () => {
       min-height: 100px;
       font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
       line-height: 1.6;
-      font-size: 13px;
+      font-size: 16px;
     }
     
     select {
@@ -1453,6 +1774,25 @@ const saveUserConfig = async () => {
       font-size: 12px;
       margin-top: 6px;
       font-weight: 500;
+    }
+    
+    .help-text {
+      display: flex;
+      align-items: flex-start;
+      gap: 6px;
+      font-size: 12px;
+      color: #909399;
+      margin-top: 8px;
+      line-height: 1.5;
+      padding: 8px 12px;
+      background: #f5f7fa;
+      border-radius: 4px;
+      border-left: 3px solid #409eff;
+      
+      svg {
+        flex-shrink: 0;
+        margin-top: 2px;
+      }
     }
     
     .input-help {
@@ -1492,6 +1832,112 @@ const saveUserConfig = async () => {
         font-weight: 500;
         border: 1px solid #e4e7ed;
         backdrop-filter: blur(4px);
+      }
+    }
+    
+    // 方形加号上传按钮样式
+    .logo-upload-square {
+      margin-left: 20px;
+      
+      :deep(.el-upload) {
+        width: 100px;
+        height: 100px;
+        border: 2px solid #409eff;
+        border-radius: 8px;
+        cursor: pointer;
+        position: relative;
+        overflow: hidden;
+        transition: all 0.3s ease;
+        background: #ecf5ff;
+        display: block;
+        box-sizing: border-box;
+        
+        &:hover {
+          background: #409eff;
+          border-color: #409eff;
+          
+          .logo-upload-placeholder {
+            svg path {
+              stroke: white !important;
+            }
+          }
+        }
+      }
+      
+      .logo-upload-placeholder {
+        width: 100%;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #409eff;
+        transition: all 0.3s ease;
+        background: transparent;
+        
+        svg {
+          width: 32px;
+          height: 32px;
+          display: block;
+          
+          path {
+            stroke: #409eff !important;
+            stroke-width: 2.5;
+          }
+        }
+        
+        &.uploading {
+          .uploading-text {
+            font-size: 12px;
+            color: #409eff;
+            font-weight: 500;
+          }
+        }
+      }
+      
+      :deep(.el-upload:hover) {
+        .logo-upload-placeholder {
+          color: white;
+          
+          svg path {
+            stroke: white !important;
+          }
+        }
+      }
+      
+      .logo-preview-square {
+        width: 100%;
+        height: 100%;
+        position: relative;
+        border-radius: 8px;
+        overflow: hidden;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        
+        img {
+          width: 50px;
+          height: 50px;
+          object-fit: cover;
+          border-radius: 4px;
+        }
+        
+        .logo-overlay {
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          bottom: 0;
+          background: rgba(0, 0, 0, 0.5);
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          opacity: 0;
+          transition: opacity 0.3s ease;
+          
+          &:hover {
+            opacity: 1;
+          }
+        }
       }
     }
   }
@@ -1639,27 +2085,40 @@ const saveUserConfig = async () => {
     }
     
     .tools-list {
-      .tool-card {
+      .tool-item {
         background: white;
         border: 1px solid #ebeef5;
         border-radius: 12px;
-        padding: 24px;
-        margin-bottom: 20px;
-        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+        margin-bottom: 12px;
+        overflow: hidden;
         transition: all 0.2s ease;
+        cursor: pointer;
         
         &:hover {
-          box-shadow: 0 4px 16px rgba(0, 0, 0, 0.08);
-          transform: translateY(-2px);
+          border-color: #409eff;
+          box-shadow: 0 2px 12px rgba(64, 158, 255, 0.1);
         }
         
-        .tool-header {
-          margin-bottom: 16px;
+        &.expanded {
+          border-color: #409eff;
+          box-shadow: 0 4px 16px rgba(64, 158, 255, 0.15);
+          
+          .tool-expand-icon svg {
+            transform: rotate(180deg);
+          }
+        }
+        
+        .tool-summary {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 20px 24px;
           
           .tool-info {
             display: flex;
-            align-items: center;
+            align-items: flex-start;
             gap: 12px;
+            flex: 1;
             
             .tool-icon {
               width: 40px;
@@ -1673,184 +2132,187 @@ const saveUserConfig = async () => {
             }
             
             .tool-text {
+              flex: 1;
+              
               .tool-name {
-                margin: 0 0 4px 0;
-                font-size: 18px;
+                margin: 0 0 6px 0;
+                font-size: 16px;
                 font-weight: 600;
                 color: #303133;
               }
               
-              .tool-tag {
-                background: #ecf5ff;
-                color: #409eff;
-                border: 1px solid #b3d8ff;
-                padding: 4px 12px;
-                border-radius: 20px;
-                font-size: 12px;
-                font-weight: 500;
-                display: inline-block;
+              .tool-description {
+                margin: 0;
+                color: #606266;
+                font-size: 14px;
+                line-height: 1.5;
               }
+            }
+          }
+          
+          .tool-expand-icon {
+            flex-shrink: 0;
+            color: #909399;
+            transition: all 0.3s ease;
+            
+            svg {
+              transition: transform 0.3s ease;
             }
           }
         }
         
-        .tool-description {
-          color: #606266;
-          line-height: 1.6;
-          margin-bottom: 20px;
-          font-size: 14px;
+        .tool-details {
+          border-top: 1px solid #ebeef5;
+          padding: 0 24px 20px 24px;
           
-          p {
-            margin: 0;
-          }
-        }
-        
-        .tool-schema {
-          background: #f8f9fa;
-          border: 1px solid #ebeef5;
-          border-radius: 8px;
-          padding: 20px;
-          
-          .schema-header {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-            margin-bottom: 16px;
-            padding-bottom: 12px;
-            border-bottom: 1px solid #e4e7ed;
-            font-weight: 600;
-            color: #303133;
-            font-size: 14px;
-          }
-          
-          .schema-content {
-            .schema-meta {
+          .tool-schema {
+            background: #f8f9fa;
+            border: 1px solid #ebeef5;
+            border-radius: 8px;
+            padding: 20px;
+            margin-top: 20px;
+            
+            .schema-header {
+              display: flex;
+              align-items: center;
+              gap: 8px;
               margin-bottom: 16px;
-              
-              .meta-item {
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                margin-bottom: 8px;
+              padding-bottom: 12px;
+              border-bottom: 1px solid #e4e7ed;
+              font-weight: 600;
+              color: #303133;
+              font-size: 14px;
+            }
+            
+            .schema-content {
+              .schema-meta {
+                margin-bottom: 16px;
                 
-                .meta-label {
-                  font-weight: 500;
-                  color: #606266;
-                  min-width: 60px;
-                }
-                
-                .meta-value {
-                  color: #303133;
+                .meta-item {
+                  display: flex;
+                  align-items: center;
+                  gap: 8px;
+                  margin-bottom: 8px;
                   
-                  &.type {
-                    background: #f0f2f5;
-                    padding: 2px 8px;
-                    border-radius: 4px;
-                    font-size: 12px;
+                  .meta-label {
                     font-weight: 500;
+                    color: #606266;
+                    min-width: 60px;
                   }
-                }
-              }
-            }
-            
-            .required-section {
-              margin-bottom: 16px;
-              
-              .section-title {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                margin-bottom: 12px;
-                font-weight: 600;
-                color: #f56c6c;
-                font-size: 14px;
-              }
-              
-              .required-params {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 8px;
-                
-                .required-param {
-                  background: #fef0f0;
-                  color: #f56c6c;
-                  border: 1px solid #fbc4c4;
-                  padding: 4px 8px;
-                  border-radius: 4px;
-                  font-size: 12px;
-                  font-weight: 500;
-                }
-              }
-            }
-            
-            .properties-section {
-              .section-title {
-                display: flex;
-                align-items: center;
-                gap: 6px;
-                margin-bottom: 12px;
-                font-weight: 600;
-                color: #67c23a;
-                font-size: 14px;
-              }
-              
-              .properties-grid {
-                display: grid;
-                gap: 12px;
-                
-                .property-card {
-                  background: white;
-                  border: 1px solid #ebeef5;
-                  border-radius: 6px;
-                  padding: 16px;
                   
-                  .property-header {
-                    display: flex;
-                    justify-content: space-between;
-                    align-items: center;
-                    margin-bottom: 8px;
+                  .meta-value {
+                    color: #303133;
                     
-                    .property-name {
-                      font-weight: 600;
-                      color: #303133;
-                      font-size: 14px;
-                    }
-                    
-                    .property-type {
-                      background: #ecf5ff;
-                      color: #409eff;
+                    &.type {
+                      background: #f0f2f5;
                       padding: 2px 8px;
                       border-radius: 4px;
                       font-size: 12px;
                       font-weight: 500;
                     }
                   }
+                }
+              }
+              
+              .required-section {
+                margin-bottom: 16px;
+                
+                .section-title {
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  margin-bottom: 12px;
+                  font-weight: 600;
+                  color: #f56c6c;
+                  font-size: 14px;
+                }
+                
+                .required-params {
+                  display: flex;
+                  flex-wrap: wrap;
+                  gap: 8px;
                   
-                  .property-body {
-                    .property-desc {
-                      color: #606266;
-                      font-size: 13px;
-                      line-height: 1.5;
-                      margin: 0 0 8px 0;
-                    }
+                  .required-param {
+                    background: #fef0f0;
+                    color: #f56c6c;
+                    border: 1px solid #fbc4c4;
+                    padding: 4px 8px;
+                    border-radius: 4px;
+                    font-size: 12px;
+                    font-weight: 500;
+                  }
+                }
+              }
+              
+              .properties-section {
+                .section-title {
+                  display: flex;
+                  align-items: center;
+                  gap: 6px;
+                  margin-bottom: 12px;
+                  font-weight: 600;
+                  color: #67c23a;
+                  font-size: 14px;
+                }
+                
+                .properties-grid {
+                  display: grid;
+                  gap: 12px;
+                  
+                  .property-card {
+                    background: white;
+                    border: 1px solid #ebeef5;
+                    border-radius: 6px;
+                    padding: 16px;
                     
-                    .property-default {
+                    .property-header {
                       display: flex;
+                      justify-content: space-between;
                       align-items: center;
-                      gap: 6px;
+                      margin-bottom: 8px;
                       
-                      .default-label {
-                        font-size: 12px;
-                        color: #909399;
+                      .property-name {
+                        font-weight: 600;
+                        color: #303133;
+                        font-size: 14px;
                       }
                       
-                      .default-value {
-                        background: #f4f4f5;
-                        color: #303133;
-                        padding: 2px 6px;
-                        border-radius: 3px;
+                      .property-type {
+                        background: #ecf5ff;
+                        color: #409eff;
+                        padding: 2px 8px;
+                        border-radius: 4px;
                         font-size: 12px;
-                        font-family: 'Monaco', 'Menlo', monospace;
+                        font-weight: 500;
+                      }
+                    }
+                    
+                    .property-body {
+                      .property-desc {
+                        color: #606266;
+                        font-size: 13px;
+                        line-height: 1.5;
+                        margin: 0 0 8px 0;
+                      }
+                      
+                      .property-default {
+                        display: flex;
+                        align-items: center;
+                        gap: 6px;
+                        
+                        .default-label {
+                          font-size: 12px;
+                          color: #909399;
+                        }
+                        
+                        .default-value {
+                          background: #f4f4f5;
+                          color: #303133;
+                          padding: 2px 6px;
+                          border-radius: 3px;
+                          font-size: 12px;
+                          font-family: 'Monaco', 'Menlo', monospace;
+                        }
                       }
                     }
                   }
@@ -1861,64 +2323,72 @@ const saveUserConfig = async () => {
         }
       }
     }
+    
+    // 展开动画
+    .expand-enter-active,
+    .expand-leave-active {
+      transition: all 0.3s ease;
+      max-height: 2000px;
+      overflow: hidden;
+    }
+    
+    .expand-enter-from,
+    .expand-leave-to {
+      max-height: 0;
+      opacity: 0;
+    }
   }
 }
 
 .mcp-server-page {
-  padding: 24px;
-  min-height: calc(100vh - 60px);
-  background-color: #f5f7fa;
+  padding: 32px;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
   
   .page-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 28px;
-    background: linear-gradient(to right, #ffffff, #f8fafc);
-    padding: 24px;
-    border-radius: 12px;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08);
-    position: relative;
-    overflow: hidden;
+    margin-bottom: 24px;
+    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
+    padding: 20px 28px;
+    border-radius: 16px;
+    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06);
+    border: 1px solid rgba(226, 232, 240, 0.6);
     
-    &::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 4px;
-      background: linear-gradient(90deg, #409eff, #67c23a, #e6a23c);
-    }
-    
-    h2 {
-      font-size: 26px;
-      font-weight: 700;
-      margin: 0;
+    .header-title {
       display: flex;
       align-items: center;
-      gap: 12px;
-      background: linear-gradient(90deg, #1B7CE4, #409eff); // 与mcp.svg图标颜色匹配
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      gap: 14px;
       
-      .mcp-icon {
-        width: 32px;
-        height: 32px;
+      .title-icon {
+        width: 36px;
+        height: 36px;
+      }
+      
+      h2 {
+        margin: 0;
+        font-size: 24px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #1B7CE4, #409eff);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
       }
     }
     
-    .el-button {
-      font-weight: 600;
-      letter-spacing: 0.025em;
-      border-radius: 12px;
-      padding: 12px 24px;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-      
-      &:hover {
-        transform: translateY(-2px);
-        box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+    .header-actions {
+      .el-button {
+        font-weight: 600;
+        letter-spacing: 0.025em;
+        border-radius: 12px;
+        padding: 12px 24px;
+        transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        
+        &:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(64, 158, 255, 0.3);
+        }
       }
     }
   }
@@ -2103,6 +2573,25 @@ const saveUserConfig = async () => {
       color: #6b7280;
       font-weight: 500;
       font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    
+    .action-buttons {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      align-items: center;
+      
+      .el-button {
+        padding: 8px 16px;
+        font-size: 13px;
+        font-weight: 600;
+        border-radius: 8px;
+        transition: all 0.3s ease;
+        
+        &:hover {
+          transform: translateY(-1px);
+        }
+      }
     }
     
     :deep(.el-table__fixed-right) {

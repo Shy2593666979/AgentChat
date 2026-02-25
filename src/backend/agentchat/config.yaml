@@ -2,8 +2,8 @@
 server:
   host: "127.0.0.1"
   port: 7860
-  project_name: "AgentChat" # 项目名称
-  version: "2.2.0" # 服务版本号
+  project_name: "AgentChat"
+  version: "2.3.0"
 
 # 数据库配置：MySQL (请根据实际配置更改 endpoint)
 # 格式：mysql+pymysql://<user>:<password>@<host>:<port>/<database>
@@ -67,12 +67,9 @@ tools:
     api_key: "tvly-dev-RMf7KBCQLyXhn3******"
   # SerpApi 上的 Google Search API 配置
   google:
-    api_key: "cdc3b207606843b4c883849c3a0f833c1305781******"
-  # BoCha 联网搜索 API 配置
-  bocha:
-    api_key: "sk-**********************"
-    endpoint: "https://api.bochaai.com/v1/web-search"
-  # 阿里云快递查询 API 配置
+    api_key: "cdc3b207606843b4c883849c3a0f833c13057811b*********"
+
+  # 使用的是aliyun上的快递查询api
   delivery:
     api_key: "df695c94fc644d******"
     endpoint: "https://qyexpress.market.alicloudapi.com/composite/queryexpress"
@@ -102,14 +99,15 @@ rag:
 
 # 阿里云对象存储 OSS 配置
 aliyun_oss:
-  access_key_id: "LTAI5tL85xWWx******"
-  access_key_secret: "MiKCkLCx9qZzxc6DwO7E******"
+  access_key_id: "LTAI5tL85xWWx**********"
+  access_key_secret: "MiKCkLCx9qZzxc6D***********"
   endpoint: "oss-cn-beijing.aliyuncs.com"
-  bucket_name: "agentchat" # OSS 存储桶名称
-  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com" # 访问基础 URL
+  bucket_name: "agentchat"
+  base_url: "https://agentchat.oss-cn-beijing.aliyuncs.com"
 
 # 默认配置 (如图标 URL, 资源链接)
 default_config:
+  mcp_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
   tool_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tool.png" # 工具默认图标 URL
   agent_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png" # Agent 默认图标 URL
   mars_daily_url: "https://news.aibase.com/zh/news" # 外部新闻链接
@@ -130,4 +128,4 @@ langfuse:
   user_id: "LiangTian" # 用户 ID
 
 # 接口白名单路径
-whitelist_paths: [ "/api/v1/login" ]
+whitelist_paths: ["/api/v1/login"]

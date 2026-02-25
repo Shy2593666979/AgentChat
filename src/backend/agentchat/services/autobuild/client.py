@@ -15,7 +15,7 @@ from pydantic import BaseModel, Field
 from agentchat.prompts.llm import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt, \
     PROMPT_REACT_BASE
 from agentchat.api.services.agent import AgentService
-from agentchat.api.services.chat import ChatService
+from agentchat.core.agents.general_agent import ChatService
 from agentchat.api.services.tool import ToolService
 from agentchat.api.services.user import UserPayload
 from agentchat.api.services.llm import LLMService, React_provider

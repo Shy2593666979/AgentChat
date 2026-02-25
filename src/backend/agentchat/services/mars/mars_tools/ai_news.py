@@ -18,10 +18,12 @@ from agentchat.utils.file_utils import get_aliyun_oss_base_path, get_save_tempfi
 
 
 @tool(parse_docstring=True)
-async def crawl_ai_news(user_input: str,
-                        output_format: Literal["markdown", "png"] = "png",
-                        output_detail: bool = False,
-                        user_id: Optional[str] = None):
+async def crawl_ai_news(
+    user_input: str,
+    output_format: Literal["markdown", "png"] = "png",
+    output_detail: bool = False,
+    user_id: Optional[str] = None
+):
     """
     帮助用户获取一个AI日报, 如果用户有需求，可以提供一个可下载的Markdown下载链接
 
@@ -44,7 +46,7 @@ async def crawl_ai_news(user_input: str,
         if chunk.get("type") == "final_chunk":
             final_response = chunk.get("data")
             continue
-        yield chunk
+        writer(chunk)
 
     if output_format == "markdown":
         writer({
