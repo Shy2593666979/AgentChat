@@ -19,9 +19,9 @@ redis:
 multi_models:
   # 对话模型配置
   conversation_model:
-    api_key: "sk-6d47d94f4c734357******"
-    base_url: "https://api.deepseek.com/v1"
-    model_name: "deepseek-chat"
+    api_key: "sk-fc40dd0604f04142a******"
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "qwen-plus"
   # 工具调用/Function Call 模型配置
   tool_call_model:
     api_key: "sk-fc40dd0604f04142a******"
@@ -112,7 +112,7 @@ aliyun_oss:
 
 # 默认配置 (如图标 URL, 资源链接)
 default_config:
-  mcp_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
+  mcp_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png" # Mcp默认图标 URL
   tool_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/default.png" # 工具默认图标 URL
   agent_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png" # Agent 默认图标 URL
   mars_daily_url: "https://news.aibase.com/zh/news" # 外部新闻链接
