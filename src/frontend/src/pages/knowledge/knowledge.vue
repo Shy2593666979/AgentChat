@@ -355,7 +355,7 @@ onMounted(() => {
       
       <div v-if="knowledges.length === 0 && !loading" class="empty-state">
         <div class="empty-icon">
-          <i class="empty-icon-symbol">📚</i>
+          <img :src="knowledgeIcon" alt="知识库" class="empty-icon-img" />
         </div>
         <h3>暂无知识库</h3>
         <p>您可以创建知识库来存储和管理您的文档资料</p>
@@ -932,6 +932,12 @@ onMounted(() => {
     
     .empty-icon-symbol {
       font-size: 60px;
+    }
+    
+    .empty-icon-img {
+      width: 60px;
+      height: 60px;
+      object-fit: contain;
     }
   }
   

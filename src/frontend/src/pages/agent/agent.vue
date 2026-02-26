@@ -4,6 +4,10 @@ import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Plus, Edit, Delete, View, Search, Refresh, Tools } from '@element-plus/icons-vue'
 import robotIcon from '../../assets/robot.svg'
+import pluginIcon from '../../assets/plugin.svg'
+import knowledgeIcon from '../../assets/knowledge.svg'
+import mcpIcon from '../../assets/mcp.svg'
+import skillIcon from '../../assets/skill.svg'
 import { 
   getAgentsAPI, 
   deleteAgentAPI, 
@@ -321,16 +325,20 @@ onMounted(() => {
             
             <div class="agent-meta">
               <span class="meta-item" title="可用工具数量">
-                <i class="meta-icon">🔨</i>
+                <img :src="pluginIcon" class="meta-icon-img" alt="工具" />
                 <span class="meta-count">{{ agent.tool_ids?.length || 0 }}</span>
               </span>
               <span class="meta-item" title="关联知识库数量">
-                <i class="meta-icon">📖</i>
+                <img :src="knowledgeIcon" class="meta-icon-img" alt="知识库" />
                 <span class="meta-count">{{ agent.knowledge_ids?.length || 0 }}</span>
               </span>
               <span class="meta-item" title="MCP服务数量">
-                <i class="meta-icon">📡</i>
+                <img :src="mcpIcon" class="meta-icon-img" alt="MCP" />
                 <span class="meta-count">{{ agent.mcp_ids?.length || 0 }}</span>
+              </span>
+              <span class="meta-item" title="Skill数量">
+                <img :src="skillIcon" class="meta-icon-img" alt="Skill" />
+                <span class="meta-count">{{ agent.agent_skill_ids?.length || 0 }}</span>
               </span>
             </div>
           </div>
@@ -618,32 +626,34 @@ onMounted(() => {
           
           .agent-meta {
             display: flex;
-            justify-content: space-around;
-            gap: 8px;
+            justify-content: flex-start;
+            gap: 3px;
             margin-top: auto;
-            padding-top: 10px;
+            padding-top: 8px;
             
             .meta-item {
-              font-size: 12px;
+              font-size: 11px;
               color: #64748b;
               display: flex;
               align-items: center;
               justify-content: center;
-              gap: 4px;
+              gap: 2px;
               background: rgba(255, 255, 255, 0.3); /* 半透明背景 */
-              padding: 6px;
-              border-radius: 8px;
-              min-width: 45px;
+              padding: 4px 5px;
+              border-radius: 6px;
+              min-width: 38px;
               text-align: center;
               box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
               backdrop-filter: blur(2px); /* 轻微模糊效果 */
               
-              .meta-icon {
-                font-size: 14px;
+              .meta-icon-img {
+                width: 14px;
+                height: 14px;
+                object-fit: contain;
               }
               
               .meta-count {
-                font-size: 15px;
+                font-size: 13px;
                 font-weight: 600;
               }
             }

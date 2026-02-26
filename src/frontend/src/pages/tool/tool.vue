@@ -1621,6 +1621,9 @@ onMounted(() => {
   
   .empty-visual {
     margin-bottom: 24px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
     
     .empty-icon-wrapper {
       width: 100px;
@@ -1646,6 +1649,9 @@ onMounted(() => {
         width: 56px;
         height: 56px;
         opacity: 0.8;
+        border-radius: 0;
+        object-fit: contain;
+        display: block;
       }
     }
   }
