@@ -5,7 +5,7 @@ server:
   project_name: "AgentChat"
   version: "2.3.0"
 
-# 数据库配置：MySQL (请根据实际配置更改 endpoint)
+# 数据库配置：MySQL (请根据实际配置更改 endpoint) 如果使用Docker启动服务，请将localhost改成@mysql:3306...
 # 格式：mysql+pymysql://<user>:<password>@<host>:<port>/<database>
 mysql:
   endpoint: "mysql+pymysql://root:123456@localhost:3306/agentchat" # 同步连接配置
