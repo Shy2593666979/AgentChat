@@ -79,13 +79,12 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 
 ### 📊数据看板
 *能够根据Agent、模型、时间范围进行筛选调用次数和Token使用量* 
-<img width="800" height="450" alt="5e90c531-0a10-4457-962d-984b0568f25d" src="https://github.com/user-attachments/assets/2811a276-a2e3-4b10-8764-605bcbc80254" />
+<img width="800" height="450" alt="73f74567-7a97-4cd8-ab05-34759efa25cc" src="https://github.com/user-attachments/assets/b0cb4ccf-b868-4f1b-9b26-8a882d8130da" />
 
 
 ### 🏠 智言平台首页
 *简洁现代的主界面，提供直观的功能导航*
-
-<img width="800" height="450" alt="5a6ee271-7c81-4032-aeca-57496634a64f" src="https://github.com/user-attachments/assets/0295e9ea-6f15-484c-b223-82000bc9d33c" />
+<img width="800" height="450" alt="d0aaf6bb-d1db-487b-b78b-2a5c6ef565d2" src="https://github.com/user-attachments/assets/dc626494-4797-4a86-b350-3a0759d52d64" />
 
 
 
@@ -98,7 +97,7 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 ### 🤖 智能体管理页面
 *强大的Agent配置和管理中心*
 
-<img width="800" height="450" alt="智能体页面" src="https://github.com/user-attachments/assets/e58f120e-2e53-4041-b3f8-2243083dccf3" />
+<img width="800" height="450" alt="66830e14-e225-48e6-9d3c-7736cea7b336" src="https://github.com/user-attachments/assets/b24d47ee-17ea-4cc3-bfd2-53cf93c87ebb" />
 
 </div>
 
@@ -140,27 +139,32 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 ### 🔌 MCP服务器集成
 *支持Model Context Protocol，可上传自定义MCP服务*
 
-<img width="800" height="450" alt="MCP集成" src="https://github.com/user-attachments/assets/7a9f4588-1098-4388-85d9-78a1a4130ec3" />
+<img width="800" height="450" alt="7a88f691-a1e5-4568-91c0-c74488914d5c" src="https://github.com/user-attachments/assets/79bfa401-bd94-4290-b7ae-bcb69cc00f64" />
+
 
 ### 📚 知识库管理系统
 *智能知识管理，为Agent提供丰富的外部知识支持*
 
-<img width="800" height="450" alt="知识库管理" src="https://github.com/user-attachments/assets/471ad0d3-e99b-4da0-9338-4fae41eaad68" />
+<img width="800" height="450" alt="99c68f9f-d787-4434-b609-000f578e5977" src="https://github.com/user-attachments/assets/0de41202-295a-43c5-a15c-c0b3cc55e5f8" />
+
 
 ### 📄 文档解析引擎
 *支持PDF、Markdown、Docx、Txt等多种格式的智能解析*
 
-<img width="800" height="450" alt="文档解析" src="https://github.com/user-attachments/assets/0d030916-b6e2-482c-b828-b760fc574cae" />
+<img width="800" height="450" alt="5c7d4514-3e73-4dee-a25e-640e2b345bc6" src="https://github.com/user-attachments/assets/c5eba600-7dc2-429a-88f9-50f8811f293b" />
+
 
 ### 🛠️ 工具管理中心
-*丰富的内置工具集，持续扩展中*
+*丰富的内置工具集，支持用户自定义上传工具*
 
-<img width="800" height="450" alt="工具管理" src="https://github.com/user-attachments/assets/70fe68ce-56e0-44be-b78a-817ed32d4708" />
+<img width="800" height="450" alt="7c50278e-3152-4fa0-99c6-46462cb66b7e" src="https://github.com/user-attachments/assets/6a0126d2-5042-4131-816e-5d049d09728c" />
+
 
 ### 🧠 AI模型管理
 *多模型支持，灵活配置不同AI服务*
 
-<img width="800" height="450" alt="模型管理" src="https://github.com/user-attachments/assets/41a49873-f758-49f2-86a4-1a1a57677018" />
+<img width="800" height="450" alt="32c29244-175c-4b20-8485-63f87a35216e" src="https://github.com/user-attachments/assets/97053c0d-a57c-4347-9cf1-1ab96fa7fc22" />
+
 
 ### 📰 生成AI日报
 *获取最新的AI咨询，支持生成图片类型的日报*
@@ -518,50 +522,6 @@ AgentChat/                          # 🏠 项目根目录
 | **内置工具** | 10+ | 涵盖搜索、文档、图像、通信等功能 |
 | **AI模型** | 5+ | 支持主流大语言模型和嵌入模型 |
 | **MCP服务** | 多个 | 可扩展的MCP协议服务器 |
-
-</div>
-
-### 📊 代码量统计
-
-<div align="center">
-
-*📝 基于文件扩展名的详细代码统计*
-
-| 🔍 **文件类型** | 📁 **文件数量** | 📄 **总行数** | 📉 **最少行数** | 📈 **最多行数** | 📊 **平均行数** |
-|:---:|:---:|:---:|:---:|:---:|:---:|
-| **🐍 Python** | 247 | 19,599 | 0 | 1,039 | 79 |
-| **🎨 Vue** | 31 | 21,907 | 12 | 2,588 | 706 |
-| **📰 Markdown** | 8 | 3,475 | 5 | 1,079 | 434 |
-| **⚡ TypeScript** | 46 | 2,103 | 1 | 212 | 45 |
-| **📋 TXT** | 1 | 539 | 539 | 539 | 539 |
-| **📦 JSON** | 11 | 348 | 7 | 110 | 31 |
-| **⚙️ TOML** | 1 | 328 | 328 | 328 | 328 |
-| **🎨 CSS** | 1 | 176 | 176 | 176 | 176 |
-| **🔧 YML** | 2 | 177 | 52 | 125 | 88 |
-| **📋 YAML** | 2 | 152 | 35 | 117 | 76 |
-| **⚙️ CONF** | 1 | 101 | 101 | 101 | 101 |
-| **🚀 Shell** | 2 | 87 | 35 | 52 | 43 |
-| **🚦 PROD** | 1 | 41 | 41 | 41 | 41 |
-| **🚫 GitIgnore** | 1 | 24 | 24 | 24 | 24 |
-| **🌐 HTML** | 1 | 13 | 13 | 13 | 13 |
-| **🐳 DockerIgnore** | 1 | 10 | 10 | 10 | 10 |
-
-**📊 总计**: **356** 个文件，**48,560** 行代码
-
-</div>
-
-### 🏆 技术栈占比
-
-<div align="center">
-
-| 🎯 **技术栈** | 📈 **占比** | 🔥 **特点** |
-|:---:|:---:|:---|
-| **🎨 前端 (Vue+TS)** | 45.1% | 现代化响应式界面，TypeScript强类型支持 |
-| **🐍 后端 (Python)** | 40.4% | 高性能异步服务，丰富的AI集成 |
-| **📚 文档 (MD)** | 7.2% | 完整的项目文档和API说明 |
-| **⚙️ 配置 (JSON/YAML)** | 7.3% | 灵活的配置管理和部署支持 |
-
-*💡 项目采用前后端分离架构，代码结构清晰，文档完善*
 
 </div>
 
