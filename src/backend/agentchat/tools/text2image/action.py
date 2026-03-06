@@ -8,7 +8,7 @@ from dashscope import ImageSynthesis
 from langchain.tools import tool
 
 from agentchat.settings import app_settings
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 
 @tool(parse_docstring=True)
 def text_to_image(user_prompt: str):
@@ -46,9 +46,9 @@ def _text_to_image(user_prompt):
                 # 直接获取图片内容并上传到OSS
                 response = requests.get(result.url)
                 if response.status_code == 200:
-                    aliyun_oss.upload_file(oss_object_name, response.content)
+                    storage_client.upload_file(oss_object_name, response.content)
                     logger.info(f"图片 {file_name} 已成功上传到OSS")
-                    return f"您的图片已经生成完毕，图片链接为：![图片]({app_settings.aliyun_oss["base_url"]}/{oss_object_name})"
+                    return f"您的图片已经生成完毕，图片链接为：![图片]({app_settings.storage.active.base_url}/{oss_object_name})"
                 else:
                     logger.error(f"获取图片 {result.url} 失败，状态码: {response.status_code}")
                     raise ValueError(f"获取图片 {result.url} 失败，状态码: {response.status_code}")

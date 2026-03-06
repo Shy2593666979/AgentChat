@@ -1,11 +1,12 @@
+from loguru import logger
 from urllib.parse import urljoin
 from fastapi import APIRouter, Body, UploadFile, File, Depends
 
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 from agentchat.settings import app_settings
-from agentchat.utils.file_utils import get_aliyun_oss_base_path
+from agentchat.utils.file_utils import get_object_storage_base_path
 
 router = APIRouter(tags=["Upload"])
 
@@ -18,12 +19,13 @@ async def upload_file(
     try:
         file_content = await file.read()
 
-        oss_object_name = get_aliyun_oss_base_path(file.filename)
-        sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_object_name)
+        oss_object_name = get_object_storage_base_path(file.filename)
+        sign_url = urljoin(app_settings.storage.active.base_url, oss_object_name)
 
-        aliyun_oss.sign_url_for_get(sign_url)
-        aliyun_oss.upload_file(oss_object_name, file_content)
+        storage_client.sign_url_for_get(sign_url)
+        storage_client.upload_file(oss_object_name, file_content)
 
         return resp_200(sign_url)
     except Exception as err:
+        logger.error(f"上传文件{file.filename}出错：{err}")
         return resp_500(message=str(err))

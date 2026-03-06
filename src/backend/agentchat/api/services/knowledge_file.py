@@ -5,7 +5,7 @@ from agentchat.database.dao.knowledge_file import KnowledgeFileDao
 from agentchat.database.models.knowledge_file import Status
 from agentchat.database.models.user import AdminUser
 from agentchat.services.rag.parser import doc_parser
-from agentchat.services.rag_handler import RagHandler
+from agentchat.services.rag.handler import RagHandler
 from agentchat.settings import app_settings
 
 class KnowledgeFileService:

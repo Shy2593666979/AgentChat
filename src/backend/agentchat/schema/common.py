@@ -1,5 +1,5 @@
-from typing import List, Optional
-from pydantic import BaseModel, Field
+from typing import List, Optional, Literal
+from pydantic import BaseModel, Field, model_validator
 
 
 class ModelConfig(BaseModel):
@@ -42,3 +42,37 @@ class Rag(BaseModel):
     split: dict = Field(default_factory=dict)
     elasticsearch: dict = Field(default_factory=dict)
     vector_db: dict = Field(default_factory=dict)
+
+
+
+class OSSConfig(BaseModel):
+    access_key_id: str
+    access_key_secret: str
+    endpoint: str
+    bucket_name: str
+    base_url: str
+
+
+class MinioConfig(BaseModel):
+    access_key_id: str
+    access_key_secret: str
+    endpoint: str
+    bucket_name: str
+    base_url: str
+
+class StorageConfig(BaseModel):
+    mode: Literal["oss", "minio"]
+    oss: Optional[OSSConfig] = None
+    minio: Optional[MinioConfig] = None
+
+    @model_validator(mode="after")
+    def validate_storage(self):
+        if self.mode == "oss" and not self.oss:
+            raise ValueError("mode=oss 时必须提供 aliyun_oss")
+        if self.mode == "minio" and not self.minio:
+            raise ValueError("mode=minio 时必须提供 minio")
+        return self
+
+    @property
+    def active(self):
+        return self.oss if self.mode == "oss" else self.minio

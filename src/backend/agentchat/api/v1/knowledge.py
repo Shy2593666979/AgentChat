@@ -6,7 +6,7 @@ from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.schema.knowledge import KnowledgeCreateRequest, KnowledgeUpdateRequest
 from agentchat.schema.schemas import UnifiedResponseModel, resp_500, resp_200
-from agentchat.services.rag_handler import RagHandler
+from agentchat.services.rag.handler import RagHandler
 
 router = APIRouter(tags=["Knowledge"])
 

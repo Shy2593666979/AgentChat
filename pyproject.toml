@@ -36,6 +36,7 @@ anthropic = "^0.72.0"
 html2image = "^2.0.7"
 lxml-html-clean = "^0.4.3"
 pyfiglet = "^1.0.4"
+minio = "^7.2.20"
 
 
 [build-system]

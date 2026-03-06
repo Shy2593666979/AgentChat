@@ -27,6 +27,9 @@ RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua
 # 📁 复制后端代码
 COPY src/backend/ .
 
+# 📄 用 docker 配置覆盖默认配置
+COPY docker/docker_config.yaml /app/agentchat/config.yaml
+
 # 🌍 设置环境变量
 ENV PYTHONPATH=/app
 ENV PYTHONUNBUFFERED=1

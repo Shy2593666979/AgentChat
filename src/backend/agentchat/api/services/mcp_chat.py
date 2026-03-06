@@ -5,7 +5,7 @@ from agentchat.api.services.mcp_stdio_server import MCPServerService
 from agentchat.services.mcp_openai.mcp_manager import MCPManager
 from agentchat.core.models.anthropic import DeepAsyncAnthropic
 from agentchat.api.services.llm import LLMService
-from agentchat.services.rag_handler import RagHandler
+from agentchat.services.rag.handler import RagHandler
 
 
 class MCPChatAgent:

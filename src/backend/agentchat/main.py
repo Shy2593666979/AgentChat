@@ -53,10 +53,16 @@ async def init_config():
     await initialize_app_settings()
 
     # 必须放到init settings 之后 import
-    from agentchat.database.init_data import init_database, init_default_agent, update_system_mcp_server
+    from agentchat.database.init_data import (
+        init_database,
+        init_default_agent,
+        update_system_mcp_server,
+        upload_user_avatars_storage
+    )
     await init_database()
     await init_default_agent()
     await update_system_mcp_server()
+    await upload_user_avatars_storage()  # 初始化用户头像
 
 def print_logo():
     from pyfiglet import Figlet

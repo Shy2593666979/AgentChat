@@ -1,4 +1,5 @@
 import json
+import httpx
 from loguru import logger
 from sqlmodel import SQLModel
 
@@ -12,6 +13,7 @@ from agentchat.database.models.user import AdminUser
 from agentchat.prompts.mcp import McpAsToolPrompt
 from agentchat.schema.mcp import MCPResponseFormat
 from agentchat.services.mcp.manager import MCPManager
+from agentchat.services.storage import storage_client
 from agentchat.settings import app_settings
 from agentchat.utils.convert import convert_mcp_config
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
@@ -178,14 +180,34 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
                 description=structured_response.description,
             )
 
+async def upload_user_avatars_storage():
+    if not storage_client.list_files_in_folder("icons/user"):
+        user_avatars = await load_user_avatars()
+        for avatar_url in user_avatars["avatars"]:
+            # 从URL下载图片内容
+            async with httpx.AsyncClient() as client:
+                response = await client.get(avatar_url)
+                image_data = response.content
+
+            # 提取文件名
+            file_name = avatar_url.split("/")[-1]
+            object_name = f"icons/user/{file_name}"
+
+            # 上传到OSS
+            storage_client.upload_file(object_name, image_data)
 
 async def load_default_tool():
-    with open('./agentchat/config/tool.json', 'r', encoding='utf-8') as f:
+    with open("./agentchat/config/tool.json", "r", encoding="utf-8") as f:
         result = json.load(f)
     return result
 
 
 async def load_system_mcp_server():
-    with open('./agentchat/config/mcp_server.json', 'r', encoding='utf-8') as f:
+    with open("./agentchat/config/mcp_server.json", "r", encoding="utf-8") as f:
+        result = json.load(f)
+    return result
+
+async def load_user_avatars():
+    with open("./agentchat/config/avatars.json", "r", encoding="utf-8") as f:
         result = json.load(f)
     return result

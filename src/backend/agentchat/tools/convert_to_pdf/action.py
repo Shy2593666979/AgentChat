@@ -3,7 +3,7 @@ import tempfile
 import subprocess
 
 from langchain.tools import tool
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 from agentchat.utils.file_utils import get_object_name_from_aliyun_url, get_save_tempfile
 from agentchat.utils.helpers import get_now_beijing_time
 
@@ -26,7 +26,7 @@ def _convert_to_pdf(file_url):
     object_name = get_object_name_from_aliyun_url(file_url)
     file_name = file_url.split("/")[-1]
     file_path = get_save_tempfile(file_name)
-    aliyun_oss.download_file(object_name, file_path)
+    storage_client.download_file(object_name, file_path)
 
     if not os.path.isfile(file_path):
         return f"上传的文件: {os.path.basename(file_path)}没有被接收到,重新上传试试呢~~~"
@@ -74,10 +74,10 @@ def _convert_to_pdf(file_url):
 
         # 上传到OSS
         oss_object_name = f"convert_pdf/{pdf_filename}"
-        aliyun_oss.upload_local_file(oss_object_name, local_pdf_path)
+        storage_client.upload_local_file(oss_object_name, local_pdf_path)
 
         # 生成下载URL
-        url = aliyun_oss.sign_url_for_get(oss_object_name)
+        url = storage_client.sign_url_for_get(oss_object_name)
         now_time = get_now_beijing_time(delta=1)
 
         # 清理临时文件
