@@ -104,9 +104,9 @@ rag:
 
 # 阿对象存储 OSS 配置
 storage:
-  mode: "minio" # or minio
+  mode: "minio" # or oss
 
-  aliyun_oss:
+  oss:
     access_key_id: "LTAI5tL85xWWx9gb*******"
     access_key_secret: "MiKCkLCx9qZzxc*****"
     endpoint: "oss-cn-beijing.aliyuncs.com"
