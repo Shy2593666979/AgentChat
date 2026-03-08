@@ -31,7 +31,7 @@
 
 ---
 
-## 最新版本更新日志 (2026-3-9)
+## 最新版本更新日志 (2026-3-8)
 
 ### 1. 支持MiniO本地对象存储
 现在支持OSS和MiniO两种对象存储方式，参考文档: [本地安装MiniO](docs/development/install_minio_win.md)，感谢提供Issue的朋友:
@@ -54,7 +54,7 @@
 现已支持通过创建 Skill 绑定到智能体渐进式加载 Prompt 去教模型如何做事，感谢提供Issue朋友：
 - 👤 [@opaquezxd](https://github.com/opaquezxd)
 
-### 5.优化页面央视
+### 5.优化页面样式
 前版本中系统设置为空白，现在已经去除，感谢提供Issue朋友：
 - 👤[@wxliu07](https://github.com/wxliu07)
 
