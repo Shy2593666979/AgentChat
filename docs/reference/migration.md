@@ -706,9 +706,9 @@ result = agent.invoke({
 - [LangChain Discord 社区](https://discord.gg/langchain)
 
 ### AgentChat 相关
-- [AgentChat 技术文档](./agentchat.md)
-- [API 文档](./api.md)
-- [核心功能文档](./core.md)
+- [AgentChat 技术文档](agentchat.md)
+- [API 文档](api.md)
+- [核心功能文档](core.md)
 
 ---
 
