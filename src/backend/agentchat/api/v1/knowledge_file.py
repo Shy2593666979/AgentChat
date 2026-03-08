@@ -2,7 +2,7 @@ import os
 from urllib.parse import urlparse
 from fastapi import FastAPI, APIRouter, Body, Depends, Query
 
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 from agentchat.api.services.knowledge_file import KnowledgeFileService
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.user import get_login_user, UserPayload
@@ -25,7 +25,7 @@ async def upload_file(
         # 根据URL解析出对应的object name
         parsed = urlparse(file_url)
         object_key = parsed.path.lstrip('/')
-        aliyun_oss.download_file(object_key, local_file_path)
+        storage_client.download_file(object_key, local_file_path)
         # 获得文件的字节数
         file_size_bytes = os.path.getsize(local_file_path)
 

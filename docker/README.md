@@ -33,10 +33,10 @@ vim src/backend/agentchat/config.yaml
 cd docker
 
 # 2️⃣ 设置执行权限
-chmod +x start.sh stop.sh
+chmod +x start_linux.sh 
 
 # 3️⃣ 启动所有服务
-./start.sh
+./start_linux.sh
 ```
 
 ### 🌐 访问地址
@@ -61,12 +61,12 @@ chmod +x start.sh stop.sh
 
 ```bash
 # 编辑配置文件（必须在启动前完成）
-vim ../src/backend/agentchat/config.yaml
+vim docker_config.yaml
 ```
 
 ### 🤖 必要配置项
 
-打开 `src/backend/agentchat/config.yaml` 并修改以下配置：
+打开 `docker_config.yaml` 并修改以下配置：
 
 #### 1️⃣ 数据库配置（必填）
 
@@ -128,7 +128,7 @@ aliyun_oss:
 
 1. **数据库主机名**：使用 `mysql` 而不是 `localhost`
 2. **Redis 主机名**：使用 `redis` 而不是 `localhost`
-3. **服务端口**：保持 `config.yaml` 中的端口配置为 `7860`
+3. **服务端口**：保持 `docker_config.yaml` 中的端口配置为 `7860`
 4. **API 密钥**：填写真实有效的 API 密钥
 
 ---
@@ -149,12 +149,13 @@ graph TB
 
 ### 📦 服务详情
 
-| 🏷️ **服务名** | 🐳 **镜像** | 📝 **说明** |
-|:---:|:---|:---|
-| **frontend** | node:18-alpine | Vue3 + Vite 开发服务器 |
-| **backend** | python:3.12-slim | FastAPI + uvicorn 应用 |
-| **mysql** | mysql:8.0 | 主数据库 |
-| **redis** | redis:7.0-alpine | 缓存和会话存储 |
+| 🏷️ **服务名**  | 🐳 **镜像** | 📝 **说明**            |
+|:------------:|:---|:---------------------|
+| **frontend** | node:18-alpine | Vue3 + Vite 开发服务器    |
+| **backend**  | python:3.12-slim | FastAPI + uvicorn 应用 |
+|  **mysql**   | mysql:8.0 | 主数据库                 |
+|  **redis**   | redis:7.0-alpine | 缓存和会话存储              |
+|  **minio**   | minio:RELEASE.2023-03-20T20-16-18Z | 对象存储                 |
 
 ---
 
@@ -283,20 +284,6 @@ docker-compose restart backend
 
 </details>
 
-### 🧹 清理和重置
-
-```bash
-# 完全清理（包括数据）
-./stop.sh  # 选择删除数据
-
-# 仅清理容器和镜像
-docker-compose down --rmi all
-docker system prune -a
-
-# 重新开始
-./start.sh
-```
-
 ---
 
 ## 📈 性能优化
@@ -320,12 +307,6 @@ services:
     command: npm run dev -- --host 0.0.0.0 --port 8090
 ```
 
-### 🏭 生产环境配置
-
-```bash
-# 使用生产配置
-docker-compose -f docker-compose.yml -f docker-compose.prod.yml up -d
-```
 
 ### 📊 监控和指标
 

@@ -3,7 +3,7 @@ import tempfile
 from pdf2docx import Converter
 from langchain.tools import tool
 
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 from agentchat.utils.file_utils import get_object_name_from_aliyun_url, get_save_tempfile
 from agentchat.utils.helpers import get_now_beijing_time
 
@@ -26,7 +26,7 @@ def _convert_to_docx(file_url: str):
     object_name = get_object_name_from_aliyun_url(file_url)
     file_name = file_url.split("/")[-1]
     file_path = get_save_tempfile(file_name)
-    aliyun_oss.download_file(object_name, file_path)
+    storage_client.download_file(object_name, file_path)
 
 
     if not os.path.isfile(file_path):
@@ -58,9 +58,9 @@ def _convert_to_docx(file_url: str):
 
     oss_object_name = f"convert_docx/{os.path.splitext(file_name)[0]}.docx"
 
-    aliyun_oss.upload_local_file(oss_object_name, local_file_path)
+    storage_client.upload_local_file(oss_object_name, local_file_path)
 
-    url = aliyun_oss.sign_url_for_get(oss_object_name)
+    url = storage_client.sign_url_for_get(oss_object_name)
     now_time = get_now_beijing_time(delta=1)
 
     return f'您的{os.path.basename(file_path)}文件转换成功，[点击下载文件]({url})，请在{now_time} 前进行下载，超过时间就会失效~~~'

@@ -199,9 +199,9 @@ watch(
                 <el-dropdown-item command="profile" :icon="User">
                   个人资料
                 </el-dropdown-item>
-                <el-dropdown-item command="settings" :icon="Setting">
-                  系统设置
-                </el-dropdown-item>
+<!--                <el-dropdown-item command="settings" :icon="Setting">-->
+<!--                  系统设置-->
+<!--                </el-dropdown-item>-->
                 <el-dropdown-item divided command="logout" :icon="SwitchButton">
                   退出登录
                 </el-dropdown-item>

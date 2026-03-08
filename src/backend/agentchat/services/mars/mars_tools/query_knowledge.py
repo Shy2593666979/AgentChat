@@ -10,7 +10,7 @@ from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.knowledge_file import KnowledgeFileService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.mars import Mars_Generate_Query_Prompt
-from agentchat.services.rag_handler import RagHandler
+from agentchat.services.rag.handler import RagHandler
 
 @tool(parse_docstring=True)
 async def query_knowledge(query: str, user_id: Optional[str] = None):

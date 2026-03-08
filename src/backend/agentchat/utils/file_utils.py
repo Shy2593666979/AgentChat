@@ -27,7 +27,7 @@ def load_file_to_obj(filepath):
         logging.error(f"Error loading scene prompts: {e}")
         return {}
 
-def get_aliyun_oss_base_path(file_name):
+def get_object_storage_base_path(file_name):
     beijing_time = get_beijing_date_str()
     file_type = get_file_type(file_name)
 
@@ -35,7 +35,7 @@ def get_aliyun_oss_base_path(file_name):
     new_file_name = reset_file_name(file_name)
 
     # 2024-10-26/png/企业文档_a12xk25jn34kn5.png
-    return f"{beijing_time}/{file_type}/{new_file_name}"
+    return f"files/{beijing_time}/{file_type}/{new_file_name}"
 
 def get_file_type(file_name):
     return file_name.split(".")[-1]

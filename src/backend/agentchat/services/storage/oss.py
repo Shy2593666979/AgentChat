@@ -2,13 +2,17 @@ import oss2
 from loguru import logger
 from agentchat.settings import app_settings
 
-class AliyunOSSClient:
+class OSSClient:
     def __init__(self):
         auth = oss2.Auth(
-            access_key_id=app_settings.aliyun_oss["access_key_id"],
-            access_key_secret=app_settings.aliyun_oss["access_key_secret"]
+            access_key_id=app_settings.storage.oss.access_key_id,
+            access_key_secret=app_settings.storage.oss.access_key_secret
         )
-        self.bucket = oss2.Bucket(auth, app_settings.aliyun_oss["endpoint"], app_settings.aliyun_oss["bucket_name"])
+        self.bucket = oss2.Bucket(
+            auth=auth,
+            endpoint=app_settings.storage.oss.endpoint,
+            bucket_name=app_settings.storage.oss.bucket_name
+        )
 
     def upload_file(self, object_name, data):
         try:
@@ -70,8 +74,4 @@ class AliyunOSSClient:
             return []
 
 
-aliyun_oss = AliyunOSSClient()
 
-
-if __name__ == "__main__":
-    aliyun_oss.list_files_in_folder("icons/user/")

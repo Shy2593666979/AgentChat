@@ -8,10 +8,10 @@ from urllib.parse import urljoin
 from loguru import logger
 
 from agentchat.settings import app_settings
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 from agentchat.services.rag.doc_parser.markdown import markdown_parser
 from agentchat.services.rewrite.markdown_rewrite import markdown_rewriter
-from agentchat.utils.file_utils import get_aliyun_oss_base_path, get_convert_markdown_images_dir, \
+from agentchat.utils.file_utils import get_object_storage_base_path, get_convert_markdown_images_dir, \
     generate_unique_filename
 
 
@@ -51,11 +51,11 @@ class PDFParser:
     async def upload_file_to_oss(self, file_path):
         async with aiofiles.open(file_path, "rb") as file:
             file_content = await file.read()
-            oss_object_name = get_aliyun_oss_base_path(os.path.basename(file_path))
-            sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_object_name)
+            oss_object_name = get_object_storage_base_path(os.path.basename(file_path))
+            sign_url = urljoin(app_settings.storage.active.base_url, oss_object_name)
 
-            aliyun_oss.sign_url_for_get(sign_url)
-            aliyun_oss.upload_file(oss_object_name, file_content)
+            storage_client.sign_url_for_get(sign_url)
+            storage_client.upload_file(oss_object_name, file_content)
             return sign_url
 
     async def upload_folder_to_oss(self, file_dir):

@@ -2,17 +2,17 @@ import copy
 import time
 import asyncio
 from loguru import logger
-from typing import List, Dict, Any
+from typing import List, Any
 from pydantic import BaseModel
 from langgraph.types import Command
 from langgraph.prebuilt.tool_node import ToolCallRequest
-from langchain.agents import AgentState, create_agent
+from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_tool_call, ToolCallLimitMiddleware
 from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, AIMessageChunk
 
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.core.callbacks import usage_metadata_callback
-from agentchat.services.rag_handler import RagHandler
+from agentchat.services.rag.handler import RagHandler
 from agentchat.tools import WeChatTools
 from agentchat.schema.usage_stats import UsageStatsAgentType
 from agentchat.schema.workspace import WorkSpaceAgents

@@ -182,7 +182,7 @@ const goToLogin = () => {
 
         <!-- 底部版本信息 -->
         <div class="footer">
-          <div class="version-badge" title="AgentChat 版本">v2.3.0</div>
+          <div class="version-badge" title="AgentChat 版本">v2.4.0</div>
           <div class="footer-icons">
             <a href="https://github.com/Shy2593666979/AgentChat" target="_blank" class="icon-link" title="GitHub">
               <img src="../../assets/github.png" alt="GitHub" class="icon-img" />
@@ -269,6 +269,7 @@ const goToLogin = () => {
 }
 
 .right-section {
+  overflow: hidden;  // 加上这一行
   width: 450px;
   background: white;
   display: flex;
@@ -278,11 +279,11 @@ const goToLogin = () => {
 
   .register-form-container {
     width: 320px;
-    padding: 40px 0;
+    padding: 20px 0;
 
     .header {
       text-align: center;
-      margin-bottom: 40px;
+      margin-bottom: 24px;
 
       .logo {
         margin-bottom: 16px;
@@ -313,7 +314,7 @@ const goToLogin = () => {
 
     .register-form {
       .form-group {
-        margin-bottom: 20px;
+        margin-bottom: 14px;
 
         .form-label {
           display: block;
@@ -409,7 +410,7 @@ const goToLogin = () => {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      margin-top: 36px;
+      margin-top: 20px;
       color: #667084;
       font-size: 13px;
       font-family: 'PingFang SC', 'Helvetica Neue', 'Arial', sans-serif;

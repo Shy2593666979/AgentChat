@@ -7,7 +7,7 @@ from fastapi_jwt_auth import AuthJWT
 from fastapi import Request, Depends, HTTPException
 
 
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 from agentchat.services.redis import redis_client
 from agentchat.database.dao.user_role import UserRoleDao
 from agentchat.database.models.role import AdminRole
@@ -77,24 +77,26 @@ class UserService:
             user_name=req_data.user_name,
             user_password=cls.decrypt_md5_password(req_data.password),
         )
-        user = UserDao.add_user_and_default_role(user_name=user.user_name,
-                                                 user_password=user.user_password)
+        user = UserDao.add_user_and_default_role(
+            user_name=user.user_name,
+            user_password=user.user_password
+        )
         return user
 
     @classmethod
     def get_random_user_avatar(cls):
-        files_url = aliyun_oss.list_files_in_folder("icons/user")
+        files_url = storage_client.list_files_in_folder("icons/user")
         avatars_url = []
         for file_url in files_url:
-            avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
+            avatars_url.append(f"{app_settings.storage.active.base_url}/{file_url}")
         return random.choice(avatars_url) if avatars_url else ""
 
     @classmethod
     def get_available_avatars(cls):
-        files_url = aliyun_oss.list_files_in_folder("icons/user")
+        files_url = storage_client.list_files_in_folder("icons/user")
         avatars_url = []
         for file_url in files_url:
-            avatars_url.append(f"{app_settings.aliyun_oss['base_url']}/{file_url}")
+            avatars_url.append(f"{app_settings.storage.active.base_url}/{file_url}")
         return avatars_url
 
     @classmethod

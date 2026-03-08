@@ -9,12 +9,11 @@ from html2image import Html2Image
 from langchain.tools import tool
 from langgraph.config import get_stream_writer
 from agentchat.core.models.manager import ModelManager
-from agentchat.services.aliyun_oss import aliyun_oss
+from agentchat.services.storage import storage_client
 from agentchat.services.mars.ai_news.detial_news import yield_crawl_detail_ai_news
 from agentchat.services.mars.ai_news.prompt import GENERATE_JSON_NEWS, FIX_JSON_PROMPT
+from agentchat.utils.file_utils import get_object_storage_base_path, get_save_tempfile
 from agentchat.settings import app_settings
-from agentchat.utils.file_utils import get_aliyun_oss_base_path, get_save_tempfile
-
 
 
 @tool(parse_docstring=True)
@@ -58,11 +57,11 @@ async def crawl_ai_news(
         try:
             file_name = f"AI日报-{datetime.today().date()}.md"
 
-            oss_object_name = get_aliyun_oss_base_path(file_name)
-            sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_object_name)
+            oss_object_name = get_object_storage_base_path(file_name)
+            sign_url = urljoin(app_settings.storage.active.base_url, oss_object_name)
 
-            aliyun_oss.sign_url_for_get(sign_url)
-            aliyun_oss.upload_file(oss_object_name, news_response)
+            storage_client.sign_url_for_get(sign_url)
+            storage_client.upload_file(oss_object_name, news_response)
 
             writer({
                 "type": "tool_chunk",
@@ -110,11 +109,11 @@ async def crawl_ai_news(
         with open(png_save_name, 'rb') as file:
             png_file_content = file.read()
 
-        oss_object_name = get_aliyun_oss_base_path(png_save_name)
-        sign_url = urljoin(app_settings.aliyun_oss["base_url"], oss_object_name)
+        oss_object_name = get_object_storage_base_path(png_save_name)
+        sign_url = urljoin(app_settings.storage.active.base_url, oss_object_name)
 
-        aliyun_oss.sign_url_for_get(sign_url)
-        aliyun_oss.upload_file(oss_object_name, png_file_content)
+        storage_client.sign_url_for_get(sign_url)
+        storage_client.upload_file(oss_object_name, png_file_content)
         # 在本地进行删除
         os.remove(png_save_name)
 

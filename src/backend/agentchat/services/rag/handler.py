@@ -1,6 +1,6 @@
 from loguru import logger
 from typing import Optional
-from agentchat.services.retrieval import MixRetrival
+from agentchat.services.rag.retrieval import MixRetrival
 from agentchat.services.rewrite.query_write import query_rewriter
 from agentchat.services.rag.es_client import client as es_client
 from agentchat.services.rag.vector_db import milvus_client
