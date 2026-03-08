@@ -16,8 +16,8 @@ services:
       MYSQL_USER: agentchat_user
       MYSQL_PASSWORD: 123456
       TZ: Asia/Shanghai
-    ports:
-      - "3306:3306"
+#    ports:
+#      - "3306:3306"  # 如果本机已经开放MySQL的端口号，就会docker的MySQL导致启动失败，直接注释即可， 下面redis 同理
     volumes:
       - mysql_data:/var/lib/mysql
       - ./mysql/init:/docker-entrypoint-initdb.d
@@ -86,7 +86,7 @@ services:
       - "8090:8090"
     environment:
       NODE_ENV: development
-      VITE_API_BASE_URL: http://localhost:7860
+      VITE_API_BASE_URL: http://agentchat-backend:7860
       TZ: Asia/Shanghai
 #    volumes:
 #      - ../src/frontend:/app:cached
@@ -105,16 +105,20 @@ services:
     container_name: agentchat-minio
     image: minio/minio:RELEASE.2023-03-20T20-16-18Z
     environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
       MINIO_ACCESS_KEY: minioadmin
       MINIO_SECRET_KEY: minioadmin
     ports:
-      - "9100:9000"
-      - "9101:9001"
+      - "9000:9000"
+      - "9001:9001"
     volumes:
       - /etc/localtime:/etc/localtime:ro
-      - ${DOCKER_VOLUME_DIRECTORY:-.}/data/milvus-minio:/minio_data
+      - ${DOCKER_VOLUME_DIRECTORY:-.}/data/minio_data:/minio_data
     command: minio server /minio_data --console-address ":9001"
     restart: on-failure
+    networks:
+      - agentchat-network
     healthcheck:
       test: [ "CMD", "curl", "-f", "http://localhost:9000/minio/health/live" ]
       interval: 30s
