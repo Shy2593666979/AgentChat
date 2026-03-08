@@ -46,6 +46,7 @@ setx MINIO_ROOT_PASSWORD=admin123
 
 ## 二、修改Bucket权限
 
+### 新版本（2025.6后）
 现在算是将MiniO正常的部署到本机了，下面只需一步就大功告成，就是将agentchat的bucket权限全部放出来
 
 打开浏览器（需要保证minio 服务是启动中）
@@ -53,12 +54,18 @@ setx MINIO_ROOT_PASSWORD=admin123
 http://127.0.0.1:9001/console/buckets/agentchat/admin/prefix
 ```
 
-访问这个网页创建访问权限
+新版本访问这个网页创建访问权限
 <img width="1280" height="575" alt="image" src="https://github.com/user-attachments/assets/e623dc86-d4b2-4d03-881e-8e7d852fabba" />
 
 `/代表的是当前bucket下的全部文件`
 
 readwrite相当于是开放读写权限
+
+### 老版本
+
+老版本创建访问权限（docker部署的是老版本的minio）
+<img width="1920" height="910" alt="170e76f735c75ea9a90807f7d60703f1" src="https://github.com/user-attachments/assets/4ec320f9-6cb6-465b-854c-456633a57b91" />
+
 
 ## 总结
 这就是整体的一个Windows下部署minio的过程了，如果使用docker 进行启动服务的话，不需要担心license的问题，因为使用的是老版本，不需要license即可使用更多的功能
