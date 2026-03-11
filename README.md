@@ -24,7 +24,8 @@
   <a href="https://shy2593666979.github.io/agentchat-docs/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8.html">🚀 快速开始</a> •
   <a href="https://shy2593666979.github.io/agentchat-docs/%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA.html">📦 部署</a> •
   <a href="https://shy2593666979.github.io/agentchat-docs/">📖 在线文档</a> •
-  <a href="https://agentchat.cloud">💻 在线体验</a>
+  <a href="https://agentchat.cloud">💻 在线体验</a> •
+  <a href="https://github.com/Shy2593666979/agentchat-docs/blob/main/images/README.md">💬 微信群聊</a>
 </p>
 
 </div>
