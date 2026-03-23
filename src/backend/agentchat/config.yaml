@@ -120,6 +120,14 @@ storage:
     bucket_name: "agentchat" # minio 存储桶名称
     base_url: "http://127.0.0.1:9000/agentchat" # 访问基础 URL
 
+# 默认配置 (如图标 URL, 资源链接)
+default_config:
+  mcp_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
+  tool_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/default.png" # 工具默认图标 URL
+  agent_logo_url: "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/bot.png" # Agent 默认图标 URL
+  mars_daily_url: "https://news.aibase.com/zh/news" # 外部新闻链接
+  memory_collection_name: "memory" # 记忆存储的集合名称
+
 # 扩展功能：微信配置 (不添加也可正常运行)
 wechat_config:
   token: "LiangTian"
