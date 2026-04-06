@@ -30,7 +30,7 @@ class OpenAPIToolAdapter:
     def _extract_base_url(self) -> str:
         servers = self.schema.get("servers")
         if not servers:
-            raise ValueError("OpenAPI schema missing 'servers'")
+            raise ValueError("OpenAPI schemas missing 'servers'")
 
         server = servers[0]
         url = server["url"]
@@ -109,7 +109,7 @@ class OpenAPIToolAdapter:
             if not name:
                 continue
 
-            schema = param.get("schema", {"type": "string"})
+            schema = param.get("schemas", {"type": "string"})
             cleaned = self._clean_schema(schema)
 
             # 添加描述，增强模型理解
@@ -125,7 +125,7 @@ class OpenAPIToolAdapter:
         body = spec.get("requestBody", {})
         content = body.get("content", {})
 
-        json_schema = content.get("application/json", {}).get("schema")
+        json_schema = content.get("application/json", {}).get("schemas")
 
         if json_schema:
             cleaned = self._clean_schema(json_schema)
@@ -148,7 +148,7 @@ class OpenAPIToolAdapter:
 
     def _clean_schema(self, schema: Dict[str, Any]) -> Dict[str, Any]:
         """
-        清洗 OpenAPI schema → 标准 JSON Schema（OpenAI 兼容）
+        清洗 OpenAPI schemas → 标准 JSON Schema（OpenAI 兼容）
         """
         if not isinstance(schema, dict):
             return {"type": "string"}
@@ -273,12 +273,12 @@ class OpenAPIToolAdapter:
     @staticmethod
     def validate_openapi_schema(openapi_schema):
         """
-        验证 OpenAPI schema 是否满足工具生成要求。
+        验证 OpenAPI schemas 是否满足工具生成要求。
         不通过将抛出 ValueError。
         """
 
         if not isinstance(openapi_schema, dict):
-            raise ValueError("OpenAPI schema must be a dictionary")
+            raise ValueError("OpenAPI schemas must be a dictionary")
 
         version = openapi_schema.get("openapi")
         if not version:
@@ -290,7 +290,7 @@ class OpenAPIToolAdapter:
         # 检查 servers
         servers = openapi_schema.get("servers")
         if not servers or not isinstance(servers, list):
-            raise ValueError("OpenAPI schema must contain at least one server")
+            raise ValueError("OpenAPI schemas must contain at least one server")
 
         if "url" not in servers[0]:
             raise ValueError("Server entry missing 'url'")
@@ -298,7 +298,7 @@ class OpenAPIToolAdapter:
         # 检查 paths
         paths = openapi_schema.get("paths")
         if not paths:
-            raise ValueError("OpenAPI schema missing 'paths'")
+            raise ValueError("OpenAPI schemas missing 'paths'")
 
         operation_ids = set()
 

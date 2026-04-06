@@ -6,7 +6,6 @@ from base64 import b64decode
 from fastapi_jwt_auth import AuthJWT
 from fastapi import Request, Depends, HTTPException
 
-
 from agentchat.services.storage import storage_client
 from agentchat.services.redis import redis_client
 from agentchat.database.dao.user_role import UserRoleDao
@@ -17,7 +16,7 @@ from agentchat.utils.hash import md5_hash
 from agentchat.database.models.user import UserTable
 from agentchat.database.dao.user import UserDao
 from agentchat.utils.constants import RSA_KEY
-from agentchat.schema.schemas import CreateUserReq
+from agentchat.schemas.user import CreateUserReq
 from agentchat.utils.JWT import ACCESS_TOKEN_EXPIRE_TIME
 
 class UserPayload:

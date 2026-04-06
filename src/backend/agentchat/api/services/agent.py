@@ -2,7 +2,7 @@ from agentchat.database import AgentTable
 from agentchat.database.dao.agent import AgentDao
 from agentchat.database.dao.dialog import DialogDao
 from agentchat.database.models.user import AdminUser, SystemUser
-from agentchat.schema.agent import AgentCreateReq
+from agentchat.schemas.agent import AgentCreateReq
 
 
 class AgentService:

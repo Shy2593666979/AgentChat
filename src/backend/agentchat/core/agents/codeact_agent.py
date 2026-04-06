@@ -167,7 +167,7 @@ execute()
             prompt: Optional custom system prompt. If None, uses default prompt.
                 To customize default prompt you can use `create_default_prompt` helper:
                 `create_default_prompt(tools, "You are a helpful assistant.")`
-            state_schema: The state schema to use for the agent.
+            state_schema: The state schemas to use for the agent.
 
         Returns:
             A StateGraph implementing the CodeAct architecture

@@ -17,7 +17,7 @@ _EMPTY_SCHEMA = {
 def ensure_strict_json_schema(
     schema: dict[str, Any],
 ) -> dict[str, Any]:
-    """Mutates the given JSON schema to ensure it conforms to the `strict` standard
+    """Mutates the given JSON schemas to ensure it conforms to the `strict` standard
     that the OpenAI API expects.
     """
     if schema == {}:
@@ -58,7 +58,7 @@ def _ensure_strict_json_schema(
             "additionalProperties should not be set for object types. This could be because "
             "you're using an older version of Pydantic, or because you configured additional "
             "properties to be allowed. If you really need this, update the function or output tool "
-            "to not use a strict schema."
+            "to not use a strict schemas."
         )
 
     # object types
@@ -100,7 +100,7 @@ def _ensure_strict_json_schema(
             ]
 
     # strip `None` defaults as there's no meaningful distinction here
-    # the schema will still be `nullable` and the model will default
+    # the schemas will still be `nullable` and the model will default
     # to using `None` anyway
     if json_schema.get("default", NOT_GIVEN) is None:
         json_schema.pop("default")
@@ -120,11 +120,11 @@ def _ensure_strict_json_schema(
                 f"Expected `$ref: {ref}` to resolved to a dictionary but got {resolved}"
             )
 
-        # properties from the json schema take priority over the ones on the `$ref`
+        # properties from the json schemas take priority over the ones on the `$ref`
         json_schema.update({**resolved, **json_schema})
         json_schema.pop("$ref")
-        # Since the schema expanded from `$ref` might not have `additionalProperties: false` applied
-        # we call `_ensure_strict_json_schema` again to fix the inlined schema and ensure it's valid
+        # Since the schemas expanded from `$ref` might not have `additionalProperties: false` applied
+        # we call `_ensure_strict_json_schema` again to fix the inlined schemas and ensure it's valid
         return _ensure_strict_json_schema(json_schema, path=path, root=root)
 
     return json_schema

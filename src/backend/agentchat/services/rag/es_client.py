@@ -3,8 +3,8 @@ from typing import List
 from elasticsearch import Elasticsearch
 
 from agentchat.config.es_index import ESIndex
-from agentchat.schema.chunk import ChunkModel
-from agentchat.schema.search import SearchModel
+from agentchat.schemas.chunk import ChunkModel
+from agentchat.schemas.search import SearchModel
 from agentchat.settings import app_settings
 from loguru import logger
 
@@ -102,8 +102,8 @@ client = ESClient()
 # import json
 # from typing import List
 # from elasticsearch import AsyncElasticsearch
-# from agentchat.schema.chunk import ChunkModel
-# from agentchat.schema.search import SearchModel
+# from agentchat.schemas.chunk import ChunkModel
+# from agentchat.schemas.search import SearchModel
 # from agentchat.settings import app_settings
 # from loguru import logger
 #

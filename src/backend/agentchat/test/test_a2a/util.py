@@ -36,9 +36,9 @@ def function_to_args_schema(func) -> dict:
             param_type = type_map.get(param.annotation, "string")
         except KeyError as e:
             raise KeyError(
-                f"Unknown schema annotation {param.annotation} for parameter {param.name}: {str(e)}"
+                f"Unknown schemas annotation {param.annotation} for parameter {param.name}: {str(e)}"
             )
-        parameters[param.name] = {"schema": param_type}
+        parameters[param.name] = {"schemas": param_type}
 
     required = [
         param.name

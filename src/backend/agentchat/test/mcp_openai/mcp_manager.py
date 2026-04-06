@@ -5,9 +5,9 @@ from anthropic import Anthropic, AsyncAnthropic
 from mcp.types import CallToolResult
 from openai import OpenAI, AsyncOpenAI
 from agentchat.core.models.anthropic import DeepAsyncAnthropic, DeepAnthropic
-from agentchat.services.mcp_openai.mcp_client import MCPClient
-from agentchat.services.mcp_openai.mcp_util import MCPUtil
-from agentchat.services.mcp_openai.schema import FunctionTool
+from agentchat.test.mcp_openai.mcp_client import MCPClient
+from agentchat.test.mcp_openai.mcp_util import MCPUtil
+from agentchat.test.mcp_openai.schema import FunctionTool
 
 
 class MCPManager:

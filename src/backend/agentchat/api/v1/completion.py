@@ -11,7 +11,7 @@ from agentchat.api.services.history import HistoryService
 from agentchat.api.services.dialog import DialogService
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.completion import SYSTEM_PROMPT
-from agentchat.schema.completion import CompletionReq
+from agentchat.schemas.completion import CompletionReq
 from agentchat.services.memory.client import memory_client
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 from agentchat.utils.helpers import build_completion_system_prompt, build_completion_history_messages, build_completion_user_input

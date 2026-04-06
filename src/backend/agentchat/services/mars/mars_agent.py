@@ -14,7 +14,7 @@ from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, AIMessa
 from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.core.callbacks.usage_metadata import UsageMetadataCallbackHandler
 from agentchat.core.models.manager import ModelManager
-from agentchat.schema.usage_stats import UsageStatsAgentType
+from agentchat.schemas.usage_stats import UsageStatsAgentType
 from agentchat.services.mars.mars_tools import MarsTool
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
 

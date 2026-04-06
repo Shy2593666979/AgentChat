@@ -76,3 +76,10 @@ class StorageConfig(BaseModel):
     @property
     def active(self):
         return self.oss if self.mode == "oss" else self.minio
+
+class ServerConfig(BaseModel):
+    name: str = "AgentChat"
+    version: str = "2.5.0"
+    host: str = "127.0.0.1"
+    port: int = 7860
+    env: str = "dev"

@@ -708,6 +708,9 @@ const saveUserConfig = async () => {
         <h2>MCP Server管理</h2>
       </div>
       <div class="header-actions">
+        <el-button type="success" @click="$router.push('/mcp-server/chat')">
+          对话生成 MCP
+        </el-button>
         <el-button type="primary" :icon="Plus" @click="handleCreate">
           添加服务器
         </el-button>

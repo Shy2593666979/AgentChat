@@ -3,7 +3,7 @@ import json
 
 import aiohttp
 from agentchat.settings import app_settings, initialize_app_settings
-from agentchat.schema.rerank import RerankResultModel
+from agentchat.schemas.rerank import RerankResultModel
 
 
 class Reranker:

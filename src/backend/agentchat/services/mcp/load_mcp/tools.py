@@ -222,7 +222,7 @@ def to_fastmcp(tool: BaseTool) -> FastMCPTool:
     if not issubclass(tool.args_schema, BaseModel):
         msg = (
             "Tool args_schema must be a subclass of pydantic.BaseModel. "
-            "Tools with dict args schema are not supported."
+            "Tools with dict args schemas are not supported."
         )
         raise TypeError(msg)
 

@@ -219,7 +219,7 @@ Text2SQLGeneratePrompt = """
 你是一个 MySQL 专家。请根据以下数据库 Schema 编写 SQL 查询语句。
 
 [Schema 信息]
-{schema}
+{schemas}
 
 [规则]
 1. 仅输出 SQL 语句，不要包含任何解释或 Markdown 格式。

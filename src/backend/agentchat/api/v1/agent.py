@@ -4,8 +4,8 @@ from uuid import uuid4
 from fastapi import APIRouter, Form, UploadFile, File, Depends, Body
 
 from agentchat.api.services.agent import AgentService
-from agentchat.schema.agent import AgentCreateReq, AgentUpdateReq, AgentSearchReq, AgentDeleteReq
-from agentchat.schema.schemas import resp_200, resp_500, UnifiedResponseModel
+from agentchat.schemas.agent import AgentCreateReq, AgentUpdateReq, AgentSearchReq, AgentDeleteReq
+from agentchat.schemas.response import resp_200, resp_500, UnifiedResponseModel
 from agentchat.settings import app_settings
 from agentchat.api.services.user import UserPayload, get_login_user
 

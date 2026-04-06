@@ -2,7 +2,7 @@ from agentchat.core.agents.structured_response_agent import StructuredResponseAg
 from agentchat.database.dao.agent_skill import AgentSkillDao
 from agentchat.database.models.agent_skill import AgentSkill
 from agentchat.prompts.skill import AgentSkillAsToolPrompt
-from agentchat.schema.agent_skill import AgentSkillCreateReq, AgentSkillFile, AgentSkillFolder, AgentSkillResponseFormat
+from agentchat.schemas.agent_skill import AgentSkillCreateReq, AgentSkillFile, AgentSkillFolder, AgentSkillResponseFormat
 
 
 def default_agent_skill_folder(name, description):

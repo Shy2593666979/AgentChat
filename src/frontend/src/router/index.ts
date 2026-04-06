@@ -12,6 +12,7 @@ import { Register } from '../pages/login'
 import Agent from '../pages/agent'
 import AgentEditor from '../pages/agent/agent-editor.vue'
 import McpServer from '../pages/mcp-server'
+import McpChat from '../pages/mcp-server/mcp-chat.vue'
 import Knowledge from '../pages/knowledge'
 import KnowledgeFile from '../pages/knowledge/knowledge-file.vue'
 import Tool from '../pages/tool'
@@ -149,6 +150,14 @@ const routes: RouteRecordRaw[] = [
           current: 'mcp-server'
         },
         component: McpServer,
+      },
+      {
+        path: '/mcp-server/chat',
+        name: 'mcp-chat',
+        meta: {
+          current: 'mcp-server'
+        },
+        component: McpChat,
       },
       {
         path: '/knowledge',

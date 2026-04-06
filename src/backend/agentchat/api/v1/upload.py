@@ -3,7 +3,7 @@ from urllib.parse import urljoin
 from fastapi import APIRouter, Body, UploadFile, File, Depends
 
 from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
+from agentchat.schemas.response import UnifiedResponseModel, resp_200, resp_500
 from agentchat.services.storage import storage_client
 from agentchat.settings import app_settings
 from agentchat.utils.file_utils import get_object_storage_base_path

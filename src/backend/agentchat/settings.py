@@ -4,18 +4,18 @@ from loguru import logger
 from types import SimpleNamespace
 from pydantic.v1 import BaseSettings, Field
 
-from agentchat.schema.common import MultiModels, ModelConfig, Tools, Rag, StorageConfig
+from agentchat.schemas.common import MultiModels, ModelConfig, Tools, Rag, StorageConfig, ServerConfig
 
 
 class Settings(BaseSettings):
     redis: dict = {}
     mysql: dict = {}
-    server: dict = {}
     langfuse: dict = {}
     whitelist_paths: list = []
     wechat_config: dict = {}
     default_config: dict = {}
 
+    server: Optional[ServerConfig] = ServerConfig()
     rag: Optional[Rag] = None
     tools: Optional[Tools] = None
     storage: Optional[StorageConfig] = None
@@ -47,6 +47,9 @@ async def initialize_app_settings(file_path: str = None):
 
             if "storage" in data:
                 data["storage"] = StorageConfig(**data["storage"])
+
+            if "server" in data:
+                data["server"] = ServerConfig(**data["server"])
 
             for key, value in data.items():
                 setattr(app_settings, key, value)

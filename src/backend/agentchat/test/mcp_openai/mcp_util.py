@@ -3,11 +3,11 @@ import json
 import logging
 from typing import Any
 
-from agentchat.services.mcp_openai.mcp_client import MCPClient
-from agentchat.services.mcp_openai.schema import FunctionTool
+from agentchat.test.mcp_openai.mcp_client import MCPClient
+from agentchat.test.mcp_openai.schema import FunctionTool
 from mcp.types import Tool as MCPTool
 
-from agentchat.services.mcp_openai.strict_schema import ensure_strict_json_schema
+from agentchat.test.mcp_openai.strict_schema import ensure_strict_json_schema
 
 
 class MCPUtil:

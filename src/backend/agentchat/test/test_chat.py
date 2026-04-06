@@ -79,10 +79,10 @@ def llm_function_call(prompt, function: str):
 #     final_prompt = ''
 #     async for one_prompt in chat_llm(prompts):
 #         print(final_prompt)
-#         yield str(StreamData(event='message', data={'schema': 'prompts', 'message': one_prompt.content}))
+#         yield str(StreamData(event='message', data={'schemas': 'prompts', 'message': one_prompt.content}))
 #         final_prompt += one_prompt.content
 #
-#     yield str(StreamData(event='message', data={'schema': 'end', 'message': ""}))
+#     yield str(StreamData(event='message', data={'schemas': 'end', 'message': ""}))
 #
 #
 #
@@ -109,9 +109,9 @@ async def llm_chat(prompt):
     # 流式生成提示词
     final_prompt = ''
     async for one_prompt in chat_llm(prompt, user="你好啊"):
-        yield str({'schema': 'prompts', 'message': one_prompt.content})
+        yield str({'schemas': 'prompts', 'message': one_prompt.content})
         final_prompt += one_prompt.content
-    yield str({'schema': 'end', 'message': ""})
+    yield str({'schemas': 'end', 'message': ""})
     yield str(final_prompt)
 
 async def chat_llm(prompt, **kwargs):

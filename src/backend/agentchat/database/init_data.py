@@ -11,7 +11,7 @@ from agentchat.api.services.mcp_server import MCPService
 from agentchat.database.dao.agent import AgentDao
 from agentchat.database.models.user import AdminUser
 from agentchat.prompts.mcp import McpAsToolPrompt
-from agentchat.schema.mcp import MCPResponseFormat
+from agentchat.schemas.mcp import MCPResponseFormat
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.services.storage import storage_client
 from agentchat.settings import app_settings

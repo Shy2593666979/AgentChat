@@ -4,7 +4,7 @@ from typing import List, Dict, Any
 
 from langchain_core.tools import BaseTool
 from agentchat.services.mcp.multi_client import MultiServerMCPClient
-from agentchat.schema.mcp import MCPBaseConfig
+from agentchat.schemas.mcp import MCPBaseConfig
 
 logger = logging.getLogger(__name__)
 

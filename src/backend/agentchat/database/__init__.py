@@ -20,6 +20,9 @@ from agentchat.database.models.role import Role
 from agentchat.database.models.workspace_session import WorkSpaceSession
 from agentchat.database.models.usage_stats import UsageStats
 from agentchat.database.models.agent_skill import AgentSkill
+from agentchat.database.models.register_mcp import RegisterMcpServer
+from agentchat.database.models.register_task import RegisterMcpTask
+from agentchat.database.models.register_mcp_tool import RegisterMcpTool
 from agentchat.settings import app_settings
 
 

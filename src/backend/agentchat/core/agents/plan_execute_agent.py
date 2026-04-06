@@ -9,7 +9,7 @@ from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.completion import FIX_JSON_PROMPT, PLAN_CALL_TOOL_PROMPT, SINGLE_PLAN_CALL_PROMPT
-from agentchat.schema.completion import PlanToolFlow
+from agentchat.schemas.completion import PlanToolFlow
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.utils.convert import convert_mcp_config

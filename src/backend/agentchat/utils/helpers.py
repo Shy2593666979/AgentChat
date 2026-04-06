@@ -257,7 +257,7 @@ def get_raw_slot(parameters):
     # 创建新的JSON对象
     output_data = []
     for item in parameters:
-        new_item = {"name": item["name"], "desc": item["desc"], "schema": item["schema"], "value": ""}
+        new_item = {"name": item["name"], "desc": item["desc"], "schemas": item["schemas"], "value": ""}
         output_data.append(new_item)
     return output_data
 
@@ -433,4 +433,4 @@ def get_function_by_name_type(function_name: str, type: str="openai"):
     for data in parameter:
         para = json.loads(data.parameter)
         return para
-    logger.info(f"get function by name schema appear no data")
+    logger.info(f"get function by name schemas appear no data")
