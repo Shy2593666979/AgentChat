@@ -1,11 +1,18 @@
+import pytz
+import json
 from datetime import datetime, timedelta
 from typing import Dict, Any
 
-import pytz
-
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
+from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.database.dao.mcp_server import MCPServerDao
 from agentchat.database.models.user import AdminUser, SystemUser
+from agentchat.prompts.mcp import McpAsToolPrompt
+from agentchat.schemas.mcp import MCPResponseFormat
+from agentchat.services.mcp.manager import MCPManager
+from agentchat.utils.convert import convert_mcp_config
+from agentchat.api.services.user import UserService
+from agentchat.settings import app_settings
 
 
 class MCPService:
@@ -176,3 +183,43 @@ class MCPService:
             # headers 可选
             if "headers" in server_conf and not isinstance(server_conf["headers"], dict):
                 raise ValueError(f"mcpServer `{server_name}` 的 headers 必须是对象 (dict)")
+
+    @classmethod
+    async def register_and_import_mcp_server(cls, server_info, user_id):
+        server_name = server_info.get("server_name", "MCP-Server") #
+        server_type = server_info.get("type", "sse")
+        server_headers = server_info.get("headers")
+        server_url = server_info.get("url")
+
+        mcp_manager = MCPManager(
+            [convert_mcp_config(server_info)]
+        )
+        tools_params = await mcp_manager.show_mcp_tools()
+        tools_name_str = []
+        for key, tools in tools_params.items():
+            for tool in tools:
+                tools_name_str.append(tool["name"])
+
+        # 每次更新配置需要修改Mcp As Tool的信息
+        structured_agent = StructuredResponseAgent(MCPResponseFormat)
+        structured_response = structured_agent.get_structured_response(
+            McpAsToolPrompt.format(
+                tools_info=json.dumps(tools_params, indent=4)
+            )
+        )
+        user_name = UserService.get_user_info_by_id(user_id).get("user_name")
+
+        await MCPService.create_mcp_server(
+            tools=tools_name_str,
+            url=server_url,
+            config={},
+            type=server_type,
+            user_id=user_id,
+            server_name=server_name,
+            config_enabled=False,
+            logo_url=app_settings.default_config.get("mcp_logo_url", ""),
+            params=tools_params.get(server_name),
+            user_name=user_name,
+            description=structured_response.description,
+            mcp_as_tool_name=structured_response.mcp_as_tool_name,
+        )

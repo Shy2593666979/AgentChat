@@ -1,7 +1,7 @@
 import asyncio
 
 from agentchat.api.services.history import HistoryService
-from agentchat.api.services.mcp_stdio_server import MCPServerService
+from agentchat.test.mcp_stdio_server import MCPServerService
 from agentchat.test.mcp_openai.mcp_manager import MCPManager
 from agentchat.core.models.anthropic import DeepAsyncAnthropic
 from agentchat.api.services.llm import LLMService
