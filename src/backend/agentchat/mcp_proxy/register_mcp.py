@@ -9,6 +9,7 @@ from loguru import logger
 from typing import Any
 from cachetools import TTLCache
 
+from agentchat.api.services.mcp_server import MCPService
 from agentchat.schemas.register_mcp import RegisterMcpRequest, RegisterMcpResponse, RegisterMcpServerModel
 from agentchat.mcp_proxy.schema_converter import tool_to_mcp_schema, _parse_openapi_schema
 from agentchat.mcp_proxy.execute_tool import RegisterMcpToolExecute
@@ -143,6 +144,15 @@ class RegisterMcpService:
             )
 
         await RegisterMcpDao.save_mcp_with_tools(mcp_server, mcp_tools)
+
+        await MCPService.register_and_import_mcp_server(
+            server_info={
+                "url": remote_url,
+                "server_name": server.name,
+                "type": server.transport
+            },
+            user_id=user_id
+        )
         return RegisterMcpResponse(mcp_id=register_mcp_id, remote_url=remote_url, name=server.name, tool_count=len(mcp_tools))
 
 
@@ -168,7 +178,13 @@ class RegisterMcpService:
     @classmethod
     def _generate_remote_url(cls, mcp_id, transport):
         suffix = "/sse" if transport.lower() == "sse" else ""
-        prefix_url = "https://" if app_settings.server.env == "prod" else "http://"
-        remote_url = f"{prefix_url}{app_settings.server.host}/mcp/{mcp_id}{suffix}"
+
+        prefix_url = "https://"
+        prefix_port = ""
+        if app_settings.server.env != "prod":
+            prefix_url = "http://"
+            prefix_port = f":{app_settings.server.port}"
+
+        remote_url = f"{prefix_url}{app_settings.server.host}{prefix_port}/mcp/{mcp_id}{suffix}"
 
         return remote_url

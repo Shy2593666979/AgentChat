@@ -1,60 +1,67 @@
 <template>
   <div class="mcp-chat-container">
-    <!-- 左侧任务列表 -->
-    <div class="sidebar">
-      <div class="sidebar-header">
-        <div class="sidebar-actions">
-          <el-button type="primary" @click="createNewTask" class="new-task-btn">
-            <template #icon>
-              <el-icon><Plus /></el-icon>
-            </template>
-            新建对话
-          </el-button>
-        </div>
-        <div class="sidebar-title">对话历史</div>
-      </div>
-      <div class="task-list" v-loading="loadingTasks">
-        <div v-if="!loadingTasks && tasks.length === 0" class="empty-tasks">
-          暂无对话
-        </div>
-        <div
-          v-for="task in tasks"
-          :key="task.id"
-          :class="['task-item', { active: task.id === currentTaskId }]"
-          @click="selectTask(task.id)"
-        >
-          <div class="task-item-header">
-            <div class="task-item-title">{{ task.messages?.length || 0 }} 条消息</div>
-            <div class="task-item-time">{{ formatTime(task.created_time) }}</div>
+    <!-- 历史会话抽屉（覆盖层） -->
+    <transition name="drawer">
+      <div v-if="sidebarOpen" class="sidebar-overlay" @click.self="sidebarOpen = false">
+        <div class="sidebar">
+          <div class="sidebar-header">
+            <div class="sidebar-title">对话历史</div>
+            <el-button :icon="Close" circle size="small" @click="sidebarOpen = false" />
           </div>
-          <div class="task-item-preview">
-            {{ getLastMessage(task) }}
-          </div>
-          <div class="task-item-actions">
-            <el-button
-              class="task-delete-btn"
-              size="small"
-              type="danger"
-              :icon="Delete"
-              @click.stop="deleteTask(task.id)"
-              circle
-            />
+          <div class="task-list" v-loading="loadingTasks">
+            <div v-if="!loadingTasks && tasks.length === 0" class="empty-tasks">
+              暂无对话
+            </div>
+            <div
+              v-for="task in tasks"
+              :key="task.id"
+              :class="['task-item', { active: task.id === currentTaskId }]"
+              @click="selectTask(task.id); sidebarOpen = false"
+            >
+              <div class="task-item-header">
+                <div class="task-item-title">{{ task.messages?.length || 0 }} 条消息</div>
+                <div class="task-item-time">{{ formatTime(task.created_time) }}</div>
+              </div>
+              <div class="task-item-preview">
+                {{ getLastMessage(task) }}
+              </div>
+              <div class="task-item-actions">
+                <el-button
+                  class="task-delete-btn"
+                  size="small"
+                  type="danger"
+                  :icon="Delete"
+                  @click.stop="deleteTask(task.id)"
+                  circle
+                />
+              </div>
+            </div>
           </div>
         </div>
       </div>
-    </div>
+    </transition>
 
     <!-- 主聊天区域 -->
     <div class="main-content">
-      <div class="chat-header">
-        <h1>对话生成 MCP</h1>
+      <!-- 顶部操作栏 -->
+      <div class="chat-toolbar">
+        <div class="toolbar-left"></div>
+        <div class="toolbar-right">
+          <el-button @click="sidebarOpen = true" size="default" round style="font-weight: 600;">
+            <span style="margin-right: 4px;">📋</span>历史会话
+          </el-button>
+          <el-button type="primary" :icon="Plus" @click="createNewTask" size="default" round
+            style="background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border: none; font-weight: 600;">
+            新建对话
+          </el-button>
+        </div>
       </div>
 
       <div class="chat-messages" ref="chatMessagesRef">
         <div v-if="!currentTaskId" class="empty-state">
-          <div class="empty-state-icon">💬</div>
-          <div class="empty-state-text">开始新的对话</div>
-          <div class="empty-state-hint">选择或创建一个对话开始聊天</div>
+          <div class="empty-state-icon">📋</div>
+          <div class="empty-state-text">开始新的任务</div>
+          <div class="empty-state-hint">选择或创建一个任务开始聊天</div>
         </div>
         
         <template v-else>
@@ -76,6 +83,10 @@
               </div>
               <div class="message-content-wrapper">
                 <div class="message-content markdown-body">
+                  <!-- 如果是最后一条消息且正在流式输出，且没有内容，显示加载图标 -->
+                  <div v-if="isStreaming && index === displayMessages.length - 1 && !msg.content.length" class="loading-spinner">
+                    <el-icon class="is-loading" :size="20"><Loading /></el-icon>
+                  </div>
                   <template v-for="(block, bi) in buildBlocks(msg.content)" :key="bi">
                     <!-- 文本块 -->
                     <div v-if="block.type === 'text'" class="text-container" v-html="renderMarkdown(block.data)"></div>
@@ -130,35 +141,30 @@
               </div>
             </div>
           </div>
-          
-          <!-- 加载指示器 -->
-          <div v-if="isStreaming" class="loading-indicator">
-            <span></span>
-            <span></span>
-            <span></span>
-          </div>
         </template>
       </div>
 
       <div class="chat-input-wrapper">
         <div class="chat-input-container">
-          <el-input
-            v-model="messageInput"
-            type="textarea"
-            :autosize="{ minRows: 3, maxRows: 8 }"
-            placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
-            @keydown="handleKeyDown"
-            :disabled="isStreaming"
-            class="chat-input"
-          />
-          <el-button
-            type="primary"
-            :icon="Promotion"
-            @click="sendMessage"
-            :disabled="!messageInput.trim() || isStreaming"
-            class="send-btn"
-            circle
-          />
+          <div class="input-with-btn">
+            <el-input
+              v-model="messageInput"
+              type="textarea"
+              :autosize="{ minRows: 3, maxRows: 8 }"
+              placeholder="输入消息... (Enter 发送，Shift+Enter 换行)"
+              @keydown="handleKeyDown"
+              :disabled="isStreaming"
+              class="chat-input"
+            />
+            <el-button
+              type="primary"
+              :icon="Promotion"
+              @click="sendMessage"
+              :disabled="!messageInput.trim() || isStreaming"
+              class="send-btn"
+              circle
+            />
+          </div>
         </div>
       </div>
     </div>
@@ -169,7 +175,7 @@
 <script setup lang="ts">
 import { ref, onMounted, nextTick, computed } from 'vue'
 import { ElMessage } from 'element-plus'
-import { Plus, Delete, Promotion } from '@element-plus/icons-vue'
+import { Plus, Delete, Promotion, Close, List, Loading } from '@element-plus/icons-vue'
 import { marked } from 'marked'
 import {
   getTaskListAPI,
@@ -200,6 +206,7 @@ const renderKey = ref(0) // 用于强制重新渲染
 const showRejectInput = ref(false)
 const rejectFeedback = ref('')
 const expandedEvents = ref(new Set<string>())
+const sidebarOpen = ref(false)
 
 const toggleEvent = (key: string) => {
   if (expandedEvents.value.has(key)) {
@@ -547,50 +554,53 @@ onMounted(() => {
 .mcp-chat-container {
   display: flex;
   height: 100%;
-  background: var(--el-bg-color);
+  background: #f7f8fa;
   overflow: hidden;
 }
 
+// 抽屉覆盖层
+.sidebar-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.3);
+  z-index: 100;
+  display: flex;
+}
+
 .sidebar {
-  width: 260px;
-  background: var(--el-bg-color-overlay);
+  width: 280px;
+  height: 100%;
+  background: #fff;
   display: flex;
   flex-direction: column;
-  border-right: 1px solid var(--el-border-color);
-  
+  box-shadow: 4px 0 24px rgba(0, 0, 0, 0.12);
+
   .sidebar-header {
     padding: 16px;
     border-bottom: 1px solid var(--el-border-color);
-    
-    .sidebar-actions {
-      margin-bottom: 12px;
-      
-      .new-task-btn {
-        width: 100%;
-      }
-    }
-    
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
     .sidebar-title {
-      font-size: 12px;
+      font-size: 15px;
       font-weight: 600;
-      color: var(--el-text-color-secondary);
-      text-transform: uppercase;
-      letter-spacing: 0.5px;
+      color: var(--el-text-color-primary);
     }
   }
-  
+
   .task-list {
     flex: 1;
     overflow-y: auto;
     padding: 8px;
-    
+
     .empty-tasks {
       text-align: center;
       padding: 20px;
       color: var(--el-text-color-secondary);
       font-size: 14px;
     }
-    
+
     .task-item {
       padding: 12px;
       margin-bottom: 4px;
@@ -600,38 +610,38 @@ onMounted(() => {
       transition: all 0.2s;
       border: 1px solid transparent;
       position: relative;
-      
+
       &:hover {
         background: var(--el-fill-color-light);
-        
+
         .task-item-actions {
           opacity: 1;
         }
       }
-      
+
       &.active {
         background: var(--el-fill-color);
         border-color: var(--el-color-primary);
       }
-      
+
       .task-item-header {
         display: flex;
         justify-content: space-between;
         align-items: center;
         margin-bottom: 6px;
-        
+
         .task-item-title {
           font-size: 14px;
           font-weight: 500;
           color: var(--el-text-color-primary);
         }
-        
+
         .task-item-time {
           font-size: 11px;
           color: var(--el-text-color-secondary);
         }
       }
-      
+
       .task-item-preview {
         font-size: 12px;
         color: var(--el-text-color-secondary);
@@ -640,18 +650,30 @@ onMounted(() => {
         white-space: nowrap;
         margin-bottom: 8px;
       }
-      
+
       .task-item-actions {
         display: flex;
         justify-content: flex-end;
         opacity: 0;
         transition: opacity 0.2s;
       }
-      
-      .task-delete-btn {
-        // 按钮样式由 task-item-actions 控制
-      }
     }
+  }
+}
+
+// 抽屉动画
+.drawer-enter-active,
+.drawer-leave-active {
+  transition: opacity 0.25s ease;
+  .sidebar {
+    transition: transform 0.25s ease;
+  }
+}
+.drawer-enter-from,
+.drawer-leave-to {
+  opacity: 0;
+  .sidebar {
+    transform: translateX(-100%);
   }
 }
 
@@ -659,17 +681,40 @@ onMounted(() => {
   flex: 1;
   display: flex;
   flex-direction: column;
-  background: var(--el-bg-color);
-  
-  .chat-header {
+  background: #f7f8fa;
+  position: relative;
+
+  .chat-toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
     padding: 16px 24px;
-    border-bottom: 1px solid var(--el-border-color);
-    
-    h1 {
-      font-size: 18px;
-      font-weight: 600;
-      color: var(--el-text-color-primary);
-      margin: 0;
+    background: transparent;
+    border-bottom: none;
+
+    .toolbar-left {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+
+      .toolbar-icon {
+        width: 28px;
+        height: 28px;
+      }
+
+      .toolbar-title {
+        font-size: 20px;
+        font-weight: 600;
+        background: linear-gradient(90deg, #3b82f6, #8b5cf6);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+      }
+    }
+
+    .toolbar-right {
+      display: flex;
+      gap: 12px;
     }
   }
   
@@ -677,7 +722,7 @@ onMounted(() => {
     flex: 1;
     overflow-y: auto;
     overflow-x: hidden;
-    padding: 24px;
+    padding: 24px 24px 120px;
     
     .empty-state {
       display: flex;
@@ -759,96 +804,74 @@ onMounted(() => {
         border-bottom-left-radius: 4px;
       }
     }
-    
-    .loading-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 4px;
-      padding: 12px 16px;
-      
-      span {
-        width: 6px;
-        height: 6px;
-        background: var(--el-text-color-secondary);
-        border-radius: 50%;
-        animation: bounce 1.4s infinite ease-in-out both;
-        
-        &:nth-child(1) {
-          animation-delay: -0.32s;
-        }
-        
-        &:nth-child(2) {
-          animation-delay: -0.16s;
-        }
-      }
-    }
+  }
+
+  .loading-spinner {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 28px;
+    color: #6e8efb;
   }
   
   .chat-input-wrapper {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
     padding: 16px 24px 24px;
-    background: var(--el-bg-color);
-    border-top: 1px solid var(--el-border-color);
+    background: transparent;
+    border-top: none;
     
     .chat-input-container {
-      max-width: 800px;
+      width: 66.67%;
       margin: 0 auto;
-      display: flex;
-      gap: 10px;
-      align-items: flex-end;
-      
-      .chat-input {
-        flex: 1;
-        min-width: 0;
 
-        :deep(.el-textarea__inner) {
-          padding: 14px 16px;
-          border-radius: 12px;
-          font-size: 15px;
-          line-height: 1.6;
-          resize: none;
-          border: 1px solid var(--el-border-color);
-          background: var(--el-fill-color-blank);
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-          transition: border-color 0.2s, box-shadow 0.2s;
-          
-          &:focus {
-            border-color: var(--el-color-primary);
-            box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
-          }
-          
-          &::placeholder {
-            color: var(--el-text-color-placeholder);
+      .input-with-btn {
+        position: relative;
+
+        .chat-input {
+          :deep(.el-textarea__inner) {
+            padding: 14px 56px 14px 16px;
+            border-radius: 12px;
+            font-size: 15px;
+            line-height: 1.6;
+            resize: none;
+            border: 1px solid var(--el-border-color);
+            background: var(--el-fill-color-blank);
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+            transition: border-color 0.2s, box-shadow 0.2s;
+
+            &:focus {
+              border-color: var(--el-color-primary);
+              box-shadow: 0 2px 12px rgba(64, 158, 255, 0.15);
+            }
+
+            &::placeholder {
+              color: var(--el-text-color-placeholder);
+            }
           }
         }
-      }
-      
-      .send-btn {
-        flex-shrink: 0;
-        width: 44px;
-        height: 44px;
-        box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
-        transition: transform 0.15s, box-shadow 0.15s;
-        
-        &:not(:disabled):hover {
-          transform: scale(1.08);
-          box-shadow: 0 4px 10px rgba(64, 158, 255, 0.4);
+
+        .send-btn {
+          position: absolute;
+          right: 8px;
+          top: 50%;
+          transform: translateY(-50%);
+          width: 36px;
+          height: 36px;
+          box-shadow: 0 2px 6px rgba(64, 158, 255, 0.3);
+          transition: transform 0.15s, box-shadow 0.15s;
+
+          &:not(:disabled):hover {
+            transform: translateY(-50%) scale(1.08);
+            box-shadow: 0 4px 10px rgba(64, 158, 255, 0.4);
+          }
         }
       }
     }
   }
 }
-
-@keyframes bounce {
-  0%, 80%, 100% {
-    transform: scale(0);
-    opacity: 0.3;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
-}
-
 
 // 事件样式
 :deep(.event-item) {

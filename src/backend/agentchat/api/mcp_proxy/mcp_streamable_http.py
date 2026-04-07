@@ -99,7 +99,7 @@ async def streamable_http_endpoint(
             {
                 "protocolVersion": "2024-11-05",
                 "serverInfo": {
-                    "name": app_settings.server_name or "MCP-Proxy",
+                    "name": app_settings.server.name or "MCP-Proxy",
                     "version": "1.0.0",
                 },
                 "capabilities": {

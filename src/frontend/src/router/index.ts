@@ -155,7 +155,7 @@ const routes: RouteRecordRaw[] = [
         path: '/mcp-server/chat',
         name: 'mcp-chat',
         meta: {
-          current: 'mcp-server'
+          current: 'mcp-chat'
         },
         component: McpChat,
       },

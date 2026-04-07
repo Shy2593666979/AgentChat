@@ -111,6 +111,7 @@ const goCurrent = (item: string) => {
     "conversation": "/conversation",
     "agent": "/agent",
     "mcp-server": "/mcp-server",
+    "mcp-chat": "/mcp-server/chat",
     "knowledge": "/knowledge",
     "tool": "/tool",
     "agent-skill": "/agent-skill",
@@ -120,6 +121,11 @@ const goCurrent = (item: string) => {
   }
   
   router.push(routes[item] || "/")
+}
+
+// 处理菜单选择事件
+const handleMenuSelect = (index: string) => {
+  goCurrent(index)
 }
 
 // 用户下拉菜单命令处理
@@ -220,6 +226,7 @@ watch(
             class="el-menu-vertical-demo"
             :default-active="current"
             text-color="#909399"
+            @select="handleMenuSelect"
           >
             <el-menu-item index="workspace" @click="goCurrent('workspace')">
               <template #title>
@@ -253,14 +260,20 @@ watch(
                 <span>智能体</span>
               </template>
             </el-menu-item>
-            <el-menu-item index="mcp-server" @click="goCurrent('mcp-server')">
+            <el-sub-menu index="mcp">
               <template #title>
                 <el-icon>
                   <img src="../assets/mcp.svg" width="22px" height="22px" />
                 </el-icon>
                 <span>MCP</span>
               </template>
-            </el-menu-item>
+              <el-menu-item index="mcp-server">
+                <span>管理 MCP</span>
+              </el-menu-item>
+              <el-menu-item index="mcp-chat">
+                <span>生成 MCP</span>
+              </el-menu-item>
+            </el-sub-menu>
             <el-menu-item index="knowledge" @click="goCurrent('knowledge')">
               <template #title>
                 <el-icon>
@@ -740,10 +753,147 @@ watch(
   background: transparent;
   font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
   
+  .el-sub-menu {
+    .el-sub-menu__title {
+      border-radius: 16px;
+      margin: 10px 16px;
+      padding: 0 20px !important;
+      height: 56px;
+      line-height: 56px;
+      font-size: 16px;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      color: #475569;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border: 1px solid transparent;
+      box-sizing: border-box;
+      
+      &:hover {
+        background: rgba(99, 102, 241, 0.05);
+        color: #6366f1;
+      }
+      
+      .el-icon {
+        margin-right: 16px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 28px;
+        height: 28px;
+        
+        img {
+          width: 28px;
+          height: 28px;
+          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+      }
+      
+      span {
+        font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+        flex: 1;
+      }
+      
+      // 下拉箭头样式
+      .el-sub-menu__icon-arrow {
+        position: static;
+        margin-left: auto;
+        margin-right: 4px;
+        transform: translateY(3px) !important;
+        transition: all 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        font-size: 13px;
+        color: #909399;
+        opacity: 0.6;
+        font-weight: 600;
+      }
+      
+      &:hover {
+        .el-sub-menu__icon-arrow {
+          color: #6366f1;
+          opacity: 1;
+          transform: translateY(3px) translateX(2px) !important;
+        }
+      }
+    }
+    
+    &.is-opened {
+      > .el-sub-menu__title {
+        .el-sub-menu__icon-arrow {
+          transform: translateY(3px) rotate(180deg) !important;
+          color: #6366f1;
+          opacity: 1;
+        }
+      }
+    }
+    
+    &.is-active {
+      > .el-sub-menu__title {
+        background: #ffffff;
+        color: #6366f1;
+        box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
+        border-color: rgba(99, 102, 241, 0.1);
+        
+        .el-sub-menu__icon-arrow {
+          color: #6366f1;
+          opacity: 1;
+        }
+      }
+    }
+    
+    .el-menu {
+      background: transparent;
+      padding: 0 !important;
+      margin: 0 !important;
+      
+      .el-menu-item {
+        border-radius: 12px;
+        margin: 6px 16px 6px 32px !important;
+        padding: 0 20px !important;
+        height: 44px !important;
+        line-height: 44px !important;
+        font-size: 15px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+        color: #64748b;
+        border: 1px solid transparent;
+        box-sizing: border-box;
+        
+        span {
+          font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
+          font-size: 15px;
+          font-weight: 600;
+        }
+        
+        &:hover {
+          background: rgba(99, 102, 241, 0.05);
+          color: #6366f1;
+          
+          span {
+            color: #6366f1;
+            font-weight: 600;
+          }
+        }
+        
+        &.is-active {
+          background: rgba(99, 102, 241, 0.1);
+          color: #6366f1;
+          font-weight: 700;
+          
+          span {
+            color: #6366f1;
+            font-weight: 700;
+          }
+        }
+      }
+    }
+  }
+  
   .el-menu-item {
     border-radius: 16px;
     margin: 10px 16px;
-    padding: 0 20px;
+    padding: 0 20px !important;
     height: 56px;
     line-height: 56px;
     font-size: 16px;
@@ -753,6 +903,8 @@ watch(
     position: relative;
     overflow: hidden;
     color: #475569;
+    border: 1px solid transparent;
+    box-sizing: border-box;
     
     &:hover {
       background: rgba(99, 102, 241, 0.05);
@@ -768,7 +920,7 @@ watch(
       background: #ffffff;
       color: #6366f1;
       box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
-      border: 1px solid rgba(99, 102, 241, 0.1);
+      border-color: rgba(99, 102, 241, 0.1);
       
       .el-icon {
         img {

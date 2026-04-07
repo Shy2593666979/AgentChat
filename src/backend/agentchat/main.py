@@ -1,13 +1,15 @@
 import logging
 import warnings
+import redis.asyncio as aioredis
 from contextlib import asynccontextmanager
 from fastapi import FastAPI, Request
-from fastapi.staticfiles import StaticFiles
 from fastapi_jwt_auth import AuthJWT
 from fastapi_jwt_auth.exceptions import AuthJWTException
 from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
 
+from agentchat.api.JWT import Settings as AuthJwtSettings
+from agentchat.mcp_proxy.session.manager import SessionManager
 from agentchat.middleware.trace_id_middleware import TraceIDMiddleware
 from agentchat.middleware.white_list_middleware import WhitelistMiddleware
 from agentchat.settings import initialize_app_settings
@@ -72,13 +74,20 @@ def print_logo():
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # 启动前执行
     await init_config()
+
+    redis_client = aioredis.from_url(
+        app_settings.redis.get("endpoint"),
+        decode_responses=True
+    )
+    app.state.session_manager = SessionManager(redis_client)
+
     await register_router(app)
     print_logo()
+
     yield
-    # 关闭时执行
-    # pass
+
+    await redis_client.close()
 
 
 def create_app():
@@ -90,12 +99,10 @@ def create_app():
 
     app = register_middleware(app)
 
-    from agentchat.api.JWT import Settings
-
     # 配置 AuthJWT
     @AuthJWT.load_config
     def get_config():
-        return Settings()
+        return AuthJwtSettings()
 
     # 处理 AuthJWT 异常
     @app.exception_handler(AuthJWTException)

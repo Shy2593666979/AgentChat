@@ -708,9 +708,6 @@ const saveUserConfig = async () => {
         <h2>MCP Server管理</h2>
       </div>
       <div class="header-actions">
-        <el-button type="success" @click="$router.push('/mcp-server/chat')">
-          对话生成 MCP
-        </el-button>
         <el-button type="primary" :icon="Plus" @click="handleCreate">
           添加服务器
         </el-button>
@@ -3076,5 +3073,135 @@ const saveUserConfig = async () => {
 
 <!-- 页面本身的样式使用scoped -->
 <style lang="scss" scoped>
-// 页面样式已移至底部scoped样式中，避免重复
+.mcp-server-page {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--el-bg-color);
+}
+
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20px 24px;
+  background: white;
+  border-bottom: 1px solid var(--el-border-color);
+  
+  .header-title {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    
+    .title-icon {
+      width: 32px;
+      height: 32px;
+    }
+    
+    h2 {
+      margin: 0;
+      font-size: 20px;
+      font-weight: 600;
+      color: var(--el-text-color-primary);
+    }
+  }
+  
+  .header-actions {
+    display: flex;
+    gap: 12px;
+  }
+}
+
+.server-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  
+  .empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    color: var(--el-text-color-secondary);
+    
+    .empty-icon {
+      font-size: 64px;
+      margin-bottom: 16px;
+      opacity: 0.5;
+      
+      .empty-icon-symbol {
+        font-style: normal;
+      }
+    }
+    
+    h3 {
+      font-size: 18px;
+      margin: 0 0 8px 0;
+      font-weight: 500;
+    }
+    
+    p {
+      font-size: 14px;
+      margin: 0 0 24px 0;
+      opacity: 0.7;
+    }
+  }
+}
+
+.server-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 8px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--el-fill-color-light);
+  
+  img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+}
+
+.server-name {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  
+  .name {
+    font-weight: 500;
+  }
+  
+  &.official-server {
+    .name {
+      color: var(--el-color-warning);
+    }
+  }
+}
+
+.config-status {
+  .clickable-tag {
+    cursor: pointer;
+    transition: all 0.2s;
+    
+    &:hover {
+      opacity: 0.8;
+      transform: scale(1.05);
+    }
+  }
+}
+
+.create-time {
+  font-size: 13px;
+  color: var(--el-text-color-secondary);
+}
+
+.action-buttons {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
 </style>

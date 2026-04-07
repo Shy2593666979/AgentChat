@@ -224,7 +224,7 @@ class AbstractMcpAgent:
         self.agent = create_agent(
             model=self.model,
             tools=self.tools,
-            system_prompt=SystemMessage(content=MCP_AGENT_SYSTEM_PROMPT),
+            system_prompt=MCP_AGENT_SYSTEM_PROMPT,
             middleware=[
                 HumanInTheLoopMiddleware(
                     interrupt_on={
@@ -234,8 +234,9 @@ class AbstractMcpAgent:
                             "allowed_decisions": ["approve", "reject"],
                             "description": (
                                 "请确认是否注册此 MCP Server：\n"
-                                "- approve — 确认注册\n"
-                                "- reject  — 取消注册（可在 message 中填写修改意见，Agent 将自动优化后重新提交）"
+                                "- Approve — 确认注册\n"
+                                "- Reject  — 取消注册\n"
+                                "- Edit    — 修改信息 (点击取消会弹出修改框，自动优化后将重新提交)"
                             ),
                         },
                     },
