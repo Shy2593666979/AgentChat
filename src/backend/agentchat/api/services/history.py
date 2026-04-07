@@ -1,12 +1,10 @@
 from typing import List
 from uuid import uuid4
-
 from langchain_core.messages import BaseMessage, AIMessage, HumanMessage
 
-from agentchat.api.services.dialog import DialogService
 from agentchat.database.dao.history import HistoryDao
 from agentchat.services.rag.es_client import client as es_client
-from agentchat.services.rag.vector_db import milvus_client
+from agentchat.services.rag.vector_stores import milvus_client
 from agentchat.schemas.chunk import ChunkModel
 from agentchat.utils.helpers import get_now_beijing_time
 
