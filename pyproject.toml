@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "agentchat"
-version = "2.2.0"
+version = "2.5.0"
 description = "An intelligent agent communication platform based on LLM"
 authors = ["tianmingguang <2593666979@qq.com>"]
 readme = "README.md"
@@ -37,6 +37,7 @@ html2image = "^2.0.7"
 lxml-html-clean = "^0.4.3"
 pyfiglet = "^1.0.4"
 minio = "^7.2.20"
+tiktoken = "^0.12.0"
 
 
 [build-system]
