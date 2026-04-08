@@ -13,6 +13,7 @@ from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.completion import SYSTEM_PROMPT
 from agentchat.schemas.completion import CompletionReq
 from agentchat.services.memory.client import memory_client
+from agentchat.utils.common import count_tokens_usage
 from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
 from agentchat.utils.helpers import build_completion_system_prompt, build_completion_history_messages, build_completion_user_input
 
@@ -89,30 +90,26 @@ async def completion(
         else SYSTEM_PROMPT
     )
 
-    # 根据记忆开关选择历史记录获取策略
+    short_term_messages = await HistoryService.get_short_term_messages(req.dialog_id, login_user.user_id)
+    history_summary = await DialogService.get_dialog_history_summary(req.dialog_id)
+
+    # 记忆模式：通过向量检索获取语义相关的历史对话
     if agent_config.enable_memory:
-        # 记忆模式：通过向量检索获取语义相关的历史对话
-        history = await memory_client.search(
+        memories = await memory_client.search(
             query=original_user_input,
             run_id=req.dialog_id
         )
-        history_text = "\n".join(
-            msg.get("memory", "")
-            for msg in history.get("results", [])
-        )
+        long_term_memory = "\n".join(memory.get("memory", "")for memory in memories.get("results", []))
     else:
-        # 普通模式：从数据库按时间顺序获取完整历史
-        history_records = await HistoryService.select_history(
-            dialog_id=req.dialog_id
-        )
-        history_text = build_completion_history_messages(history_records)
+        long_term_memory = None
 
     # 将历史记录注入系统提示词
-    system_prompt = build_completion_system_prompt(system_prompt, history_text)
+    system_prompt = build_completion_system_prompt(system_prompt, history_summary, long_term_memory)
 
     # 构建完整消息列表（System → Human 的标准对话结构）
     messages: List[BaseMessage] = [
         SystemMessage(content=system_prompt),
+        *short_term_messages,
         HumanMessage(content=req.user_input),
     ]
 
@@ -156,6 +153,7 @@ async def completion(
                 content=response_content,
                 events=events,
                 dialog_id=req.dialog_id,
+                token_usage=count_tokens_usage(response_content),
                 memory_enable=agent_config.enable_memory
             )
 
@@ -165,6 +163,7 @@ async def completion(
         content=original_user_input,
         events=events,
         dialog_id=req.dialog_id,
+        token_usage=count_tokens_usage(original_user_input),
         memory_enable=agent_config.enable_memory
     )
 
