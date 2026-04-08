@@ -4,8 +4,7 @@ from agentchat.api.services.agent import AgentService
 from agentchat.api.services.dialog import DialogService
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.schemas.dialog import DialogCreateRequest
-from agentchat.schemas.response import resp_200, resp_500, UnifiedResponseModel
-from agentchat.settings import app_settings
+from agentchat.api.responses.builder import resp_200, resp_500, UnifiedResponseModel
 
 router = APIRouter(tags=["Dialog"])
 

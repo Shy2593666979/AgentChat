@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.schemas.llm import LLMUpdateReq, LLMCreateReq, LLMDeleteReq, LLMSearchReq
-from agentchat.schemas.response import resp_200, resp_500
+from agentchat.api.responses.builder import resp_200
 from agentchat.api.services.llm import LLMService, LLM_Types
 
 router = APIRouter(tags=["LLM"], prefix="/llm")

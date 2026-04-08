@@ -1,8 +1,7 @@
-from typing import Optional
 from loguru import logger
 from fastapi import APIRouter, Depends, Body
 
-from agentchat.schemas.response import UnifiedResponseModel, resp_200, resp_500
+from agentchat.api.responses.builder import UnifiedResponseModel, resp_200, resp_500
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.schemas.mcp_user_config import MCPUserConfigCreateRequest, MCPUserConfigUpdateRequest

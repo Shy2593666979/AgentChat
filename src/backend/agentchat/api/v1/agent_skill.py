@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, UploadFile, File, Form
 
 from agentchat.api.services.agent_skill import AgentSkillService
 from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.schemas.response import resp_200
+from agentchat.api.responses.builder import resp_200
 from agentchat.schemas.agent_skill import AgentSkillCreateReq, AgentSkillDeleteReq, AgentSkillFileUpdateReq, \
     AgentSkillFileAddReq, AgentSkillFileDeleteReq
 

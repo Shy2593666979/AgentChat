@@ -1,8 +1,8 @@
 from loguru import logger
-from fastapi import APIRouter, Depends, Body, HTTPException
+from fastapi import APIRouter, Depends, HTTPException
 
 from agentchat.database import ToolTable
-from agentchat.schemas.response import UnifiedResponseModel, resp_200, resp_500
+from agentchat.api.responses.builder import UnifiedResponseModel, resp_200, resp_500
 from agentchat.api.services.user import get_login_user, UserPayload
 from agentchat.api.services.tool import ToolService
 from agentchat.schemas.tool import ToolCreateReq, ToolUpdateReq, ToolDeleteReq

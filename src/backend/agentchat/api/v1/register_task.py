@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.database.dao.register_task import RegisterMcpTaskDao
 from agentchat.schemas.register_mcp import DeleteMcpTaskRequest
-from agentchat.schemas.response import resp_200
+from agentchat.api.responses.builder import resp_200
 
 router = APIRouter(prefix="/mcp/register", tags=["Register-Task"])
 

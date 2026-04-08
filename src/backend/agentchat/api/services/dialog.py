@@ -81,7 +81,7 @@ class DialogService:
         return dialog.summary
 
     @classmethod
-    async def update_dialog_summary(cls, dialog_id: str, user_id: str, cutoff_tokens: int=5000):
+    async def update_dialog_summary(cls, dialog_id: str, user_id: str, cutoff_tokens: int=3000):
         messages = await HistoryDao.select_history_from_time(
             dialog_id=dialog_id,
             k=10000

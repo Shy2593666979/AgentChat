@@ -2,7 +2,7 @@ from agentchat.database.dao.mcp_agent import MCPAgentDao
 from agentchat.database.models.user import AdminUser, SystemUser
 from loguru import logger
 from typing import List
-from agentchat.schemas.response import resp_200, resp_500
+from agentchat.api.responses.builder import resp_200, resp_500
 
 
 class MCPAgentService:

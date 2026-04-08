@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 
 from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.schemas.response import resp_200
+from agentchat.api.responses.builder import resp_200
 from agentchat.schemas.usage_stats import UsageStatsRequest
 
 router = APIRouter(tags=["Usage-Stats"])

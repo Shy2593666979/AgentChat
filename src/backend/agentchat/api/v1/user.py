@@ -6,11 +6,11 @@ from fastapi_jwt_auth import AuthJWT
 from agentchat.services.redis import redis_client
 from agentchat.database.dao.user import UserDao
 from agentchat.api.errcode.user import UserValidateError
-from agentchat.schemas.response import resp_200
+from agentchat.api.responses.builder import resp_200
 from agentchat.utils.JWT import ACCESS_TOKEN_EXPIRE_TIME
 from agentchat.api.services.user import UserService
 from agentchat.database.models.user import AdminUser
-from agentchat.schemas.response import UnifiedResponseModel
+from agentchat.api.responses.builder import UnifiedResponseModel
 from loguru import logger
 from agentchat.api.services.user import get_user_jwt
 from agentchat.utils.constants import USER_CURRENT_SESSION

@@ -6,7 +6,7 @@ from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.database.dao.register_mcp import RegisterMcpDao
 from agentchat.schemas.register_mcp import RegisterMcpRequest
 from agentchat.schemas.openapi import OpenApiSchema
-from agentchat.schemas.response import resp_200
+from agentchat.api.responses.builder import resp_200
 from agentchat.mcp_proxy.register_mcp import RegisterMcpService
 
 router = APIRouter(prefix="/mcp", tags=["Register-MCP"])

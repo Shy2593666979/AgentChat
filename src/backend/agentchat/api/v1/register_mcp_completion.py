@@ -6,15 +6,12 @@
   POST /completion/hitl/reject   → 用户取消 或 用户提供自然语言修改意见
 """
 import json
-from loguru import logger
-from typing import Callable
 from pydantic import BaseModel
 from fastapi import APIRouter, Depends
-from starlette.types import Receive
-from starlette.responses import StreamingResponse
 from langchain_core.messages import HumanMessage
 from langgraph.types import Command
 
+from agentchat.api.responses.streaming import WatchedStreamingResponse
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.mcp_proxy.agent import abstract_mcp_agent
 from agentchat.database.dao.register_task import RegisterMcpTaskDao
@@ -37,31 +34,6 @@ class HitlRejectReq(BaseModel):
     # feedback 为空字符串或 None → 纯取消
     # feedback 有内容 → 用户提供了修改意见，触发 revise 循环
     feedback: str = ""
-
-
-class WatchedStreamingResponse(StreamingResponse):
-    """重写 StreamingResponse 类，保证流式输出的时候可随时暂停"""
-
-    def __init__(
-        self,
-        content,
-        callback: Callable = None,
-        status_code: int = 200,
-        headers=None,
-        media_type: str | None = None,
-        background=None,
-    ):
-        super().__init__(content, status_code, headers, media_type, background)
-        self.callback = callback
-
-    async def listen_for_disconnect(self, receive: Receive) -> None:
-        while True:
-            message = await receive()
-            if message["type"] == "http.disconnect":
-                logger.info("http.disconnect. stop task and streaming")
-                if self.callback:
-                    self.callback()
-                break
 
 
 def _extract_text_from_content(content_array):
