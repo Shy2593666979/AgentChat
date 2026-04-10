@@ -3,8 +3,8 @@ from jwt.algorithms import requires_cryptography, has_crypto
 from datetime import datetime, timezone, timedelta
 from typing import Optional, Dict, Union, Sequence
 from fastapi import Request, Response, WebSocket
-from fastapi_jwt_auth.auth_config import AuthConfig
-from fastapi_jwt_auth.exceptions import (
+from agentchat.auth.auth_config import AuthConfig
+from agentchat.auth.exceptions import (
     InvalidHeaderError,
     CSRFError,
     JWTDecodeError,
