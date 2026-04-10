@@ -49,13 +49,17 @@ class ESClient:
             hits = response['hits']
             if not hits.get("max_score"):
                 return documents
-            for hit in response['hits']:
-                documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
-                                             update_time=hit['_source']['update_time'],
-                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'],
-                                             summary=hit['_source']['summary'],
-                                             file_id=hit['_source']['file_id'],
-                                             knowledge_id=hit['_source']['knowledge_id']))
+            for hit in hist.get("hits", []):
+                documents.append(
+                    SearchModel(
+                        score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
+                        update_time=hit['_source']['update_time'],
+                        content=hit['_source']['content'], file_name=hit['_source']['file_name'],
+                        summary=hit['_source']['summary'],
+                        file_id=hit['_source']['file_id'],
+                        knowledge_id=hit['_source']['knowledge_id']
+                    )
+                )
         except Exception as e:
             logger.error(f'Search documents error: {e}')
         finally:
@@ -69,13 +73,17 @@ class ESClient:
         try:
             response = self.client.search(index=index_name, body=index_search)
 
-            for hit in response['hits']:
-                documents.append(SearchModel(score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
-                                             update_time=hit['_source']['update_time'],
-                                             content=hit['_source']['content'], file_name=hit['_source']['file_name'],
-                                             summary=hit['_source']['summary'],
-                                             file_id=hit['_source']['file_id'],
-                                             knowledge_id=hit['_source']['knowledge_id']))
+            for hit in response['hits'].get("hits", []):
+                documents.append(
+                    SearchModel(
+                        score=hit['_score'], chunk_id=hit['_source']['chunk_id'],
+                        update_time=hit['_source']['update_time'],
+                        content=hit['_source']['content'], file_name=hit['_source']['file_name'],
+                        summary=hit['_source']['summary'],
+                        file_id=hit['_source']['file_id'],
+                        knowledge_id=hit['_source']['knowledge_id']
+                    )
+                )
 
         except Exception as e:
             logger.error(f'Search documents summary error: {e}')
