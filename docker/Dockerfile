@@ -57,8 +57,8 @@ RUN wget https://storage.googleapis.com/chrome-for-testing-public/138.0.7204.183
 # 🔧 设置工作目录
 WORKDIR /app
 
-# 📋 复制Python依赖文件
-COPY requirements.txt .
+# 📋 复制Python依赖文件（从backend目录）
+COPY src/backend/requirements.txt .
 
 # 🚀 安装Python依赖（使用pip镜像源加速）
 RUN pip install --no-cache-dir -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple/

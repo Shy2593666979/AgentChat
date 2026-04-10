@@ -1,6 +1,7 @@
-from datetime import datetime
+from loguru import logger
 
 from agentchat.api.services.agent import AgentService
+from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.core.models.manager import ModelManager
 from agentchat.database.dao.dialog import DialogDao
 from agentchat.database.dao.history import HistoryDao
@@ -189,8 +190,10 @@ class DialogService:
     async def _generate_messages_summary(cls, messages_prompt):
         conversation_model = ModelManager.get_conversation_model()
         response = await conversation_model.ainvoke(
-            messages_prompt
+            input=messages_prompt,
+            config={"callbacks": [usage_metadata_callback]}
         )
+        logger.info(f"当前会话进行压缩总结信息: {response.content}")
         return response.content
 
 

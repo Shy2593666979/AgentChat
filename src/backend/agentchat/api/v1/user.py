@@ -1,7 +1,7 @@
 from typing import Optional
 
 from fastapi import APIRouter, HTTPException, Depends, Body
-from fastapi_jwt_auth import AuthJWT
+from agentchat.auth import AuthJWT
 
 from agentchat.services.redis import redis_client
 from agentchat.database.dao.user import UserDao

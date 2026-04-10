@@ -3,7 +3,7 @@ from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException, WebSocket, WebSocketException
 from fastapi import status as http_status
-from fastapi_jwt_auth import AuthJWT
+from agentchat.auth import AuthJWT
 from loguru import logger
 
 from agentchat.services.autobuild.manager import AutoBuildManager

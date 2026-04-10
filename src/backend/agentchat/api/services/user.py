@@ -3,9 +3,9 @@ import random
 import rsa
 import hashlib
 from base64 import b64decode
-from fastapi_jwt_auth import AuthJWT
 from fastapi import Request, Depends, HTTPException
 
+from agentchat.auth import AuthJWT
 from agentchat.services.storage import storage_client
 from agentchat.services.redis import redis_client
 from agentchat.database.dao.user_role import UserRoleDao

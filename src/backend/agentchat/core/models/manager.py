@@ -1,6 +1,6 @@
+from openai import AsyncOpenAI
 from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
-
 from agentchat.core.models.embedding import EmbeddingModel
 from agentchat.core.models.reason_model import ReasoningModel
 from agentchat.settings import app_settings
@@ -71,6 +71,16 @@ class ModelManager:
             model=user_model.get("model"),
             api_key=user_model.get("api_key"),
             base_url=user_model.get("base_url")
+        )
+
+    @classmethod
+    def get_embedding_openai_model(cls) -> AsyncOpenAI:
+        """以ChatOpenAI的形式输出"""
+        embedding_model = app_settings.multi_models.embedding
+
+        return AsyncOpenAI(
+            base_url=embedding_model.base_url,
+            api_key=embedding_model.api_key
         )
 
     @classmethod

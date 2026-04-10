@@ -1,5 +1,7 @@
 import json
+import asyncio
 import httpx
+import aiofiles
 from loguru import logger
 from sqlmodel import SQLModel
 
@@ -19,9 +21,51 @@ from agentchat.utils.convert import convert_mcp_config
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.utils.helpers import get_provider_from_model
 
+async def init_agentchat_system():
+    """
+    agentchat 启动入口（推荐用于每次服务启动）
 
-# 创建MySQL数据表
+    功能：
+    - 初始化数据库（幂等）
+    - 检查系统是否已初始化
+    - 自动选择：
+        - 未初始化 → 全量初始化
+        - 已初始化 → 增量更新（LLM + MCP）
+    """
+    await init_database()
+
+    try:
+        agents = await AgentService.get_agent()
+
+        # 首次启动
+        if not agents:
+            logger.info("First-time setup: initializing agentchat system...")
+            await asyncio.gather(
+                _init_default_tools(),
+                _init_default_llms(),
+                _init_system_mcp_server(),
+                upload_user_avatars_storage(),
+            )
+            await _init_default_agents()
+            logger.success("Initialized agentchat successfully")
+            return
+
+        logger.info(f"Existing system detected ({len(agents)} agents), updating config...")
+
+        await asyncio.gather(
+            _update_exist_llm(),
+            _update_mcp_server_into_mysql(True),
+        )
+        logger.success("agentchat runtime ready")
+    except Exception as err:
+        logger.error(f" agentchat init failed: {err}")
+
 async def init_database():
+    """
+    初始化数据库：
+    - 创建数据库（如果不存在）
+    - 创建所有表结构
+    """
     try:
         ensure_mysql_database()
         SQLModel.metadata.create_all(engine)
@@ -29,144 +73,217 @@ async def init_database():
     except Exception as err:
         logger.error(f"Create MySQL Table Error: {err}")
 
+async def load_json(path: str):
+    """
+    异步读取 JSON 文件（避免阻塞事件循环）
 
-# 初始化默认工具
-async def init_default_agent():
-    try:
-        result = await AgentService.get_agent()
-        if len(result) == 0:
-            logger.info("Initializing default agents in MySQL")
+    Args:
+        path: 文件路径
 
-            await insert_tools_to_mysql()  # 初始化工具
-            await insert_llm_to_mysql()  # 初始化LLM
-            await insert_agent_to_mysql()  # 初始化Agent
-            logger.success("Default agents initialized successfully")
-        else:
-            logger.info("Default agents already initialized")
-    except Exception as err:
-        logger.error(f"Failed to initialize default agents: {err}")
+    Returns:
+        dict/list: JSON 数据
+    """
+    async with aiofiles.open(path, "r", encoding="utf-8") as f:
+        return json.loads(await f.read())
 
+async def _init_default_tools():
+    """初始化默认工具"""
+    tools = await load_json("./agentchat/config/tool.json")
 
-async def update_system_mcp_server():
-    try:
-        mcp_server = await MCPService.get_all_servers(SystemUser)
-        # 如果数据库中无数据才会加载默认的MCP Server Json文件
-        if len(mcp_server):
-            await update_mcp_server_into_mysql(True)
-        else:
-            await update_mcp_server_into_mysql(False)
-    except Exception as err:
-        logger.error(f"Failed to initialize system MCP server: {err}")
-
-
-async def insert_agent_to_mysql():
-    llm = await LLMService.get_one_llm()
-
-    tools = await ToolService.get_tools_data()
-    for tool in tools:
-        tool["name"] = tool["display_name"] + "助手"
-        await AgentDao.create_agent(
-            AgentTable(
-                **ToolTable(**tool).model_dump(exclude={"user_id", "tool_id"}),
-                tool_ids=[tool["tool_id"]],
-                user_id=SystemUser,
-                is_custom=False,
-                llm_id=llm.get("llm_id")
-            )
-        )
-
-
-# 认定OS下有一个默认LLM API KEY
-async def insert_llm_to_mysql():
-    api_key = app_settings.multi_models.conversation_model.api_key
-    base_url = app_settings.multi_models.conversation_model.base_url
-    model = app_settings.multi_models.conversation_model.model_name
-    provider = get_provider_from_model(model)
-
-    await LLMService.create_llm(
-        user_id=SystemUser,
-        model=model,
-        llm_type="LLM",
-        api_key=api_key,
-        base_url=base_url,
-        provider=provider
-    )
-
-
-# 初始化默认的Tool
-async def insert_tools_to_mysql():
-    tools = await load_default_tool()
-
-    for tool in tools:
-        await ToolService.create_default_tool(
+    await asyncio.gather(*[
+        ToolService.create_default_tool(
             ToolTable(
                 **tool,
                 user_id=SystemUser,
                 is_user_defined=False
             )
         )
+        for tool in tools
+    ])
+
+    logger.success("Default tools initialized")
 
 
-# 更新MCP Server的信息到数据库中
-async def update_mcp_server_into_mysql(has_mcp_server: bool):
-    # 判断是否为首次连接
+async def _update_exist_llm():
+    """
+    更新已存在的 LLM 配置
+
+    逻辑：
+    - 获取当前系统已有 LLM
+    - 对比配置（model / base_url / api_key）
+    - 若无变化 → 跳过
+    - 若 API Key 是掩码（包含 **）→ 跳过（防止覆盖真实 key）
+    """
+    settings = app_settings.multi_models.conversation_model
+
+    api_key = settings.api_key
+    base_url = settings.base_url
+    model = settings.model_name
+    provider = get_provider_from_model(model)
+
+    llm = await LLMService.select_first_llm()
+
+    if not llm:
+        # 如果数据库还没有 LLM，直接初始化
+        await _init_default_llms()
+        return
+
+    # 是否需要更新
+    needs_update = not (
+        llm.base_url == base_url and
+        llm.model == model and
+        llm.api_key == api_key
+    )
+
+    if not needs_update:
+        logger.info("LLM config unchanged, skip update")
+        return
+
+    # 防止用掩码覆盖真实 key
+    if api_key and "**" in api_key:
+        logger.warning("Masked API key detected, skip update")
+        return
+
+    await LLMService.update_first_llm(
+        llm_id=llm.llm_id,
+        model=model,
+        provider=provider,
+        base_url=base_url,
+        api_key=api_key,
+    )
+
+    logger.success("LLM config updated")
+
+async def _init_default_llms():
+    """初始化默认 LLM"""
+    settings = app_settings.multi_models.conversation_model
+
+    await LLMService.create_llm(
+        user_id=SystemUser,
+        model=settings.model_name,
+        llm_type="LLM",
+        api_key=settings.api_key,
+        base_url=settings.base_url,
+        provider=get_provider_from_model(settings.model_name)
+    )
+
+    logger.success("Default LLM initialized")
+
+async def _init_default_agents():
+    """
+    初始化默认 Agent
+    - 每个 Tool 对应一个 Agent
+    - 并发创建
+    """
+    llm = await LLMService.get_one_llm()
+    tools = await ToolService.get_tools_data()
+
+    tasks = []
+
+    for tool in tools:
+        tool["name"] = tool["display_name"] + "助手"
+
+        agent = AgentTable(
+            **ToolTable(**tool).model_dump(exclude={"user_id", "tool_id"}),
+            tool_ids=[tool["tool_id"]],
+            user_id=SystemUser,
+            is_custom=False,
+            llm_id=llm.get("llm_id")
+        )
+
+        tasks.append(AgentDao.create_agent(agent))
+
+    await asyncio.gather(*tasks)
+
+    logger.success("Default agents initialized")
+
+async def _init_system_mcp_server():
+    """
+    初始化 MCP Server（仅首次）
+    """
+    try:
+        existing = await MCPService.get_all_servers(SystemUser)
+
+        if not existing:
+            await _update_mcp_server_into_mysql(False)
+
+        logger.success("MCP servers initialized")
+
+    except Exception as err:
+        logger.error(f"MCP init failed: {err}")
+
+
+async def _update_mcp_server_into_mysql(has_mcp_server: bool):
+    """
+    同步 MCP Server 到数据库（核心逻辑）
+
+    Args:
+        has_mcp_server:
+            True = 更新模式
+            False = 初始化模式
+    """
     if has_mcp_server:
-        # 超过七天才有更新MCP Server的策略
-        if await MCPService.mcp_server_need_update():
-            servers = await MCPService.get_all_servers(AdminUser)
-            logger.info("Updating MCP Server to the latest version in the database")
-        else:
+        if not await MCPService.mcp_server_need_update():
             return
-    else:
-        servers = await load_system_mcp_server()
 
-    servers_info = []
-    for server in servers:
-        servers_info.append({
-            "type": server["type"],
-            "url": server["url"],
-            "server_name": server["server_name"]
-        })
+        servers = await MCPService.get_all_servers(AdminUser)
+        logger.info("Updating MCP servers...")
+    else:
+        servers = await load_json("./agentchat/config/mcp_server.json")
+
+    servers_info = [
+        {
+            "type": s["type"],
+            "url": s["url"],
+            "server_name": s["server_name"]
+        }
+        for s in servers
+    ]
 
     mcp_manager = MCPManager(convert_mcp_config(servers_info))
     servers_params = await mcp_manager.show_mcp_tools()
 
-    # 通过MCP Server名称获取信息
-    async def get_config_from_server_name(server_name):
-        for server in servers:
-            if server["server_name"] == server_name:
-                return server
-        return None
+    semaphore = asyncio.Semaphore(5)
 
-    # 解析Params中的工具列表
-    async def get_tools_name_from_params(tools_params: dict):
-        tools_name = []
-        for tool in tools_params:
-            tools_name.append(tool["name"])
-        return tools_name
+    async def build_meta(server_name, params):
+        """
+        构建 MCP Tool 元信息（调用 LLM）
+        """
+        async with semaphore:
+            agent = StructuredResponseAgent(MCPResponseFormat)
 
-    for key, params in servers_params.items():
-        server = await get_config_from_server_name(key)
-        tools_name = await get_tools_name_from_params(params)
+            result = agent.get_structured_response(
+                McpAsToolPrompt.format(
+                    tools_info=json.dumps(params, indent=2)
+                )
+            )
+            return server_name, params, result
 
-        structured_agent = StructuredResponseAgent(MCPResponseFormat)
-        structured_response = structured_agent.get_structured_response(
-            McpAsToolPrompt.format(tools_info=json.dumps(params, indent=4)))
+    tasks = [
+        build_meta(name, params)
+        for name, params in servers_params.items()
+    ]
+
+    results = await asyncio.gather(*tasks)
+
+    for server_name, params, structured in results:
+        server = next((s for s in servers if s["server_name"] == server_name), None)
+
+        tools_name = [t["name"] for t in params]
 
         if has_mcp_server:
-            update_values = {
-                "tools": tools_name,
-                "params": params,
-                "mcp_as_tool_name": structured_response.mcp_as_tool_name,
-                "description": structured_response.description
-            }
             await MCPService.update_mcp_server(
                 server_id=server["mcp_server_id"],
-                update_data=update_values
+                update_data={
+                    "tools": tools_name,
+                    "params": params,
+                    "mcp_as_tool_name": structured.mcp_as_tool_name,
+                    "description": structured.description
+                }
             )
         else:
             await MCPService.create_mcp_server(
-                server_name=key,
+                server_name=server_name,
                 user_id=SystemUser,
                 user_name="Admin",
                 url=server["url"],
@@ -176,38 +293,33 @@ async def update_mcp_server_into_mysql(has_mcp_server: bool):
                 params=params,
                 config_enabled=server["config_enabled"],
                 logo_url=server["logo_url"],
-                mcp_as_tool_name=structured_response.mcp_as_tool_name,
-                description=structured_response.description,
+                mcp_as_tool_name=structured.mcp_as_tool_name,
+                description=structured.description,
             )
 
 async def upload_user_avatars_storage():
-    if not storage_client.list_files_in_folder("icons/user"):
-        user_avatars = await load_user_avatars()
-        for avatar_url in user_avatars["avatars"]:
-            # 从URL下载图片内容
-            async with httpx.AsyncClient() as client:
-                response = await client.get(avatar_url)
-                image_data = response.content
+    """上传默认用户头像到存储"""
+    if storage_client.list_files_in_folder("icons/user"):
+        return
 
-            # 提取文件名
-            file_name = avatar_url.split("/")[-1]
-            object_name = f"icons/user/{file_name}"
+    avatars = await load_json("./agentchat/config/avatars.json")
 
-            # 上传到OSS
-            storage_client.upload_file(object_name, image_data)
+    async with httpx.AsyncClient(timeout=10) as client:
+        tasks = [
+            _download_and_upload(client, url)
+            for url in avatars["avatars"]
+        ]
+        await asyncio.gather(*tasks)
 
-async def load_default_tool():
-    with open("./agentchat/config/tool.json", "r", encoding="utf-8") as f:
-        result = json.load(f)
-    return result
+    logger.success("User avatars uploaded")
 
 
-async def load_system_mcp_server():
-    with open("./agentchat/config/mcp_server.json", "r", encoding="utf-8") as f:
-        result = json.load(f)
-    return result
+async def _download_and_upload(client, url):
+    """下载图片并上传到存储"""
+    resp = await client.get(url)
+    file_name = url.split("/")[-1]
 
-async def load_user_avatars():
-    with open("./agentchat/config/avatars.json", "r", encoding="utf-8") as f:
-        result = json.load(f)
-    return result
+    storage_client.upload_file(
+        f"icons/user/{file_name}",
+        resp.content
+    )

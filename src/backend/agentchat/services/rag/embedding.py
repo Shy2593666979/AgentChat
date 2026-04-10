@@ -1,20 +1,18 @@
 import asyncio
 from typing import Union, List
-
-from openai import AsyncOpenAI
-from agentchat.settings import app_settings, initialize_app_settings
-
-embedding_model = app_settings.multi_models.embedding.model_name
-embedding_client = AsyncOpenAI(base_url=app_settings.multi_models.embedding.base_url,
-                               api_key=app_settings.multi_models.embedding.api_key)
+from agentchat.core.models.manager import ModelManager
+from agentchat.settings import app_settings
 
 async def get_embedding(query: Union[str, List[str]]):
+    embedding_client = ModelManager.get_embedding_openai_model()
+
     # 如果是字符串或长度小于等于10的列表，直接处理
     if isinstance(query, str) or (isinstance(query, list) and len(query) <= 10):
         responses = await embedding_client.embeddings.create(
-            model=embedding_model,
+            model=app_settings.multi_models.embedding.model_name,
             input=query,
-            encoding_format="float")
+            encoding_format="float"
+        )
 
         if isinstance(query, str):
             return responses.data[0].embedding
@@ -27,9 +25,10 @@ async def get_embedding(query: Union[str, List[str]]):
     async def process_batch(batch):
         async with semaphore:
             responses = await embedding_client.embeddings.create(
-                model=embedding_model,
+                model=app_settings.multi_models.embedding.model_name,
                 input=batch,
-                encoding_format="float")
+                encoding_format="float"
+            )
             return [response.embedding for response in responses.data]
 
     # 将查询分成每组10条
@@ -43,7 +42,3 @@ async def get_embedding(query: Union[str, List[str]]):
     return [embedding for batch_result in results for embedding in batch_result]
 
 
-if __name__ == "__main__":
-    asyncio.run(initialize_app_settings("../../config.yaml"))
-
-    asyncio.run(get_embedding(["大模型"]))

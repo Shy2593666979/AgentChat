@@ -81,6 +81,23 @@ class LLMService:
         return llms[0].to_dict() if llms else None
 
     @classmethod
+    async def select_first_llm(cls):
+        llm = await LLMDao.select_first_llm()
+        return llm
+
+    @classmethod
+    async def update_first_llm(
+        cls,
+        *,
+        llm_id: str,
+        model: str,
+        provider: str,
+        api_key: str,
+        base_url: str
+    ):
+        return await LLMDao.update_first_llm(llm_id, model, provider, api_key, base_url)
+
+    @classmethod
     async def get_llm_type(cls):
         llms = await LLMDao.get_llm_by_type('LLM')
         return [llm.to_dict() for llm in llms]
