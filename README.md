@@ -86,6 +86,10 @@
 
 ---
 
+<div align="center">
+<img width="800" height="450" alt="06ad6d58-eda6-46d2-96b4-422f85b2b574" src="https://github.com/user-attachments/assets/f35e8a9a-0905-46a2-a167-a3c8e876760a" />
+</div>
+
 ## 📋 目录
 
 - [🎯 项目简介](#-项目简介)
