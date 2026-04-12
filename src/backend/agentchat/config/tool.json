@@ -31,13 +31,13 @@
   },
   {
     "name": "convert_to_pdf",
-    "display_name": "文件格式转换 (Docx -> PDF)",
+    "display_name": "Docx转PDF",
     "description": "帮助用户将上传的Docx文件转成PDF文件",
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/pdf.png"
   },
   {
     "name": "convert_to_docx",
-    "display_name": "文件格式转换 (PDF -> Docx)",
+    "display_name": "PDF转Docx",
     "description": "帮助用户将上传的PDF文件转成Docx文件",
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/tools/docx.png"
   },
