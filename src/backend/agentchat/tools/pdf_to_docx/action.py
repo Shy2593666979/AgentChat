@@ -8,7 +8,7 @@ from agentchat.utils.file_utils import get_object_name_from_aliyun_url, get_save
 from agentchat.utils.helpers import get_now_beijing_time
 
 
-@tool(parse_docstring=True)
+@tool("pdf_to_docx", parse_docstring=True)
 def convert_to_docx(file_url: str):
     """
     将用户上传的 PDF 文件链接转换为 DOCX 文件链接。

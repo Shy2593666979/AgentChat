@@ -6,8 +6,8 @@ from agentchat.tools.arxiv.action import get_arxiv
 from agentchat.tools.get_weather.action import get_weather
 from agentchat.tools.delivery.action import get_delivery_info
 from agentchat.tools.text2image.action import text_to_image
-from agentchat.tools.convert_to_pdf.action import convert_to_pdf
-from agentchat.tools.convert_to_docx.action import convert_to_docx
+from agentchat.tools.docx_to_pdf.action import convert_to_pdf
+from agentchat.tools.pdf_to_docx.action import convert_to_docx
 from agentchat.tools.image2text.action import image_to_text
 
 
@@ -34,8 +34,8 @@ AgentToolsWithName = {
     "get_delivery_info": get_delivery_info,
     "text_to_image": text_to_image,
     "image_to_text": image_to_text,
-    "convert_to_pdf": convert_to_pdf,
-    "convert_to_docx": convert_to_docx,
+    "docx_to_pdf": convert_to_pdf,
+    "pdf_to_docx": convert_to_docx,
     "bocha_search": bocha_search,
 }
 

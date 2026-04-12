@@ -43,7 +43,7 @@ def get_file_type(file_name):
 def reset_file_name(file_name):
     file_type = get_file_type(file_name)
 
-    return f"{os.path.splitext(file_name)[0]}_{str(uuid4().hex)[:10]}.{file_type}"
+    return f"{"_".join(file_name.split(".")[:-1])}_{str(uuid4().hex)[:10]}.{file_type}"
 
 async def save_upload_file(upload_file):
     # 创建临时文件夹
