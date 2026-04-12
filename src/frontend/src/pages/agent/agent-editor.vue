@@ -57,7 +57,7 @@ const formData = reactive<AgentFormData>({
 // 折叠面板状态
 const collapseItems = ref({
   basic: false,
-  aiModel: false,
+  aiModel: true,
   memory: false,
   knowledge: false,
   tools: false,
@@ -359,6 +359,10 @@ const loadLLMOptions = async () => {
       
       console.log(`✅ 成功加载 ${llmOptions.value.length} 个大模型`)
       console.log('🧠 处理后的大模型数据:', llmOptions.value)
+      // 新建模式下默认选第一个
+      if (!isEditing.value && !formData.llm_id && llmOptions.value.length > 0) {
+        formData.llm_id = llmOptions.value[0].llm_id
+      }
     } else {
       console.error('❌ 大模型API返回错误:', response.data.status_message)
       ElMessage.error(`加载大模型失败: ${response.data.status_message}`)
@@ -667,7 +671,7 @@ onMounted(async () => {
   await initializeData()
   console.log('✅ 选项数据加载完成')
   
-  // 确保所有选项数据都加载完成后，再加载智能体数据
+  // 確保所有選項數據都加載完成後，再加載智能體數據
   const agentId = route.query.id as string
   if (agentId) {
     console.log('🔄 开始加载智能体数据，ID:', agentId, '类型:', typeof agentId)
@@ -676,6 +680,10 @@ onMounted(async () => {
     console.log('🆕 创建新智能体模式')
     // 创建模式下，清空表单并设置默认值
     loadAgent()
+    // 确保默认选中第一个模型
+    if (!formData.llm_id && llmOptions.value.length > 0) {
+      formData.llm_id = llmOptions.value[0].llm_id
+    }
   }
   
 
@@ -687,25 +695,6 @@ defineExpose({ loadAgent })
 <template>
   <div class="agent-editor">
     <!-- 顶部工具栏 -->
-    <div class="editor-header">
-      <div class="header-left">
-        <el-button @click="goBack" :icon="ArrowLeft" circle title="返回列表" class="back-btn"></el-button>
-        <div class="header-info">
-          <el-icon class="header-icon"><Edit /></el-icon>
-          <span class="header-title">{{ isEditing ? '编辑智能体' : '创建智能体' }}</span>
-          <div class="header-tags">
-            <el-tag v-if="formData.name" type="primary" size="small" effect="dark">{{ formData.name }}</el-tag>
-          </div>
-        </div>
-      </div>
-      <div class="header-actions">
-        <el-button @click="goBack" :disabled="loading" class="cancel-btn">取消</el-button>
-        <el-button @click="saveAgent" type="primary" :loading="loading" :icon="Check" class="save-btn">
-          {{ isEditing ? '保存更改' : '创建智能体' }}
-        </el-button>
-      </div>
-    </div>
-
     <!-- 三栏布局主体 -->
     <div class="editor-body">
       <!-- 左侧：系统提示词编辑器 -->
@@ -713,32 +702,63 @@ defineExpose({ loadAgent })
         <div class="panel-header">
           <div class="header-content">
             <el-icon class="panel-icon"><DocumentCopy /></el-icon>
-            <span class="panel-title">系统提示词</span>
-            <span class="panel-subtitle">定义智能体的角色和行为</span>
+            <span class="panel-title">智能体画像</span>
           </div>
-
         </div>
         
         <div class="panel-content">
+          <!-- 基础信息 -->
+          <div class="basic-info-section">
+            <div class="basic-info-layout">
+              <!-- 头像 -->
+              <el-upload
+                v-model:file-list="fileList"
+                class="avatar-uploader"
+                action="#"
+                :show-file-list="false"
+                :auto-upload="false"
+                :on-change="handleFileChange"
+                :on-remove="handleFileRemove"
+              >
+                <div class="avatar-wrapper">
+                  <img v-if="formData.logo_url" :src="formData.logo_url" class="avatar" />
+                  <div v-else class="avatar-placeholder">
+                    <el-icon class="avatar-icon"><Plus /></el-icon>
+                    <span class="avatar-text">上传</span>
+                  </div>
+                </div>
+              </el-upload>
+
+              <!-- 名称 + 描述 -->
+              <div class="basic-info-fields">
+                <div class="field-with-label">
+                  <span class="field-label"><span class="required-mark">*</span>名称：</span>
+                  <el-input v-model="formData.name" placeholder="" class="form-input name-input" />
+                </div>
+                <div class="field-with-label field-with-label--textarea">
+                  <span class="field-label">描述：</span>
+                  <el-input
+                    v-model="formData.description"
+                    type="textarea"
+                    :rows="2"
+                    placeholder=""
+                    class="form-textarea"
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- 系统提示词 -->
           <div class="prompt-editor-wrapper">
+            <div class="prompt-label">系统提示词：</div>
             <el-input
               v-model="formData.system_prompt"
               type="textarea"
-              :rows="25"
+              :rows="13"
               placeholder="请输入系统提示词，定义智能体的角色、能力和行为规范..."
               class="prompt-editor"
             />
-            
-            <div class="prompt-info">
-              <div class="info-item">
-                <span class="info-label">字符数:</span>
-                <span class="info-value">{{ formData.system_prompt.length }}</span>
-              </div>
-              <div class="info-item">
-                <span class="info-label">行数:</span>
-                <span class="info-value">{{ formData.system_prompt.split('\n').length }}</span>
-              </div>
-            </div>
           </div>
         </div>
       </div>
@@ -748,64 +768,18 @@ defineExpose({ loadAgent })
         <div class="panel-header">
           <div class="header-content">
             <el-icon class="panel-icon"><Setting /></el-icon>
-            <span class="panel-title">智能体配置</span>
-            <span class="panel-subtitle">设置基本信息和能力</span>
+            <span class="panel-title">基础配置</span>
+          </div>
+          <div class="panel-actions">
+            <el-button @click="goBack" :disabled="loading" class="cancel-btn">取消</el-button>
+            <el-button @click="saveAgent" type="primary" :loading="loading" :icon="Check" class="save-btn">
+              {{ isEditing ? '保存更改' : '创建智能体' }}
+            </el-button>
           </div>
         </div>
         
         <div class="panel-content">
           <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" class="config-form">
-            <!-- 基础信息 -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('basic')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.basic" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>基础信息</span>
-                </div>
-                <div class="section-badge">
-                  <el-tag size="small" type="info" effect="plain">必填</el-tag>
-                </div>
-              </div>
-              <div v-show="collapseItems.basic" class="section-content">
-                <el-form-item label="头像" class="avatar-item">
-                  <el-upload
-                    v-model:file-list="fileList"
-                    class="avatar-uploader"
-                    action="#"
-                    :show-file-list="false"
-                    :auto-upload="false"
-                    :on-change="handleFileChange"
-                    :on-remove="handleFileRemove"
-                  >
-                    <div class="avatar-wrapper">
-                      <img v-if="formData.logo_url" :src="formData.logo_url" class="avatar" />
-                      <div v-else class="avatar-placeholder">
-                        <el-icon class="avatar-icon"><Plus /></el-icon>
-                        <span class="avatar-text">上传头像</span>
-                      </div>
-                    </div>
-                  </el-upload>
-                </el-form-item>
-                
-                <el-form-item label="名称" prop="name">
-                  <el-input v-model="formData.name" placeholder="请输入智能体名称" class="form-input" />
-                </el-form-item>
-                
-                <el-form-item label="描述" prop="description">
-                  <el-input
-                    v-model="formData.description"
-                    type="textarea"
-                    :rows="3"
-                    placeholder="请输入智能体描述"
-                    class="form-textarea"
-                  />
-                </el-form-item>
-              </div>
-            </div>
-
             <!-- AI模型 -->
             <div class="config-section">
               <div class="section-header" @click="toggleCollapse('aiModel')">
@@ -832,8 +806,8 @@ defineExpose({ loadAgent })
                     reserve-keyword
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.llm" style="color: #1d4ed8; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
-                      <span v-else style="color: #1d4ed8; font-size: 12px; font-weight: 600;">🤖 {{ llmOptions.length }}个模型</span>
+                      <span v-if="dataLoading.llm" style="color: #1d4ed8; font-size: 12px; font-weight: 500;">加载中...</span>
+                      <span v-else style="color: #1d4ed8; font-size: 12px; font-weight: 600;"><img src="/src/assets/model.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ llmOptions.length }}个模型</span>
                     </template>
                     <el-option
                       v-for="llm in llmOptions"
@@ -842,7 +816,7 @@ defineExpose({ loadAgent })
                       :value="llm.llm_id"
                     >
                       <div class="custom-option">
-                        <span class="option-icon">🤖</span>
+                        <img src="/src/assets/model.svg" class="option-logo" alt="AI Model" />
                         <span class="option-name">{{ llm.name }}</span>
                         <span class="option-badge ai-badge">AI</span>
                       </div>
@@ -902,7 +876,6 @@ defineExpose({ loadAgent })
                   <span>知识库</span>
                 </div>
                 <div class="section-badge">
-                  <el-badge :value="formData.knowledge_ids.length" class="badge" />
                 </div>
               </div>
               <div v-show="collapseItems.knowledge" class="section-content">
@@ -920,8 +893,8 @@ defineExpose({ loadAgent })
                     :max-collapse-tags="2"
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.knowledge" style="color: #15803d; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
-                      <span v-else style="color: #15803d; font-size: 12px; font-weight: 600;">📚 {{ knowledgeOptions.length }}个知识库</span>
+                      <span v-if="dataLoading.knowledge" style="color: #15803d; font-size: 12px; font-weight: 500;">加载中...</span>
+                      <span v-else style="color: #15803d; font-size: 12px; font-weight: 600;"><img src="/src/assets/knowledge.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ knowledgeOptions.length }}个知识库</span>
                     </template>
                     <el-option
                       v-for="knowledge in knowledgeOptions"
@@ -930,7 +903,7 @@ defineExpose({ loadAgent })
                       :value="knowledge.knowledge_id"
                     >
                       <div class="custom-option">
-                        <span class="option-icon">{{ knowledge.icon || '📚' }}</span>
+                        <img src="/src/assets/knowledge.svg" class="option-logo" :alt="knowledge.name" />
                         <span class="option-name">{{ knowledge.name }}</span>
                         <span class="option-badge kb-badge">KB</span>
                       </div>
@@ -951,7 +924,6 @@ defineExpose({ loadAgent })
                   <span>工具</span>
                 </div>
                 <div class="section-badge">
-                  <el-badge :value="formData.tool_ids.length" class="badge" />
                 </div>
               </div>
               <div v-show="collapseItems.tools" class="section-content">
@@ -969,8 +941,8 @@ defineExpose({ loadAgent })
                     :max-collapse-tags="3"
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.tool" style="color: #c2410c; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
-                      <span v-else style="color: #c2410c; font-size: 12px; font-weight: 600;">🔧 {{ toolOptions.length }}个工具</span>
+                      <span v-if="dataLoading.tool" style="color: #c2410c; font-size: 12px; font-weight: 500;">加载中...</span>
+                      <span v-else style="color: #c2410c; font-size: 12px; font-weight: 600;"><img src="/src/assets/plugin.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ toolOptions.length }}个工具</span>
                     </template>
                     <el-option
                       v-for="tool in toolOptions"
@@ -979,7 +951,7 @@ defineExpose({ loadAgent })
                       :value="tool.tool_id"
                     >
                       <div class="custom-option">
-                        <img :src="tool.logo_url || '/src/assets/tool/default.png'" class="option-logo" :alt="tool.name" />
+                        <img :src="tool.logo_url || '/src/assets/plugin.svg'" class="option-logo" :alt="tool.name" />
                         <span class="option-name">{{ tool.name }}</span>
                         <span class="option-badge tool-badge">TOOL</span>
                       </div>
@@ -1000,7 +972,6 @@ defineExpose({ loadAgent })
                   <span>MCP</span>
                 </div>
                 <div class="section-badge">
-                  <el-badge :value="formData.mcp_ids.length" class="badge" />
                 </div>
               </div>
               <div v-show="collapseItems.mcp" class="section-content">
@@ -1018,8 +989,8 @@ defineExpose({ loadAgent })
                     :max-collapse-tags="2"
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.mcp" style="color: #7c2d12; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
-                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;">⚡ {{ mcpOptions.length }}个服务</span>
+                      <span v-if="dataLoading.mcp" style="color: #7c2d12; font-size: 12px; font-weight: 500;">加载中...</span>
+                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;"><img src="/src/assets/mcp.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ mcpOptions.length }}个服务</span>
                     </template>
                     <el-option
                       v-for="mcp in mcpOptions"
@@ -1028,7 +999,7 @@ defineExpose({ loadAgent })
                       :value="mcp.mcp_server_id"
                     >
                       <div class="custom-option">
-                        <img :src="mcp.logo_url || '/src/assets/robot.svg'" class="option-logo" :alt="mcp.name" />
+                        <img :src="mcp.logo_url || '/src/assets/mcp.svg'" class="option-logo" :alt="mcp.name" />
                         <span class="option-name">{{ mcp.name }}</span>
                         <span class="option-badge mcp-badge">MCP</span>
                       </div>
@@ -1049,7 +1020,6 @@ defineExpose({ loadAgent })
                   <span>技能（Skill）</span>
                 </div>
                 <div class="section-badge">
-                  <el-badge :value="formData.agent_skill_ids.length" class="badge" />
                 </div>
               </div>
               <div v-show="collapseItems.skills" class="section-content">
@@ -1067,8 +1037,8 @@ defineExpose({ loadAgent })
                     :max-collapse-tags="2"
                   >
                     <template #prefix>
-                      <span v-if="dataLoading.agentSkill" style="color: #7c2d12; font-size: 12px; font-weight: 500;">🔄 加载中...</span>
-                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;">🎯 {{ agentSkillOptions.length }}个技能</span>
+                      <span v-if="dataLoading.agentSkill" style="color: #7c2d12; font-size: 12px; font-weight: 500;">加载中...</span>
+                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;"><img src="/src/assets/skill.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ agentSkillOptions.length }}个技能</span>
                     </template>
                     <el-option
                       v-for="skill in agentSkillOptions"
@@ -1115,122 +1085,12 @@ defineExpose({ loadAgent })
     z-index: 0;
   }
 
-  .editor-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px 40px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(20px);
-    border-bottom: 1px solid rgba(226, 232, 240, 0.3);
-    box-shadow: 0 8px 32px rgba(99, 102, 241, 0.08);
-    position: relative;
-    z-index: 10;
-
-    .header-left {
-      display: flex;
-      align-items: center;
-      gap: 16px;
-
-      .back-btn {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        border: none;
-        color: white;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.2);
-        
-        &:hover {
-          transform: translateX(-3px) translateY(-1px);
-          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-          background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
-        }
-        
-        &:active {
-          transform: translateX(-1px) translateY(0px);
-        }
-      }
-
-      .header-info {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-
-        .header-icon {
-          color: #6366f1;
-          font-size: 26px;
-          filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
-        }
-
-        .header-title {
-          font-size: 22px;
-          font-weight: 700;
-          background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          letter-spacing: -0.025em;
-          text-shadow: 0 2px 4px rgba(99, 102, 241, 0.1);
-        }
-
-        .header-tags {
-          display: flex;
-          gap: 8px;
-        }
-      }
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 12px;
-
-      .cancel-btn {
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        color: #64748b;
-        background: rgba(255, 255, 255, 0.9);
-        backdrop-filter: blur(10px);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 12px;
-        padding: 12px 24px;
-        font-weight: 500;
-        
-        &:hover {
-          border-color: #6366f1;
-          color: #6366f1;
-          background: rgba(255, 255, 255, 1);
-          box-shadow: 0 4px 16px rgba(99, 102, 241, 0.1);
-          transform: translateY(-1px);
-        }
-      }
-
-      .save-btn {
-        background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-        border: none;
-        font-weight: 600;
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        border-radius: 12px;
-        padding: 12px 28px;
-        box-shadow: 0 4px 16px rgba(99, 102, 241, 0.3);
-        
-        &:hover {
-          transform: translateY(-2px);
-          box-shadow: 0 12px 32px rgba(99, 102, 241, 0.5);
-          background: linear-gradient(135deg, #5b21b6 0%, #7c3aed 100%);
-        }
-        
-        &:active {
-          transform: translateY(-1px);
-          box-shadow: 0 8px 24px rgba(99, 102, 241, 0.4);
-        }
-      }
-    }
-  }
-
   .editor-body {
     display: flex;
     flex: 1;
     overflow: hidden;
-    gap: 24px;
-    padding: 24px 40px 40px;
+    gap: 0;
+    padding: 0;
     position: relative;
     z-index: 5;
 
@@ -1240,12 +1100,10 @@ defineExpose({ loadAgent })
       flex-direction: column;
       background: rgba(255, 255, 255, 0.9);
       backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
-      border-radius: 24px;
-      box-shadow: 
-        0 8px 32px rgba(99, 102, 241, 0.1),
-        0 1px 3px rgba(0, 0, 0, 0.05),
-        inset 0 1px 0 rgba(255, 255, 255, 0.5);
+      border: none;
+      border-right: 1px solid rgba(226, 232, 240, 0.4);
+      border-radius: 0;
+      box-shadow: none;
       overflow: hidden;
       position: relative;
       
@@ -1263,7 +1121,9 @@ defineExpose({ loadAgent })
         display: flex;
         align-items: center;
         justify-content: space-between;
-        padding: 24px 28px;
+        padding: 16px 24px;
+        height: 64px;
+        box-sizing: border-box;
         background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
         border-bottom: 1px solid rgba(226, 232, 240, 0.3);
         position: relative;
@@ -1280,32 +1140,64 @@ defineExpose({ loadAgent })
 
         .header-content {
           display: flex;
-          flex-direction: column;
-          gap: 4px;
+          flex-direction: row;
+          align-items: center;
+          gap: 10px;
 
           .panel-icon {
             color: #6366f1;
-            font-size: 22px;
-            margin-bottom: 4px;
+            font-size: 20px;
             filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.15));
+            flex-shrink: 0;
           }
 
           .panel-title {
-            font-size: 18px;
+            font-size: 16px;
             font-weight: 700;
             color: #1e293b;
             letter-spacing: -0.025em;
           }
-
-          .panel-subtitle {
-            font-size: 13px;
-            color: #64748b;
-            font-weight: 500;
-            margin-top: 2px;
-          }
         }
 
+        .panel-actions {
+          display: flex;
+          gap: 10px;
+          align-items: center;
 
+          .cancel-btn {
+            border: 1px solid rgba(226, 232, 240, 0.8);
+            color: #64748b;
+            background: rgba(255, 255, 255, 0.9);
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            font-weight: 500;
+            height: 34px;
+            padding: 0 16px;
+            font-size: 13px;
+
+            &:hover {
+              border-color: #6366f1;
+              color: #6366f1;
+            }
+          }
+
+          .save-btn {
+            background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
+            border: none;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            border-radius: 10px;
+            height: 34px;
+            padding: 0 18px;
+            font-size: 13px;
+            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
+
+            &:hover {
+              transform: translateY(-1px);
+              box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
+            }
+          }
+        }
       }
 
       .panel-content {
@@ -1319,7 +1211,135 @@ defineExpose({ loadAgent })
     .left-panel {
       width: 50%;
 
+      .basic-info-section {
+        margin-bottom: 20px;
+        padding-bottom: 20px;
+        border-bottom: 1px solid rgba(226, 232, 240, 0.4);
+
+        .basic-info-layout {
+          display: flex;
+          gap: 16px;
+          align-items: flex-start;
+
+          .avatar-uploader {
+            flex-shrink: 0;
+
+            :deep(.el-upload) {
+              border: 2px dashed rgba(99, 102, 241, 0.25);
+              border-radius: 12px;
+              cursor: pointer;
+              overflow: hidden;
+              transition: all 0.3s ease;
+              width: 72px;
+              height: 72px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+              background: linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.9) 100%);
+
+              &:hover {
+                border-color: #6366f1;
+                background: rgba(239, 246, 255, 0.9);
+                transform: scale(1.03);
+              }
+            }
+
+            .avatar-wrapper {
+              width: 72px;
+              height: 72px;
+              display: flex;
+              align-items: center;
+              justify-content: center;
+
+              .avatar {
+                width: 72px;
+                height: 72px;
+                object-fit: cover;
+                border-radius: 10px;
+              }
+
+              .avatar-placeholder {
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                gap: 4px;
+
+                .avatar-icon {
+                  font-size: 20px;
+                  color: #6366f1;
+                }
+
+                .avatar-text {
+                  font-size: 11px;
+                  color: #94a3b8;
+                  font-weight: 500;
+                }
+              }
+            }
+          }
+
+          .basic-info-fields {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+
+            .field-with-label {
+              display: flex;
+              align-items: center;
+              gap: 8px;
+
+              &--textarea {
+                align-items: flex-start;
+
+                .field-label {
+                  margin-top: 8px;
+                }
+              }
+
+              .field-label {
+                font-size: 13px;
+                font-weight: 600;
+                color: #475569;
+                white-space: nowrap;
+                width: 36px;
+                text-align: right;
+                flex-shrink: 0;
+                position: relative;
+
+                .required-mark {
+                  color: #ef4444;
+                  position: absolute;
+                  left: -10px;
+                  top: 0;
+                }
+              }
+
+              .form-input,
+              .form-textarea {
+                flex: 1;
+              }
+            }
+
+            .name-input {
+              :deep(.el-input__inner) {
+                font-size: 15px;
+                font-weight: 600;
+                color: #1e293b;
+              }
+            }
+          }
+        }
+      }
+
       .prompt-editor-wrapper {
+        .prompt-label {
+          font-size: 13px;
+          font-weight: 600;
+          color: #475569;
+          margin-bottom: 8px;
+        }
+
         .prompt-editor {
           :deep(.el-textarea__inner) {
             font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'SF Mono', monospace;
@@ -1416,7 +1436,7 @@ defineExpose({ loadAgent })
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 18px 24px;
+            padding: 22px 24px;
             background: linear-gradient(135deg, rgba(248, 250, 252, 0.6) 0%, rgba(241, 245, 249, 0.6) 100%);
             cursor: pointer;
             user-select: none;
@@ -1456,7 +1476,7 @@ defineExpose({ loadAgent })
               span {
                 font-weight: 700;
                 color: #1e293b;
-                font-size: 15px;
+                font-size: 16px;
                 letter-spacing: -0.025em;
               }
             }
@@ -1469,7 +1489,7 @@ defineExpose({ loadAgent })
           }
 
           .section-content {
-            padding: 24px;
+            padding: 28px;
             background: rgba(255, 255, 255, 0.5);
             backdrop-filter: blur(5px);
 
@@ -1478,76 +1498,6 @@ defineExpose({ loadAgent })
 
               &:last-child {
                 margin-bottom: 0;
-              }
-            }
-          }
-        }
-      }
-
-      .avatar-item {
-        .avatar-uploader {
-          :deep(.el-upload) {
-            border: 2px dashed rgba(226, 232, 240, 0.6);
-            border-radius: 16px;
-            cursor: pointer;
-            position: relative;
-            overflow: hidden;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            width: 88px;
-            height: 88px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
-            backdrop-filter: blur(10px);
-            box-shadow: 
-              0 2px 8px rgba(0, 0, 0, 0.02),
-              inset 0 1px 0 rgba(255, 255, 255, 0.5);
-
-            &:hover {
-              border-color: rgba(99, 102, 241, 0.5);
-              background: linear-gradient(135deg, rgba(239, 246, 255, 0.9) 0%, rgba(219, 234, 254, 0.9) 100%);
-              transform: translateY(-3px) scale(1.02);
-              box-shadow: 
-                0 8px 24px rgba(99, 102, 241, 0.15),
-                inset 0 1px 0 rgba(255, 255, 255, 0.7);
-            }
-          }
-
-          .avatar-wrapper {
-            width: 100%;
-            height: 100%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-
-            .avatar {
-              width: 100%;
-              height: 100%;
-              object-fit: cover;
-              border-radius: 14px;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            }
-
-            .avatar-placeholder {
-              display: flex;
-              flex-direction: column;
-              align-items: center;
-              gap: 6px;
-
-              .avatar-icon {
-                font-size: 28px;
-                color: #6366f1;
-                filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.2));
-                transition: all 0.3s ease;
-              }
-
-              .avatar-text {
-                font-size: 11px;
-                color: #64748b;
-                font-weight: 600;
-                letter-spacing: 0.025em;
-                text-transform: uppercase;
               }
             }
           }
@@ -1740,64 +1690,15 @@ defineExpose({ loadAgent })
 
 
 // 响应式适配
-@media (max-width: 1400px) {
-  .agent-editor .editor-body {
-    .left-panel {
-      width: 50%;
-    }
-    .center-panel {
-      width: 50%;
-    }
-  }
-}
-
-@media (max-width: 1200px) {
-  .agent-editor .editor-body {
-    flex-direction: column;
-    gap: 16px;
-    padding: 16px;
-    
-    .left-panel,
-    .center-panel {
-      width: 100%;
-      height: auto;
-      min-height: 400px;
-    }
-  }
-  
-  .agent-editor .editor-header {
-    padding: 16px 20px;
-    
-    .header-left .header-info .header-title {
-      font-size: 18px;
-    }
-  }
-}
-
 @media (max-width: 768px) {
   .agent-editor {
-    .editor-header {
-      flex-direction: column;
-      gap: 16px;
-      align-items: stretch;
-      padding: 16px;
-      
-      .header-left {
-        justify-content: center;
-      }
-      
-      .header-actions {
-        justify-content: center;
-      }
-    }
-    
     .editor-body {
-      padding: 12px;
-      
       .left-panel,
       .center-panel {
         .panel-header {
-          padding: 16px;
+          padding: 12px 16px;
+          flex-wrap: wrap;
+          gap: 8px;
         }
         
         .panel-content {
