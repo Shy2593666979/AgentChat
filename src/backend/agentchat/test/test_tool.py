@@ -19,18 +19,18 @@ functions = [
             "name": "EmailAgent",
             "description": "根据参数进行发送邮件",
             "parameters": {
-                "schema": "object",
+                "schemas": "object",
                 "properties": {
                     "sender": {
-                        "schema": "string",
+                        "schemas": "string",
                         "description": "输入发件人的QQ邮箱，用户不提就置空",
                     },
                     "receiver": {
-                        "schema": "string",
+                        "schemas": "string",
                         "description": "输入您收件人的QQ邮箱，用户不提就置空"
                     },
                     "emailMessage": {
-                        "schema": "string",
+                        "schemas": "string",
                         "description":"输入您想要发送的信息，用户不提就置空"
                     }
                 },
@@ -46,11 +46,11 @@ functions = [
 #             "name": "",
 #             "description": "了解天气",
 #             "parameters": {
-#                 "schema": "object",
+#                 "schemas": "object",
 #                 "properties": {
  
 #                     "location": {
-#                         "schema": "string",
+#                         "schemas": "string",
 #                         "description": "输入您想要了解天气的位置。 示例：东京",
 #                     },
 #                 },

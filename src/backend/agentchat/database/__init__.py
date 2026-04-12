@@ -12,7 +12,6 @@ from agentchat.database.models.tool import ToolTable
 from agentchat.database.models.dialog import DialogTable
 from agentchat.database.models.mcp_server import MCPServerTable, MCPServerStdioTable
 from agentchat.database.models.mcp_user_config import MCPUserConfigTable
-from agentchat.database.models.mcp_agent import MCPAgentTable
 from agentchat.database.models.user_role import UserRole
 from agentchat.database.models.llm import LLMTable
 from agentchat.database.models.message import MessageDownTable, MessageLikeTable
@@ -20,6 +19,9 @@ from agentchat.database.models.role import Role
 from agentchat.database.models.workspace_session import WorkSpaceSession
 from agentchat.database.models.usage_stats import UsageStats
 from agentchat.database.models.agent_skill import AgentSkill
+from agentchat.database.models.register_mcp import RegisterMcpServer
+from agentchat.database.models.register_task import RegisterMcpTask
+from agentchat.database.models.register_mcp_tool import RegisterMcpTool
 from agentchat.settings import app_settings
 
 

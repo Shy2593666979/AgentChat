@@ -10,7 +10,7 @@ from langgraph.prebuilt.tool_node import ToolCallRequest
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.core.models.manager import ModelManager
 from agentchat.database import AgentSkill
-from agentchat.schema.agent_skill import AgentSkillFolder, AgentSkillFile
+from agentchat.schemas.agent_skill import AgentSkillFolder, AgentSkillFile
 
 
 class SkillAgent:

@@ -831,6 +831,7 @@ onMounted(async () => {
 
   .content {
     flex: 1;
+    min-height: 0;
     background-color: #ffffff;
     border-radius: 0;
     margin: 0;

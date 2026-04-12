@@ -6,7 +6,7 @@ from starlette.responses import StreamingResponse
 
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.prompts.mars import Mars_System_Prompt
-from agentchat.schema.usage_stats import UsageStatsAgentType
+from agentchat.schemas.usage_stats import UsageStatsAgentType
 from agentchat.services.mars.mars_agent import MarsAgent, MarsConfig
 from agentchat.services.mars.mars_tools.autobuild import construct_auto_build_prompt
 from agentchat.services.memory.client import memory_client

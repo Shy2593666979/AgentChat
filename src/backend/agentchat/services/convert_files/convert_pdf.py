@@ -102,7 +102,7 @@ def get_libreoffice_command():
 if __name__ == "__main__":
     if len(sys.argv) < 2:
         logger.error("请提供一个要转换的文件路径。")
-        logger.info("示例: python convert_to_pdf.py example.docx")
+        logger.info("示例: python docx_to_pdf.py example.docx")
         sys.exit(1)
 
     file_path = sys.argv[1]

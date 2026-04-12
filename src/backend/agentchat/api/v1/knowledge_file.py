@@ -1,12 +1,12 @@
 import os
 from urllib.parse import urlparse
-from fastapi import FastAPI, APIRouter, Body, Depends, Query
+from fastapi import APIRouter, Body, Depends, Query
 
 from agentchat.services.storage import storage_client
 from agentchat.api.services.knowledge_file import KnowledgeFileService
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.user import get_login_user, UserPayload
-from agentchat.schema.schemas import UnifiedResponseModel, resp_200, resp_500
+from agentchat.api.responses.builder import UnifiedResponseModel, resp_200, resp_500
 from agentchat.utils.file_utils import get_save_tempfile
 
 router = APIRouter(tags=["Knowledge-File"])

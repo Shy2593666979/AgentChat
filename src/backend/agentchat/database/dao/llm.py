@@ -126,3 +126,26 @@ class LLMDao:
 
             result = await session.exec(statement)
             return result.all()
+
+    @classmethod
+    async def select_first_llm(cls) -> LLMTable | None:
+        async with async_session_getter() as session:
+            statement = select(LLMTable).where(
+                LLMTable.user_id ==SystemUser
+            ).order_by(
+                LLMTable.create_time
+            )
+            result = await session.exec(statement)
+            return result.one_or_none()
+
+    @classmethod
+    async def update_first_llm(cls, llm_id, model, provider, api_key, base_url):
+        async with async_session_getter() as session:
+            db_llm = await session.get(LLMTable, llm_id)
+            db_llm.model = model
+            db_llm.provider = provider
+            db_llm.api_key = api_key
+            db_llm.base_url = base_url
+
+            await session.commit()
+            await session.refresh(db_llm)

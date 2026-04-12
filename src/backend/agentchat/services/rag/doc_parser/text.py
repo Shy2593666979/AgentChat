@@ -2,7 +2,7 @@ import os
 from uuid import uuid4
 from datetime import datetime, timedelta
 
-from agentchat.schema.chunk import ChunkModel
+from agentchat.schemas.chunk import ChunkModel
 from agentchat.settings import app_settings
 
 class TextParser:

@@ -1,6 +1,6 @@
 from fastapi.exceptions import HTTPException
 
-from agentchat.schema.schemas import UnifiedResponseModel
+from agentchat.api.responses.builder import UnifiedResponseModel
 
 
 class BaseErrorCode:

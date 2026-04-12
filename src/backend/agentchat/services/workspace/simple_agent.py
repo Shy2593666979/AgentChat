@@ -11,8 +11,8 @@ from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, AIMessa
 
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.tools import WorkSpacePlugins
-from agentchat.schema.usage_stats import UsageStatsAgentType
-from agentchat.schema.workspace import WorkSpaceAgents
+from agentchat.schemas.usage_stats import UsageStatsAgentType
+from agentchat.schemas.workspace import WorkSpaceAgents
 from agentchat.api.services.tool import ToolService
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.prompts.completion import GenerateTitlePrompt

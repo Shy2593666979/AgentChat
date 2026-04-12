@@ -14,8 +14,8 @@ from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.services.rag.handler import RagHandler
 from agentchat.tools import WeChatTools
-from agentchat.schema.usage_stats import UsageStatsAgentType
-from agentchat.schema.workspace import WorkSpaceAgents
+from agentchat.schemas.usage_stats import UsageStatsAgentType
+from agentchat.schemas.workspace import WorkSpaceAgents
 from agentchat.api.services.user import UserService
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.prompts.completion import GenerateTitlePrompt

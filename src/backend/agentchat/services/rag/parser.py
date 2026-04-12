@@ -10,7 +10,7 @@ from agentchat.services.rag.doc_parser.docx import docx_parser
 from agentchat.services.rag.doc_parser.pdf import pdf_parser
 from agentchat.services.rag.doc_parser.text import text_parser
 from agentchat.services.rag.doc_parser.markdown import markdown_parser
-from agentchat.schema.chunk import ChunkModel
+from agentchat.schemas.chunk import ChunkModel
 from agentchat.settings import app_settings
 
 IMAGE_SUFFIXES = {"jpg", "jpeg", "png", "bmp", "webp", "tiff"}

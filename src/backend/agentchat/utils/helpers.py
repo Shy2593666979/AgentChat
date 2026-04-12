@@ -25,16 +25,15 @@ def parse_imported_config(imported_config):
     )
 
 
-def build_completion_system_prompt(system_prompt, history):
+def build_completion_system_prompt(system_prompt, history_summary, long_term_memory):
     if "{history}" in system_prompt:
-        system_prompt = system_prompt.format(
-            history=f"<chat_history>\n{history}\n</chat_history>"
-        )
+        system_prompt = system_prompt.format(history=history_summary)
     else:
-        system_prompt += f"""
-        📜 对话历史
-        - {history}
-        """
+        system_prompt += f"\n📜 对话历史\n{'-' * 20}\n{history_summary}"
+
+    if long_term_memory:
+        system_prompt += f"\n\n🧠 长期记忆\n{'-' * 20}\n{long_term_memory}"
+
     return system_prompt
 
 
@@ -257,7 +256,7 @@ def get_raw_slot(parameters):
     # 创建新的JSON对象
     output_data = []
     for item in parameters:
-        new_item = {"name": item["name"], "desc": item["desc"], "schema": item["schema"], "value": ""}
+        new_item = {"name": item["name"], "desc": item["desc"], "schemas": item["schemas"], "value": ""}
         output_data.append(new_item)
     return output_data
 
@@ -433,4 +432,4 @@ def get_function_by_name_type(function_name: str, type: str="openai"):
     for data in parameter:
         para = json.loads(data.parameter)
         return para
-    logger.info(f"get function by name schema appear no data")
+    logger.info(f"get function by name schemas appear no data")

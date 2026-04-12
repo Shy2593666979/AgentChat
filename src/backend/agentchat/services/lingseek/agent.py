@@ -11,8 +11,8 @@ from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
 from agentchat.prompts.template import GuidePromptTemplate
-from agentchat.schema.workspace import WorkSpaceAgents
-from agentchat.schema.usage_stats import UsageStatsAgentType
+from agentchat.schemas.workspace import WorkSpaceAgents
+from agentchat.schemas.usage_stats import UsageStatsAgentType
 from agentchat.core.agents.mcp_agent import MCPConfig
 from agentchat.tools import LingSeekPlugins, tavily_search as web_search
 from agentchat.api.services.tool import ToolService
@@ -22,7 +22,7 @@ from agentchat.utils.date_utils import get_beijing_time
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.prompts.lingseek import GenerateGuidePrompt, FeedBackGuidePrompt, GenerateTitlePrompt, \
     GenerateTaskPrompt, FixJsonPrompt, ToolCallPrompt, SystemMessagePrompt
-from agentchat.schema.lingseek import LingSeekGuidePrompt, LingSeekGuidePromptFeedBack, LingSeekTask, \
+from agentchat.schemas.lingseek import LingSeekGuidePrompt, LingSeekGuidePromptFeedBack, LingSeekTask, \
     LingSeekTaskStep
 
 
