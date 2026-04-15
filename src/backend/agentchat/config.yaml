@@ -143,4 +143,4 @@ langfuse:
   user_id: "LiangTian" # 用户 ID
 
 # 接口白名单路径
-whitelist_paths: ["/api/v1/mcp/*"]
+whitelist_paths: ["/mcp/*"]
