@@ -275,6 +275,7 @@ npm run dev
 
   - API文档: [AgentChat Document](https://www.google.com/search?q=docs/reference/agentchat.md)
   - 开发指南: 启动后端后访问 /docs 查看 Swagger 文档。
+  - [Parallel Search MCP](docs/reference/parallel_search_mcp.md): 已登记在 `config/mcp_server.json` 中自动加载，无需 API Key（`config_enabled` 为 `false`），匿名端点有速率限制，需在 Agent 中显式绑定后才会启用。
 
 -----
 

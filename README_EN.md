@@ -274,6 +274,7 @@ The system supports configuration of multiple vector databases (Milvus/ChromaDB)
 
 - API Documentation: [AgentChat Document](docs/reference/agentchat.md)
 - Development Guide: Start the backend and visit /docs to view the Swagger documentation.
+- [Parallel Search MCP](docs/reference/parallel_search_mcp.md): Registered in `config/mcp_server.json` for auto-load, keyless (`config_enabled` is `false`), rate limited on the anonymous endpoint, and opt-in because an agent must bind the server before it is used.
 
 ---
 
