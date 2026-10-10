@@ -18,6 +18,15 @@
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/biying.png"
   },
   {
+    "server_name": "Parallel 搜索",
+    "url": "https://search.parallel.ai/mcp",
+    "type": "streamable_http",
+    "config": {},
+    "params": {},
+    "config_enabled": false,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
+  },
+  {
     "server_name": "飞书",
     "url": "http://47.95.23.87:8000/sse",
     "type": "sse",
