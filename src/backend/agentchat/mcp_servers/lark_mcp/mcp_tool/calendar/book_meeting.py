@@ -13,9 +13,9 @@ def book_meeting(
         meeting_connect: bool = Field(True, description="该会议是否支持互通，不支持更新"),
         auto_record: bool = Field(True, description="是否自动录制会议"),
         assign_host_list: List[str] = Field(..., description="会议主持人列表，每个元素需包含用户的id"),
-        password: str = Field(None, description="会议密码（可选）"),
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+        password: Optional[str] = Field(None, description="会议密码（可选）"),
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """预约会议（创建会议预约）"""
     client = lark.Client.builder() \

@@ -3,14 +3,14 @@ import json
 import lark_oapi as lark
 from lark_oapi.api.im.v1 import *
 from pydantic import Field
-from typing import List
+from typing import Optional, List
 
 
 def get_chat_member_info(user_id_type: str = Field(default="open_id",
                                                              description="用户ID类型，可选值：open_id、union_id、user_id。"),
                          chat_id: str = Field(..., description="群聊的ID"),
-                         app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-                         app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")):
+                         app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+                         app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")):
     """获取群聊的群信息，成功返回群聊信息，失败返回报错信息"""
     client = lark.Client.builder() \
         .app_id(app_id) \

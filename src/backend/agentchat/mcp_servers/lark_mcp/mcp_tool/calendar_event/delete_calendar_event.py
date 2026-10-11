@@ -11,8 +11,8 @@ def delete_calendar_event(
     calendar_id: str = Field(..., description="日历ID"),
     event_id: str = Field(..., description="日程事件ID"),
     need_notification: str = Field("true", description="是否通知参与者：true-通知，false-不通知"),
-    app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-    app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+    app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+    app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """删除指定的日程事件，成功返回删除成功信息，失败返回报错信息"""
     # 初始化客户端

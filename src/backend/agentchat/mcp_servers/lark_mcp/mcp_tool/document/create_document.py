@@ -6,10 +6,10 @@ from typing import Optional
 
 
 def create_document(
-        folder_token: str = Field(None, description="文件夹token, 没有传入的话在根目录中创建"),
+        folder_token: Optional[str] = Field(None, description="文件夹token, 没有传入的话在根目录中创建"),
         title: str = Field(..., description="文档标题"),
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """创建文档，成功返回文档信息，失败返回报错信息"""
     client = lark.Client.builder() \

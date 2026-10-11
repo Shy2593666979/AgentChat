@@ -4,7 +4,7 @@ import uuid
 import lark_oapi as lark
 from lark_oapi.api.im.v1 import *
 from pydantic import Field
-from typing import List
+from typing import Optional, List
 
 
 def create_chat_member(user_id_type: str = Field(default="open_id",
@@ -16,8 +16,8 @@ def create_chat_member(user_id_type: str = Field(default="open_id",
                        bot_id_list: List[str] = Field(..., description="群聊中添加的机器人ID列表， 如果没有可设置为[]"),
                        chat_avatar: str = Field(default="default-avatar_44ae0ca3-e140-494b-956f-78091e348435",
                                                 description="群聊的图标链接"),
-                       app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-                       app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")):
+                       app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+                       app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")):
     """创建飞书群聊，成功返回群聊信息，失败返回报错信息"""
     # 创建client
     client = lark.Client.builder() \

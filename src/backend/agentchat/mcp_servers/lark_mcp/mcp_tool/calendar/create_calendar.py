@@ -2,6 +2,7 @@ import json
 import lark_oapi as lark
 from lark_oapi.api.calendar.v4 import *
 from pydantic import Field
+from typing import Optional
 
 Permission_Lang_Map = {
     "私密": "private",
@@ -14,9 +15,9 @@ def create_calendar(
     description: str = Field("", description="日历描述（可选）"),
     permissions: str = Field("私密", description="日历权限，仅支持(私密，展示忙闲，公开)"),
     color: int = Field(-1, description="日历颜色, 其他值：通过RGB值的int32表示，客户端会映射到最接近的色板颜色"),
-    summary_alias: str = Field(None, description="日历备注名（可选）"),
-    app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-    app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+    summary_alias: Optional[str] = Field(None, description="日历备注名（可选）"),
+    app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+    app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """创建共享日历，成功返回共享日历信息，失败返回报错信息"""
 

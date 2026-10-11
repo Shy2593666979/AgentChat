@@ -8,14 +8,14 @@ from lark_mcp.mcp_tool.calendar.primary_calendar import get_primary_calendar
 
 
 def get_calendar_event(
-    calendar_id: str = Field(None, description="日历ID"),
+    calendar_id: Optional[str] = Field(None, description="日历ID"),
     event_id: str = Field(..., description="日程事件ID"),
     need_meeting_settings: bool = Field(True, description="是否需要返回会议设置信息"),
     need_attendee: bool = Field(True, description="是否需要返回参会者信息"),
     max_attendee_num: int = Field(10, description="最大返回参会者数量"),
     user_id_type: str = Field("open_id", description="用户ID类型"),
-    app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-    app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+    app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+    app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """获取日程事件详细信息，成功返回日程时间详细信息，失败返回报错信息"""
     # 初始化客户端

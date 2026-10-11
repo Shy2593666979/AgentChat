@@ -6,8 +6,8 @@ from typing import Optional
 
 
 def get_calendars_list(
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """获取日历列表，成功返回日历列表，失败返回报错信息"""
     page_size = 100

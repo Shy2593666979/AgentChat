@@ -26,8 +26,8 @@ def append_calendar_event_attendee(
         user_id_type: str = Field(default="open_id", description="用户ID类型，可选值：open_id、union_id、user_id。"),
         need_notification: bool = Field(True, description="更新日程时，是否给日程参与人发送通知。"),
         attendees: List[str] = Field(..., description="参会者列表，每个元素需包含用户的open_id，"),
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参"), ):
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参"), ):
     """为日程事件添加参会者，成功返回日程信息，失败返回报错信息"""
     client = lark.Client.builder() \
         .app_id(app_id) \
