@@ -13,8 +13,8 @@ def create_message(
         content: dict = Field(...,
                               description='消息内容JSON字符串，需根据msg_type设置对应格式，例如：{"text": "你好，我是飞书机器人"}'),
         receive_id_type: str = Field("open_id", description="接收者ID类型，仅支持open_id类型"),
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """发送消息，给用户发消息需确保用户在机器人可用范围内；给群组发消息需确保机器人在群内且有发言权限"""
     client = lark.Client.builder() \

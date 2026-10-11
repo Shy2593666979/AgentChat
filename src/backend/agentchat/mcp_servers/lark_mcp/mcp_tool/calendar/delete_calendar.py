@@ -6,8 +6,8 @@ from typing import Optional
 
 def delete_calendar(
     calendar_id: str = Field(..., description="日历ID（必填），用于指定要删除的日历"),
-    app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-    app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+    app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+    app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """删除指定共享日历"""
     # 初始化客户端

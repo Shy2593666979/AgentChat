@@ -1,9 +1,11 @@
 import json
+import os
 import uuid
 
 import lark_oapi as lark
 from lark_oapi.api.calendar.v4 import *
 from pydantic import Field
+from typing import Optional
 from lark_mcp.mcp_tool.calendar.primary_calendar import get_primary_calendar
 from lark_mcp.mcp_tool.calendar_event.append_calendar_event_attendees import append_calendar_event_attendee
 from lark_mcp.mcp_tool.utils.time import convert_timestamp
@@ -18,16 +20,16 @@ def create_calendar_event(
         need_notification: bool = Field(True, description="更新日程时，是否给日程参与人发送通知"),
         start_time: str = Field(..., description="开始时间，格式YYYY-MM-DD HH:MM"),
         end_time: str = Field(..., description="结束时间，格式YYYY-MM-DD HH:MM"),
-        location_name: str = Field(None, description="日程的会议位置"),
-        location_address: str = Field(None, description="日程的会议具体地点，如301会议室"),
-        attendees: List[str] = Field(None, description="参会者列表，每个元素需包含用户的open_id"),
+        location_name: Optional[str] = Field(None, description="日程的会议位置"),
+        location_address: Optional[str] = Field(None, description="日程的会议具体地点，如301会议室"),
+        attendees: Optional[List[str]] = Field(None, description="参会者列表，每个元素需包含用户的open_id"),
         timezone: str = Field("Asia/Shanghai", description="时区"),
         visibility: str = Field("default", description="日程公开范围"),
         attendee_ability: str = Field("can_see_others", description="参与者权限"),
         free_busy_status: str = Field("busy", description="日程占用的忙闲状态，新建日程默认为 busy"),
         recurrence: str = Field("FREQ=DAILY;INTERVAL=1", description="遵循日历RRule重复规则，如FREQ=DAILY;INTERVAL=1"),
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参"),
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参"),
 ):
     """创建飞书日程事件，日程创建成功返回日程信息，失败返回错误信息"""
     # 创建client
@@ -124,7 +126,7 @@ def create_calendar_event(
     return calendar_event_message + event_attendee_message if event_attendee_message else calendar_event_message
 
 if __name__ == "__main__":
-    response = create_calendar_event(app_id="cli_a834d157e139d00d", app_secret="C8B0fhx7Pqpll9gB0zsuThhxinaaq47G", summary="测试22222", description="xxxxxxxxxxxxx",
+    response = create_calendar_event(app_id=os.environ.get("LARK_APP_ID"), app_secret=os.environ.get("LARK_APP_SECRET"), summary="测试22222", description="xxxxxxxxxxxxx",
                           start_time="2025-09-19 12:00", end_time="2025-09-20 14:00",
     user_id_type = "open_id",
     need_notification = True,

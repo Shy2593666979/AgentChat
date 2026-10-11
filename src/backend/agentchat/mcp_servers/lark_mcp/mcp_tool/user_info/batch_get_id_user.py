@@ -2,15 +2,16 @@ import json
 import lark_oapi as lark
 from lark_oapi.api.contact.v3 import *
 from pydantic import Field, BaseModel
+from typing import Optional
 
 
 def get_user_info_request(user_id_type: str = Field(default="open_id", description="用户ID类型，默认为 open_id"),
-                        emails: List[str] = Field(None, description="列表的形式，最多50个邮箱，不支持企业邮箱，与 mobiles 独立查询"),
-                        mobiles: List[str] = Field(None,
+                        emails: Optional[List[str]] = Field(None, description="列表的形式，最多50个邮箱，不支持企业邮箱，与 mobiles 独立查询"),
+                        mobiles: Optional[List[str]] = Field(None,
                                                    description="列表的形式，最多50个手机号，海外需带国家代码 +xxx，与 emails 独立查询"),
                         include_resigned: bool = Field(True, description="是否包含已离职员工，true/false"),
-                        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-                        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")):
+                        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+                        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")):
     """根据用户的邮箱或者手机号查找用户的信息"""
     client = lark.Client.builder() \
         .app_id(app_id) \

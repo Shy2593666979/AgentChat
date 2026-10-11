@@ -7,8 +7,8 @@ from typing import Optional
 
 def get_document(
         document_id: str = Field(..., description="文档ID"),
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """获取文档内容，成功返回文档内容，失败返回报错信息"""
     client = lark.Client.builder() \

@@ -11,8 +11,8 @@ def list_folder_files(
         order_by: str = Field("EditedTime", description="文件排序字段, 只允许EditedTime, CreatedTime"),
         direction: str = Field("DESC", description="排序方向，允许ASC, DESC"),
         user_id_type: str = Field("open_id", description="用户ID类型，允许open_id, union_id, user_id"),
-        app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-        app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+        app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+        app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """获取文件夹下的文件列表，成功返回文件列表信息，失败返回报错信息"""
     client = lark.Client.builder() \

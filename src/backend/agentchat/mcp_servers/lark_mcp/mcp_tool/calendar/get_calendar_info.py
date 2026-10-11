@@ -6,8 +6,8 @@ from typing import Optional
 
 def get_calendar_info(
     calendar_id: str = Field(..., description="日历ID（必填），用于指定要获取的日历"),
-    app_id: str = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
-    app_secret: str = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
+    app_id: Optional[str] = Field(None, description="应用唯一标识，默认从用户配置中自动获取，无需额外传参"),
+    app_secret: Optional[str] = Field(None, description="应用密钥，默认从用户配置中自动获取，无需额外传参")
 ):
     """获取指定的日历信息，成功返回日历信息，失败返回报错信息"""
     # 初始化客户端
