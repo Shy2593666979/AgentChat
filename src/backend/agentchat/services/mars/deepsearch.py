@@ -1,10 +1,13 @@
 
 import json
+from typing import Dict, List, Optional
+
 from loguru import logger
-from typing import Optional, Dict, List
 from tavily import TavilyClient
-from agentchat.settings import app_settings
+
 from agentchat.core.models.manager import ModelManager
+from agentchat.settings import app_settings
+
 
 # 一个简单的测试，没有入选Mars Tools列表内
 class SimpleLLMJudge:
@@ -76,12 +79,12 @@ class SimpleIterativeSearch:
         all_results = []
         iteration = 0
 
-        logger.info(f"🔍 开始搜索: {query}")
+        logger.debug(f"🔍 开始搜索: {query}")
 
         while iteration < self.max_iterations:
             iteration += 1
             logger.info(f"\n--- 第 {iteration} 次搜索 ---")
-            logger.info(f"搜索词: {current_query}")
+            logger.debug(f"搜索词: {current_query}")
 
             # 使用Tavily搜索
             try:
@@ -108,7 +111,7 @@ class SimpleIterativeSearch:
                 judgment = self.llm_judge.judge_and_decide(original_query, current_formatted)
 
                 logger.info(f"📊 质量评分: {judgment['score']}/10")
-                logger.info(f"💭 判断: {judgment['reason']}")
+                logger.debug(f"💭 判断: {judgment['reason']}")
 
                 # 如果结果足够，停止搜索
                 if judgment["sufficient"] or not judgment["next_query"]:
@@ -118,7 +121,7 @@ class SimpleIterativeSearch:
                 # 准备下一次搜索
                 if iteration < self.max_iterations:
                     current_query = judgment["next_query"]
-                    logger.info(f"🔄 继续搜索: {current_query}")
+                    logger.debug(f"🔄 继续搜索: {current_query}")
 
             except Exception as e:
                 logger.error(f"❌ 搜索失败: {e}")
@@ -185,4 +188,4 @@ def main():
     logger.info("\n" + "=" * 60)
     logger.info("最终搜索结果:")
     logger.info("=" * 60)
-    logger.info(results)
+    logger.debug(results)

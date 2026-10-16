@@ -2,7 +2,10 @@ import asyncio
 from datetime import date
 
 from agentchat.core.models.manager import ModelManager
-from agentchat.services.mars.ai_news.crawl_news import crawl_today_ai_news, crawl_single_ai_news
+from agentchat.services.mars.ai_news.crawl_news import (
+    crawl_single_ai_news,
+    crawl_today_ai_news,
+)
 
 NEWS_PROMPT = """
 【系统角色】

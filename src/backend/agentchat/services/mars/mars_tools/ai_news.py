@@ -2,18 +2,20 @@ import json
 import os
 import time
 from datetime import datetime
-from typing import Optional, Literal
+from typing import Literal, Optional
 from urllib.parse import urljoin
-from loguru import logger
+
 from html2image import Html2Image
 from langchain.tools import tool
-from langgraph.config import get_stream_writer
+from loguru import logger
+
 from agentchat.core.models.manager import ModelManager
-from agentchat.services.storage import storage_client
 from agentchat.services.mars.ai_news.detial_news import yield_crawl_detail_ai_news
-from agentchat.services.mars.ai_news.prompt import GENERATE_JSON_NEWS, FIX_JSON_PROMPT
-from agentchat.utils.file_utils import get_object_storage_base_path, get_save_tempfile
+from agentchat.services.mars.ai_news.prompt import FIX_JSON_PROMPT, GENERATE_JSON_NEWS
+from agentchat.services.mars.events import get_mars_writer, progress
+from agentchat.services.storage import storage_client
 from agentchat.settings import app_settings
+from agentchat.utils.file_utils import get_object_storage_base_path, get_save_tempfile
 
 
 @tool(parse_docstring=True)
@@ -35,7 +37,8 @@ async def crawl_ai_news(
     Returns:
         返回来日报内容, 根据用户的需求判断是否包含可下载的Markdown链接
     """
-    writer = get_stream_writer()
+    writer = get_mars_writer()
+    writer(progress("收集并整理 AI 新闻"))
 
     news_response = ""
     final_response = ""
@@ -48,11 +51,7 @@ async def crawl_ai_news(
         writer(chunk)
 
     if output_format == "markdown":
-        writer({
-            "type": "tool_chunk",
-            "time": time.time(),
-            "data": "\n\n接下来我要开始生成一份完整的Markdown文件\n"
-        })
+        writer(progress("生成 Markdown 日报文件"))
 
         try:
             file_name = f"AI日报-{datetime.today().date()}.md"
@@ -66,15 +65,20 @@ async def crawl_ai_news(
             storage_client.sign_url_for_get(sign_url)
             storage_client.upload_file(oss_object_name, news_response)
 
-            writer({
-                "type": "tool_chunk",
-                "time": time.time(),
-                "data": f"\n\n文件已经生成完毕, 请点击下载查看 [AI日报📰]({sign_url}) \n"
-            })
+            writer(
+                {
+                    "type": "tool_chunk",
+                    "time": time.time(),
+                    "data": f"\n\n文件已经生成完毕, 请点击下载查看 [AI日报📰]({sign_url}) \n",
+                }
+            )
         except Exception as err:
             logger.error(f"生成日报文件失败:{err}")
+            writer(progress("日报文件生成失败", "error"))
+            raise
 
     else:
+        writer(progress("生成日报图片"))
         sample_date = datetime.today().strftime("%Y年%m月%d日")
         chat_model = ModelManager.get_chat_model()
 
@@ -85,7 +89,7 @@ async def crawl_ai_news(
             response.content = response.content.replace("```json", "").replace("```", "")
             sample_content = json.loads(response.content)
         except Exception as err:
-            logger.error(f"生成Json格式的新闻简述，我将开始修复这个Json格式的数据: {response.content}")
+            logger.warning("新闻简述 JSON 格式不正确，开始修复")
             fix_response = await chat_model.ainvoke(FIX_JSON_PROMPT.format(json_error=str(err), json_content=response.content))
             try:
                 sample_content = json.loads(fix_response.content)
@@ -123,16 +127,14 @@ async def crawl_ai_news(
         # 在本地进行删除
         os.remove(png_save_name)
 
-        writer({
-            "type": "tool_chunk",
-            "time": time.time(),
-            "data": "\n ### 图片已经生成完毕, 请点击或下载查看✅ \n"
-        })
-        writer({
-            "type": "tool_chunk",
-            "time": time.time(),
-            "data": f"![AI日报]({sign_url}) \n"
-        })
+        writer(progress("日报图片已生成", "complete"))
+        writer(
+            {
+                "type": "tool_chunk",
+                "time": time.time(),
+                "data": f"![AI日报]({sign_url}) \n",
+            }
+        )
 
 
 def get_html_template():
@@ -448,53 +450,53 @@ def main():
         {
             "title": "我国人工智能专利数占全球 60%",
             "description": "鸿蒙系统生态设备总量突破 11.9 亿台，显示我国在AI技术领域的快速发展和广泛应用。",
-            "category": "技术"
+            "category": "技术",
         },
         {
             "title": "Siri 迎来最大改造",
             "description": "消息称苹果启动 AI 双轨计划，同步推进自研和外援，提升语音助手的智能化水平。",
-            "category": "产品"
+            "category": "产品",
         },
         {
             "title": "苹果展示 AI 新成果",
             "description": "在 Siri 延迟中突围，用户数据隐私始终放在首位，展现负责任的AI发展理念。",
-            "category": "技术"
+            "category": "技术",
         },
         {
             "title": "中文数据训练成主流",
             "description": "我国多数模型使用的中文数据占比超过 60%，部分高达 80%，本土化程度不断提升。",
-            "category": "技术"
+            "category": "技术",
         },
         {
             "title": "Windows 未来界面大变革",
             "description": "微软高管畅想 Windows 未来，AI 将能读懂用户屏幕，实现更智能的人机交互。",
-            "category": "资讯"
+            "category": "资讯",
         },
         {
             "title": "我国人工智能专利数占全球 60%",
             "description": "鸿蒙系统生态设备总量突破 11.9 亿台，显示我国在AI技术领域的快速发展和广泛应用。",
-            "category": "技术"
+            "category": "技术",
         },
         {
             "title": "Siri 迎来最大改造",
             "description": "消息称苹果启动 AI 双轨计划，同步推进自研和外援，提升语音助手的智能化水平。",
-            "category": "产品"
+            "category": "产品",
         },
         {
             "title": "苹果展示 AI 新成果",
             "description": "在 Siri 延迟中突围，用户数据隐私始终放在首位，展现负责任的AI发展理念。",
-            "category": "技术"
+            "category": "技术",
         },
         {
             "title": "中文数据训练成主流",
             "description": "我国多数模型使用的中文数据占比超过 60%，部分高达 80%，本土化程度不断提升。",
-            "category": "技术"
+            "category": "技术",
         },
         {
             "title": "Windows 未来界面大变革",
             "description": "微软高管畅想 Windows 未来，AI 将能读懂用户屏幕，实现更智能的人机交互。",
-            "category": "资讯"
-        }
+            "category": "资讯",
+        },
     ]
 
     # 生成HTML

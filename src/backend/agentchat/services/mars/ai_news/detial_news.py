@@ -5,8 +5,11 @@ from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 
 from agentchat.core.models.manager import ModelManager
-from agentchat.services.mars.ai_news.crawl_news import crawl_today_ai_news, crawl_single_ai_news, \
-    sync_crawl_with_selenium
+from agentchat.services.mars.ai_news.crawl_news import (
+    crawl_single_ai_news,
+    crawl_today_ai_news,
+    sync_crawl_with_selenium,
+)
 from agentchat.settings import app_settings
 
 NEWS_PROMPT = """
@@ -84,7 +87,7 @@ async def yield_crawl_detail_ai_news(output_detail: bool):
             yield {
                 "type": "tool_chunk",
                 "time": time.time(),
-                "data": f"\n ## {idx + 1}. [标题：{title}]({link}) \n"
+                "data": f"\n ## {idx + 1}. [标题：{title}]({link}) \n",
             }
 
             # 改成流式输出，每次1字符
@@ -92,7 +95,7 @@ async def yield_crawl_detail_ai_news(output_detail: bool):
                 yield {
                     "type": "tool_chunk",
                     "time": time.time(),
-                    "data": chunk
+                    "data": chunk,
                 }
                 await asyncio.sleep(0.02)
 
@@ -109,10 +112,13 @@ async def yield_crawl_detail_ai_news(output_detail: bool):
     # }
 
     yield {
-            "type": "tool_chunk",
-            "time": time.time(),
-            "data": "### AI新闻已经总结完毕, 接下来我要开始生成一份完整的AI日报内容\n"
-        }
+        "type": "progress_chunk",
+        "time": time.time(),
+        "data": {
+            "message": "新闻已收集，开始整理日报正文",
+            "status": "complete",
+        },
+    }
     message = NEWS_PROMPT.format(today=date.today(), news_content=total_news_content)
 
     llm_client = ModelManager.get_chat_model()
@@ -121,11 +127,11 @@ async def yield_crawl_detail_ai_news(output_detail: bool):
         yield {
             "type": "response_chunk",
             "time": time.time(),
-            "data": chunk.content
+            "data": chunk.content,
         }
 
     yield {
         "type": "final_chunk",
         "time": time.time(),
-        "data": total_news_content
+        "data": total_news_content,
     }
