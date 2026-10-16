@@ -24,12 +24,24 @@ import Homepage from '../pages/homepage'
 import MarsChat from '../pages/mars'
 import Workspace from '../pages/workspace/workspace.vue'
 import WorkspacePage from '../pages/workspace/workspacePage/workspacePage.vue'
-import WorkspaceDefaultPage from '../pages/workspace/defaultPage/defaultPage.vue'
+import WorkspaceDefaultPage from '../pages/workspace/WorkspaceEntry.vue'
 import TaskGraphPage from '../pages/workspace/taskGraphPage/taskGraphPage.vue'
 import Dashboard from '../pages/dashboard'
 import type { RouteRecordRaw } from 'vue-router'
 
 const routes: RouteRecordRaw[] = [
+  {
+    path: '/layout-preview',
+    name: 'layoutPreview',
+    component: () => import('../pages/LayoutPreview.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: '/conversation/design-preview',
+    name: 'chatDesignPreview',
+    component: () => import('../pages/conversation/ChatDesignPreview.vue'),
+    meta: { requiresAuth: false },
+  },
   {
     path: '/login',
     name: 'login',
@@ -248,7 +260,7 @@ const router = createRouter({
 // 路由守卫
 router.beforeEach((to, from, next) => {
   const token = localStorage.getItem('token');
-  
+
   // 如果目标路由需要认证
   if (to.meta.requiresAuth) {
     if (token) {

@@ -1,0 +1,401 @@
+.b4-mcp {
+  padding: 70px 40px 24px
+}
+.b4-mcp .data-heading {
+  padding: 0;
+  margin-bottom: 26px
+}
+.b4-mcp .data-heading h1 {
+  font-size: 32px
+}
+.b4-mcp .data-heading p {
+  font-size: 19px
+}
+.b4-mcp .resource-toolbar {
+  margin-bottom: 20px;
+  gap: 14px
+}
+.b4-mcp .search-field {
+  max-width: 690px;
+  height: 44px
+}
+.b4-mcp .primary-button {
+  min-height: 44px;
+  padding-inline: 23px
+}
+.b4-mcp .resource-grid {
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 18px
+}
+.mcp-card {
+  min-height: 210px;
+  padding-top: 18px
+}
+.mcp-card-header {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  padding: 0 20px;
+  margin-bottom: 14px
+}
+.mcp-art {
+  width: 56px;
+  height: 56px;
+  flex: none;
+  overflow: hidden;
+  border-radius: 18px
+}
+.mcp-art img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #eff6ff;
+  padding: 4px
+}
+.mcp-art :deep(.resource-glyph) {
+  width: 56px;
+  height: 56px;
+  border-radius: 18px
+}
+.mcp-art :deep(svg) {
+  width: 38px;
+  height: 38px
+}
+.mcp-title {
+  min-width: 0;
+  flex: 1
+}
+.mcp-title h2 {
+  font-size: 18px;
+  color: #0b1b40;
+  font-weight: 650;
+  line-height: 1.6;
+  margin: 0 0 1px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap
+}
+.mcp-title>a,.mcp-title>span {
+  display: block;
+  color: #6c82a6;
+  font-size: 14px;
+  line-height: 1.6;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  text-decoration: none
+}
+.mcp-title a:hover {
+  color: #1767ff
+}
+.mcp-badges {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex: none
+}
+.mcp-protocol {
+  padding: 5px 14px;
+  border-radius: 18px;
+  background: #f0f6ff;
+  color: #247cff;
+  font-size: 13px;
+  line-height: 1.4;
+  white-space: nowrap
+}
+.mcp-config-status {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  border-radius: 17px;
+  padding: 5px 12px;
+  background: #f0f8ff;
+  color: #6088bb;
+  font-size: 13px;
+  white-space: nowrap;
+  line-height: 1.4
+}
+.mcp-config-status i {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  background: #74a5de
+}
+.mcp-config-status.required {
+  color: #c18b37;
+  background: #fff7e9
+}
+.mcp-config-status.required i {
+  background: #dbaa58
+}
+.mcp-description {
+  font-size: 15px;
+  line-height: 1.7;
+  color: #6f83a6;
+  margin: 0 20px 8px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  min-height: 25px
+}
+.mcp-tags {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  margin: 0 20px 12px;
+  min-height: 34px;
+  overflow: hidden
+}
+.mcp-tags>span {
+  max-width: 33%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  background: #f2f7ff;
+  color: #758aae;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 13px;
+  line-height: 1.5
+}
+.mcp-tags>small {
+  font-size: 12px;
+  color: #91a2bd
+}
+.b4-mcp .mcp-footer {
+  margin-top: auto;
+  justify-content: stretch;
+  gap: 0;
+  padding: 12px 0;
+  min-height: 46px
+}
+.b4-mcp .mcp-footer button {
+  flex: 1;
+  font-size: 14px;
+  gap: 10px;
+  padding: 0 8px
+}
+.mcp-footer button+button {
+  border-left: 1px solid #e0e9f7
+}
+.mcp-footer .tool-count {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 23px;
+  height: 23px;
+  border-radius: 50%;
+  background: #edf2f9;
+  color: #425c87;
+  font-size: 12px
+}
+.b4-mcp .mcp-footer .mcp-chat {
+  color: #0869ff
+}
+.mcp-guide {
+  display: flex;
+  align-items: center;
+  gap: 28px;
+  border: 1px solid #e2edfb;
+  border-radius: 15px;
+  margin-top: 18px;
+  padding: 18px 13px;
+  background: linear-gradient(110deg,#fbfdff,#f5f9ff);
+  min-width: 0
+}
+.guide-intro {
+  display: flex;
+  gap: 14px;
+  flex: 1.6;
+  min-width: 0
+}
+.guide-intro>span,.guide-step>span {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  background: #e6f0ff;
+  color: #096aff;
+  border-radius: 50%;
+  flex: none
+}
+.guide-intro :deep(.p-icon) {
+  width: 25px;
+  height: 25px
+}
+.mcp-guide h2,.mcp-guide h3 {
+  font-size: 14px;
+  color: #1b3467;
+  margin: 0 0 4px;
+  line-height: 1.5;
+  font-weight: 600
+}
+.mcp-guide p {
+  font-size: 12px;
+  line-height: 1.6;
+  color: #8295b4;
+  margin: 0
+}
+.guide-step {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  flex: 1;
+  min-width: 0
+}
+.guide-step>span {
+  font-size: 18px;
+  font-weight: 600
+}
+.guide-step :deep(.p-icon) {
+  width: 17px;
+  height: 17px;
+  flex: none;
+  color: #7493bc;
+  margin-left: auto
+}
+.mcp-mode {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 22px
+}
+.mcp-mode button {
+  padding: 9px 14px;
+  border: 1px solid #e1eafb;
+  border-radius: 8px;
+  background: #f8fbff;
+  color: #7187a9;
+  cursor: pointer;
+  font: inherit;
+  font-size: 13px
+}
+.mcp-mode button.active {
+  color: #1767ff;
+  border-color: #9fc3ff;
+  background: #edf5ff
+}
+.mcp-dialog-help {
+  font-size: 13px;
+  color: #7e91af;
+  line-height: 1.7;
+  margin: 16px 0
+}
+.mcp-logo-field {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin: 20px 0;
+  font-size: 13px;
+  color: #40577f
+}
+.mcp-logo-field img {
+  width: 42px;
+  height: 42px;
+  border-radius: 9px;
+  object-fit: contain
+}
+.mcp-logo-upload {
+  position: relative;
+  display: block;
+  padding: 8px 15px;
+  border: 1px solid #dce8fb;
+  border-radius: 8px;
+  color: #1767ff;
+  cursor: pointer
+}
+.mcp-logo-upload input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0
+}
+.mcp-logo-upload:focus-within {
+  outline: 3px solid #91b7ff;
+  outline-offset: 3px
+}
+.mcp-tool-list pre {
+  max-height: 280px;
+  overflow: auto;
+  background: #f5f9ff;
+  border: 1px solid #e0eafb;
+  border-radius: 9px;
+  padding: 14px;
+  font-size: 12px;
+  line-height: 1.7
+}
+.mcp-tool-list p {
+  overflow-wrap: anywhere;
+  line-height: 1.8
+}
+.mcp-tool-list :deep(.el-collapse-item__header) {
+  font-size: 15px;
+  color: #243c67;
+  overflow-wrap: anywhere;
+  height: auto;
+  min-height: 38px;
+  line-height: 1.5;
+  gap: 12px
+}
+.mcp-chat-entry{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border:1px solid #d7e6fb;border-radius:10px;background:#f4f8ff;color:#326fc5;padding:10px 16px;font:inherit;font-size:14px;white-space:nowrap;cursor:pointer}.mcp-chat-entry .p-icon{width:19px;height:19px}.mcp-chat-entry:hover{background:#eaf3ff;border-color:#b4d0fb}
+.b4-mcp .resource-toolbar{gap:14px;margin-bottom:20px}
+.b4-mcp .search-field{height:50px;max-width:690px}
+.b4-mcp .filter-controls select{height:50px;min-width:165px;font-size:15px}
+.mcp-chat-entry{margin-left:auto;height:50px}
+.b4-mcp .resource-grid{gap:18px}
+.b4-mcp .mcp-card{border-radius:14px;min-height:256px;padding-top:22px}
+.mcp-card-header{display:grid;grid-template-columns:72px minmax(0,1fr) auto auto;align-items:center;gap:18px;padding:0 26px;margin-bottom:14px}
+.mcp-art{width:72px;height:72px;border-radius:17px}
+.mcp-art :deep(svg){width:48px;height:48px}
+.mcp-title h2{font-size:20px;font-weight:650;line-height:1.5;margin:0 0 3px}
+.mcp-title>a,.mcp-title>span{font-size:15px;line-height:1.5}
+.mcp-badges{gap:12px;align-self:start;margin-top:6px}
+.mcp-protocol,.mcp-config-status{font-size:14px;padding:5px 13px;line-height:1.5}
+.mcp-config-status.added,.mcp-config-status.connected{background:#edfdf5;color:#00b767}
+.mcp-config-status.added i,.mcp-config-status.connected i{background:#00bf72}
+.mcp-config-status.pending{background:#edf4ff;color:#3476df}
+.mcp-config-status.failed{background:#fff0f1;color:#d35a65}
+.mcp-config-status.failed i{background:#e16b75}
+.mcp-card-header>:is(.el-dropdown,.more-button){align-self:start;margin-top:3px}
+.mcp-description{margin:0 26px 10px;min-height:26px;font-size:15px;line-height:1.7;color:#6a7f9f}
+.mcp-tags{margin:0 26px 16px;min-height:32px;gap:12px}
+.mcp-tags>span{padding:6px 17px;font-size:14px;line-height:1.4;background:#f0f5fd;color:#677f9f}
+.b4-mcp .mcp-footer{margin: auto 26px 0;min-height:60px;padding:14px 0;border-top:1px solid #e5edf9}
+.b4-mcp .mcp-footer button{font-size:15px;gap:9px}
+.b4-mcp .mcp-footer button+button{border-left:1px solid #e0e9f7}
+.b4-mcp .mcp-footer button:disabled{opacity:.48;cursor:not-allowed}
+.b4-mcp .mcp-footer button:first-child{justify-content:flex-start}
+.b4-mcp .mcp-footer button:last-child{justify-content:flex-end}
+.mcp-guide{gap:24px;padding:16px 14px;border-radius:13px;min-height:78px}
+.mcp-guide h2,.mcp-guide h3{font-size:14px}
+.guide-intro{flex:1.8}
+.guide-step{gap:14px}
+@media(max-width:1350px){.mcp-card-header{grid-template-columns:60px minmax(0,1fr) auto;gap:14px;padding-inline:20px}.mcp-art{width:60px;height:60px}.mcp-art :deep(.mcp-glyph){width:60px;height:60px;border-radius:15px}.mcp-art :deep(svg){width:40px;height:40px}.mcp-badges{grid-column:2;grid-row:2;align-self:auto;margin:0}.mcp-card-header>:is(.el-dropdown,.more-button){grid-column:3;grid-row:1}.mcp-title h2{font-size:18px}.mcp-title>a,.mcp-title>span{font-size:13px}.mcp-description,.mcp-tags{margin-inline:20px}.b4-mcp .mcp-footer{margin-inline:20px}.mcp-protocol,.mcp-config-status{font-size:12px;padding:3px 11px}.mcp-guide{flex-wrap:wrap}.guide-intro{flex-basis:100%}}
+@media(max-width:1100px){.b4-mcp .resource-grid{grid-template-columns:1fr}.mcp-card-header{grid-template-columns:60px minmax(0,1fr) auto auto}.mcp-badges{grid-column:auto;grid-row:auto;align-self:start;margin-top:5px}.mcp-card-header>:is(.el-dropdown,.more-button){grid-column:auto;grid-row:auto}.b4-mcp .mcp-card{min-height:250px}.b4-mcp .search-field{max-width:none}.b4-mcp .resource-toolbar{flex-wrap:wrap}}
+@media(max-width:700px){.b4-mcp .search-field{min-width:100%;height:44px}.b4-mcp .filter-controls{flex:1}.b4-mcp .filter-controls select{height:44px;width:100%;min-width:0}.mcp-chat-entry{height:44px;min-height:44px;padding:8px 12px}.mcp-card-header{grid-template-columns:56px minmax(0,1fr) auto;padding-inline:16px;gap:12px}.mcp-art,.mcp-art :deep(.mcp-glyph){width:56px;height:56px}.mcp-badges{grid-column:2;grid-row:2;margin:0}.mcp-card-header>:is(.el-dropdown,.more-button){grid-column:3;grid-row:1}.mcp-description,.mcp-tags{margin-inline:16px;font-size:13px}.mcp-tags{gap:6px}.mcp-tags>span{font-size:12px;padding:5px 10px}.b4-mcp .mcp-footer{margin-inline:16px}.b4-mcp .mcp-footer button{font-size:12px;gap:5px}.b4-mcp .mcp-footer :deep(.p-icon){width:18px;height:18px}.mcp-footer .tool-count{min-width:19px;height:19px;font-size:11px}.mcp-guide{padding:16px;gap:16px}.guide-step{flex-basis:100%;flex-grow:0}.guide-step :deep(.p-icon){display:none}}
+
+@media(max-width:700px){.b4-mcp .mcp-footer button{min-width:0;padding-inline:0;font-size:11px;gap:4px}.b4-mcp .mcp-footer :deep(.p-icon){width:16px;height:16px}.mcp-footer .tool-count{min-width:16px;height:16px;font-size:10px}}
+
+/* 卡片横向宽度缩小约三分之一：桌面两列改为三列，保留原有高度与内容尺度。 */
+.b4-mcp .resource-grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+.mcp-card-header{grid-template-columns:60px minmax(0,1fr) auto;gap:14px;padding-inline:20px}
+.mcp-art,.mcp-art :deep(.mcp-glyph){width:60px;height:60px;border-radius:15px}.mcp-art :deep(svg){width:40px;height:40px}
+.mcp-title h2{font-size:18px;line-height:1.5;margin:0}
+.mcp-badges{grid-column:2;grid-row:2;margin:0;gap:8px;align-self:start}.mcp-card-header>:is(.el-dropdown,.more-button){grid-column:3;grid-row:1;margin:0;align-self:start}
+.mcp-description,.mcp-tags{margin-inline:20px}
+.b4-mcp .mcp-footer{margin-inline:20px}
+.mcp-pagination{display:flex;align-items:center;justify-content:flex-end;gap:16px;margin-top:20px;color:#8a9bb4;font-size:13px}.mcp-pagination>span{margin-right:auto}.mcp-pagination :deep(.el-pagination){gap:4px;--el-pagination-button-bg-color:#f2f7ff}.mcp-pagination :deep(.el-pager li),.mcp-pagination :deep(.btn-prev),.mcp-pagination :deep(.btn-next){border-radius:8px}
+@media(max-width:1350px){.b4-mcp .resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:950px){.b4-mcp .resource-grid{grid-template-columns:1fr}}
+@media(max-width:700px){.mcp-card-header{grid-template-columns:56px minmax(0,1fr) auto;padding-inline:16px;gap:12px}.mcp-art,.mcp-art :deep(.mcp-glyph){width:56px;height:56px}.mcp-description,.mcp-tags{margin-inline:16px}.b4-mcp .mcp-footer{margin-inline:16px}.mcp-pagination{gap:8px;font-size:12px}}
+
+/* 图标跨两行，标题与状态并排布置在其右侧，不额外撑高卡片。 */
+.mcp-card-header{row-gap:4px}.mcp-art{grid-column:1;grid-row:1 / span 2}.mcp-title{grid-column:2;grid-row:1}
+
+/* 自定义 MCP 入口：蓝色按钮与添加连接图标。 */
+.b4-mcp .mcp-chat-entry{border-color:#2475ff;background:linear-gradient(110deg,#287cff,#176aff);color:#fff;box-shadow:0 4px 12px #2475ff20;font-weight:500}
+.b4-mcp .mcp-chat-entry:hover{border-color:#1260ed;background:linear-gradient(110deg,#1b6ff0,#105ce8);color:#fff}
+
+.b4-mcp .mcp-custom-entry .p-icon{width:20px;height:20px;flex:none}

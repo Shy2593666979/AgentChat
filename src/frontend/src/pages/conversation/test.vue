@@ -21,7 +21,7 @@ const sendTestMessage = () => {
   
   // 模拟发送消息
   const testData = {
-    dialogId: 'test-dialog-123',
+    conversationId: 'test-dialog-123',
     userInput: testInput.value,
     fileUrl: uploadedFile.value || undefined
   }

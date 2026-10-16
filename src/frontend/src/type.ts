@@ -1,4 +1,4 @@
-export  interface DialogCreateType {
+export  interface ConversationCreateType {
     name: string,
     agent_id: string,
     agent_type: string,
@@ -45,13 +45,22 @@ export interface CardListType {
 
 export interface HistoryListType {
   agent: string
-  dialogId: string
+  conversationId: string
   name: string
   createTime: string
   logo:string
 }
 
+export interface ChatAttachment {
+  url: string
+  name: string
+  size?: number
+  mime?: string
+}
+
 export interface MessageType {
+  agent?: { id: string; name: string; logo_url: string }
+  attachments?: ChatAttachment[]
   content: string
   type?: string // 新增：支持消息类型
 }
@@ -60,6 +69,7 @@ export interface ChatMessage {
   personMessage: MessageType
   aiMessage: MessageType
   eventInfo?: Array<{
+    toolCallId?: string
     event_type: string
     show: boolean
     status: string

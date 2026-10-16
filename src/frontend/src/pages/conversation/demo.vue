@@ -30,21 +30,21 @@ const mockAgents = ref([
 
 const mockDialogs = ref([
   {
-    dialogId: '1',
+    conversationId: '1',
     name: '关于Vue.js的讨论',
     agent: '代码专家',
     createTime: '2024-01-15T10:30:00Z',
     logo: 'https://via.placeholder.com/40x40/10b981/ffffff?text=Code'
   },
   {
-    dialogId: '2',
+    conversationId: '2',
     name: '英语翻译帮助',
     agent: '翻译助手',
     createTime: '2024-01-14T15:20:00Z',
     logo: 'https://via.placeholder.com/40x40/f59e0b/ffffff?text=翻译'
   },
   {
-    dialogId: '3',
+    conversationId: '3',
     name: '日常问题咨询',
     agent: '智能助手',
     createTime: '2024-01-13T09:15:00Z',
@@ -96,14 +96,14 @@ const createDialog = () => {
   const agent = mockAgents.value.find(a => a.agent_id === selectedAgent.value)
   if (agent) {
     const newDialog = {
-      dialogId: Date.now().toString(),
+      conversationId: Date.now().toString(),
       name: `与${agent.name}的对话`,
       agent: agent.name,
       createTime: new Date().toISOString(),
       logo: agent.logo_url
     }
     mockDialogs.value.unshift(newDialog)
-    selectedDialog.value = newDialog.dialogId
+    selectedDialog.value = newDialog.conversationId
     showCreateDialog.value = false
     selectedAgent.value = ''
     ElMessage.success('会话创建成功')
@@ -112,14 +112,14 @@ const createDialog = () => {
     router.push({
       path: '/conversation/chatPage',
       query: {
-        dialog_id: newDialog.dialogId
+        conversation_id: newDialog.conversationId
       }
     })
   }
 }
 
 // 删除会话
-const deleteDialog = async (dialogId: string) => {
+const deleteDialog = async (conversationId: string) => {
   try {
     await ElMessageBox.confirm(
       '确定要删除这个会话吗？删除后无法恢复。',
@@ -131,10 +131,10 @@ const deleteDialog = async (dialogId: string) => {
       }
     )
     
-    const index = mockDialogs.value.findIndex(d => d.dialogId === dialogId)
+    const index = mockDialogs.value.findIndex(d => d.conversationId === conversationId)
     if (index > -1) {
       mockDialogs.value.splice(index, 1)
-      if (selectedDialog.value === dialogId) {
+      if (selectedDialog.value === conversationId) {
         selectedDialog.value = ''
       }
       ElMessage.success('会话删除成功')
@@ -147,8 +147,8 @@ const deleteDialog = async (dialogId: string) => {
 }
 
 // 选择会话
-const selectDialog = (dialogId: string) => {
-  selectedDialog.value = dialogId
+const selectDialog = (conversationId: string) => {
+  selectedDialog.value = conversationId
   // ElMessage.info('进入会话')
 }
 
@@ -216,10 +216,10 @@ const clearSearch = () => {
           
           <div 
             v-for="dialog in filteredDialogs" 
-            :key="dialog.dialogId"
+            :key="dialog.conversationId"
             class="dialog-card"
-            :class="{ active: selectedDialog === dialog.dialogId }"
-            @click="selectDialog(dialog.dialogId)"
+            :class="{ active: selectedDialog === dialog.conversationId }"
+            @click="selectDialog(dialog.conversationId)"
           >
             <div class="card-main">
               <div class="card-left">
@@ -244,7 +244,7 @@ const clearSearch = () => {
                       :icon="Delete"
                       size="small"
                       circle
-                      @click.stop="deleteDialog(dialog.dialogId)"
+                      @click.stop="deleteDialog(dialog.conversationId)"
                       class="delete-btn"
                     />
                   </el-tooltip>
@@ -268,7 +268,7 @@ const clearSearch = () => {
         </div>
         <div v-else class="chat-content">
           <div class="chat-header">
-            <h3>正在与 {{ mockDialogs.find(d => d.dialogId === selectedDialog)?.agent }} 对话</h3>
+            <h3>正在与 {{ mockDialogs.find(d => d.conversationId === selectedDialog)?.agent }} 对话</h3>
           </div>
           <div class="chat-messages">
             <div class="message system">

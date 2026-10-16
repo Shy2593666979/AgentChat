@@ -1,14 +1,14 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue'
 import { HistoryListType } from "../../type"
-import { getDialogListAPI} from '../../apis/history';
+import { getConversationListAPI} from '../../apis/history';
 
 export const useHistoryListStore = defineStore('history_list', () => {
   const historyList = ref<HistoryListType[]>([])
   
   async function getList() {
     try {
-      const list = await getDialogListAPI()
+      const list = await getConversationListAPI()
       historyList.value = list.data.data || []
       
       // 使用原生JavaScript格式化时间

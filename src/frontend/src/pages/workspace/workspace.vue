@@ -1,5 +1,7 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
+import AppSidebar from '../../components/AppSidebar.vue'
+import ShellContext from '../../components/ShellContext.vue'
+import { ref, onMounted, computed, provide } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { User, SwitchButton, Setting } from '@element-plus/icons-vue'
@@ -12,10 +14,11 @@ import knowledgeIcon from '../../assets/knowledge.svg'
 import modelIcon from '../../assets/model.svg'
 import mcpIcon from '../../assets/mcp.svg'
 import { useUserStore } from '../../store/user'
+import BrandLogo from '../../components/BrandLogo.vue'
 import { logoutAPI, getUserInfoAPI } from '../../apis/auth'
-import { 
-  getWorkspaceSessionsAPI, 
-  deleteWorkspaceSessionAPI 
+import {
+  getWorkspaceSessionsAPI,
+  deleteWorkspaceSessionAPI
 } from '../../apis/workspace'
 
 const router = useRouter()
@@ -25,20 +28,21 @@ const userStore = useUserStore()
 const selectedSession = ref('')
 const sessions = ref<any[]>([])
 const loading = ref(false)
+const sessionsError = ref('')
 
 // 格式化时间
 const formatTime = (timeStr: string) => {
   try {
     if (!timeStr) return '未知时间'
-    
+
     const date = new Date(timeStr)
     if (isNaN(date.getTime())) {
       return '未知时间'
     }
-    
+
     const now = new Date()
     const diffInHours = (now.getTime() - date.getTime()) / (1000 * 60 * 60)
-    
+
     if (diffInHours < 1) return '刚刚'
     if (diffInHours < 24) return `${Math.floor(diffInHours)}小时前`
     if (diffInHours < 24 * 7) return `${Math.floor(diffInHours / 24)}天前`
@@ -52,22 +56,23 @@ const formatTime = (timeStr: string) => {
 const fetchSessions = async () => {
   try {
     loading.value = true
+    sessionsError.value = ''
     const response = await getWorkspaceSessionsAPI()
     if (response.data.status_code === 200) {
       sessions.value = response.data.data.map((session: any) => ({
         sessionId: session.session_id || session.id,
         title: session.title || '未命名会话',
-        createTime: session.create_time || session.created_at || new Date().toISOString(),
+        createTime: session.create_time || session.created_at || '',
         agent: session.agent || 'lingseek', // 保存agent类型，默认为lingseek
         contexts: session.contexts || [] // 保存上下文
       }))
       console.log('工作区会话列表:', sessions.value)
     } else {
-      ElMessage.error('获取会话列表失败')
+      sessionsError.value = '任务记录加载失败，请重试'
     }
   } catch (error) {
     console.error('获取会话列表出错:', error)
-    ElMessage.error('获取会话列表失败')
+    sessionsError.value = '任务记录加载失败，请重试'
   } finally {
     loading.value = false
   }
@@ -76,13 +81,13 @@ const fetchSessions = async () => {
 // 删除会话
 const deleteSession = async (sessionId: string, event: Event) => {
   event.stopPropagation()
-  
+
   try {
     const response = await deleteWorkspaceSessionAPI(sessionId)
     if (response.data.status_code === 200) {
       ElMessage.success('会话删除成功')
       await fetchSessions()
-      
+
       if (selectedSession.value === sessionId) {
         selectedSession.value = ''
         router.push('/workspace')
@@ -99,17 +104,17 @@ const deleteSession = async (sessionId: string, event: Event) => {
 // 选择会话 - 根据agent类型跳转到不同页面
 const selectSession = (sessionId: string) => {
   selectedSession.value = sessionId
-  
+
   // 找到对应的会话
   const session = sessions.value.find(s => s.sessionId === sessionId)
-  
+
   if (!session) {
     console.error('未找到会话:', sessionId)
     return
   }
-  
+
   console.log('选择会话:', sessionId, '类型:', session.agent)
-  
+
   // 根据agent类型判断跳转页面
   if (session.agent === 'simple') {
     // 日常模式，跳转到日常对话页面，并传递session_id
@@ -129,6 +134,13 @@ const selectSession = (sessionId: string) => {
     })
   }
 }
+
+provide('workspaceSessions', sessions)
+provide('workspaceSessionsLoading', loading)
+provide('workspaceSessionsError', sessionsError)
+provide('refreshWorkspaceSessions', fetchSessions)
+provide('openWorkspaceSession', selectSession)
+provide('deleteWorkspaceSession', deleteSession)
 
 // 用户下拉菜单命令处理
 const handleUserCommand = async (command: string) => {
@@ -215,7 +227,7 @@ const isAppCenterActive = computed(() => route.path.startsWith('/homepage'))
 
 onMounted(async () => {
   userStore.initUserState()
-  
+
   // 如果已登录但没有头像，则尝试获取用户信息
   if (userStore.isLoggedIn && userStore.userInfo && !userStore.userInfo.avatar) {
     try {
@@ -223,7 +235,7 @@ onMounted(async () => {
       if (response.data.status_code === 200 && response.data.data) {
         const userData = response.data.data
         userStore.updateUserInfo({
-          avatar: userData.user_avatar || userData.avatar || '/src/assets/user.svg',
+          avatar: userData.user_avatar || userData.avatar || '',
           description: userData.user_description || userData.description
         })
       }
@@ -231,113 +243,28 @@ onMounted(async () => {
       console.error('初始化时获取用户信息失败:', error)
     }
   }
-  
+
   await fetchSessions()
 })
 </script>
 
 <template>
-  <div class="workspace-container">
+  <div class="workspace-container p-shell" :class="{ 'b5-workspace-task-shell': route.name === 'workspacePage', 's-home-shell': route.name === 'workspaceDefaultPage' && !route.query.session_id && !route.query.chat }"><AppSidebar />
     <!-- 顶部导航栏 -->
     <div class="workspace-nav">
       <div class="nav-left">
         <div class="logo-section">
-          <img src="../../assets/robot.svg" alt="Logo" class="logo" />
-        </div>
-        <div class="nav-links">
-          <img src="../../assets/agentchat.svg" alt="智言平台" class="brand-logo-img" />
+          <BrandLogo />
         </div>
       </div>
-      <div class="nav-right">
-        <!-- 用户信息区域 -->
-        <div class="user-info">
-          <el-dropdown @command="handleUserCommand" trigger="click">
-            <div class="user-avatar-wrapper">
-              <div class="user-avatar">
-                <img
-                  :src="userStore.userInfo?.avatar || '/src/assets/user.svg'"
-                  alt="用户头像"
-                  @error="handleAvatarError"
-                  referrerpolicy="no-referrer"
-                />
-              </div>
-            </div>
-            <template #dropdown>
-              <el-dropdown-menu>
-                <el-dropdown-item command="profile" :icon="User">
-                  个人资料
-                </el-dropdown-item>
-<!--                <el-dropdown-item command="settings" :icon="Setting">-->
-<!--                  系统设置-->
-<!--                </el-dropdown-item>-->
-                <el-dropdown-item divided command="logout" :icon="SwitchButton">
-                  退出登录
-                </el-dropdown-item>
-              </el-dropdown-menu>
-            </template>
-          </el-dropdown>
-        </div>
-      </div>
+      <ShellContext />
     </div>
 
     <!-- 工作区主内容 -->
     <div class="workspace-main">
-    <!-- 左侧边栏 -->
-    <div class="sidebar">
-      <!-- 应用中心按钮 -->
-      <div class="create-section">
-        <button @click="goToHomepage" class="create-btn-native">
-          <div class="btn-content">
-            <span class="icon">
-              <img src="../../assets/application-center.svg" width="30px" height="30px" />
-            </span>
-            <span>应用中心</span>
-          </div>
-        </button>
-      </div>
-
-      <!-- 会话列表 -->
-      <div class="session-list">
-        <!-- 加载状态 -->
-        <div v-if="loading" class="loading-state">
-          <div class="loading-icon">⏳</div>
-          <div class="loading-text">正在加载会话列表...</div>
-        </div>
-
-        <!-- 空状态 -->
-        <div v-else-if="sessions.length === 0" class="empty-state">
-          <img src="../../assets/workspace-session.svg" alt="暂无会话" class="empty-icon-img" />
-          <div class="empty-text">暂无会话记录</div>
-        </div>
-
-        <!-- 会话卡片 -->
-        <div
-          v-for="session in sessions"
-          :key="session.sessionId"
-          :class="['session-card', { active: selectedSession === session.sessionId }]"
-          @click="selectSession(session.sessionId)"
-        >
-          <div class="session-icon">
-            <img src="../../assets/workspace-session.svg" width="30px" height="30px" />
-          </div>
-          <div class="session-info">
-            <div class="session-title">{{ session.title }}</div>
-            <div class="session-time">{{ formatTime(session.createTime) }}</div>
-          </div>
-          <button
-            class="delete-btn"
-            @click="deleteSession(session.sessionId, $event)"
-            title="删除会话"
-          >
-            ×
-          </button>
-        </div>
-      </div>
-    </div>
-
     <!-- 右侧内容区域 -->
     <div class="content">
-      <router-view />
+      <router-view :key="route.fullPath" />
     </div>
     </div>
   </div>
@@ -857,16 +784,16 @@ onMounted(async () => {
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.12);
   border-radius: 8px;
   overflow: hidden;
-  
+
   .el-dropdown-menu__item {
     padding: 12px 16px;
     font-size: 14px;
-    
+
     &:hover {
       background-color: #f5f7fa;
       color: #409eff;
     }
-    
+
     .el-icon {
       margin-right: 8px;
     }
@@ -917,4 +844,3 @@ onMounted(async () => {
   }
 }
 </style>
-
