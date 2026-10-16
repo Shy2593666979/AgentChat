@@ -76,12 +76,14 @@ async def lifespan(app: FastAPI):
         app.mount("/uploads", StaticFiles(directory=str(storage_client.root)), name="uploads")
 
     await register_router(app)
+    from agentchat.api.services.conversation import ConversationService
     from agentchat.services.mcp.metadata import stop_metadata_tasks
     print_logo()
 
     yield
 
     await stop_metadata_tasks()
+    await ConversationService.stop_conversation_title_tasks()
     if redis_client is not None:
         await redis_client.close()
 

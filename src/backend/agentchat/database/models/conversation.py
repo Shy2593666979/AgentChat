@@ -1,22 +1,23 @@
-from sqlalchemy import Column, DateTime, text, Text
-from sqlmodel import Field, SQLModel
 from datetime import datetime
-from uuid import uuid4
-import pytz
 from typing import Literal, Optional
+from uuid import uuid4
+
+import pytz
+from sqlalchemy import Column, DateTime, Text, text
+from sqlmodel import Field, SQLModel
 
 from agentchat.database.models.base import SQLModelSerializable
 
 
 # 每个对话
-class DialogTable(SQLModelSerializable, table=True):
-    __tablename__ = "dialog"
+class ConversationTable(SQLModelSerializable, table=True):
+    __tablename__ = "conversation"
 
-    dialog_id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
-    name: str = Field(description='对话绑定的Agent的名称')
-    agent_id: str = Field(description='对话Dialog绑定Agent的ID')
-    agent_type: str = Field(default="Agent", description="对话Dialog绑定Agent, MCPAgent or Agent")
-    user_id: str = Field(description='对话Dialog的用户ID')
+    conversation_id: str = Field(default_factory=lambda: uuid4().hex, primary_key=True)
+    name: str = Field(description='会话话题标题，根据第一条用户消息生成')
+    agent_id: str = Field(description='会话当前选择的智能体 ID，可在会话中切换')
+    agent_type: str = Field(default="Agent", description="对话Conversation绑定Agent, MCPAgent or Agent")
+    user_id: str = Field(description='对话Conversation的用户ID')
     summary: Optional[str] = Field(sa_column=Column(Text, nullable=True), description="对话的总结，当对话token超过一定长度时，会将较早的对话总结")
     summary_last_time: datetime = Field(
         default=datetime(1970, 1, 1),

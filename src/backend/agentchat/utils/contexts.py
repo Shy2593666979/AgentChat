@@ -17,6 +17,19 @@ user_id: ContextVar[Optional[str]] = ContextVar("user_id", default=None)
 # 对话Agent 名称
 agent_name: ContextVar[Optional[str]] = ContextVar("agent_name", default=None)
 
+# 当前模型调用所属会话，子智能体与异步标题任务沿用请求上下文。
+conversation_id: ContextVar[Optional[str]] = ContextVar("conversation_id", default=None)
+
+
+def get_conversation_id_context():
+    """获取模型调用关联的会话 ID；非会话任务返回空值。"""
+    return conversation_id.get()
+
+
+def set_conversation_id_context(value: Optional[str]):
+    """设置会话 ID，使用 ContextVar 隔离并发请求。"""
+    conversation_id.set(value)
+
 def get_trace_id_context() -> str:
     """
     获取 trace_id

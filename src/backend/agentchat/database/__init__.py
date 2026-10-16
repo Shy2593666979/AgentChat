@@ -3,7 +3,7 @@ from sqlmodel import SQLModel
 
 from agentchat.database.models.agent import AgentTable
 from agentchat.database.models.agent_skill import AgentSkill
-from agentchat.database.models.dialog import DialogTable
+from agentchat.database.models.conversation import ConversationTable
 from agentchat.database.models.history import HistoryTable
 from agentchat.database.models.knowledge import KnowledgeTable
 from agentchat.database.models.knowledge_file import KnowledgeFileTable

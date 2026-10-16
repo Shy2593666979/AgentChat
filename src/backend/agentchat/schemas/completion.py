@@ -1,12 +1,16 @@
-from typing import Optional, List, Dict, Any
+from typing import Any, Dict, List, Optional
 
 from pydantic import BaseModel, Field
 
 
 class CompletionReq(BaseModel):
     user_input: str = Field(description="用户的问题")
-    dialog_id: str = Field(description="对话的ID值")
+    conversation_id: str = Field(description="对话的ID值")
+    agent_id: Optional[str] = Field(None, min_length=1, description="本次回复使用的智能体 ID；省略时使用会话当前选择")
     file_url: Optional[str] = Field(None, description="对话中上传的文件的oss链接")
+    file_name: Optional[str] = Field(None, max_length=512, description="附件原始文件名")
+    file_size: Optional[int] = Field(None, ge=0, description="附件大小，字节")
+    file_type: Optional[str] = Field(None, max_length=128, description="附件 MIME 类型")
 
 
 class ToolCall(BaseModel):

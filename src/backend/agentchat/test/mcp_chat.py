@@ -33,10 +33,10 @@ class MCPChatAgent:
         await self.mcp_manager.connect_client()
 
 
-    async def ainvoke(self, user_input: str, dialog_id: str, stream: bool=False):
+    async def ainvoke(self, user_input: str, conversation_id: str, stream: bool=False):
         # 并发获取History 和 RAG Message
         history_messages, recall_knowledge_data = await asyncio.gather(
-            self.get_history_message(user_input, dialog_id),
+            self.get_history_message(user_input, conversation_id),
             RagHandler.rag_query(user_input, self.knowledges_id)
         )
         # mcp_tool_query = MCP_TOOL_TEMPLATE.format(query=user_input, history=history_message)
@@ -50,13 +50,13 @@ class MCPChatAgent:
         else:
             return await self._normal_response(mcp_response)
 
-    async def get_history_message(self, user_input: str, dialog_id: str, top_k: int = 5) :
+    async def get_history_message(self, user_input: str, conversation_id: str, top_k: int = 5) :
         # 如果开启Embedding，默认走RAG检索聊天记录
         if self.enable_memory:
-            messages = await self._retrieval_history(user_input, dialog_id, top_k)
+            messages = await self._retrieval_history(user_input, conversation_id, top_k)
             return messages
         else:
-            messages = await self._direct_history(dialog_id, top_k)
+            messages = await self._direct_history(conversation_id, top_k)
 
             result = []
             for message in messages:
@@ -72,12 +72,12 @@ class MCPChatAgent:
         return response
 
 
-    async def _direct_history(self, dialog_id: str, top_k: int):
-        messages = HistoryService.select_history(dialog_id, top_k)
+    async def _direct_history(self, conversation_id: str, top_k: int):
+        messages = HistoryService.select_history(conversation_id, top_k)
         return messages
 
-    async def _retrieval_history(self, user_input: str, dialog_id: str, top_k: int):
-        messages = await RagHandler.rag_query(user_input, dialog_id, 0.6, top_k, False)
+    async def _retrieval_history(self, user_input: str, conversation_id: str, top_k: int):
+        messages = await RagHandler.rag_query(user_input, conversation_id, 0.6, top_k, False)
         return messages
 
 
