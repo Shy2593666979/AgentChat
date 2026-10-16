@@ -1,4 +1,3 @@
-
 <div align='center'>
     <img src="docs/media/cover.jpg" alt="agentchat：连接模型、知识与工具" width="100%">
 </div>
@@ -8,17 +7,17 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12+-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
   <img src="https://img.shields.io/badge/vue-3.4+-4FC08D.svg?style=for-the-badge&logo=vue.js&logoColor=white" alt="Vue Version" />
-  <img src="https://img.shields.io/badge/fastapi-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/fastapi-0.121+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge" alt="License" />
 </p>
 
 <p align="center">
-  <b>一个基于大模型的现代化智能对话系统</b>
+  <b>连接模型、知识与工具的智能体应用平台</b>
 </p>
 
 <p align="center">
-  <a href="https://shy2593666979.github.io/agentchat-docs/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8.html">快速开始</a> •
-  <a href="https://shy2593666979.github.io/agentchat-docs/%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA.html">部署指南</a> •
+  <a href="#快速开始">快速开始</a> •
+  <a href="#高级配置">部署指南</a> •
   <a href="https://shy2593666979.github.io/agentchat-docs/">在线文档</a> •
   <a href="https://agentchat.cloud">在线体验</a> •
   <a href="https://github.com/Shy2593666979/agentchat-docs/blob/main/images/README.md">加入微信交流群🌟</a>
@@ -28,151 +27,43 @@
 
 ---
 
-## 本次更新 · 2026.10.16
+[English](README_EN.md) · [更新日志](docs/CHANGELOG.md)
 
-### 1. 全面更新界面与项目品牌
+## 项目简介
 
-- 使用蓝色机器人 Logo 与小写 `agentchat` 字标，统一侧边栏、登录页和浏览器标签页的品牌展示。
-- 调整工作台、探索、智能体、工具、Skill、MCP、模型、知识库及数据看板的页面样式，统一标题位置、字体、字重、间距和卡片布局。
-- 优化三列页面的衔接，减少列间空隙；通知与个人账户入口统一放到侧边栏底部。
-- 修复弹窗遮罩未覆盖侧边栏、个人菜单被遮挡和输入框边框重叠等问题，统一下拉菜单与卡片操作按钮的样式。
+agentchat 是一个前后端分离的智能体应用平台。你可以连接模型服务，为智能体绑定工具、Skill、MCP 和知识库，在会话中使用这些能力，也可以通过 Mars 发起搜索、研究和报告任务，查看执行过程与结果。
 
-### 2. 优化智能体管理与能力展示
+首次运行可以使用 SQLite、内存缓存、本地文件和 Chroma，无需额外部署 MySQL、Redis、MinIO 或 Milvus。需要外部数据库、缓存或对象存储时，再切换对应配置。
 
-- 重新设计智能体卡片，调整图标、名称、简介、模型信息与操作按钮的布局。
-- 在卡片中使用图标和数量展示工具、MCP、Skill 与知识库的绑定情况，数量为零时不显示。
-- 优化智能体编辑入口与能力选择界面，支持管理内置智能体及默认工具、MCP、Skill。
-- 统一工具、Skill 和知识库的卡片风格；知识库卡片支持直接点击进入，精简重复信息。
+## 核心能力
 
-### 3. 改善会话阅读与附件体验
+| 能力 | 使用方式 |
+| --- | --- |
+| 灵活会话 | 在同一会话中切换智能体；根据首条问题异步生成 2–10 字话题标题 |
+| 智能体 | 选择模型，配置提示词，组合工具、MCP、Skill 与知识库 |
+| Mars 任务 | 从探索页发起任务，查看工具执行过程与 Markdown 报告 |
+| 工具与 MCP | 使用内置工具、导入 OpenAPI，或连接 SSE / Streamable HTTP MCP 服务；支持对话式创建 MCP 与人工确认 |
+| Skill | 启动时加载研究报告、数据分析、产品文档、代码审查、邮件写作、知识整理六类技能模板 |
+| 知识库 | 上传资料、向量化并绑定到智能体，检索后重排；可按需启用全文检索 |
+| 用户资源隔离 | 注册时获得独立的默认智能体、工具、Skill 和 MCP 副本，编辑不会影响其他用户 |
+| 用量与日志 | 记录模型调用和会话 Token 用量，提供数据看板、请求追踪与工具耗时日志 |
+| 流式协议 | 通过 AG-UI 适配层统一消息、工具执行和运行状态事件 |
 
-- 统一会话列表、聊天记录和输入框的布局，调整用户消息与 AI 回复的字体颜色、字号及留白。
-- 回复气泡根据内容宽度收缩，减少短回复右侧的大块空白；精简消息顶部的重复智能体信息。
-- 统一复制、重新回答、点赞与点踩图标，减少操作区与正文之间的割裂感。
-- 优化发送前的附件展示和聊天记录中的附件卡片，让文件信息与消息内容保持一致的视觉风格。
-- 智能体选择改为下拉入口，使用所选智能体绑定的模型、知识与工具。
+模型服务和外部工具各自有配置要求。基础聊天可先配置一个对话模型；知识库需要可用的向量模型，部分工具还需要单独的 API Key。
 
-### 4. 完善工具执行过程与 MCP 对话
-
-- 调整工具调用过程的展示，区分等待、执行中、完成与失败状态，方便查看任务进展。
-- MCP 对话沿用智能体会话的消息与输入框样式，并保留人机协同（HITL）确认交互。
-- 模型选择按厂商组织，先展示厂商 Logo 与名称，再展开对应的模型列表。
-- MCP 列表增加分页，精简卡片中的服务地址和重复操作；通过“自定义 MCP”按钮进入对话式创建流程。
-
-### 5. 重整 Mars 任务执行与报告页面
-
-- 重新布局执行过程与任务报告，适配不同工具的执行信息，精简输入区和重复的任务信息。
-- 优化执行进度、过程展开与结果阅读体验，保留报告复制和 Markdown 下载入口。
-- 修复最终结果重复拼接的问题，避免同一份报告在结尾再次输出。
-- 调整旅游攻略与路线规划任务的提示词，要求先通过深度搜索核实资料，再整理回答。
-- 修复 Markdown 流式排版时自动跟随中断的问题；用户主动滚动后可暂停跟随，便于阅读已有内容。
-
-### 6. 完善模型展示与个人账户
-
-- 新增模型展示名称字段 `show_model`，将界面名称与实际调用的模型标识分开，便于展示自定义名称。
-- 补充和整理国内外模型厂商名称与 Logo，统一模型列表、智能体卡片和模型选择菜单中的展示。
-- 默认用户头像改为用户名首字母圆形头像，保留自定义上传，移除随机头像与预设头像选择。
-
-### 7. 支持 SQLite / MySQL 与轻量本地运行
-
-- 数据库根据连接 URL 自动选择 SQLite 或 MySQL，统一同步、异步连接的配置与初始化。
-- 常规配置与简易配置默认使用 SQLite，降低首次运行对外部数据库的依赖。
-- 提供本地文件存储与内存缓存的简易运行方案，同时保留 MySQL、Redis 和对象存储的配置选项。
-- 补充本地启动说明与配置文档，便于将本地前端连接到本地后端。
-
-### 8. 更新项目截图与任务演示
-
-- 替换 README 品牌封面与业务页面截图，移除旧版界面图片，展示当前项目的实际样式。
-- 使用 **Mingguang** 演示账号展示会话、数据看板、智能体和多厂商模型配置，并注明示例数据的用途。
-- 增加“四大古都影响力对比与旅游攻略”的任务演示，展示搜索工具调用、资料整理与报告生成过程。
-- README 使用 GitHub 内嵌视频播放器，支持直接播放、拖动进度和全屏查看。
-
-[查看任务视频](#探索任务演示) · [浏览页面截图](#当前界面)
-
-完整内容见 [更新日志](docs/CHANGELOG.md)，轻量本地启动见 [简易配置](docs/simple-config.md)。
-
-<details>
-<summary>上一版本更新 · 2026-04-12</summary>
-
-## 2026-04-12
-
-### 1. 基于人机协同（HITL）的OpenAPI信息对话式MCP Server生成
-
-- 支持将OpenAPI信息以人机协同方式进行对话式MCP Server生成。
-- 在生成MCP Server的过程中，关键决策节点支持人工介入与确认，实现动态配置与实时交互。
-- 提升了服务器的生成灵活性与系统可控性，让用户在自动化流程中保留充分的主动权。
-
-### 2. 优化对话上下文管理
-重构对话上下文管理策略，从简单的"最近5段对话"升级为智能三层记忆架构：
-- 短期记忆 (Short-Term Memory): 保持最近3000 tokens以内的对话内容，确保即时上下文连贯
-- 历史信息总结: 自动总结超过3000 tokens的历史对话，提取关键信息
-- 长期记忆 (Long-Term Memory): 持久化记录用户偏好、习惯和重要信息，实现个性化对话体验
-
-### 3. 修复依赖冲突问题
-解决了多个依赖包版本冲突问题，特别是 Pydantic、LangChain、FastAPI 等核心库的兼容性问题，提升系统稳定性。
-
-### 4. 优化首次启动体验
-修复首次启动时缺少模型配置导致的错误，新增配置检查和友好提示，引导用户完成初始化配置，降低使用门槛。
-
-</details>
-
----
-
-<details>
-<summary><b>历史版本更新日志 (2026-3-8)</b></summary>
-
-### 1. 支持MiniO本地对象存储
-现在支持OSS和MiniO两种对象存储方式，参考文档: [本地安装MiniO](docs/development/install_minio_win.md)，感谢提供Issue的朋友:
-- @xiaoyan011016
-- @shenmi888
-
-### 2. 优化Docker直接部署项目
-(1) 前版本docker部署经常会出现 agentchat-frontend 连不上 agentchat-backend 的网络失败情况，已经修复该bug
-(2) 缺少Win系统下的一键部署脚本，目前已经加上 (start_win.bat)
-
-### 3. 支持自定义工具
-之前点击自定义工具是无事件，目前可通过上传 Swagger/OpenAPI 构建自己的工具。
-
-### 4. 支持Skill
-现已支持通过创建 Skill 绑定到智能体渐进式加载 Prompt 去教模型如何做事。
-
-### 5. 优化页面样式
-前版本中系统设置为空白，现在已经去除。
-
-</details>
-
----
+本轮变化包括界面与品牌更新、会话改造、用户资源隔离、AG-UI、Token 统计、统一日志和 GitHub CI，完整记录见 [更新日志](docs/CHANGELOG.md)。
 
 ## 目录
 
-- [一、项目简介](#一项目简介)
-- [二、功能展示](#二功能展示)
-- [三、重要版本说明](#三重要版本说明)
-- [四、功能特性](#四功能特性)
-- [五、技术栈](#五技术栈)
-- [六、快速开始](#六快速开始)
-- [七、高级部署指南](#七高级部署指南)
-- [八、文档](#八文档)
-- [九、许可证](#九许可证)
+- [功能展示](#功能展示)
+- [快速开始](#快速开始)
+- [首次使用](#首次使用)
+- [高级配置](#高级配置)
+- [开发与测试](#开发与测试)
+- [文档导航](#文档导航)
+- [许可证与支持](#许可证与支持)
 
----
-
-## 一、项目简介
-
-AgentChat 是一个现代化的智能对话系统，基于大语言模型构建，提供了丰富的AI对话功能。系统采用前后端分离架构，支持多种AI模型、知识库检索、工具调用、MCP服务器集成等高级功能。
-
-### 1. 核心亮点
-
-- 智能Agent: 支持Sub-Agents协作，具备推理和决策能力
-- 知识库检索: RAG技术实现精准知识检索和问答
-- 工具生态: 内置多种实用工具，支持自定义扩展
-- MCP集成: 支持Model Context Protocol服务器
-- 现代界面: 基于Vue 3和Element Plus的美观UI
-- 三层记忆: 短期保留上下文，历史自动总结，长期记录用户偏好
-- 人机协同生成: 基于HITL对话式生成MCP Server，关键节点可人工介入
----
-
-## 二、功能展示
+## 功能展示
 
 ### 探索任务演示
 
@@ -230,138 +121,150 @@ https://github.com/user-attachments/assets/640650f3-4134-452a-9d17-6f850dabe95f
 
 </details>
 
-## 三、重要版本说明
+## 快速开始
 
-从 AgentChat v2.2.0 版本开始，LangChain 已升级至 1.0 版本。
+### 1. 准备环境
 
-<div align="center">
+- Git、Python 3.12、Node.js 22（与 CI 保持一致）。
+- [uv](https://docs.astral.sh/uv/getting-started/installation/)：用于创建 Python 虚拟环境及安装锁定依赖。
+- 一个可用的模型 API Key、接口地址和模型标识。以下使用 [DeepSeek Flash](https://api-docs.deepseek.com/zh-cn/) 的 `deepseek-flash` 作为示例。
 
-| 版本 | LangChain版本 | 兼容性 | 说明 |
-|:---:|:---:|:---:|:---|
-| v2.1.x 及以下 | 0.x | 旧版本 | 使用旧版LangChain API |
-| v2.2.0+ | 1.0+ | 最新版本 | 重大更新，API变化较大 |
+以下从 `main` 主分支获取代码。在开始之前，确认终端中 `uv --version` 和 `node --version` 可执行。
 
-</div>
-
-1. LangChain 1.0 引入了重大API变更。
-2. 部分工具和Agent配置方式已更新。
-3. 建议查看迁移指南了解详细变更。
-
----
-
-## 四、功能特性
-
-### 1. 核心功能模块
-
-- AI对话引擎: 支持多模型生态、流式响应、上下文记忆、思考可视化。
-- 智能Agent系统: 多Agent协作、任务自动化、工作流编排、目标导向。
-- 知识库系统: 多格式支持、语义分块、向量检索、RAG问答。
-- 工具生态: 内置10+实用工具，支持自定义上传与扩展。
-
-### 2. 高级特性
-
-- MCP服务器: 完整协议支持，运行时动态加载。
-- 用户管理: 安全认证、细粒度权限控制、个性化配置。
-- 系统架构: 前后端分离，Docker部署，异步高性能处理。
-
----
-
-## 五、技术栈
-
-- 后端: FastAPI, Python 3.12+, LangChain, SQLite / MySQL, 内存缓存 / Redis, ChromaDB.
-- 前端: Vue 3.4+, Element Plus, Pinia, Vite 5, TypeScript.
-- 部署: Docker, Docker Compose, Poetry, npm.
-
----
-
-## 六、快速开始
-
-### 1. 系统要求
-
-- Python 3.12+
-- Node.js 18+
-- 默认本地方案：SQLite、内存缓存、本地文件存储
-- MySQL、Redis、Docker 为按需选择的部署组件
-
-### 2. 推荐：本地简易配置
-
-先按 [简易配置指南](docs/simple-config.md) 配置模型密钥，再启动后端与前端。SQLite 无需额外安装，数据库文件自动保存在本地；搜索、邮件等外部工具仍需配置对应服务。
-
-模型管理中的 `show_model` 是界面展示名称，`model` 是实际请求标识，两者可分别设置。
-
-### 3. Docker一键部署
+### 2. 获取代码并安装后端依赖
 
 ```bash
-# 1. 克隆项目
-git clone https://github.com/Shy2593666979/AgentChat.git
-cd AgentChat
-
-# 2. 编辑配置文件
-vim docker/docker_config.yaml
-
-# 3. 启动
-cd docker
-docker-compose up --build -d
-````
-
-### 4. 本地一键部署
-
-克隆项目
-```bash
-git clone https://github.com/Shy2593666979/AgentChat.git
-
-cd AgentChat
+git clone --branch main https://github.com/Shy2593666979/AgentChat.git
+cd AgentChat/src/backend
+uv sync --locked --python 3.12
 ```
 
+### 3. 创建自己的配置
 
-后端启动服务
-```bash
-cd src/backend
+Windows PowerShell：
 
-# 安装依赖
-1. pip install -r requirements.txt
-
-# 或者使用uv (更推荐)
-1. pip install uv
-2. uv sync 
+```powershell
+Copy-Item agentchat/config.simple.yaml agentchat/config.local.simple.yaml
 ```
 
-前端启动服务
+Linux / macOS：
+
+```bash
+cp agentchat/config.simple.yaml agentchat/config.local.simple.yaml
+```
+
+编辑 `src/backend/agentchat/config.local.simple.yaml` 中的对话模型：
+
+```yaml
+multi_models:
+  chat_model:
+    api_key: "填写你的 DeepSeek API Key"
+    base_url: "https://api.deepseek.com"
+    model_name: "deepseek-flash"
+```
+
+这里展示的是需要编辑的片段，文件中的其他设置保留。`config.local*.yaml` 已被 Git 忽略。DeepSeek 示例用于对话；知识库的向量和重排模型需要另行配置，不能直接复用 DeepSeek Key，见 [模型配置说明](docs/simple-config.md#模型继承与能力边界)。
+
+### 4. 启动后端
+
+仍在 `src/backend` 目录执行，并保持终端运行。
+
+Windows PowerShell：
+
+```powershell
+$env:AGENTCHAT_CONFIG = "agentchat/config.local.simple.yaml"
+uv run --locked uvicorn agentchat.main:app --host 127.0.0.1 --port 7860
+```
+
+Linux / macOS：
+
+```bash
+export AGENTCHAT_CONFIG=agentchat/config.local.simple.yaml
+uv run --locked uvicorn agentchat.main:app --host 127.0.0.1 --port 7860
+```
+
+打开 [健康检查](http://127.0.0.1:7860/health)，应返回 `{"status":"OK"}`；接口文档位于 [Swagger UI](http://127.0.0.1:7860/docs)。这表示服务已启动，模型是否可调用还需要发送消息验证。
+
+### 5. 启动前端
+
+另开一个终端，从项目根目录执行：
+
 ```bash
 cd src/frontend
-
-# 下载依赖
-npm install
-npm run dev
+npm ci
+npm run dev -- --host 127.0.0.1 --port 8090 --strictPort
 ```
 
------
+访问 [http://127.0.0.1:8090](http://127.0.0.1:8090)。前端开发服务器通过 `/api` 代理访问本机 `7860` 端口的后端。
 
-## 七、高级部署指南
+后端地址不同时，在 `src/frontend/.env.local` 中设置 `VITE_API_BASE_URL=http://后端地址:端口`，然后重启前端。后端端口、启动参数与本地文件的访问地址也应保持一致，详见 [简易配置指南](docs/simple-config.md)。
 
-系统支持多种向量数据库（Milvus/ChromaDB）和搜索引擎（Elasticsearch）的配置。具体请参阅部署文档。
+## 首次使用
 
------
+1. **注册并登录**：新账号会获得自己的默认智能体、工具、Skill 与 MCP 副本。知识库按需创建。
+2. **确认模型**：配置文件中的 `chat_model` 用于系统默认模型；在模型服务页添加的模型可供智能体选择。展示名称与实际调用标识分别填写，真实调用以服务商要求的标识为准。
+3. **开始会话**：选择一个智能体发送问题。同一会话可以切换智能体，话题标题会在后台生成，也可以手动修改。
+4. **添加能力**：在智能体编辑页绑定需要的工具、MCP、Skill 或知识库。MCP 出现在列表中不等于已绑定到当前智能体；调用第三方服务前确认其地址和凭据可用。
+5. **使用资料与任务**：需要检索资料时先上传到知识库并等待处理完成；需要搜索研究时可从探索页发起 Mars 任务。知识库依赖向量与重排模型，任务依赖实际选用的工具配置。
+6. **查看用量**：数据看板展示调用与 Token 统计；统计依据模型返回的 usage，服务商未返回用量时可能不完整。
 
-## 八、文档
+## 高级配置
 
-  - API文档: [AgentChat Document](docs/reference/agentchat.md)
-  - 开发指南: 启动后端后访问 /docs 查看 Swagger 文档。
-  - [Parallel Search MCP](docs/reference/parallel_search_mcp.md): 已登记在 `config/mcp_server.json` 中自动加载，无需 API Key（`config_enabled` 为 `false`），匿名端点有速率限制，需在 Agent 中显式绑定后才会启用。
+简易配置沿用完整 YAML 结构，省略的参数使用默认值。详细说明见 [简易配置](docs/simple-config.md) 和 [后端文档](src/backend/README.md)。
 
------
+| 需求 | 配置入口 |
+| --- | --- |
+| 切换 SQLite / MySQL | `database.url`，同步与异步驱动自动派生 |
+| 使用 Redis | `redis.endpoint`；本地单进程可留空使用内存缓存 |
+| 使用 MinIO / OSS | `storage.mode` 以及对应存储配置 |
+| 分开设置模型 | `multi_models` 下的 `chat_model`、`tool_call_model`、`reasoning_model`、`embedding`、`rerank` 等 |
+| 更换向量库或启用全文检索 | `rag.vector_db`、`rag.enable_elasticsearch` 及对应连接设置 |
+| 添加默认 MCP / Skill 模板 | `agentchat/config/mcp_server.json`、`agentchat/config/default_skills.json` 与 `config/skills/` |
+| 调整日志 | `log_level`；日志目录可通过 `AGENTCHAT_LOG_DIR` 指定 |
 
-## 九、许可证
+配置加载优先级为：代码显式传入路径 → `AGENTCHAT_CONFIG` → `agentchat/config.local.yaml` → `agentchat/config.yaml`。`config.local.simple.yaml` 需要通过环境变量指定，修改后重启后端。
 
-本项目采用 **[MIT License](LICENSE)** 开源许可证
+已有的 [Docker 文件](docker/) 使用 MySQL、Redis、MinIO 和前端开发服务器的组合，与上述轻量本地方案不同。容器部署需要单独核对容器地址、配置与持久化目录；本次文档更新没有完成这套容器方案的运行验证。
 
-*这意味着你可以自由使用、修改和分发本项目*
+## 开发与测试
 
+后端，在 `src/backend` 执行：
 
------
+```bash
+uv sync --locked --group dev
+uv run --locked pytest tests -q
+```
 
+前端，在 `src/frontend` 执行：
 
-## 十、感谢支持 AgentChat
+```bash
+npm ci
+npm run lint
+npm run build
+node --test tests/mars-task.test.cjs
+```
+
+安装前端依赖后，后端测试还会校验 Python AG-UI 事件与前端解析器的配合。需要外部服务的手动脚本放在 `src/backend/tests/manual`，默认不收集。
+
+[GitHub CI](.github/workflows/ci.yml) 在推送 `main`、提交 PR 或手动触发时运行后端测试及前端类型检查、构建。它使用临时数据库和测试配置，无需真实模型密钥。`npm run build` 生成前端静态文件，不会自动部署应用。
+
+## 文档导航
+
+- [后端架构、接口与故障排查](src/backend/README.md)
+- [简易配置与本地数据目录](docs/simple-config.md)
+- [灵活会话与异步标题](docs/flexible-conversations.md)
+- [用户资源隔离](docs/private-resources.md)
+- [默认 Skill](docs/default-skills.md)
+- [默认 MCP](docs/mcp-defaults.md) · [Parallel Search MCP](docs/reference/parallel_search_mcp.md)
+- [AG-UI 流式协议](docs/ag-ui.md)
+- [会话 Token 统计](docs/conversation-token-usage.md)
+- [日志格式与追踪](docs/logging.md)
+- [测试说明](src/backend/tests/README.md)
+- [更新日志](docs/CHANGELOG.md)
+
+## 许可证与支持
+
+本项目采用 [MIT License](LICENSE)。
 
 <div align="center">
 

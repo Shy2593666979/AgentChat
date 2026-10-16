@@ -7,17 +7,17 @@
 <p align="center">
   <img src="https://img.shields.io/badge/python-3.12+-blue.svg?style=for-the-badge&logo=python&logoColor=white" alt="Python Version" />
   <img src="https://img.shields.io/badge/vue-3.4+-4FC08D.svg?style=for-the-badge&logo=vue.js&logoColor=white" alt="Vue Version" />
-  <img src="https://img.shields.io/badge/fastapi-0.115+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/fastapi-0.121+-009688.svg?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/license-MIT-green.svg?style=for-the-badge" alt="License" />
 </p>
 
 <p align="center">
-  <b>A Modern Intelligent Conversation System Based on Large Language Models</b>
+  <b>An agent platform connecting models, knowledge, and tools</b>
 </p>
 
 <p align="center">
-  <a href="https://shy2593666979.github.io/agentchat-docs/%E5%BF%AB%E9%80%9F%E5%85%A5%E9%97%A8.html">Quick Start</a> •
-  <a href="https://shy2593666979.github.io/agentchat-docs/%E5%BC%80%E5%8F%91%E6%8C%87%E5%8D%97/%E7%8E%AF%E5%A2%83%E6%90%AD%E5%BB%BA.html">Deployment Guide</a> •
+  <a href="#quick-start">Quick Start</a> •
+  <a href="#advanced-configuration">Deployment Guide</a> •
   <a href="https://shy2593666979.github.io/agentchat-docs/">Documentation</a> •
   <a href="https://agentchat.cloud">Live Demo</a> •
   <a href="https://github.com/Shy2593666979/agentchat-docs/blob/main/images/README.md">Join WeChat Group</a>
@@ -27,88 +27,49 @@
 
 ---
 
-## Latest Changelog (2026-4-12)
+[简体中文](README.md) · [Changelog](docs/CHANGELOG.md)
 
-### 1. HITL-based Conversational MCP Server Generation from OpenAPI
+## Overview
 
-- Supports conversational MCP Server generation from OpenAPI specs using a Human-In-The-Loop mechanism.
-- Key decision nodes during MCP Server generation support human intervention and confirmation, enabling dynamic configuration and real-time interaction.
-- Improves server generation flexibility and system controllability, allowing users to retain full initiative within automated workflows.
+agentchat is an agent application platform with a Vue frontend and a FastAPI backend. Connect a model service, give agents access to tools, Skills, MCP servers, and knowledge bases, then use those capabilities in conversations. Mars provides a task interface for search, research, and report generation with execution details.
 
-### 2. Optimized Conversation Context Management
-Refactored the context management strategy, upgrading from a simple "last 5 turns" approach to an intelligent three-layer memory architecture:
-- Short-Term Memory: retains conversation content within the most recent 3000 tokens to ensure immediate context continuity
-- History Summarization: automatically summarizes historical conversations exceeding 3000 tokens and extracts key information
-- Long-Term Memory: persistently records user preferences, habits, and important information for a personalized conversation experience
+The local setup uses SQLite, an in-process cache, local file storage, and Chroma. Separate MySQL, Redis, MinIO, and Milvus services are optional.
 
-### 3. Dependency Conflict Fixes
-Resolved multiple dependency version conflicts, particularly compatibility issues among core libraries such as Pydantic, LangChain, and FastAPI, improving system stability.
+## Capabilities
 
-### 4. Improved First-Launch Experience
-Fixed errors caused by missing model configuration on first launch. Added configuration validation and friendly prompts to guide users through initial setup, lowering the barrier to entry.
+| Capability | What it does |
+| --- | --- |
+| Flexible conversations | Switch agents within a conversation; generate a short topic title asynchronously from the first message |
+| Agents | Select a model, edit instructions, and bind tools, MCP servers, Skills, and knowledge bases |
+| Mars tasks | Start a task from Explore and inspect tool execution and the resulting Markdown report |
+| Tools and MCP | Use built-in tools, import OpenAPI specs, connect SSE / Streamable HTTP MCP servers, and review human confirmation steps |
+| Skills | Load six templates for research, data analysis, product documents, code review, email writing, and knowledge organization |
+| Knowledge bases | Upload and index documents for retrieval and reranking, with optional full-text search |
+| Resource isolation | New users receive separate copies of default agents, tools, Skills, and MCP servers |
+| Usage and logs | Track provider-reported token usage and inspect request, run, and tool logs |
+| Streaming | Adapt conversation and task events through the shared AG-UI layer |
 
----
+Basic chat needs a working chat model. Knowledge retrieval needs suitable embedding and reranking services, and some external tools require separate credentials. A single chat API key does not automatically enable every capability.
 
-<details>
-<summary><b>Previous Changelog (2026-3-8)</b></summary>
+See the [changelog](docs/CHANGELOG.md) for this branch's interface, conversation, resource isolation, protocol, usage, logging, and CI changes.
 
-### 1. MinIO Local Object Storage Support
-Now supports both OSS and MinIO as object storage options. Reference: [Install MinIO on Windows](docs/development/install_minio_win.md). Thanks to the contributors who raised Issues:
-- @xiaoyan011016
-- @shenmi888
+## Contents
 
-### 2. Optimized Docker Deployment
-(1) Fixed the network connectivity issue where agentchat-frontend could not reach agentchat-backend in previous Docker deployments.
-(2) Added a one-click deployment script for Windows (start_win.bat).
+- [Screenshots and demos](#screenshots-and-demos)
+- [Quick start](#quick-start)
+- [First use](#first-use)
+- [Advanced configuration](#advanced-configuration)
+- [Development and checks](#development-and-checks)
+- [Documentation](#documentation)
+- [License and support](#license-and-support)
 
-### 3. Custom Tool Support
-Previously clicking custom tools had no effect. Now you can build your own tools by uploading a Swagger/OpenAPI spec.
+## Screenshots and demos
 
-### 4. Skill Support
-Now supports creating Skills bound to agents, using progressive Prompt loading to teach the model how to perform tasks.
-
-### 5. UI Style Improvements
-The system settings page was blank in previous versions. This has been fixed.
-
-</details>
-
----
-
-## Table of Contents
-
-- [1. Project Overview](#1-project-overview)
-- [2. Feature Showcase](#2-feature-showcase)
-- [3. Important Version Notes](#3-important-version-notes)
-- [4. Features](#4-features)
-- [5. Tech Stack](#5-tech-stack)
-- [6. Quick Start](#6-quick-start)
-- [7. Advanced Deployment Guide](#7-advanced-deployment-guide)
-- [8. Documentation](#8-documentation)
-- [9. License](#9-license)
-
----
-
-## 1. Project Overview
-
-AgentChat is a modern intelligent conversation system built on large language models, offering rich AI conversation capabilities. The system adopts a frontend-backend separated architecture and supports multiple AI models, knowledge base retrieval, tool calling, MCP server integration, and other advanced features.
+See also the [current interface gallery and Mars video](README.md#功能展示).
 
 <div align="center">
 <img width="800" height="400" src="https://github.com/user-attachments/assets/f35e8a9a-0905-46a2-a167-a3c8e876760a" />
 </div>
-
-### 1. Core Highlights
-
-- Intelligent Agent: Supports Sub-Agents collaboration with reasoning and decision-making capabilities
-- Knowledge Base Retrieval: RAG technology for accurate knowledge retrieval and Q&A
-- Tool Ecosystem: Built-in practical tools with support for custom extensions
-- MCP Integration: Supports Model Context Protocol servers
-- Modern UI: Beautiful interface based on Vue 3 and Element Plus
-- Three-Layer Memory: Short-term context retention, automatic history summarization, long-term user preference recording
-- HITL Generation: Conversational MCP Server generation based on HITL, with human intervention at key nodes
-
----
-
-## 2. Feature Showcase
 
 <div align="center">
 
@@ -116,11 +77,11 @@ AgentChat is a modern intelligent conversation system built on large language mo
 Conversational MCP Server generation from API information using the Human-In-The-Loop mechanism
 <img width="800" height="450" src="https://github.com/user-attachments/assets/cabb59d8-0e14-432a-9aee-aa9115e266cd" />
 
-### 2. New Workspace
-Added workspace feature; users can freely switch between workspace and app center
+### 2. Workspace
+Switch between the workspace and app center.
 <img width="800" height="450" src="https://github.com/user-attachments/assets/766c7628-2256-4c8b-a838-c400eaa78d6b" />
 
-### 3. LingXun Task Planning
+### 3. Task Planning
 Real-time task flowchart for a more intuitive experience
 <img width="800" height="450" src="https://github.com/user-attachments/assets/53f7fe9f-d70d-4cc2-bf7e-b47a712a6d7a" />
 
@@ -162,131 +123,152 @@ The platform supports multi-turn tool calling for agents (Tool C depends on the 
 <img width="800" height="450" src="https://github.com/user-attachments/assets/029c70ce-e5fa-4f2c-926a-a5dfd719e237" />
 </div>
 
----
+## Quick start
 
-## 3. Important Version Notes
+### 1. Prerequisites
 
-Starting from AgentChat v2.2.0, LangChain has been upgraded to version 1.0.
+- Git, Python 3.12, and Node.js 22, matching the CI environment.
+- [uv](https://docs.astral.sh/uv/getting-started/installation/) for Python environments and locked dependencies.
+- A model API key, endpoint, and model identifier. The example below uses [DeepSeek Flash](https://api-docs.deepseek.com/) with the model identifier `deepseek-flash`.
 
-<div align="center">
+The commands below clone the `main` branch. Confirm that `uv --version` and `node --version` work in your terminal.
 
-| Version | LangChain Version | Compatibility | Notes |
-|:---:|:---:|:---:|:---|
-| v2.1.x and below | 0.x | Legacy | Uses old LangChain API |
-| v2.2.0+ | 1.0+ | Latest | Major update, significant API changes |
-
-</div>
-
-1. LangChain 1.0 introduces breaking API changes.
-2. Some tool and Agent configuration methods have been updated.
-3. It is recommended to review the migration guide for detailed changes.
-
----
-
-## 4. Features
-
-### 1. Core Modules
-
-- AI Conversation Engine: Multi-model ecosystem, streaming responses, context memory, reasoning visualization.
-- Intelligent Agent System: Multi-agent collaboration, task automation, workflow orchestration, goal-oriented execution.
-- Knowledge Base System: Multi-format support, semantic chunking, vector retrieval, RAG-based Q&A.
-- Tool Ecosystem: 10+ built-in tools, supports custom upload and extension.
-
-### 2. Advanced Features
-
-- MCP Server: Full protocol support, dynamic loading at runtime.
-- User Management: Secure authentication, fine-grained permission control, personalized configuration.
-- System Architecture: Frontend-backend separation, Docker deployment, async high-performance processing.
-
----
-
-## 5. Tech Stack
-
-- Backend: FastAPI, Python 3.12+, LangChain, MySQL, Redis, ChromaDB.
-- Frontend: Vue 3.4+, Element Plus, Pinia, Vite 5, TypeScript.
-- Deployment: Docker, Docker Compose, Poetry, npm.
-
----
-
-## 6. Quick Start
-
-### 1. System Requirements
-
-- Python 3.12+
-- Node.js 18+
-- MySQL 8.0+, Redis 7.0+
-- Docker 20.10+
-
-### 2. Docker One-Click Deployment
+### 2. Get the source and install backend dependencies
 
 ```bash
-# 1. Clone the project
-git clone https://github.com/Shy2593666979/AgentChat.git
-cd AgentChat
-
-# 2. Edit the configuration file
-vim docker/docker_config.yaml
-
-# 3. Start
-cd docker
-docker-compose up --build -d
+git clone --branch main https://github.com/Shy2593666979/AgentChat.git
+cd AgentChat/src/backend
+uv sync --locked --python 3.12
 ```
 
-### 3. Local Deployment
+### 3. Create a local configuration
 
-Clone the project
+Windows PowerShell:
+
+```powershell
+Copy-Item agentchat/config.simple.yaml agentchat/config.local.simple.yaml
+```
+
+Linux / macOS:
+
 ```bash
-git clone https://github.com/Shy2593666979/AgentChat.git
-
-cd AgentChat
+cp agentchat/config.simple.yaml agentchat/config.local.simple.yaml
 ```
 
-Start the backend service
+Edit the following section in `src/backend/agentchat/config.local.simple.yaml`, retaining the rest of the copied template:
+
+```yaml
+multi_models:
+  chat_model:
+    api_key: "your-deepseek-api-key"
+    base_url: "https://api.deepseek.com"
+    model_name: "deepseek-flash"
+```
+
+Retain the other settings in the copied file. Local files matching `config.local*.yaml` are ignored by Git. This DeepSeek example configures chat; knowledge retrieval requires separately configured embedding and reranking services, rather than reusing the DeepSeek key. See the [model configuration guide](docs/simple-config.md#模型继承与能力边界).
+
+### 4. Run the backend
+
+Keep this terminal in `src/backend` and leave the server running.
+
+Windows PowerShell:
+
+```powershell
+$env:AGENTCHAT_CONFIG = "agentchat/config.local.simple.yaml"
+uv run --locked uvicorn agentchat.main:app --host 127.0.0.1 --port 7860
+```
+
+Linux / macOS:
+
 ```bash
-cd src/backend
-
-# Install dependencies
-1. pip install -r requirements.txt
-
-# Or use uv (recommended)
-1. pip install uv
-2. uv sync
+export AGENTCHAT_CONFIG=agentchat/config.local.simple.yaml
+uv run --locked uvicorn agentchat.main:app --host 127.0.0.1 --port 7860
 ```
 
-Start the frontend service
+[Health check](http://127.0.0.1:7860/health) should return `{"status":"OK"}`. [Swagger UI](http://127.0.0.1:7860/docs) documents the API. The health check confirms server startup; send a message to verify your model credentials.
+
+### 5. Run the frontend
+
+Open another terminal at the repository root:
+
 ```bash
 cd src/frontend
-
-# Install dependencies
-npm install
-npm run dev
+npm ci
+npm run dev -- --host 127.0.0.1 --port 8090 --strictPort
 ```
 
----
+Visit [http://127.0.0.1:8090](http://127.0.0.1:8090). The development server proxies `/api` to the backend on port `7860`.
 
-## 7. Advanced Deployment Guide
+For a different backend address, set `VITE_API_BASE_URL=http://your-backend:port` in `src/frontend/.env.local` and restart the frontend. Keep backend command-line ports, YAML server settings, and uploaded-file URLs consistent. See the [configuration guide](docs/simple-config.md).
 
-The system supports configuration of multiple vector databases (Milvus/ChromaDB) and search engines (Elasticsearch). Please refer to the deployment documentation for details.
+## First use
 
----
+1. Register and sign in. Your account receives its own default agents, tools, Skills, and MCP servers. Create knowledge bases when needed.
+2. Check the model setup. The YAML `chat_model` configures the system default model. Models added on the model page can be selected by agents; their display names and provider model identifiers are separate fields.
+3. Open a conversation, select an agent, and send a message. You can switch agents within the conversation. A short title is generated in the background and can be renamed manually.
+4. Bind tools, Skills, MCP servers, or knowledge bases in the agent editor. A listed MCP server is not automatically enabled for every agent. Confirm external credentials and connectivity before calling it.
+5. Upload documents and wait for indexing before using a knowledge base. Check embedding and reranking configuration. Start research tasks from Explore after configuring the tools they use.
+6. Inspect usage on the dashboard. Token statistics depend on the usage information returned by the provider and may be incomplete when it is missing.
 
-## 8. Documentation
+## Advanced configuration
 
-- API Documentation: [AgentChat Document](docs/reference/agentchat.md)
-- Development Guide: Start the backend and visit /docs to view the Swagger documentation.
-- [Parallel Search MCP](docs/reference/parallel_search_mcp.md): Registered in `config/mcp_server.json` for auto-load, keyless (`config_enabled` is `false`), rate limited on the anonymous endpoint, and opt-in because an agent must bind the server before it is used.
+Simple mode uses the same YAML structure as the full configuration, filling omitted settings with defaults.
 
----
+| Requirement | Setting |
+| --- | --- |
+| SQLite or MySQL | `database.url`; sync and async drivers are derived automatically |
+| Redis | `redis.endpoint`; leave it empty for a local in-process cache |
+| Local files, MinIO, or OSS | `storage.mode` and the selected storage configuration |
+| Separate models | `multi_models.chat_model`, `tool_call_model`, `reasoning_model`, `embedding`, `rerank`, and other model entries |
+| Vector store and full-text search | `rag.vector_db`, `rag.enable_elasticsearch`, and the relevant connection settings |
+| Default resources | `agentchat/config/mcp_server.json`, `default_skills.json`, and `config/skills/` |
+| Logging | `log_level` and the `AGENTCHAT_LOG_DIR` environment variable |
 
-## 9. License
+Configuration precedence is: explicit loader path → `AGENTCHAT_CONFIG` → `agentchat/config.local.yaml` → `agentchat/config.yaml`. Select `config.local.simple.yaml` explicitly and restart the backend after changes.
 
-This project is licensed under the **[MIT License](LICENSE)**
+The existing [Docker files](docker/) describe a development stack with MySQL, Redis, MinIO, and the frontend development server. They are separate from this lightweight local setup. Container addresses, configuration, and persistence need to be checked for that stack; a full container startup was not validated as part of this documentation update.
 
-*This means you are free to use, modify, and distribute this project*
+## Development and checks
 
----
+In `src/backend`:
 
-## 10. Thank You for Supporting AgentChat
+```bash
+uv sync --locked --group dev
+uv run --locked pytest tests -q
+```
+
+In `src/frontend`:
+
+```bash
+npm ci
+npm run lint
+npm run build
+node --test tests/mars-task.test.cjs
+```
+
+Install frontend dependencies to enable the backend's cross-language AG-UI checks. Scripts requiring external services remain under `src/backend/tests/manual` and are excluded from default collection.
+
+[GitHub CI](.github/workflows/ci.yml) runs backend tests and frontend type checks and builds on pushes to `main`, pull requests, or manual dispatch. It uses temporary configuration and databases, without real model keys. Building the frontend generates static files; it does not deploy the application.
+
+## Documentation
+
+The detailed guides below are currently in Chinese:
+
+- [Backend architecture and troubleshooting](src/backend/README.md)
+- [Simple configuration and local data](docs/simple-config.md)
+- [Flexible conversations](docs/flexible-conversations.md)
+- [Private user resources](docs/private-resources.md)
+- [Default Skills](docs/default-skills.md)
+- [Default MCP servers](docs/mcp-defaults.md) · [Parallel Search](docs/reference/parallel_search_mcp.md)
+- [AG-UI protocol](docs/ag-ui.md)
+- [Conversation token usage](docs/conversation-token-usage.md)
+- [Logging](docs/logging.md)
+- [Tests](src/backend/tests/README.md)
+- [Changelog](docs/CHANGELOG.md)
+
+## License and support
+
+This project is licensed under the [MIT License](LICENSE).
 
 <div align="center">
 
