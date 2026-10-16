@@ -114,7 +114,7 @@ async def _update_exist_llm():
     - 若无变化 → 跳过
     - 若 API Key 是掩码（包含 **）→ 跳过（防止覆盖真实 key）
     """
-    settings = app_settings.multi_models.conversation_model
+    settings = app_settings.multi_models.chat_model
 
     api_key = settings.api_key
     base_url = settings.base_url
@@ -156,7 +156,7 @@ async def _update_exist_llm():
 
 async def _init_default_llms():
     """初始化默认 LLM"""
-    settings = app_settings.multi_models.conversation_model
+    settings = app_settings.multi_models.chat_model
 
     await LLMService.create_llm(
         user_id=SystemUser,

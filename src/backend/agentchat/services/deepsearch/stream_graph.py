@@ -66,7 +66,7 @@ class StreamingGraph:
 
     def __init__(self):
         self.output_queue = asyncio.Queue()
-        self.conversation_model = ModelManager.get_conversation_model()
+        self.chat_model = ModelManager.get_chat_model()
 
     async def _stream_callback(self, output: StreamOutput):
         """内部流式输出回调"""
@@ -107,7 +107,7 @@ class StreamingGraph:
         await stream_output("generate_query", f"开始生成搜索查询，主题：{research_topic}", "start")
 
         content = ""
-        async for chunk in self.conversation_model.astream(formatted_prompt):
+        async for chunk in self.chat_model.astream(formatted_prompt):
             content += chunk.content
         
         try:
@@ -217,7 +217,7 @@ class StreamingGraph:
         )}
         """
 
-        response = await self.conversation_model.ainvoke(formatted_prompt)
+        response = await self.chat_model.ainvoke(formatted_prompt)
         content = response.content
 
         try:
@@ -299,7 +299,7 @@ class StreamingGraph:
         """
 
         content = ""
-        async for chunk in self.conversation_model.astream(formatted_prompt):
+        async for chunk in self.chat_model.astream(formatted_prompt):
             content += chunk.content
             await stream_output("finalize_answer", chunk.content, "streaming")
 

@@ -117,7 +117,7 @@ class GeneralAgent:
     def __init__(self, agent_config: AgentConfig):
         self.agent_config = agent_config
 
-        self.conversation_model = None
+        self.chat_model = None
         self.tool_invocation_model = None
         self.react_agent = None
 
@@ -170,16 +170,16 @@ class GeneralAgent:
         # 普通对话模型
         if self.agent_config.llm_id:
             model_config = await LLMService.get_llm_by_id(self.agent_config.llm_id)
-            self.conversation_model = ModelManager.get_user_model(**model_config)
+            self.chat_model = ModelManager.get_user_model(**model_config)
         else:
-            self.conversation_model = ModelManager.get_conversation_model()
+            self.chat_model = ModelManager.get_chat_model()
 
         # 意图识别模型
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
 
     def setup_react_agent(self):
         return create_agent(
-            model=self.conversation_model,
+            model=self.chat_model,
             tools=self.tools + self.mcp_agent_as_tools + self.skill_agent_as_tools,
             #tools=[self.search_tool] if len(self.tools + self.mcp_agent_as_tools) >= MAX_TOOLS_SIZE else self.tools + self.mcp_agent_as_tools,
             middleware=self.middlewares,

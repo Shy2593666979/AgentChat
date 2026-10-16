@@ -54,7 +54,7 @@ async def crawl_detail_ai_news():
 
     message = NEWS_PROMPT.format(today=date.today(), news_content=total_news_content)
 
-    llm_client = ModelManager.get_conversation_model()
+    llm_client = ModelManager.get_chat_model()
 
     response = await llm_client.ainvoke(message)
 
@@ -115,7 +115,7 @@ async def yield_crawl_detail_ai_news(output_detail: bool):
         }
     message = NEWS_PROMPT.format(today=date.today(), news_content=total_news_content)
 
-    llm_client = ModelManager.get_conversation_model()
+    llm_client = ModelManager.get_chat_model()
 
     async for chunk in llm_client.astream(message):
         yield {

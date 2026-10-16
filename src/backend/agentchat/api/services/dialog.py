@@ -188,8 +188,8 @@ class DialogService:
 
     @classmethod
     async def _generate_messages_summary(cls, messages_prompt):
-        conversation_model = ModelManager.get_conversation_model()
-        response = await conversation_model.ainvoke(
+        chat_model = ModelManager.get_chat_model()
+        response = await chat_model.ainvoke(
             input=messages_prompt,
             config={"callbacks": [usage_metadata_callback]}
         )

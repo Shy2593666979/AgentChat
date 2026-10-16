@@ -1,13 +1,16 @@
 import pickle
+from typing import Optional
+
 import redis
 from loguru import logger
-from typing import Optional
-from agentchat.settings import app_settings
 from redis import ConnectionPool, RedisCluster
 from redis.backoff import ExponentialBackoff
 from redis.cluster import ClusterNode
 from redis.retry import Retry
 from redis.sentinel import Sentinel
+
+from agentchat.settings import app_settings
+
 
 class RedisClient:
     
@@ -16,7 +19,8 @@ class RedisClient:
             self.pool = ConnectionPool.from_url(url, max_connections=max_connections)
             self.connection = redis.StrictRedis(connection_pool=self.pool)
         else:
-            logger.error(f"redis init only support Standalone mode")
+            from agentchat.services.memory_cache import MemoryCacheConnection
+            self.connection = MemoryCacheConnection()
 
     # 用于集群模式
     def cluster_nodes(self, key):
@@ -29,9 +33,9 @@ class RedisClient:
         try:
             if pickled := pickle.dumps(value):
                 result = self.connection.setnx(key, pickled)
-                self.connection.expire(key, expiration)
                 if not result:
                     return False
+                self.connection.expire(key, expiration)
                 return True
         except TypeError as exc:
             raise TypeError('RedisCache only accepts values that can be pickled. ') from exc

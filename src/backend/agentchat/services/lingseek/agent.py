@@ -27,7 +27,7 @@ from agentchat.schemas.lingseek import LingSeekGuidePrompt, LingSeekGuidePromptF
 
 
 class LingSeekAgent:
-    conversation_model = ModelManager.get_conversation_model()
+    chat_model = ModelManager.get_chat_model()
     tool_call_model = ModelManager.get_lingseek_intent_model()
 
     def __init__(self, user_id: str):
@@ -46,7 +46,7 @@ class LingSeekAgent:
         sop_content = ""
         answer = ""
         split_tags = ["<Thought_END>", "</Thought_END>"]
-        async for one in self.conversation_model.astream(input=lingseek_guide_prompt, config={"callbacks": [usage_metadata_callback]}):
+        async for one in self.chat_model.astream(input=lingseek_guide_prompt, config={"callbacks": [usage_metadata_callback]}):
             answer += f"{one.content}"
             if sop_flag:
                 yield one
@@ -65,7 +65,7 @@ class LingSeekAgent:
             yield one
 
     async def _generate_tasks(self, lingseek_task_prompt):
-        conversation_json_model = self.conversation_model.bind(response_format={"type": "json_object"})
+        conversation_json_model = self.chat_model.bind(response_format={"type": "json_object"})
 
         response = await conversation_json_model.ainvoke(input=lingseek_task_prompt, config={"callbacks": [usage_metadata_callback]})
 
@@ -83,7 +83,7 @@ class LingSeekAgent:
 
     async def _generate_title(self, query):
         title_prompt = GenerateTitlePrompt.format(query=query)
-        response = await self.conversation_model.ainvoke(input=title_prompt, config={"callbacks": [usage_metadata_callback]})
+        response = await self.chat_model.ainvoke(input=title_prompt, config={"callbacks": [usage_metadata_callback]})
         return response.content
 
     async def _add_workspace_session(self, query, contexts: WorkSpaceSessionContext):
@@ -216,7 +216,7 @@ class LingSeekAgent:
             }
 
         final_response = ""
-        async for chunk in self.conversation_model.astream(messages):
+        async for chunk in self.chat_model.astream(messages):
             final_response += chunk.content
             yield {
                 "event": "task_result",

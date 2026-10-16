@@ -13,7 +13,7 @@ class StructuredResponseAgent:
 
     def _create_structured_agent(self):
         return create_agent(
-            model=ModelManager.get_conversation_model(),
+            model=ModelManager.get_chat_model(),
             response_format=ToolStrategy(self.response_format)
         )
 

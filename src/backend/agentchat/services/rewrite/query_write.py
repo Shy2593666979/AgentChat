@@ -9,7 +9,7 @@ from agentchat.prompts.rewrite import user_query_write
 
 class QueryRewrite:
     def __init__(self):
-        self.client = ModelManager.get_conversation_model()
+        self.client = ModelManager.get_chat_model()
 
     async def rewrite(self, user_input):
         rewrite_prompt = user_query_write.format(user_input=user_input)

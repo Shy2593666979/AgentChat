@@ -58,7 +58,7 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
         state["initial_search_query_count"] = configurable.number_of_initial_queries
 
     # 使用ModelManager获取模型
-    llm = ModelManager.get_conversation_model()
+    llm = ModelManager.get_chat_model()
 
     # 格式化提示词
     current_date = get_current_date()
@@ -199,7 +199,7 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
     
     # 使用ModelManager获取模型
-    llm = ModelManager.get_conversation_model()
+    llm = ModelManager.get_chat_model()
 
     # 格式化提示词
     current_date = get_current_date()
@@ -299,7 +299,7 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
         包含状态更新的字典，包括包含格式化最终摘要和源的running_summary键
     """
     # 使用ModelManager获取模型
-    llm = ModelManager.get_conversation_model()
+    llm = ModelManager.get_chat_model()
 
     # 格式化提示词
     current_date = get_current_date()

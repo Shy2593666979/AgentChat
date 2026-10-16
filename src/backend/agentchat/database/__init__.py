@@ -1,99 +1,56 @@
 from loguru import logger
-from sqlmodel import SQLModel, create_engine, text
-from sqlalchemy.ext.asyncio import create_async_engine
+from sqlmodel import SQLModel
 
 from agentchat.database.models.agent import AgentTable
+from agentchat.database.models.agent_skill import AgentSkill
+from agentchat.database.models.dialog import DialogTable
 from agentchat.database.models.history import HistoryTable
-from agentchat.database.models.memory_history import MemoryHistoryTable
-from agentchat.database.models.user import SystemUser
 from agentchat.database.models.knowledge import KnowledgeTable
 from agentchat.database.models.knowledge_file import KnowledgeFileTable
-from agentchat.database.models.tool import ToolTable
-from agentchat.database.models.dialog import DialogTable
-from agentchat.database.models.mcp_server import MCPServerTable, MCPServerStdioTable
-from agentchat.database.models.mcp_user_config import MCPUserConfigTable
-from agentchat.database.models.user_role import UserRole
 from agentchat.database.models.llm import LLMTable
+from agentchat.database.models.mcp_server import MCPServerStdioTable, MCPServerTable
+from agentchat.database.models.mcp_user_config import MCPUserConfigTable
+from agentchat.database.models.memory_history import MemoryHistoryTable
 from agentchat.database.models.message import MessageDownTable, MessageLikeTable
-from agentchat.database.models.role import Role
-from agentchat.database.models.workspace_session import WorkSpaceSession
-from agentchat.database.models.usage_stats import UsageStats
-from agentchat.database.models.agent_skill import AgentSkill
 from agentchat.database.models.register_mcp import RegisterMcpServer
-from agentchat.database.models.register_task import RegisterMcpTask
 from agentchat.database.models.register_mcp_tool import RegisterMcpTool
+from agentchat.database.models.register_task import RegisterMcpTask
+from agentchat.database.models.role import Role
+from agentchat.database.models.tool import ToolTable
+from agentchat.database.models.usage_stats import UsageStats
+from agentchat.database.models.user import SystemUser
+from agentchat.database.models.user_role import UserRole
+from agentchat.database.models.workspace_session import WorkSpaceSession
 from agentchat.settings import app_settings
 
-
-engine = create_engine(
-    url=app_settings.mysql.get('endpoint'),
-    pool_pre_ping=True, # 连接前检查其有效性
-    pool_recycle=3600, # 每隔1小时进行重连一次
-    connect_args={
-        "charset": "utf8mb4",
-        "use_unicode": True,
-        "init_command": "SET SESSION time_zone = '+08:00'"
-    }
+from .connection import (
+    configure_sqlite_timestamps,
+    create_database_engines,
+    resolve_database_urls,
+)
+from .connection import (
+    ensure_database as _ensure_database,
 )
 
-async_engine = create_async_engine(
-    url=app_settings.mysql.get('async_endpoint'),
-    pool_pre_ping=True,  # 连接前检查其有效性
-    pool_recycle=3600,  # 每隔1小时进行重连一次
-    connect_args={
-        "charset": "utf8mb4",
-        "use_unicode": True,
-        "init_command": "SET SESSION time_zone = '+08:00'"
-    }
-)
+database_urls = resolve_database_urls(app_settings.database or app_settings.mysql)
+if database_urls.dialect == "sqlite":
+    configure_sqlite_timestamps(SQLModel.metadata)
+engine, async_engine = create_database_engines(database_urls)
 
 
-def ensure_mysql_database(endpoint: str=None) -> None:
-    """
-    Ensure MySQL database exists.
-    This function is safe to call on every startup.
-    """
-    from urllib.parse import urlparse, urlunparse
-
-    if not endpoint:
-        endpoint = app_settings.mysql.get('endpoint')
-    parsed = urlparse(endpoint)
-
-    database = parsed.path.lstrip("/")
-    if not database:
-        raise ValueError("MySQL endpoint must include database name")
-
-    bootstrap_url = urlunparse((
-        "mysql+pymysql",
-        f"{parsed.username}:{parsed.password}@{parsed.hostname}:{parsed.port or 3306}",
-        "/",
-        "",
-        "",
-        ""
-    ))
-
-    logger.info(f"Checking MySQL database `{database}`")
-
-    engine = create_engine(
-        bootstrap_url,
-        isolation_level="AUTOCOMMIT",
-        connect_args={
-            "charset": "utf8mb4",
-            "init_command": "SET SESSION time_zone = '+08:00'"
-        }
+def ensure_database(endpoint: str | None = None) -> None:
+    urls = (
+        resolve_database_urls(
+            {
+                "url": endpoint,
+            }
+        )
+        if endpoint
+        else database_urls
     )
+    _ensure_database(urls.sync)
 
-    try:
-        with engine.connect() as conn:
-            conn.execute(
-                text(
-                    f"""
-                    CREATE DATABASE IF NOT EXISTS `{database}`
-                    DEFAULT CHARACTER SET utf8mb4
-                    COLLATE utf8mb4_unicode_ci
-                    """
-                )
-            )
-        logger.success(f"MySQL database `{database}` is ready")
-    finally:
-        engine.dispose()
+
+def ensure_mysql_database(endpoint: str | None = None) -> None:
+    """Compatibility alias for older callers; selection is now URL-based."""
+    ensure_database(endpoint)

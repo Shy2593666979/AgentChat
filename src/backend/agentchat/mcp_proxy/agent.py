@@ -40,7 +40,7 @@ def generate_mcp_json(user_query: str, runtime: ToolRuntime) -> str:
         "content": ""
     })
 
-    client = ModelManager.get_conversation_model()
+    client = ModelManager.get_chat_model()
 
     response = client.invoke(
         input=[HumanMessage(content=GENERATE_MCP_JSON_PROMPT + user_query)],
@@ -111,7 +111,7 @@ def restore_mcp_json(mcp_json_str: str, error_message: str, runtime: ToolRuntime
 
     writer({"title": "修复Mcp Json", "status": "START", "is_error": False, "content": ""})
 
-    client = ModelManager.get_conversation_model()
+    client = ModelManager.get_chat_model()
 
     response = client.invoke([
         SystemMessage(content=RESTORE_MCP_JSON_PROMPT.format(mcp_json=mcp_json_str)),
@@ -143,7 +143,7 @@ def revise_mcp_json(mcp_json_str: str, user_feedback: str, runtime: ToolRuntime)
         "content": user_feedback
     })
 
-    client = ModelManager.get_conversation_model()
+    client = ModelManager.get_chat_model()
     response = client.invoke(
         input=[
             SystemMessage(content=REVISE_MCP_JSON_SYSTEM_PROMPT.format(mcp_json_str=mcp_json_str)),
@@ -210,7 +210,7 @@ async def register_mcp_server(mcp_json_str: str, runtime: ToolRuntime) -> str:
 # Agent 定义
 class AbstractMcpAgent:
     def __init__(self):
-        self.model = ModelManager.get_conversation_model()
+        self.model = ModelManager.get_chat_model()
 
         self.tools = [
             generate_mcp_json,

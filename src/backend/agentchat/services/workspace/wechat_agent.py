@@ -63,7 +63,7 @@ class WeChatAgent:
                  mcp_configs: List[MCPConfig] = []):
 
         # WeChat-agent only needs tool calling model, not conversation model
-        self.model = ModelManager.get_conversation_model()
+        self.model = ModelManager.get_chat_model()
         self.plugin_tools = []
         self.mcp_tools = []
         self.mcp_configs = mcp_configs

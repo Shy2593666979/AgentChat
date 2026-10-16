@@ -1,16 +1,16 @@
-import os
 import asyncio
+import os
 
+from agentchat.core.models.manager import ModelManager
+from agentchat.schemas.chunk import ChunkModel
+from agentchat.services.rag.doc_parser.docx import docx_parser
 from agentchat.services.rag.doc_parser.excel import excel_to_txt
 from agentchat.services.rag.doc_parser.image import image_to_txt
-from agentchat.services.rag.doc_parser.other_file import other_file_to_txt
-from agentchat.services.rag.doc_parser.pptx import pptx_parser
-from agentchat.core.models.manager import ModelManager
-from agentchat.services.rag.doc_parser.docx import docx_parser
-from agentchat.services.rag.doc_parser.pdf import pdf_parser
-from agentchat.services.rag.doc_parser.text import text_parser
 from agentchat.services.rag.doc_parser.markdown import markdown_parser
-from agentchat.schemas.chunk import ChunkModel
+from agentchat.services.rag.doc_parser.other_file import other_file_to_txt
+from agentchat.services.rag.doc_parser.pdf import pdf_parser
+from agentchat.services.rag.doc_parser.pptx import pptx_parser
+from agentchat.services.rag.doc_parser.text import text_parser
 from agentchat.settings import app_settings
 
 IMAGE_SUFFIXES = {"jpg", "jpeg", "png", "bmp", "webp", "tiff"}
@@ -56,7 +56,7 @@ class DocParser:
 
     @classmethod
     async def generate_summary(cls, chunk: ChunkModel, semaphore):
-        async_client = ModelManager.get_conversation_model()
+        async_client = ModelManager.get_chat_model()
 
         async with semaphore:
             prompt = f"""

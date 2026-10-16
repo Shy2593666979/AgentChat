@@ -20,14 +20,14 @@ class ModelManager:
         )
 
     @classmethod
-    def get_conversation_model(cls, **kwargs) -> BaseChatModel:
-        conversation_model = app_settings.multi_models.conversation_model
+    def get_chat_model(cls, **kwargs) -> BaseChatModel:
+        chat_model = app_settings.multi_models.chat_model
 
         return ChatOpenAI(
             stream_usage=True,
-            model=conversation_model.model_name,
-            api_key=conversation_model.api_key,
-            base_url=conversation_model.base_url
+            model=chat_model.model_name,
+            api_key=chat_model.api_key,
+            base_url=chat_model.base_url
         )
 
     @classmethod

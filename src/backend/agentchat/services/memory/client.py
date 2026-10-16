@@ -120,7 +120,7 @@ class AsyncMemory(MemoryBase):
 
         self.embedding_model = ModelManager.get_embedding_model()
         self.vector_store = VectorStoreManager.get_chroma_vector()
-        self.llm = ModelManager.get_conversation_model()
+        self.llm = ModelManager.get_chat_model()
         self.db = MemoryHistoryDao
 
         # 目前暂不支持Graph

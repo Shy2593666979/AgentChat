@@ -57,7 +57,7 @@ class MarsAgent:
 
     async def setup_language_model(self):
         # 普通对话模型
-        self.conversation_model = ModelManager.get_conversation_model()
+        self.chat_model = ModelManager.get_chat_model()
 
         # 支持Function Call模型
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
@@ -67,7 +67,7 @@ class MarsAgent:
 
     def setup_react_agent(self):
         return create_agent(
-            model=self.conversation_model,
+            model=self.chat_model,
             tools=self.mars_tools,
             middleware=self.middlewares,
         )

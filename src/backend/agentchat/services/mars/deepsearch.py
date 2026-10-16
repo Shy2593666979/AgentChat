@@ -11,7 +11,7 @@ class SimpleLLMJudge:
     """简单的LLM判断器"""
 
     def __init__(self):
-        self.LLM = ModelManager.get_conversation_model()
+        self.LLM = ModelManager.get_chat_model()
 
     def judge_and_decide(self, original_query: str, search_results: str) -> Dict:
         """判断搜索结果并决定下一步"""

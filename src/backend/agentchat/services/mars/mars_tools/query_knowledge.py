@@ -26,7 +26,7 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
     """
     writer =get_stream_writer()
 
-    conversation_model = ModelManager.get_conversation_model()
+    chat_model = ModelManager.get_chat_model()
 
     knowledges = await KnowledgeService.select_knowledge(user_id)
 
@@ -36,7 +36,7 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
         knowledge_files.extend(await KnowledgeFileService.get_knowledge_file(knowledge_id))
 
     generate_query = [query]
-    response = await conversation_model.ainvoke(Mars_Generate_Query_Prompt.format(file_names="\n".join([file["file_name"] for file in knowledge_files])))
+    response = await chat_model.ainvoke(Mars_Generate_Query_Prompt.format(file_names="\n".join([file["file_name"] for file in knowledge_files])))
     try:
         content = json.loads(response.content)
         generate_query.extend(content.get("query", []))
@@ -51,7 +51,7 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
 
     messages = [HumanMessage(content=query), SystemMessage(content="\n\n".join(documents))]
 
-    async for chunk in conversation_model.astream(messages):
+    async for chunk in chat_model.astream(messages):
          writer({
             "type": "response_chunk",
             "time": time.time(),

@@ -183,9 +183,9 @@ async def auto_build_agent(
         agent_message = f"创建智能体失败,请根据该原因进行修改, 失败原因:{err}"
         logger.error(agent_message)
     finally:
-        conversation_model = ModelManager.get_conversation_model()
+        chat_model = ModelManager.get_chat_model()
         agent_content = Mars_Autobuild_Answer_Prompt.format(agent_info=f"模型：{llm_name}\n 工具: {tools_name}\n MCP 服务: {mcp_servers_name}\n 知识库: {knowledges_name}", agent_message=agent_message)
-        async for chunk in conversation_model.astream(agent_content):
+        async for chunk in chat_model.astream(agent_content):
             writer(
                 return_chunk_format("response_chunk", chunk.content)
             )

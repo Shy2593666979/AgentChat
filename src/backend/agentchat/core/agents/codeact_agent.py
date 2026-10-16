@@ -59,7 +59,7 @@ class CodeActAgent:
     def __init__(self, tools, user_id):
         self.tools = tools
         self.user_id = user_id
-        self.coder_model = ModelManager.get_conversation_model()
+        self.coder_model = ModelManager.get_chat_model()
 
         self.setup_codeact_agent()
 

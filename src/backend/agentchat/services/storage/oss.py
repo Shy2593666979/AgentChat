@@ -1,6 +1,8 @@
 import oss2
 from loguru import logger
+
 from agentchat.settings import app_settings
+
 
 class OSSClient:
     def __init__(self):
@@ -17,14 +19,14 @@ class OSSClient:
     def upload_file(self, object_name, data):
         try:
             result = self.bucket.put_object(object_name, data)
-            logger.info(f"File uploaded successfully, status code: {result.status}")
+            logger.debug(f"File uploaded successfully, status code: {result.status}")
         except oss2.exceptions.OssError as e:
             logger.error(f"Failed to upload file: {e}")
 
     def upload_local_file(self, object_name, local_file):
         try:
             result = self.bucket.put_object_from_file(object_name, local_file)
-            logger.info(f"Local file uploaded successfully, status code: {result.status}")
+            logger.debug(f"Local file uploaded successfully, status code: {result.status}")
         except oss2.exceptions.OssError as e:
             logger.error(f"Failed to upload file : {e}")
 

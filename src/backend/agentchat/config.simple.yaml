@@ -1,0 +1,37 @@
+# 简易配置：沿用完整配置结构，保留常用选项，省略的细节使用默认值。
+# 加载方式：设置环境变量 AGENTCHAT_CONFIG=agentchat/config.simple.yaml。
+simple_mode: true
+
+# 服务地址和端口
+server:
+  host: "127.0.0.1"
+  port: 7860
+
+# 默认本地数据库，自动创建，无需安装 MySQL。
+database:
+  url: "sqlite:///data/agentchat.db"
+
+# 留空时使用内存缓存；需要 Redis 时改为 redis://localhost:6379。
+redis:
+  endpoint: null
+
+# 对话模型：填写自己的 Key；工具调用和推理默认复用此配置。
+multi_models:
+  chat_model:
+    api_key: ""
+    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
+    model_name: "qwen-plus"
+  # 知识库向量模型：默认复用上面的 Key 和地址，不需要重复填写。
+  embedding:
+    model_name: "text-embedding-v4"
+
+# 文件存储方式：local 为本地，可按完整配置切换到 minio 或 oss。
+storage:
+  mode: "local"
+  local:
+    path: "data/uploads"
+
+# 知识库默认使用本地向量库，无需安装 Milvus 或 Elasticsearch。
+rag:
+  vector_db:
+    mode: "chroma"

@@ -37,7 +37,7 @@ class PlanExecuteAgent:
         mcp_ids (List[str]): List of MCP server IDs to be integrated
         mcp_manager (MCPManager): Manager for MCP tools and configurations
         mcp_tools (List[BaseTool]): Dynamically loaded MCP tools
-        conversation_model: Model for general conversation
+        chat_model: Model for general conversation
         tool_call_model: Model specifically for tool invocation
 
     Example:
@@ -78,7 +78,7 @@ class PlanExecuteAgent:
         self.mcp_manager: MCPManager = None
 
         self.mcp_tools = []
-        self.conversation_model = ModelManager.get_conversation_model()
+        self.chat_model = ModelManager.get_chat_model()
         self.tool_call_model = ModelManager.get_tool_invocation_model()
 
     async def setup_mcp_tools(self):
@@ -115,7 +115,7 @@ class PlanExecuteAgent:
             # Send the error message for parsing model output
             fix_message = HumanMessage(
                 content=FIX_JSON_PROMPT.format(json_content=response.content, json_error=str(err)))
-            fix_response = await self.conversation_model.ainvoke([fix_message])
+            fix_response = await self.chat_model.ainvoke([fix_message])
 
             try:
                 fix_content = json.loads(fix_response.content)
@@ -201,7 +201,7 @@ class PlanExecuteAgent:
         messages.extend(tool_results)
         try:
             response_content = ""
-            async for chunk in self.conversation_model.astream(messages):
+            async for chunk in self.chat_model.astream(messages):
                 if chunk.content:
                     response_content += chunk.content
                     yield {
@@ -221,7 +221,7 @@ class PlanExecuteAgent:
             tool_results = []
 
         messages.extend(tool_results)
-        response = await self.conversation_model.ainvoke(messages)
+        response = await self.chat_model.ainvoke(messages)
         return response.content
 
     def _get_mcp_id_by_tool(self, tool_name):

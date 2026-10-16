@@ -76,9 +76,9 @@ async def crawl_ai_news(
 
     else:
         sample_date = datetime.today().strftime("%Y年%m月%d日")
-        conversation_model = ModelManager.get_conversation_model()
+        chat_model = ModelManager.get_chat_model()
 
-        response = await conversation_model.ainvoke(GENERATE_JSON_NEWS.format(news_content=final_response))
+        response = await chat_model.ainvoke(GENERATE_JSON_NEWS.format(news_content=final_response))
         # 默认值
         sample_content = []
         try:
@@ -86,7 +86,7 @@ async def crawl_ai_news(
             sample_content = json.loads(response.content)
         except Exception as err:
             logger.error(f"生成Json格式的新闻简述，我将开始修复这个Json格式的数据: {response.content}")
-            fix_response = await conversation_model.ainvoke(FIX_JSON_PROMPT.format(json_error=str(err), json_content=response.content))
+            fix_response = await chat_model.ainvoke(FIX_JSON_PROMPT.format(json_error=str(err), json_content=response.content))
             try:
                 sample_content = json.loads(fix_response.content)
             except Exception as err:

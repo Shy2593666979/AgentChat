@@ -1,65 +1,59 @@
 import json
 import re
-import pymysql
 from typing import Dict
-from loguru import logger
-from urllib.parse import urlparse
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 
+from langchain_core.messages import AIMessage, HumanMessage, SystemMessage
+from loguru import logger
+from sqlalchemy import MetaData, Table, inspect
+from sqlalchemy.engine import URL
+from sqlalchemy.schema import CreateTable
+
+from agentchat.database.connection import (
+    create_sync_database_engine,
+    resolve_database_urls,
+)
 from agentchat.prompts.completion import Text2SQLGeneratePrompt, Text2SQLSummaryPrompt
-from agentchat.core.models.manager import ModelManager
 from agentchat.settings import app_settings
 
+
 class Text2SQLAgent:
-    def __init__(self, db_config: Dict=None):
-        self.client = ModelManager.get_conversation_model()
-
-        # 初始化数据库连接
-        if db_config:
-            self.db_config = db_config
-        else:
-            self.db_config = self._get_config_from_url()
-        self.conn = pymysql.connect(**db_config, cursorclass=pymysql.cursors.DictCursor)
-
-        # 获取 Schema 缓存（避免每次问答都查库）
+    def __init__(self, db_config: Dict | str | None = None):
+        # Initialize the LLM only when run() is invoked, not for schema inspection.
+        self.client = None
+        self.db_config = db_config
+        url = self._get_database_url(db_config)
+        self.engine = create_sync_database_engine(url)
+        self.conn = self.engine.connect()
         self.schema_str = self._get_database_schema()
 
-    def _get_config_from_url(self):
-        # 解析 URL
-        parsed = urlparse(app_settings.mysql.get("endpoint"))
-
-        # 构建配置字典
-        db_config = {
-            "host": parsed.hostname,
-            "user": parsed.username,
-            "password": parsed.password,
-            "database": parsed.path.lstrip('/'),
-            "port": parsed.port or 3306,  # 如果 URL 里没写端口，默认 3306
-            "charset": "utf8mb4"  # 推荐默认加上，支持中文和表情符号
-        }
-        return db_config
+    def _get_database_url(self, db_config):
+        if db_config is None:
+            from agentchat.database import engine
+            return engine.url
+        if isinstance(db_config, str):
+            return resolve_database_urls(
+                {
+                    "url": db_config,
+                }
+            ).sync
+        if db_config.get("url") or db_config.get("endpoint"):
+            return resolve_database_urls(db_config).sync
+        # Preserve the existing MySQL dictionary constructor, including escaped passwords.
+        return URL.create("mysql+pymysql", username=db_config.get("user"),
+                          password=db_config.get("password"), host=db_config.get("host", "localhost"),
+                          port=db_config.get("port", 3306), database=db_config.get("database"))
 
     def _get_database_schema(self):
-        """
-        获取数据库的所有表结构，拼接成字符串。
-        """
-        schema_info = []
-        try:
-            with self.conn.cursor() as cursor:
-                # 获取所有表名
-                cursor.execute("SHOW TABLES")
-                tables = [list(row.values())[0] for row in cursor.fetchall()]
+        schemas = ["Database dialect: " + self.engine.dialect.name]
+        for name in inspect(self.conn).get_table_names():
+            table = Table(name, MetaData(), autoload_with=self.conn)
+            schemas.append("Table: " + name + "\nSchema: " + str(CreateTable(table).compile(self.conn)))
+        self.conn.rollback()
+        return "\n".join(schemas)
 
-                for table in tables:
-                    # 获取表定义 (Create Table 语句)
-                    cursor.execute(f"SHOW CREATE TABLE `{table}`")
-                    create_stmt = cursor.fetchone()['Create Table']
-                    # 简化一下，只保留核心结构，节省 Token
-                    schema_info.append(f"Table: {table}\nSchema: {create_stmt}\n")
-        except Exception as e:
-            print(f"Error fetching schema: {e}")
-
-        return "\n".join(schema_info)
+    def close(self):
+        self.conn.close()
+        self.engine.dispose()
 
     def _clean_sql(self, sql_text):
         """
@@ -79,17 +73,20 @@ class Text2SQLAgent:
             return None, "Error: Only SELECT queries are allowed."
 
         try:
-            with self.conn.cursor() as cursor:
-                cursor.execute(sql)
-                result = cursor.fetchall()
-                return result, None
+            result = [dict(row) for row in self.conn.exec_driver_sql(sql).mappings().all()]
+            self.conn.rollback()
+            return result, None
         except Exception as e:
+            self.conn.rollback()
             return None, str(e)
 
     def run(self, user_query, max_retries=3):
         """
         Agent 的主入口：生成 -> 执行 -> (如果出错)修正 -> 总结
         """
+        if self.client is None:
+            from agentchat.core.models.manager import ModelManager
+            self.client = ModelManager.get_chat_model()
         system_prompt = Text2SQLGeneratePrompt.format(schema=self.schema_str)
 
         messages = [
@@ -106,7 +103,7 @@ class Text2SQLAgent:
             raw_content = response.content
             current_sql = self._clean_sql(raw_content)
 
-            logger.info(f"(第 {attempt + 1} 次尝试) 生成 SQL: {current_sql}")
+            logger.debug(f"(第 {attempt + 1} 次尝试) 生成 SQL: {current_sql}")
 
             # 执行 SQL
             data, error = self._execute_sql(current_sql)
@@ -140,7 +137,7 @@ if __name__ == "__main__":
         "user": "root",
         "password": "password",
         "database": "agentchat",  # 换成你的库名
-        "charset": "utf8mb4"
+        "charset": "utf8mb4",
     }
 
 
