@@ -1,49 +1,32 @@
 [
   {
     "server_name": "高德地图",
+    "mcp_as_tool_name": "amap_location",
+    "description": "处理地点查询、周边搜索、路线规划及出行相关问题。子智能体可以调用多个自身工具，所以将用户问题整合询问一次即可。",
     "url": "https://mcp.api-inference.modelscope.net/77df8a09751e4c/sse",
     "type": "sse",
     "config": {},
-    "params": {},
     "config_enabled": false,
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/map.png"
   },
   {
     "server_name": "必应搜索",
+    "mcp_as_tool_name": "bing_web_search",
+    "description": "通过必应搜索查找网页资料，为需要联网检索的问题提供参考信息。子智能体可以调用多个自身工具，所以将用户问题整合询问一次即可。",
     "url": "https://mcp.api-inference.modelscope.net/23311e898a7e4a/sse",
     "type": "sse",
     "config": {},
-    "params": {},
     "config_enabled": false,
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/biying.png"
   },
   {
     "server_name": "Parallel 搜索",
+    "mcp_as_tool_name": "parallel_web_research",
+    "description": "检索网页并提取相关内容，支持资料搜集与研究问题。子智能体可以调用多个自身工具，所以将用户问题整合询问一次即可。",
     "url": "https://search.parallel.ai/mcp",
     "type": "streamable_http",
     "config": {},
-    "params": {},
     "config_enabled": false,
     "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
-  },
-  {
-    "server_name": "飞书",
-    "url": "http://47.95.23.87:8000/sse",
-    "type": "sse",
-    "config": [
-      {
-        "label": "APP_ID",
-        "key": "app_id",
-        "value": ""
-      },
-      {
-        "label": "APP_SECRET",
-        "key": "app_secret",
-        "value": ""
-      }
-    ],
-    "params": {},
-    "config_enabled": true,
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/feishu.png"
   }
 ]

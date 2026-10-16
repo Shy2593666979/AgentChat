@@ -1,6 +1,6 @@
 from agentchat.database import AgentTable
 from agentchat.database.dao.agent import AgentDao
-from agentchat.database.dao.dialog import DialogDao
+from agentchat.database.dao.conversation import ConversationDao
 from agentchat.database.models.user import AdminUser, SystemUser
 from agentchat.schemas.agent import AgentCreateReq
 
@@ -22,11 +22,11 @@ class AgentService:
     ):
         """
         内部方法：检查用户对指定 agent 是否有权限
-        管理员拥有所有权限
+        默认副本与自建智能体均属于对应用户。
         """
-        if user_id == AdminUser:
-            return
         owner_id = await cls.get_agent_user_id(agent_id)
+        if not owner_id:
+            raise ValueError("智能体不存在")
         if user_id != owner_id:
             raise ValueError("没有权限访问")
 
@@ -45,6 +45,7 @@ class AgentService:
             **req.model_dump(),
             user_id=login_user.user_id,
         )
+        await cls.validate_bindings(req.model_dump(), login_user.user_id)
         return await AgentDao.create_agent(agent)
 
     @classmethod
@@ -61,6 +62,7 @@ class AgentService:
         user_id: 操作用户
         """
         await cls._check_permission(agent_id, user_id)
+        await cls.validate_bindings(update_values, user_id)
 
         if not update_values:
             return
@@ -76,14 +78,12 @@ class AgentService:
         id: str,
     ):
         """
-        删除指定 Agent 并删除其相关对话
+        删除指定智能体，保留已有会话与聊天记录。
         id: Agent ID
         """
+        await ConversationDao.detach_agent(id)
         await AgentDao.delete_agent_by_id(
             id=id,
-        )
-        await DialogDao.delete_from_agent_id(
-            id,
         )
 
     # ---------- 读操作 ----------
@@ -111,6 +111,8 @@ class AgentService:
         agent = await AgentDao.get_agent_user_id(
             agent_id=agent_id,
         )
+        if not agent:
+            raise ValueError("智能体不存在")
         return agent.user_id
 
     @classmethod
@@ -193,16 +195,30 @@ class AgentService:
         user_id: str,
     ):
         """
-        查询指定用户和系统 Agent
+        查询指定用户的全部智能体，包括已复制的默认智能体。
         返回字典列表
         """
-        system_results = await AgentDao.get_agent_by_user_id(
-            user_id=SystemUser,
-        )
         user_results = await AgentDao.get_agent_by_user_id(
             user_id=user_id,
         )
-        return cls._to_dict_list(system_results + user_results)
+        return cls._to_dict_list(user_results)
+
+    @staticmethod
+    async def validate_bindings(values, user_id):
+        """同时校验绑定资源，防止通过自己的智能体使用他人的能力。"""
+        if not any(values.get(field) for field in ("tool_ids", "agent_skill_ids", "mcp_ids")):
+            return
+        from agentchat.api.services.agent_skill import AgentSkillService
+        from agentchat.api.services.mcp_server import MCPService
+        from agentchat.api.services.tool import ToolService
+
+        for field, verify in (
+            ("tool_ids", ToolService.verify_user_permission),
+            ("agent_skill_ids", AgentSkillService.verify_user_permission),
+            ("mcp_ids", MCPService.verify_user_permission),
+        ):
+            for identity in values.get(field) or []:
+                await verify(identity, user_id)
 
     @classmethod
     async def select_agent_by_custom(

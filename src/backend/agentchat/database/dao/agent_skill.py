@@ -1,8 +1,10 @@
-from typing import Sequence, List
+from typing import List, Sequence
 
 from sqlmodel import delete, select
-from agentchat.database.session import async_session_getter
+
 from agentchat.database.models.agent_skill import AgentSkill
+from agentchat.database.models.user import SystemUser
+from agentchat.database.session import async_session_getter
 
 
 class AgentSkillDao:

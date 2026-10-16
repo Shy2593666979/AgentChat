@@ -1,19 +1,17 @@
 from typing import Optional
 
-from fastapi import APIRouter, HTTPException, Depends, Body
-from agentchat.auth import AuthJWT
-
-from agentchat.services.redis import redis_client
-from agentchat.database.dao.user import UserDao
-from agentchat.api.errcode.user import UserValidateError
-from agentchat.api.responses.builder import resp_200
-from agentchat.utils.JWT import ACCESS_TOKEN_EXPIRE_TIME
-from agentchat.api.services.user import UserService
-from agentchat.database.models.user import AdminUser
-from agentchat.api.responses.builder import UnifiedResponseModel
+from fastapi import APIRouter, Body, Depends, HTTPException
 from loguru import logger
-from agentchat.api.services.user import get_user_jwt
+
+from agentchat.api.errcode.user import UserValidateError
+from agentchat.api.responses.builder import UnifiedResponseModel, resp_200
+from agentchat.api.services.user import UserService, get_user_jwt
+from agentchat.auth import AuthJWT
+from agentchat.database.dao.user import UserDao
+from agentchat.database.models.user import AdminUser
+from agentchat.services.redis import redis_client
 from agentchat.utils.constants import USER_CURRENT_SESSION
+from agentchat.utils.JWT import ACCESS_TOKEN_EXPIRE_TIME
 
 router = APIRouter(tags=["User"])
 
@@ -34,7 +32,7 @@ async def register(user_name: str = Body(description='用户名'),
         raise HTTPException(status_code=500, detail='用户名长度不应该超过20')
     try:
         user_password = UserService.encrypt_sha256_password(user_password)
-        user_avatar = UserService.get_random_user_avatar()
+        user_avatar = ""  # 默认由前端根据用户名生成圆形首字母头像
         admin = UserDao.get_user(AdminUser)
 
         if admin:
@@ -74,7 +72,12 @@ async def login(user_name: str = Body(description='用户名'),
     # 设置登录用户当前的cookie, 比jwt有效期多一个小时
     redis_client.set(USER_CURRENT_SESSION.format(db_user.user_id), access_token, ACCESS_TOKEN_EXPIRE_TIME + 3600)
 
-    return resp_200(data={'user_id': db_user.user_id, 'access_token': access_token})
+    return resp_200(
+        data={
+            'user_id': db_user.user_id,
+            'access_token': access_token,
+        }
+    )
 
 
 @router.put("/user/update", response_model=UnifiedResponseModel)
@@ -85,11 +88,6 @@ async def update_user_info(user_id: str = Body(description="用户的ID"),
     return resp_200()
 
 
-@router.get("/user/icons", response_model=UnifiedResponseModel)
-async def get_select_user_avatar():
-    result = UserService.get_available_avatars()
-
-    return resp_200(result)
 
 
 @router.get("/user/info", response_model=UnifiedResponseModel)

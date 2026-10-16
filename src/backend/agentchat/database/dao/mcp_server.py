@@ -1,8 +1,9 @@
 from datetime import datetime
 
-from sqlmodel import Session, select, update, desc, delete, or_, func, and_
-from agentchat.database.session import session_getter
+from sqlmodel import Session, and_, delete, desc, func, or_, select, update
+
 from agentchat.database.models.mcp_server import MCPServerTable
+from agentchat.database.session import session_getter
 
 
 class MCPServerDao:
@@ -41,6 +42,8 @@ class MCPServerDao:
             )
             session.add(mcp_server)
             session.commit()
+            session.refresh(mcp_server)
+            return mcp_server.mcp_server_id
 
     @classmethod
     async def get_mcp_server_from_id(cls, mcp_server_id):

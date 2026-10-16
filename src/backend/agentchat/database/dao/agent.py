@@ -1,7 +1,7 @@
+from sqlmodel import and_, delete, desc, or_, select, update
+
 from agentchat.database import SystemUser
 from agentchat.database.models.agent import AgentTable
-from sqlmodel import select, and_, update, desc, delete, or_
-
 from agentchat.database.session import session_getter
 
 
@@ -82,10 +82,7 @@ class AgentDao:
             statement = select(AgentTable).where(
                 and_(
                     AgentTable.name.like(f'%{name}%'),
-                    or_(
-                        AgentTable.user_id == user_id,
-                        AgentTable.user_id == SystemUser
-                    )
+                    AgentTable.user_id == user_id
                 )
             )
             result = session.exec(statement).all()

@@ -1,5 +1,7 @@
-from typing import List, Any
+from typing import Any, List
+
 from pydantic import BaseModel, Field
+
 
 class AgentSkillFile(BaseModel):
     name: str
@@ -18,6 +20,11 @@ class AgentSkillFolder(BaseModel):
 class AgentSkillCreateReq(BaseModel):
     name: str
     description: str
+
+class AgentSkillUpdateReq(BaseModel):
+    agent_skill_id: str
+    name: str = Field(min_length=2, max_length=50)
+    description: str = Field(min_length=1, max_length=500)
 
 class AgentSkillDeleteReq(BaseModel):
     agent_skill_id: str

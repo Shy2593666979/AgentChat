@@ -1,8 +1,16 @@
+from copy import deepcopy
+
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
 from agentchat.database.dao.agent_skill import AgentSkillDao
 from agentchat.database.models.agent_skill import AgentSkill
+from agentchat.database.models.user import AdminUser, SystemUser
 from agentchat.prompts.skill import AgentSkillAsToolPrompt
-from agentchat.schemas.agent_skill import AgentSkillCreateReq, AgentSkillFile, AgentSkillFolder, AgentSkillResponseFormat
+from agentchat.schemas.agent_skill import (
+    AgentSkillCreateReq,
+    AgentSkillFile,
+    AgentSkillFolder,
+    AgentSkillResponseFormat,
+)
 
 
 def default_agent_skill_folder(name, description):
@@ -19,8 +27,27 @@ description: {description}
     default_folder.folder.append(AgentSkillFolder(name="scripts", path=f"/{name}/scripts"))
 
     return default_folder.model_dump()
-    
+
 class AgentSkillService:
+
+    @classmethod
+    async def verify_user_permission(cls, agent_skill_id, user_id):
+        """个人默认技能与自建技能均只能由所属用户管理。"""
+        skill = await AgentSkillDao.get_agent_skill_by_id(agent_skill_id)
+        if not skill:
+            raise ValueError("Skill 不存在")
+        if user_id != skill.user_id:
+            raise ValueError("没有权限访问该资源")
+
+    @classmethod
+    async def update_agent_skill_info(cls, agent_skill_id, name, description):
+        skill = await AgentSkillDao.get_agent_skill_by_id(agent_skill_id)
+        skill.name = name
+        skill.description = description
+        # 文件路径独立于显示名称，保留现有目录与工具标识。
+        result = await AgentSkillDao.update_agent_skill(skill)
+        return result.to_dict()
+
 
     @classmethod
     async def create_agent_skill(cls, agent_skill_req: AgentSkillCreateReq, user_id):
@@ -64,7 +91,7 @@ class AgentSkillService:
     @classmethod
     async def update_agent_skill_file(cls, agent_skill_id, target_path, new_content):
         agent_skill = await AgentSkillDao.get_agent_skill_by_id(agent_skill_id)
-        agent_skill_copy = agent_skill.folder.copy()
+        agent_skill_copy = deepcopy(agent_skill.folder)
 
         for item in agent_skill_copy.get("folder", []):
             if item["path"] == target_path:
@@ -84,19 +111,21 @@ class AgentSkillService:
     @classmethod
     async def add_agent_skill_file(cls, agent_skill_id, path, name):
         agent_skill = await AgentSkillDao.get_agent_skill_by_id(agent_skill_id)
-        agent_skill_copy = agent_skill.folder.copy()
+        agent_skill_copy = deepcopy(agent_skill.folder)
 
         for item in agent_skill_copy.get("folder", []):
             # path 匹配根目录下的某个目录（如 /Search-Skill/reference）
             if item["path"] == path:
                 if "folder" not in item:
                     item["folder"] = []  # 确保有 folder 列表
-                item["folder"].append({
-                    "name": name,
-                    "type": "file",
-                    "path": f"{path.rstrip('/')}/{name}",
-                    "content": ""
-                })
+                item["folder"].append(
+                    {
+                        "name": name,
+                        "type": "file",
+                        "path": f"{path.rstrip('/')}/{name}",
+                        "content": "",
+                    }
+                )
                 break
 
         agent_skill.folder = agent_skill_copy
@@ -106,19 +135,21 @@ class AgentSkillService:
     @classmethod
     async def upload_agent_skill_file(cls, agent_skill_id, path, name, content):
         agent_skill = await AgentSkillDao.get_agent_skill_by_id(agent_skill_id)
-        agent_skill_copy = agent_skill.folder.copy()
+        agent_skill_copy = deepcopy(agent_skill.folder)
 
         for item in agent_skill_copy.get("folder", []):
             # path 匹配根目录下的某个目录（如 /Search-Skill/reference）
             if item["path"] == path:
                 if "folder" not in item:
                     item["folder"] = []  # 确保有 folder 列表
-                item["folder"].append({
-                    "name": name,
-                    "type": "file",
-                    "path": f"{path.rstrip('/')}/{name}",
-                    "content": content
-                })
+                item["folder"].append(
+                    {
+                        "name": name,
+                        "type": "file",
+                        "path": f"{path.rstrip('/')}/{name}",
+                        "content": content,
+                    }
+                )
                 break
 
         agent_skill.folder = agent_skill_copy
@@ -128,7 +159,7 @@ class AgentSkillService:
     @classmethod
     async def delete_agent_skill_file(cls, agent_skill_id, path, name):
         agent_skill = await AgentSkillDao.get_agent_skill_by_id(agent_skill_id)
-        agent_skill_copy = agent_skill.folder.copy()
+        agent_skill_copy = deepcopy(agent_skill.folder)
 
         target_path = f"{path.rstrip('/')}/{name}"
 

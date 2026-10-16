@@ -1,0 +1,8 @@
+[
+  {"key": "research-report", "name": "研究报告", "as_tool_name": "research_report_skill"},
+  {"key": "data-analysis", "name": "数据分析", "as_tool_name": "data_analysis_skill"},
+  {"key": "product-document", "name": "产品文档", "as_tool_name": "product_document_skill"},
+  {"key": "code-review", "name": "代码审查", "as_tool_name": "code_review_skill"},
+  {"key": "email-writing", "name": "邮件写作", "as_tool_name": "email_writing_skill"},
+  {"key": "knowledge-organizing", "name": "知识整理", "as_tool_name": "knowledge_organizing_skill"}
+]
