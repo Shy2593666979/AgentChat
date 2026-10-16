@@ -1,27 +1,31 @@
-import copy
 import asyncio
-from loguru import logger
-from typing import List, Dict, Any
-from pydantic import BaseModel
-from langgraph.types import Command
-from langgraph.prebuilt.tool_node import ToolCallRequest
+import copy
+from typing import Any, Dict, List
+
 from langchain.agents import AgentState, create_agent
 from langchain.agents.middleware import wrap_tool_call
-from langchain_core.messages import BaseMessage, AIMessage, ToolMessage, AIMessageChunk
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage, ToolMessage
+from langgraph.prebuilt.tool_node import ToolCallRequest
+from langgraph.types import Command
+from loguru import logger
+from pydantic import BaseModel
 
-from agentchat.core.callbacks import usage_metadata_callback
-from agentchat.tools import WorkSpacePlugins
-from agentchat.schemas.usage_stats import UsageStatsAgentType
-from agentchat.schemas.workspace import WorkSpaceAgents
-from agentchat.api.services.tool import ToolService
-from agentchat.services.mcp.manager import MCPManager
-from agentchat.prompts.completion import GenerateTitlePrompt
-from agentchat.utils.convert import convert_mcp_config
-from agentchat.core.models.manager import ModelManager
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
+from agentchat.api.services.tool import ToolService
 from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
-from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
+from agentchat.core.callbacks import usage_metadata_callback
+from agentchat.core.models.manager import ModelManager
+from agentchat.database.models.workspace_session import (
+    WorkSpaceSessionContext,
+    WorkSpaceSessionCreate,
+)
+from agentchat.prompts.completion import GenerateTitlePrompt
+from agentchat.schemas.usage_stats import UsageStatsAgentType
+from agentchat.schemas.workspace import WorkSpaceAgents
+from agentchat.services.mcp.manager import MCPManager
+from agentchat.tools import WorkSpacePlugins
+from agentchat.utils.convert import convert_mcp_config
 
 
 class MCPConfig(BaseModel):
@@ -84,6 +88,8 @@ class WorkSpaceSimpleAgent:
             if self._initialized:
                 logger.info("Simple Agent already initialized")
                 return
+            for identity in self.plugins:
+                await ToolService.verify_user_permission(identity, self.user_id)
             await self.setup_mcp_tools()
             await self.setup_plugin_tools()
 
@@ -116,7 +122,7 @@ class WorkSpaceSimpleAgent:
                 mcp_config = await MCPUserConfigService.get_mcp_user_config(self.user_id, self.get_mcp_id_by_tool(request.tool_call["name"]))
                 request.tool_call["args"].update(mcp_config)
                 tool_result = await handler(request)
-                print(tool_result)
+                logger.debug("MCP 工具调用完成：{}", request.tool_call["name"])
             else:
                 tool_result = await handler(request)
 
@@ -165,7 +171,13 @@ class WorkSpaceSimpleAgent:
         try:
             react_agent_task = None
             if self.tools and len(self.tools) != 0:
-                react_agent_task = asyncio.create_task(self.react_agent.ainvoke({"messages": messages}))
+                react_agent_task = asyncio.create_task(
+                    self.react_agent.ainvoke(
+                        {
+                            "messages": messages,
+                        }
+                    )
+                )
 
             # Wait for tool execution to complete
             if react_agent_task:
@@ -187,7 +199,12 @@ class WorkSpaceSimpleAgent:
         if session:
             return session.get("title")
         title_prompt = GenerateTitlePrompt.format(query=query)
-        response = await self.model.ainvoke(title_prompt, config={"callbacks": [usage_metadata_callback]})
+        response = await self.model.ainvoke(
+            title_prompt,
+            config={
+                "callbacks": [usage_metadata_callback],
+            },
+        )
         return response.content
 
     async def _add_workspace_session(self, title, contexts: WorkSpaceSessionContext):
@@ -215,7 +232,16 @@ class WorkSpaceSimpleAgent:
         try:
             react_agent_task = None
             if self.tools and len(self.tools) != 0:
-                react_agent_task = asyncio.create_task(self.react_agent.ainvoke(input={"messages": messages}, config={"callbacks": [usage_metadata_callback]}))
+                react_agent_task = asyncio.create_task(
+                    self.react_agent.ainvoke(
+                        input={
+                            "messages": messages,
+                        },
+                        config={
+                            "callbacks": [usage_metadata_callback],
+                        },
+                    )
+                )
 
             # Wait for tool execution to complete
             if react_agent_task:
@@ -229,12 +255,17 @@ class WorkSpaceSimpleAgent:
         messages = user_messages + messages
 
         final_answer = ""
-        async for chunk in self.model.astream(input=messages, config={"callbacks": [usage_metadata_callback]}):
+        async for chunk in self.model.astream(
+            input=messages,
+            config={
+                "callbacks": [usage_metadata_callback],
+            },
+        ):
             yield {
                 "event": "task_result",
-                "data":{
-                    "message": chunk.content
-                }
+                "data": {
+                    "message": chunk.content,
+                },
             }
             final_answer += chunk.content
 

@@ -1,29 +1,51 @@
 import json
-from typing import List, Union, Optional
+from typing import List, Optional, Union
 
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage, BaseMessage, AIMessageChunk
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_core.utils.function_calling import convert_to_openai_tool
 
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
+from agentchat.api.services.tool import ToolService
 from agentchat.api.services.usage_stats import UsageStatsService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
-from agentchat.core.callbacks import usage_metadata_callback
-from agentchat.database.models.workspace_session import WorkSpaceSessionCreate, WorkSpaceSessionContext
-from agentchat.prompts.template import GuidePromptTemplate
-from agentchat.schemas.workspace import WorkSpaceAgents
-from agentchat.schemas.usage_stats import UsageStatsAgentType
 from agentchat.core.agents.mcp_agent import MCPConfig
-from agentchat.tools import LingSeekPlugins, tavily_search as web_search
-from agentchat.api.services.tool import ToolService
+from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.core.models.manager import ModelManager
-from agentchat.utils.convert import mcp_tool_to_args_schema, convert_mcp_config
-from agentchat.utils.date_utils import get_beijing_time
+from agentchat.database.models.workspace_session import (
+    WorkSpaceSessionContext,
+    WorkSpaceSessionCreate,
+)
+from agentchat.prompts.lingseek import (
+    FeedBackGuidePrompt,
+    FixJsonPrompt,
+    GenerateGuidePrompt,
+    GenerateTaskPrompt,
+    GenerateTitlePrompt,
+    SystemMessagePrompt,
+    ToolCallPrompt,
+)
+from agentchat.prompts.template import GuidePromptTemplate
+from agentchat.schemas.lingseek import (
+    LingSeekGuidePrompt,
+    LingSeekGuidePromptFeedBack,
+    LingSeekTask,
+    LingSeekTaskStep,
+)
+from agentchat.schemas.usage_stats import UsageStatsAgentType
+from agentchat.schemas.workspace import WorkSpaceAgents
 from agentchat.services.mcp.manager import MCPManager
-from agentchat.prompts.lingseek import GenerateGuidePrompt, FeedBackGuidePrompt, GenerateTitlePrompt, \
-    GenerateTaskPrompt, FixJsonPrompt, ToolCallPrompt, SystemMessagePrompt
-from agentchat.schemas.lingseek import LingSeekGuidePrompt, LingSeekGuidePromptFeedBack, LingSeekTask, \
-    LingSeekTaskStep
+from agentchat.tools import LingSeekPlugins
+from agentchat.tools import tavily_search as web_search
+from agentchat.utils.convert import convert_mcp_config, mcp_tool_to_args_schema
+from agentchat.utils.date_utils import get_beijing_time
 
 
 class LingSeekAgent:
@@ -46,7 +68,12 @@ class LingSeekAgent:
         sop_content = ""
         answer = ""
         split_tags = ["<Thought_END>", "</Thought_END>"]
-        async for one in self.chat_model.astream(input=lingseek_guide_prompt, config={"callbacks": [usage_metadata_callback]}):
+        async for one in self.chat_model.astream(
+            input=lingseek_guide_prompt,
+            config={
+                "callbacks": [usage_metadata_callback],
+            },
+        ):
             answer += f"{one.content}"
             if sop_flag:
                 yield one
@@ -65,16 +92,30 @@ class LingSeekAgent:
             yield one
 
     async def _generate_tasks(self, lingseek_task_prompt):
-        conversation_json_model = self.chat_model.bind(response_format={"type": "json_object"})
+        conversation_json_model = self.chat_model.bind(
+            response_format={
+                "type": "json_object",
+            }
+        )
 
-        response = await conversation_json_model.ainvoke(input=lingseek_task_prompt, config={"callbacks": [usage_metadata_callback]})
+        response = await conversation_json_model.ainvoke(
+            input=lingseek_task_prompt,
+            config={
+                "callbacks": [usage_metadata_callback],
+            },
+        )
 
         try:
             content = json.loads(response.content)
             return content
         except Exception as err:
             fix_message = FixJsonPrompt.format(json_content=response.content, json_error=str(err))
-            fix_response = await conversation_json_model.ainvoke(input=fix_message, config={"callbacks": [usage_metadata_callback]})
+            fix_response = await conversation_json_model.ainvoke(
+                input=fix_message,
+                config={
+                    "callbacks": [usage_metadata_callback],
+                },
+            )
             try:
                 fix_content = json.loads(fix_response.content)
                 return fix_content
@@ -83,7 +124,12 @@ class LingSeekAgent:
 
     async def _generate_title(self, query):
         title_prompt = GenerateTitlePrompt.format(query=query)
-        response = await self.chat_model.ainvoke(input=title_prompt, config={"callbacks": [usage_metadata_callback]})
+        response = await self.chat_model.ainvoke(
+            input=title_prompt,
+            config={
+                "callbacks": [usage_metadata_callback],
+            },
+        )
         return response.content
 
     async def _add_workspace_session(self, query, contexts: WorkSpaceSessionContext):
@@ -145,8 +191,8 @@ class LingSeekAgent:
             yield {
                 "event": "generate_guide_prompt",
                 "data": {
-                    "chunk": chunk.content
-                }
+                    "chunk": chunk.content,
+                },
             }
 
 
@@ -164,18 +210,24 @@ class LingSeekAgent:
             for input_step in step_info.input:
                 if input_step in tasks_graph:
                     # 构建展示的任务列表图结构
-                    tasks_show.append({
-                        "start": tasks_graph[input_step].title,
-                        "end": tasks_graph[step_id].title
-                    })
+                    tasks_show.append(
+                        {
+                            "start": tasks_graph[input_step].title,
+                            "end": tasks_graph[step_id].title,
+                        }
+                    )
                 else:
-                    tasks_show.append({
-                        "start": "用户问题",
-                        "end": tasks_graph[step_id].title
-                    })
+                    tasks_show.append(
+                        {
+                            "start": "用户问题",
+                            "end": tasks_graph[step_id].title,
+                        }
+                    )
         yield {
             "event": "generate_tasks",
-            "data": {"graph": tasks_show}
+            "data": {
+                "graph": tasks_show,
+            },
         }
 
 
@@ -186,6 +238,12 @@ class LingSeekAgent:
         context_task = []
         for step_id, step_info in tasks_graph.items():
             step_context = []
+            yield {
+                "event": "step_start",
+                "data": {
+                    "title": step_info.title,
+                },
+            }
             for input_step in step_info.input:
                 if input_step in tasks_graph:
                     step_context.append(
@@ -197,7 +255,12 @@ class LingSeekAgent:
                 step_context=str(step_context)
             )
             step_messages = [SystemMessage(content=step_prompt), HumanMessage(content=lingseek_task.query)]
-            response = await tool_call_model.ainvoke(input=step_messages, config={"callbacks": [usage_metadata_callback]})
+            response = await tool_call_model.ainvoke(
+                input=step_messages,
+                config={
+                    "callbacks": [usage_metadata_callback],
+                },
+            )
 
             tools_messages = await self._parse_function_call_response(response)
 
@@ -212,7 +275,10 @@ class LingSeekAgent:
                 messages.append(AIMessage(content=response.content))
             yield {
                 "event": "step_result",
-                "data": {"message": step_info.result or " ", "title": step_info.title}
+                "data": {
+                    "message": step_info.result or " ",
+                    "title": step_info.title,
+                },
             }
 
         final_response = ""
@@ -220,7 +286,9 @@ class LingSeekAgent:
             final_response += chunk.content
             yield {
                 "event": "task_result",
-                "data": {"message": chunk.content}
+                "data": {
+                    "message": chunk.content,
+                },
             }
 
         await self._add_workspace_session(
@@ -251,6 +319,8 @@ class LingSeekAgent:
         return text_content
 
     async def _obtain_lingseek_tools(self, plugins, mcp_servers, enable_web_search=False):
+        for identity in plugins:
+            await ToolService.verify_user_permission(identity, self.user_id)
         plugins_name = await ToolService.get_tool_name_by_id(plugins)
         plugins_func = [LingSeekPlugins.get(name) for name in plugins_name]
         tools = [convert_to_openai_tool(func) for func in plugins_func]
@@ -265,10 +335,16 @@ class LingSeekAgent:
 
             servers_config = []
             for mcp_id in mcp_servers:
+                await MCPService.verify_user_permission(mcp_id, self.user_id)
                 mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
                 mcp_config = MCPConfig(**mcp_server)
 
-                self.tool_mcp_server_dict.update({tool: mcp_config.mcp_server_id for tool in mcp_config.tools})
+                self.tool_mcp_server_dict.update(
+                    {
+                        tool: mcp_config.mcp_server_id
+                        for tool in mcp_config.tools
+                    }
+                )
                 servers_config.append(
                     convert_mcp_config(mcp_config.model_dump())
                 )

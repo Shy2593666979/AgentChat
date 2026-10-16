@@ -10,6 +10,7 @@ from agentchat.api.services.history import HistoryService
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.core.agents.general_agent import AgentConfig, GeneralAgent
 from agentchat.prompts.completion import SYSTEM_PROMPT
+from agentchat.protocols.ag_ui import protocol_stream
 from agentchat.schemas.completion import CompletionReq
 from agentchat.services.memory.client import memory_client
 from agentchat.services.memory.optional import (
@@ -169,7 +170,7 @@ async def completion(
 
     # 返回流式响应
     return WatchedStreamingResponse(
-        content=stream(),
+        content=protocol_stream(stream(), request, "conversation", req.conversation_id),
         callback=chat_agent.stop_streaming_callback,
         media_type="text/event-stream"
     )
