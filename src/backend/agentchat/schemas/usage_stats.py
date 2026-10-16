@@ -1,11 +1,15 @@
-from typing import Optional
 from enum import Enum
+from typing import Optional
+
 from pydantic import BaseModel
+
 from agentchat.settings import app_settings
+
 
 class UsageStatsRequest(BaseModel):
     agent: Optional[str] = None
     model: Optional[str] = None
+    conversation_id: Optional[str] = None
     delta_days: int = 10000
 
 class UsageStatsAgentType(str, Enum):

@@ -1,20 +1,40 @@
-from pydantic import Field, PrivateAttr, SecretStr
+from typing import (
+    Any,
+    AsyncIterator,
+    Callable,
+    Dict,
+    Iterator,
+    List,
+    Literal,
+    Optional,
+    Sequence,
+    Union,
+)
+
+from langchain_core.callbacks import (
+    AsyncCallbackManagerForLLMRun,
+    CallbackManagerForLLMRun,
+)
 from langchain_core.language_models import LanguageModelInput
+from langchain_core.language_models.chat_models import BaseChatModel
+from langchain_core.messages import AIMessage, AIMessageChunk, BaseMessage
+from langchain_core.outputs import ChatGeneration, ChatGenerationChunk, ChatResult
 from langchain_core.runnables import Runnable
 from langchain_core.tools import BaseTool
 from langchain_core.utils.function_calling import convert_to_openai_tool
 from langchain_openai.chat_models.base import WellKnownTools
-from openai import OpenAI, AsyncOpenAI
+from loguru import logger
+from openai import AsyncOpenAI, OpenAI
+from pydantic import Field, PrivateAttr, SecretStr
 
-from langchain_core.language_models.chat_models import BaseChatModel
-from langchain_core.messages import BaseMessage, AIMessage, AIMessageChunk
-from langchain_core.outputs import ChatResult, ChatGeneration, ChatGenerationChunk
-from langchain_core.callbacks import CallbackManagerForLLMRun, AsyncCallbackManagerForLLMRun
-from typing import Any, List, Optional, Iterator, AsyncIterator, Dict, Union, Sequence, Callable, Literal
-
-from agentchat.utils.contexts import get_user_id_context, get_agent_name_context
-from agentchat.utils.convert import convert_langchain_tool_calls
 from agentchat.api.services.usage_stats import UsageStatsService
+from agentchat.utils.contexts import (
+    get_agent_name_context,
+    get_conversation_id_context,
+    get_user_id_context,
+)
+from agentchat.utils.convert import convert_langchain_tool_calls
+from agentchat.utils.logging import record_model_usage
 
 
 class ChatModelWithTokenUsage(BaseChatModel):
@@ -30,7 +50,7 @@ class ChatModelWithTokenUsage(BaseChatModel):
     # 用户私有配置
     user_id: Optional[str] = Field(default=None)
     agent_name: Optional[str] = Field(default=None)
-    
+
     # 私有属性用于存储状态
     _client: Optional[OpenAI] = PrivateAttr(default=None)
     _async_client: Optional[AsyncOpenAI] = PrivateAttr(default=None)
@@ -86,7 +106,8 @@ class ChatModelWithTokenUsage(BaseChatModel):
                     "total_tokens": response.usage.total_tokens,
                 },
                 "model_name": response.model,
-            }
+                "usage_recorded": True,
+            },
         )
 
     async def _agenerate(
@@ -126,7 +147,8 @@ class ChatModelWithTokenUsage(BaseChatModel):
                     "total_tokens": response.usage.total_tokens,
                 },
                 "model_name": response.model,
-            }
+                "usage_recorded": True,
+            },
         )
 
     def _stream(
@@ -150,8 +172,10 @@ class ChatModelWithTokenUsage(BaseChatModel):
             max_tokens=self.max_tokens,
             stop=stop,
             stream=True,
-            stream_options={"include_usage": True},  # 启用流式 token 统计
-            **kwargs
+            stream_options={
+                "include_usage": True,
+            },  # 启用流式 token 统计
+            **kwargs,
         )
 
         for chunk in stream:
@@ -192,8 +216,10 @@ class ChatModelWithTokenUsage(BaseChatModel):
             max_tokens=self.max_tokens,
             stop=stop,
             stream=True,
-            stream_options={"include_usage": True},  # 启用流式 token 统计
-            **kwargs
+            stream_options={
+                "include_usage": True,
+            },  # 启用流式 token 统计
+            **kwargs,
         )
 
         async for chunk in stream:
@@ -245,10 +271,14 @@ class ChatModelWithTokenUsage(BaseChatModel):
                 if tool_choice in tool_names:
                     tool_choice = {
                         "type": "function",
-                        "function": {"name": tool_choice},
+                        "function": {
+                            "name": tool_choice,
+                        },
                     }
                 elif tool_choice in WellKnownTools:
-                    tool_choice = {"type": tool_choice}
+                    tool_choice = {
+                        "type": tool_choice,
+                    }
                 # 'any' is not natively supported by OpenAI API.
                 # We support 'any' since other models use this instead of 'required'.
                 elif tool_choice == "any":
@@ -280,38 +310,28 @@ class ChatModelWithTokenUsage(BaseChatModel):
             else:
                 role = "user"
 
-            openai_messages.append({
-                "role": role,
-                "content": msg.content
-            })
+            openai_messages.append(
+                {
+                    "role": role,
+                    "content": msg.content,
+                }
+            )
         return openai_messages
 
     def _record_token_usage(self, usage: Any):
-        """记录 token 使用（从 usage 对象）"""
-        self.agent_name = self.agent_name if self.agent_name else get_agent_name_context()
-        self.user_id = self.user_id if self.user_id else get_user_id_context()
-
-        if usage and self.user_id:
-            record = {
-                'model': self.model_name,
-                "agent": self.agent_name,
-                "user_id": self.user_id,
-                'input_tokens': usage.prompt_tokens,
-                'output_tokens': usage.completion_tokens,
-            }
-            UsageStatsService.sync_create_usage_stats(**record)
+        """直接记录供应方返回的用量，回调通过已记录标记避免重复计数。"""
+        if usage:
+            self._record_token_usage_dict(usage.prompt_tokens, usage.completion_tokens)
 
     def _record_token_usage_dict(self, input_tokens: int, output_tokens: int):
-        """记录 token 使用（从原始数值）"""
-        self.agent_name = self.agent_name if self.agent_name else get_agent_name_context()
-        self.user_id = self.user_id if self.user_id else get_user_id_context()
-
-        if self.user_id:
-            record = {
-                "model": self.model_name,
-                "agent": self.agent_name,
-                "user_id": self.user_id,
-                "input_tokens": input_tokens,
-                "output_tokens": output_tokens,
-            }
-            UsageStatsService.sync_create_usage_stats(**record)
+        """每次读取请求上下文，不把用户和会话身份缓存到共享模型实例中。"""
+        user_id = self.user_id or get_user_id_context()
+        agent_name = self.agent_name or get_agent_name_context()
+        if user_id:
+            try:
+                UsageStatsService.sync_create_usage_stats(
+                    model=self.model_name, agent=agent_name, user_id=user_id,
+                    conversation_id=get_conversation_id_context(), input_tokens=input_tokens, output_tokens=output_tokens)
+                record_model_usage(self.model_name, input_tokens, output_tokens)
+            except Exception as error:
+                logger.warning("模型用量记录失败，不影响回复：{}", type(error).__name__)
