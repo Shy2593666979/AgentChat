@@ -2,6 +2,8 @@
 
 ## 技术架构
 
+首次使用可选择 [简易配置](../../docs/simple-config.md)：填写 `agentchat/config.simple.yaml` 中的模型 Key，并通过 `AGENTCHAT_CONFIG` 指定该文件。默认使用 SQLite、内存缓存和本地文件存储，完整配置仍保留。
+
 AgentChat 后端采用 FastAPI 异步框架构建，基于 Python 3.12+，支持多 Agent 协作、知识库检索（RAG）、工具调用和 MCP 协议集成。
 
 ### 核心技术栈
@@ -10,11 +12,11 @@ AgentChat 后端采用 FastAPI 异步框架构建，基于 Python 3.12+，支持
 |------|------|
 | Web 框架 | FastAPI (async) |
 | ORM | SQLModel (SQLAlchemy + Pydantic) |
-| 数据库 | MySQL 8.0 (pymysql + aiomysql) |
-| 缓存 | Redis 7.0 (aioredis) |
+| 数据库 | MySQL (pymysql + aiomysql) / SQLite (sqlite3 + aiosqlite)，按 URL 选择 |
+| 缓存 | 单进程内存缓存 / Redis 7.0 (aioredis) |
 | 向量数据库 | Milvus / ChromaDB |
 | 全文检索 | Elasticsearch (IK 分词) |
-| 对象存储 | MinIO / 阿里云 OSS |
+| 对象存储 | 本地文件 / MinIO / 阿里云 OSS |
 | AI 框架 | LangChain 1.0+ |
 | 认证 | JWT (fastapi-jwt-auth) |
 | 日志 | Loguru |
@@ -106,7 +108,7 @@ MCP 代理路由独立挂载，支持 SSE 和 HTTP Streaming 两种传输协议�
 
 通过 `config.yaml` 统一配置，支持按用途分配不同模型：
 
-- `conversation_model` — 对话（Qwen-Plus）
+- `chat_model` — 对话（Qwen-Plus）
 - `tool_call_model` — 工具调用
 - `reasoning_model` — 深度推理（DeepSeek-Reasoner）
 - `text2image` — 文生图（Wanx）
@@ -188,7 +190,7 @@ redis:
 ### 多模型配置
 ```yaml
 multi_models:
-  conversation_model:
+  chat_model:
     api_key: "your-api-key"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model_name: "qwen-plus"
@@ -409,3 +411,44 @@ pytest test/
 ## 许可证
 
 本项目采用 [MIT License](../../LICENSE) 开源许可证。
+
+
+## SQLite / MySQL 自动选择
+
+后端优先读取同目录的 config.local.yaml（Git 忽略），不存在时读取 config.yaml。
+推荐使用 database.url；只需要维护一个 URL，同步与异步驱动会自动派生。
+
+SQLite 本地文件：
+
+~~~yaml
+database:
+  url: "sqlite:///data/agentchat.db"
+~~~
+
+MySQL：
+
+~~~yaml
+database:
+  url: "mysql+pymysql://root:your_password@127.0.0.1:3306/agentchat"
+~~~
+
+也接受 mysql://、mysql+aiomysql://、sqlite+aiosqlite:// 和 sqlite:///:memory:。
+相对 SQLite 文件路径以 src/backend 为基准；父目录和业务表自动创建，重启后文件数据保留。
+内存 SQLite 的同步与异步连接使用同一共享内存库，进程退出后数据消失。
+SQLite 自动设置外键检查、30 秒繁忙等待和文件数据库 WAL，并保持原 MySQL +08:00 时间字段行为。
+
+旧 mysql.endpoint 配置继续有效。当 database.url 存在时优先使用它。
+旧 async_endpoint 无需修改：两个连接都由主 URL 派生，避免切换时误连到不同的数据库。
+切换需要重启后端，不会自动搬迁原数据库的数据；Redis、OSS 和向量库仍使用各自配置。
+
+Text2SQL 同样按 URL 使用对应 SQLAlchemy 方言，支持 SQLite 表结构读取及查询；原 MySQL 字典参数仍可用。
+
+更新依赖可运行 uv sync，或使用 pip install -r requirements.txt。uv.lock 已包含 aiosqlite。
+
+兼容性验证（使用临时 SQLite 与模拟 MySQL 建库连接，不访问实际账号）：
+
+~~~powershell
+python -m pytest tests/test_database_backends.py -q
+~~~
+
+测试覆盖全量业务表、同步与异步读写、中文 JSON、时间字段、事务回滚、文件持久化、共享内存、原 DAO、Text2SQL 查询，以及 MySQL URL 和表结构编译。

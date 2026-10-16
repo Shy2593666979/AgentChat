@@ -235,7 +235,7 @@ ModelManager 提供了统一的模型管理接口，支持多种类型的语言�
 ```python
 class ModelManager:
     @classmethod
-    def get_conversation_model(cls) -> BaseChatModel:
+    def get_chat_model(cls) -> BaseChatModel:
         # 获取对话模型
         
     @classmethod
@@ -402,7 +402,7 @@ class ReactAgent:
 # 模型管理专注于模型创建和配置
 class ModelManager:
     @classmethod
-    def get_conversation_model(cls):
+    def get_chat_model(cls):
         # 统一的模型创建逻辑
 ```
 
@@ -497,7 +497,7 @@ async def custom_middleware(request, handler):
 **模型选择原则**
 ```python
 # 根据任务类型选择合适的模型
-conversation_model = ModelManager.get_conversation_model()  # 一般对话
+chat_model = ModelManager.get_chat_model()  # 一般对话
 tool_call_model = ModelManager.get_tool_invocation_model()  # 工具调用
 reasoning_model = ModelManager.get_reasoning_model()        # 复杂推理
 ```

@@ -34,5 +34,5 @@
 
 ```bash
 cd src/backend
-python -m unittest agentchat.test.test_parallel_search_mcp
+python -m unittest tests.test_parallel_search_mcp
 ```

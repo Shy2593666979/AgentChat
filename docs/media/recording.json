@@ -1,0 +1,14 @@
+{
+  "source": "用户提供的 mars-example.mp4 剪辑成片",
+  "file": "mars-example.mp4",
+  "width": 1464,
+  "height": 720,
+  "fps": 30,
+  "duration_seconds": 21.37,
+  "video_codec": "H.264",
+  "audio_codec": "AAC",
+  "copied_without_reencoding": true,
+  "sha256": "1f6424ed78e3f26786d0e1b7fbda0fa681d3796877931af4979b4c114b0a0876",
+  "poster_seconds": 1,
+  "github_attachment_url": "https://github.com/user-attachments/assets/640650f3-4134-452a-9d17-6f850dabe95f"
+}

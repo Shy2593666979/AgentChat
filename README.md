@@ -1,6 +1,6 @@
 
 <div align='center'>
-    <img src="https://github.com/user-attachments/assets/eb9b3b09-e2bf-4c9d-95a0-5c2d9712723d" alt="alt text" width="70%">
+    <img src="docs/media/cover.jpg" alt="agentchat：连接模型、知识与工具" width="100%">
 </div>
 
 <div align="center">
@@ -28,7 +28,73 @@
 
 ---
 
-## 最新版本更新日志 (2026-4-12)
+## 本次更新 · 2026.10.16
+
+### 1. 全面更新界面与项目品牌
+
+- 使用蓝色机器人 Logo 与小写 `agentchat` 字标，统一侧边栏、登录页和浏览器标签页的品牌展示。
+- 调整工作台、探索、智能体、工具、Skill、MCP、模型、知识库及数据看板的页面样式，统一标题位置、字体、字重、间距和卡片布局。
+- 优化三列页面的衔接，减少列间空隙；通知与个人账户入口统一放到侧边栏底部。
+- 修复弹窗遮罩未覆盖侧边栏、个人菜单被遮挡和输入框边框重叠等问题，统一下拉菜单与卡片操作按钮的样式。
+
+### 2. 优化智能体管理与能力展示
+
+- 重新设计智能体卡片，调整图标、名称、简介、模型信息与操作按钮的布局。
+- 在卡片中使用图标和数量展示工具、MCP、Skill 与知识库的绑定情况，数量为零时不显示。
+- 优化智能体编辑入口与能力选择界面，支持管理内置智能体及默认工具、MCP、Skill。
+- 统一工具、Skill 和知识库的卡片风格；知识库卡片支持直接点击进入，精简重复信息。
+
+### 3. 改善会话阅读与附件体验
+
+- 统一会话列表、聊天记录和输入框的布局，调整用户消息与 AI 回复的字体颜色、字号及留白。
+- 回复气泡根据内容宽度收缩，减少短回复右侧的大块空白；精简消息顶部的重复智能体信息。
+- 统一复制、重新回答、点赞与点踩图标，减少操作区与正文之间的割裂感。
+- 优化发送前的附件展示和聊天记录中的附件卡片，让文件信息与消息内容保持一致的视觉风格。
+- 智能体选择改为下拉入口，使用所选智能体绑定的模型、知识与工具。
+
+### 4. 完善工具执行过程与 MCP 对话
+
+- 调整工具调用过程的展示，区分等待、执行中、完成与失败状态，方便查看任务进展。
+- MCP 对话沿用智能体会话的消息与输入框样式，并保留人机协同（HITL）确认交互。
+- 模型选择按厂商组织，先展示厂商 Logo 与名称，再展开对应的模型列表。
+- MCP 列表增加分页，精简卡片中的服务地址和重复操作；通过“自定义 MCP”按钮进入对话式创建流程。
+
+### 5. 重整 Mars 任务执行与报告页面
+
+- 重新布局执行过程与任务报告，适配不同工具的执行信息，精简输入区和重复的任务信息。
+- 优化执行进度、过程展开与结果阅读体验，保留报告复制和 Markdown 下载入口。
+- 修复最终结果重复拼接的问题，避免同一份报告在结尾再次输出。
+- 调整旅游攻略与路线规划任务的提示词，要求先通过深度搜索核实资料，再整理回答。
+- 修复 Markdown 流式排版时自动跟随中断的问题；用户主动滚动后可暂停跟随，便于阅读已有内容。
+
+### 6. 完善模型展示与个人账户
+
+- 新增模型展示名称字段 `show_model`，将界面名称与实际调用的模型标识分开，便于展示自定义名称。
+- 补充和整理国内外模型厂商名称与 Logo，统一模型列表、智能体卡片和模型选择菜单中的展示。
+- 默认用户头像改为用户名首字母圆形头像，保留自定义上传，移除随机头像与预设头像选择。
+
+### 7. 支持 SQLite / MySQL 与轻量本地运行
+
+- 数据库根据连接 URL 自动选择 SQLite 或 MySQL，统一同步、异步连接的配置与初始化。
+- 常规配置与简易配置默认使用 SQLite，降低首次运行对外部数据库的依赖。
+- 提供本地文件存储与内存缓存的简易运行方案，同时保留 MySQL、Redis 和对象存储的配置选项。
+- 补充本地启动说明与配置文档，便于将本地前端连接到本地后端。
+
+### 8. 更新项目截图与任务演示
+
+- 替换 README 品牌封面与业务页面截图，移除旧版界面图片，展示当前项目的实际样式。
+- 使用 **Mingguang** 演示账号展示会话、数据看板、智能体和多厂商模型配置，并注明示例数据的用途。
+- 增加“四大古都影响力对比与旅游攻略”的任务演示，展示搜索工具调用、资料整理与报告生成过程。
+- README 使用 GitHub 内嵌视频播放器，支持直接播放、拖动进度和全屏查看。
+
+[查看任务视频](#探索任务演示) · [浏览页面截图](#当前界面)
+
+完整内容见 [更新日志](docs/CHANGELOG.md)，轻量本地启动见 [简易配置](docs/simple-config.md)。
+
+<details>
+<summary>上一版本更新 · 2026-04-12</summary>
+
+## 2026-04-12
 
 ### 1. 基于人机协同（HITL）的OpenAPI信息对话式MCP Server生成
 
@@ -47,6 +113,8 @@
 
 ### 4. 优化首次启动体验
 修复首次启动时缺少模型配置导致的错误，新增配置检查和友好提示，引导用户完成初始化配置，降低使用门槛。
+
+</details>
 
 ---
 
@@ -93,10 +161,6 @@
 
 AgentChat 是一个现代化的智能对话系统，基于大语言模型构建，提供了丰富的AI对话功能。系统采用前后端分离架构，支持多种AI模型、知识库检索、工具调用、MCP服务器集成等高级功能。
 
-<div align="center">
-<img width="800" height="400" src="https://github.com/user-attachments/assets/f35e8a9a-0905-46a2-a167-a3c8e876760a" />
-</div>
-
 ### 1. 核心亮点
 
 - 智能Agent: 支持Sub-Agents协作，具备推理和决策能力
@@ -110,59 +174,61 @@ AgentChat 是一个现代化的智能对话系统，基于大语言模型构建�
 
 ## 二、功能展示
 
-<div align="center">
+### 探索任务演示
 
-### 1. 人机协同（HITL）
-使用Human-In-The-Loop机制将API信息对话式生成MCP Server
-<img width="800" height="450" src="https://github.com/user-attachments/assets/cabb59d8-0e14-432a-9aee-aa9115e266cd" />
+在探索页输入一个目标，查看任务执行过程与完整报告：
 
-### 2. 新增工作区
-新增工作区，工作区和应用中心可随意切换
-<img width="800" height="450" src="https://github.com/user-attachments/assets/766c7628-2256-4c8b-a838-c400eaa78d6b" />
+> 中国四大古都的影响力对比，给我做一份这四个城市的旅游攻略。
 
-### 3. 灵寻任务规划
-实时的任务流程图，更加直观的感受
-<img width="800" height="450" src="https://github.com/user-attachments/assets/53f7fe9f-d70d-4cc2-bf7e-b47a712a6d7a" />
+https://github.com/user-attachments/assets/640650f3-4134-452a-9d17-6f850dabe95f
 
-### 4. 数据看板
-能够根据Agent、模型、时间范围进行筛选调用次数和Token使用量
-<img width="800" height="450" src="https://github.com/user-attachments/assets/b0cb4ccf-b868-4f1b-9b26-8a882d8130da" />
+从探索页发起任务，查看深度搜索、资料整理与报告生成的完整流程。演示视频经过剪辑，仅展示应用内容。
 
-### 5. 智言平台首页
-简洁现代的主界面，提供直观的功能导航
-<img width="800" height="450" src="https://github.com/user-attachments/assets/dc626494-4797-4a86-b350-3a0759d52d64" />
+### 当前界面
 
-</div>
+以下使用 **Mingguang** 账号展示。会话、统计及多厂商模型配置为演示数据；展示模型未配置调用密钥，不代表已验证这些厂商的实际调用。
 
-### 6. 智能Agent功能演示
+#### 会话与任务结果
+
+会话历史、Markdown 回复与输入框保持统一；Mars 将报告与执行过程并排呈现。
+
+![会话 · 城市文化与旅行](docs/media/conversation.jpg)
+
+![Mars · 执行过程与报告](docs/media/mars.jpg)
+
+#### 数据看板
+
+查看模型调用、Token 用量、七日趋势与最近活动。
+
+![数据看板 · Mingguang 的七日演示数据](docs/media/dashboard.jpg)
+
+#### 模型服务
+
+以六家厂商各一款模型展示名称、厂商图标及接口配置；`show_model` 与实际请求的模型标识分别管理。
+
+![模型服务 · 六家厂商的展示配置](docs/media/models.jpg)
+
+#### 智能体与能力管理
+
+![智能体 · 我的助手](docs/media/agents.jpg)
 
 <table>
 <tr>
-<td width="50%">
-
-#### 天气查询Agent
-实时天气信息查询和预报
-<img width="400" height="240" src="https://github.com/user-attachments/assets/91a95c2b-f194-4c25-ba0f-f8cb393cba50" />
-
-</td>
-<td width="50%">
-
-#### 文生图Agent
-AI驱动的图像生成服务
-<img width="400" height="240" src="https://github.com/user-attachments/assets/58194798-5c3e-4d7d-895c-944b6665e5a6" />
-
-</td>
+<td width="50%"><b>工具</b><br>管理内置工具与自定义能力。<br><a href="docs/media/tools.jpg"><img src="docs/media/tools.jpg" alt="工具管理页面" width="100%"></a></td>
+<td width="50%"><b>Skill</b><br>将可复用的操作知识组织成技能。<br><a href="docs/media/skills.jpg"><img src="docs/media/skills.jpg" alt="Skill 管理页面" width="100%"></a></td>
+</tr>
+<tr>
+<td width="50%"><b>MCP</b><br>连接外部工具与数据服务。<br><a href="docs/media/mcp.jpg"><img src="docs/media/mcp.jpg" alt="MCP 服务管理页面" width="100%"></a></td>
+<td width="50%"><b>知识库</b><br>按主题管理知识空间。<br><a href="docs/media/knowledge.jpg"><img src="docs/media/knowledge.jpg" alt="知识库管理页面" width="100%"></a></td>
 </tr>
 </table>
 
-### 7. 智能体工具多轮调用
+<details>
+<summary>查看登录页</summary>
 
-平台中智能体支持工具多轮调用（指的是根据工具C依赖工具B结果，执行工具B依赖工具A结果，所以调用工具的顺序是 A --> B --> C）
-<div align="center">
-<img width="800" height="450" src="https://github.com/user-attachments/assets/029c70ce-e5fa-4f2c-926a-a5dfd719e237" />
-</div>
+![agentchat 登录页](docs/media/login.jpg)
 
----
+</details>
 
 ## 三、重要版本说明
 
@@ -202,7 +268,7 @@ AI驱动的图像生成服务
 
 ## 五、技术栈
 
-- 后端: FastAPI, Python 3.12+, LangChain, MySQL, Redis, ChromaDB.
+- 后端: FastAPI, Python 3.12+, LangChain, SQLite / MySQL, 内存缓存 / Redis, ChromaDB.
 - 前端: Vue 3.4+, Element Plus, Pinia, Vite 5, TypeScript.
 - 部署: Docker, Docker Compose, Poetry, npm.
 
@@ -214,10 +280,16 @@ AI驱动的图像生成服务
 
 - Python 3.12+
 - Node.js 18+
-- MySQL 8.0+, Redis 7.0+
-- Docker 20.10+
+- 默认本地方案：SQLite、内存缓存、本地文件存储
+- MySQL、Redis、Docker 为按需选择的部署组件
 
-### 2. Docker一键部署
+### 2. 推荐：本地简易配置
+
+先按 [简易配置指南](docs/simple-config.md) 配置模型密钥，再启动后端与前端。SQLite 无需额外安装，数据库文件自动保存在本地；搜索、邮件等外部工具仍需配置对应服务。
+
+模型管理中的 `show_model` 是界面展示名称，`model` 是实际请求标识，两者可分别设置。
+
+### 3. Docker一键部署
 
 ```bash
 # 1. 克隆项目
@@ -232,7 +304,7 @@ cd docker
 docker-compose up --build -d
 ````
 
-### 3. 本地一键部署
+### 4. 本地一键部署
 
 克隆项目
 ```bash
@@ -273,7 +345,7 @@ npm run dev
 
 ## 八、文档
 
-  - API文档: [AgentChat Document](https://www.google.com/search?q=docs/reference/agentchat.md)
+  - API文档: [AgentChat Document](docs/reference/agentchat.md)
   - 开发指南: 启动后端后访问 /docs 查看 Swagger 文档。
   - [Parallel Search MCP](docs/reference/parallel_search_mcp.md): 已登记在 `config/mcp_server.json` 中自动加载，无需 API Key（`config_enabled` 为 `false`），匿名端点有速率限制，需在 Agent 中显式绑定后才会启用。
 

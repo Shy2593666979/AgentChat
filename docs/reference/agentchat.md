@@ -53,7 +53,7 @@ AgentChat 提供完整的 RESTful API 接口，支持用户管理、智能体配
 - **请求参数**:
   ```json
   {
-    "dialog_id": "string",        // 对话ID
+    "conversation_id": "string",        // 对话ID
     "user_input": "string",       // 用户输入内容
     "file_url": "string"          // 可选，文件URL
   }
@@ -437,7 +437,7 @@ AgentChat 提供完整的 RESTful API 接口，支持用户管理、智能体配
 ## 对话管理接口
 
 ### 1. 获取对话列表
-- **接口 URL**: `/api/v1/dialog/list`
+- **接口 URL**: `/api/v1/conversation/list`
 - **请求方法**: `GET`
 - **功能描述**: 获取用户的对话会话列表
 - **返回参数**:
@@ -447,7 +447,7 @@ AgentChat 提供完整的 RESTful API 接口，支持用户管理、智能体配
     "message": "success",
     "data": [
       {
-        "dialog_id": "string",
+        "conversation_id": "string",
         "name": "string",
         "agent_id": "string",
         "agent_type": "string",
@@ -458,7 +458,7 @@ AgentChat 提供完整的 RESTful API 接口，支持用户管理、智能体配
   ```
 
 ### 2. 创建对话
-- **接口 URL**: `/api/v1/dialog`
+- **接口 URL**: `/api/v1/conversation`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -475,7 +475,7 @@ AgentChat 提供完整的 RESTful API 接口，支持用户管理、智能体配
 - **请求参数**:
   ```json
   {
-    "dialog_id": "string"         // 对话ID
+    "conversation_id": "string"         // 对话ID
   }
   ```
 - **返回参数**:
@@ -752,7 +752,7 @@ ModelManager 提供统一的模型管理接口，支持多种类型的语言模�
 ```python
 class ModelManager:
     @classmethod
-    def get_conversation_model(cls) -> BaseChatModel:
+    def get_chat_model(cls) -> BaseChatModel:
         # 获取对话模型
         
     @classmethod
@@ -1234,12 +1234,12 @@ AgentChat 系统采用 MySQL 数据库，使用 SQLModel 作为 ORM 框架。数
 
 ### 对话管理表结构
 
-#### 对话表 (dialog)
+#### 对话表 (conversation)
 存储用户与智能体的对话会话信息。
 
 | 字段名 | 类型 | 约束 | 描述 |
 |--------|------|------|------|
-| dialog_id | VARCHAR | PRIMARY KEY | 对话ID (UUID) |
+| conversation_id | VARCHAR | PRIMARY KEY | 对话ID (UUID) |
 | name | VARCHAR | | 对话名称 |
 | agent_id | VARCHAR | | 绑定的智能体ID |
 | agent_type | VARCHAR | DEFAULT: "Agent" | 智能体类型 (Agent/MCPAgent) |
@@ -1254,7 +1254,7 @@ AgentChat 系统采用 MySQL 数据库，使用 SQLModel 作为 ORM 框架。数
 |--------|------|------|------|
 | id | VARCHAR | PRIMARY KEY | 消息ID (UUID) |
 | content | TEXT | | 消息内容 |
-| dialog_id | VARCHAR | | 所属对话ID |
+| conversation_id | VARCHAR | | 所属对话ID |
 | role | VARCHAR | | 消息角色 (assistant/system/user) |
 | events | JSON | | AI回复事件信息 |
 | create_time | DATETIME | DEFAULT: CURRENT_TIMESTAMP | 创建时间 |
@@ -1456,7 +1456,7 @@ AgentChat 系统采用 MySQL 数据库，使用 SQLModel 作为 ORM 框架。数
 
 ### 6. 索引优化策略
 - 用户相关字段 (`user_id`) 建立索引
-- 关联字段 (`dialog_id`, `knowledge_id` 等) 建立索引
+- 关联字段 (`conversation_id`, `knowledge_id` 等) 建立索引
 - 唯一性约束字段 (`user_name`, `knowledge.name`) 建立唯一索引
 - 查询频繁的字段建立复合索引
 
