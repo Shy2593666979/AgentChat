@@ -35,6 +35,8 @@ export interface MCPServerConfig {
 }
 
 export interface MCPServer {
+  metadata_status?: 'pending' | 'running' | 'ready' | 'failed'
+  metadata_error?: string
   mcp_server_id: string
   server_name: string
   url: string
@@ -60,8 +62,12 @@ export interface MCPServerResponse {
 export interface MCPServerSingleResponse {
   status_code: number
   status_message: string
-  data: null
+  data: { mcp_server_id?: string; metadata_status?: string } | null
 }
+
+export const retryMCPMetadataAPI = (serverId: string) => request<MCPServerSingleResponse>({
+  url: `/api/v1/mcp_server/${encodeURIComponent(serverId)}/metadata/retry`, method: 'POST'
+})
 
 // 创建MCP服务器
 export const createMCPServerAPI = (data: CreateMCPServerRequest) => {

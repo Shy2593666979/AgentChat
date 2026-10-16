@@ -4,6 +4,7 @@ import { request } from "../utils/request"
 export interface LLMResponse {
   llm_id: string
   model: string
+  show_model?: string
   provider: string
   llm_type: string
   base_url: string
@@ -15,6 +16,7 @@ export interface LLMResponse {
 
 export interface CreateLLMRequest {
   model: string
+  show_model?: string
   api_key: string
   base_url: string
   provider: string
@@ -24,6 +26,7 @@ export interface CreateLLMRequest {
 export interface UpdateLLMRequest {
   llm_id: string
   model?: string
+  show_model?: string
   api_key?: string
   base_url?: string
   provider?: string

@@ -1,11 +1,11 @@
 // 封装跟历史对话记录的接口函数
 import { request } from "../utils/request"
-import { DialogCreateType, MsgLikeType } from '../type'
+import { ConversationCreateType, MsgLikeType } from '../type'
 
 // 主要创建对话窗口的信息  json 格式
-export function createDialogAPI(data: DialogCreateType) {
+export function createConversationAPI(data: ConversationCreateType) {
   return request({
-    url: '/api/v1/dialog',
+    url: '/api/v1/conversation',
     method: 'POST',
     data: {
       name: data.name,
@@ -16,31 +16,36 @@ export function createDialogAPI(data: DialogCreateType) {
 }
 
 // 主要删除对话窗口的信息  json 格式
-export function deleteDialogAPI(dialogId:string) {
+export function deleteConversationAPI(conversationId:string) {
   return request({
-    url: '/api/v1/dialog',
+    url: '/api/v1/conversation',
     method: 'DELETE',
     data: {
-      dialog_id: dialogId
+      conversation_id: conversationId
     }
   })
 }
 
+// 在原会话中切换智能体，不创建新的会话。
+export function switchConversationAgentAPI(conversationId: string, agentId: string) {
+  return request({ url: '/api/v1/conversation', method: 'PUT', data: { conversation_id: conversationId, agent_id: agentId } })
+}
+
 // 主要获得对话列表的功能
-export function getDialogListAPI() {
+export function getConversationListAPI() {
   return request({
-    url: '/api/v1/dialog/list',
+    url: '/api/v1/conversation/list',
     method: 'GET',
   })
 }
 
 // 获取历史消息记录 - 根据对话ID
-export function getHistoryMsgAPI(dialogId: string) {
+export function getHistoryMsgAPI(conversationId: string) {
   return request({
     url: '/api/v1/history',
     method: 'GET',
     params: {
-      dialog_id: dialogId
+      conversation_id: conversationId
     }
   })
 }
@@ -50,7 +55,7 @@ export function MsgLikeCreateAPI(data: MsgLikeType) {
   return request({
     url: '/api/v1/message/like',
     method: 'POST',
-    data
+    data: { user_input: data.userInput, agent_output: data.agentOutput }
   })
 }
 
@@ -59,6 +64,6 @@ export function MsgDisLikeAPI(data: MsgLikeType) {
   return request({
     url: '/api/v1/message/down',
     method: 'POST',
-    data
+    data: { user_input: data.userInput, agent_output: data.agentOutput }
   })
 }

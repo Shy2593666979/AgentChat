@@ -12,7 +12,10 @@ export interface RegisterForm {
 }
 
 export interface LoginResponse {
-  success: boolean
+  status_code: number
+  status_message?: string
+  data?: { access_token: string; user_id: string; refresh_token?: string }
+  success?: boolean
   message?: string
   token?: string
   userInfo?: {
@@ -21,12 +24,6 @@ export interface LoginResponse {
     nickname?: string
     avatar?: string
   }
-}
-
-export interface UserIconsResponse {
-  status_code: number
-  status_message: string
-  data: string[]
 }
 
 export interface UpdateUserResponse {
@@ -85,18 +82,10 @@ export const updateUserInfoAPI = (userId: string, userAvatar?: string, userDescr
   })
 }
 
-// 获取用户头像选择接口
-export const getUserIconsAPI = () => {
-  return request<UserIconsResponse>({
-    url: '/api/v1/user/icons',
-    method: 'GET'
-  })
-}
-
 // 检查token是否有效
 export const checkTokenAPI = () => {
   return request({
     url: '/api/v1/auth/check',
     method: 'GET'
   })
-} 
+}

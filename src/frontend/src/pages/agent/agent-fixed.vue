@@ -1,10 +1,11 @@
 <script setup lang="ts">
+import RefreshIcon from "../../components/RefreshIcon.vue";
 import { ref, onMounted } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { Plus, Edit, Delete, View, Search, Refresh } from '@element-plus/icons-vue'
-import { 
-  getAgentsAPI, 
-  deleteAgentAPI, 
+import {
+  getAgentsAPI,
+  deleteAgentAPI,
   searchAgentsAPI
 } from '../../apis/agent'
 import { Agent } from '../../type'
@@ -39,7 +40,7 @@ const fetchAgents = async () => {
     console.log('开始调用智能体API...')
     const response = await getAgentsAPI()
     console.log('API响应:', response.data)
-    
+
     // 处理后端实际返回的响应格式
     if (response.data.status_code === 200 && response.data.data) {
       console.log('API调用成功，智能体数据:', response.data.data)
@@ -68,7 +69,7 @@ const searchAgents = async () => {
     await fetchAgents()
     return
   }
-  
+
   searchLoading.value = true
   try {
     const response = await searchAgentsAPI({ name: searchKeyword.value.trim() })
@@ -127,7 +128,7 @@ const deleteAgent = async (agent: Agent) => {
         customClass: 'delete-confirm-dialog'
       }
     )
-    
+
     const response = await deleteAgentAPI({ agent_id: agent.agent_id })
     if (response.data.status_code === 200) {
       ElMessage.success('删除成功')
@@ -191,9 +192,9 @@ onMounted(() => {
             clearable
             style="width: 300px"
           />
-          <el-button 
-            type="primary" 
-            :icon="Search" 
+          <el-button
+            type="primary"
+            :icon="Search"
             @click="searchAgents"
             :loading="searchLoading"
             style="margin-left: 10px"
@@ -202,8 +203,8 @@ onMounted(() => {
           </el-button>
         </div>
         <div class="action-buttons">
-          <el-button 
-            :icon="Refresh" 
+          <el-button
+            :icon="RefreshIcon"
             @click="refreshAgents"
             :loading="loading"
             title="刷新"
@@ -217,25 +218,25 @@ onMounted(() => {
 
     <div class="agent-list" v-loading="loading">
       <div class="agent-grid" v-if="agents.length > 0">
-        <div 
-          v-for="agent in agents" 
-          :key="agent.agent_id" 
+        <div
+          v-for="agent in agents"
+          :key="agent.agent_id"
           class="agent-card"
         >
           <div class="agent-avatar">
-            <img 
-              :src="agent.logo_url || '/src/assets/robot.svg'" 
+            <img
+              :src="agent.logo_url || '/src/assets/robot.svg'"
               :alt="agent.name"
               @error="handleImageError"
             />
           </div>
-          
+
           <div class="agent-info">
             <h3 class="agent-name" :title="agent.name">{{ agent.name }}</h3>
             <p class="agent-description" :title="agent.description">
               {{ agent.description }}
             </p>
-            
+
             <div class="agent-meta">
               <span class="meta-item">
                 <i class="meta-icon">🔧</i>
@@ -250,9 +251,9 @@ onMounted(() => {
                 MCP: {{ agent.mcp_ids?.length || 0 }}
               </span>
             </div>
-            
+
             <div class="agent-status">
-              <el-tag 
+              <el-tag
                 :type="agent.enable_memory ? 'success' : 'info'"
                 size="small"
               >
@@ -260,27 +261,27 @@ onMounted(() => {
               </el-tag>
             </div>
           </div>
-          
+
           <div class="agent-actions">
-            <el-button 
-              size="small" 
-              :icon="View" 
+            <el-button
+              size="small"
+              :icon="View"
               @click="viewAgent(agent)"
               title="查看详情"
               plain
             />
-            <el-button 
-              size="small" 
+            <el-button
+              size="small"
               type="primary"
-              :icon="Edit" 
+              :icon="Edit"
               @click="editAgent(agent)"
               title="编辑"
               plain
             />
-            <el-button 
-              size="small" 
-              type="danger" 
-              :icon="Delete" 
+            <el-button
+              size="small"
+              type="danger"
+              :icon="Delete"
               @click="deleteAgent(agent)"
               title="删除"
               plain
@@ -288,7 +289,7 @@ onMounted(() => {
           </div>
         </div>
       </div>
-      
+
       <div v-else-if="!loading" class="empty-state">
         <img src="/src/assets/404.gif" alt="暂无数据" width="300" />
         <p v-if="searchKeyword">
@@ -297,9 +298,9 @@ onMounted(() => {
         <p v-else>
           暂无智能体，点击上方按钮创建第一个智能体吧！
         </p>
-        <el-button 
-          v-if="searchKeyword" 
-          type="primary" 
+        <el-button
+          v-if="searchKeyword"
+          type="primary"
           @click="clearSearch"
           style="margin-top: 20px"
         >
@@ -318,7 +319,7 @@ onMounted(() => {
   padding: 24px;
   height: 100vh;
   background-color: #f8f9fa;
-  
+
   .page-header {
     display: flex;
     justify-content: space-between;
@@ -328,40 +329,40 @@ onMounted(() => {
     padding: 20px 24px;
     border-radius: 12px;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-    
+
     h2 {
       margin: 0;
       font-size: 24px;
       font-weight: 600;
       color: #2c3e50;
     }
-    
+
     .header-actions {
       display: flex;
       align-items: center;
       gap: 20px;
-      
+
       .search-box {
         display: flex;
         align-items: center;
       }
-      
+
       .action-buttons {
         display: flex;
         gap: 12px;
       }
     }
   }
-  
+
   .agent-list {
     height: calc(100vh - 140px);
     overflow-y: auto;
-    
+
     .agent-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(380px, 1fr));
       gap: 24px;
-      
+
       .agent-card {
         background: white;
         border-radius: 16px;
@@ -371,17 +372,17 @@ onMounted(() => {
         transition: all 0.3s ease;
         position: relative;
         overflow: hidden;
-        
+
         &:hover {
           box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
           transform: translateY(-4px);
-          
+
           .agent-actions {
             opacity: 1;
             transform: translateY(0);
           }
         }
-        
+
         .agent-avatar {
           width: 64px;
           height: 64px;
@@ -389,14 +390,14 @@ onMounted(() => {
           overflow: hidden;
           margin-bottom: 16px;
           border: 2px solid #f0f0f0;
-          
+
           img {
             width: 100%;
             height: 100%;
             object-fit: cover;
           }
         }
-        
+
         .agent-info {
           .agent-name {
             font-size: 20px;
@@ -407,7 +408,7 @@ onMounted(() => {
             text-overflow: ellipsis;
             white-space: nowrap;
           }
-          
+
           .agent-description {
             color: #64748b;
             font-size: 14px;
@@ -419,13 +420,13 @@ onMounted(() => {
             overflow: hidden;
             min-height: 40px;
           }
-          
+
           .agent-meta {
             display: flex;
             flex-wrap: wrap;
             gap: 12px;
             margin-bottom: 12px;
-            
+
             .meta-item {
               font-size: 12px;
               color: #64748b;
@@ -435,18 +436,18 @@ onMounted(() => {
               background: #f8fafc;
               padding: 4px 8px;
               border-radius: 6px;
-              
+
               .meta-icon {
                 font-size: 14px;
               }
             }
           }
-          
+
           .agent-status {
             margin-top: 12px;
           }
         }
-        
+
         .agent-actions {
           position: absolute;
           top: 20px;
@@ -456,7 +457,7 @@ onMounted(() => {
           opacity: 0;
           transform: translateY(-10px);
           transition: all 0.3s ease;
-          
+
           .el-button {
             padding: 8px;
             border-radius: 8px;
@@ -464,7 +465,7 @@ onMounted(() => {
         }
       }
     }
-    
+
     .empty-state {
       text-align: center;
       padding: 80px 20px;
@@ -472,7 +473,7 @@ onMounted(() => {
       background: white;
       border-radius: 16px;
       box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-      
+
       p {
         margin-top: 24px;
         font-size: 16px;
@@ -486,30 +487,30 @@ onMounted(() => {
 @media (max-width: 768px) {
   .agent-page {
     padding: 16px;
-    
+
     .page-header {
       flex-direction: column;
       gap: 16px;
       align-items: stretch;
-      
+
       .header-actions {
         flex-direction: column;
         gap: 12px;
-        
+
         .search-box {
           flex-direction: column;
           gap: 8px;
-          
+
           .el-input {
             width: 100% !important;
           }
         }
       }
     }
-    
+
     .agent-list .agent-grid {
       grid-template-columns: 1fr;
     }
   }
 }
-</style> 
+</style>
