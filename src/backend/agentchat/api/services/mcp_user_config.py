@@ -1,4 +1,5 @@
-from typing import Optional, List
+from typing import List, Optional
+
 from agentchat.database.dao.mcp_user_config import MCPUserConfigDao
 from agentchat.database.models.user import AdminUser, SystemUser
 
@@ -19,7 +20,7 @@ class MCPUserConfigService:
             raise ValueError(f"Create MCP User Config Error: {err}")
 
     @classmethod
-    async def get_mcp_user_config_from_id(cls, config_id: str):
+    async def get_mcp_user_config_from_id(cls, config_id: str, user_id: str):
         """
         根据ID获取MCP用户配置记录。
         :param config_id: 配置记录ID
@@ -27,6 +28,8 @@ class MCPUserConfigService:
         """
         try:
             results = await MCPUserConfigDao.get_mcp_user_config_from_id(config_id)
+            if results is None or results.user_id != user_id:
+                raise ValueError("没有权限访问该配置")
             return results.to_dict()
         except Exception as err:
             raise ValueError(f"Get MCP User Config From ID Error: {err}")
@@ -52,13 +55,14 @@ class MCPUserConfigService:
             raise ValueError(f"Update MCP User Config Error: {err}")
 
     @classmethod
-    async def delete_mcp_user_config(cls, config_id: str):
+    async def delete_mcp_user_config(cls, config_id: str, user_id: str):
         """
         删除指定ID的MCP用户配置记录。
         :param config_id: 配置记录ID
         :return: None
         """
         try:
+            await cls.get_mcp_user_config_from_id(config_id, user_id)
             return await MCPUserConfigDao.delete_mcp_user_config(config_id)
         except Exception as err:
             raise ValueError(f"Delete MCP User Config Error: {err}")

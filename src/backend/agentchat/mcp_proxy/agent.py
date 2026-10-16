@@ -1,26 +1,48 @@
 import json
-from pydantic import ValidationError
+from contextvars import ContextVar
+
 from langchain.agents import create_agent
-from langchain.tools import tool, ToolRuntime
-from langchain_core.messages import HumanMessage, SystemMessage, AIMessageChunk
-from langgraph.config import get_stream_writer
 from langchain.agents.middleware import HumanInTheLoopMiddleware
+from langchain.tools import ToolRuntime, tool
+from langchain_core.messages import AIMessageChunk, HumanMessage, SystemMessage
 from langgraph.checkpoint.memory import InMemorySaver
+from langgraph.config import get_stream_writer
 from langgraph.types import Command
+from pydantic import ValidationError
 
 from agentchat.core.models.manager import ModelManager
+from agentchat.mcp_proxy.register_mcp import RegisterMcpService
 from agentchat.prompts.register_mcp import (
     GENERATE_MCP_JSON_PROMPT,
+    MCP_AGENT_SYSTEM_PROMPT,
     RESTORE_MCP_JSON_PROMPT,
-    REVISE_MCP_JSON_SYSTEM_PROMPT,
     REVISE_MCP_JSON_HUMAN_PROMPT,
-    MCP_AGENT_SYSTEM_PROMPT
+    REVISE_MCP_JSON_SYSTEM_PROMPT,
 )
 from agentchat.schemas.register_mcp import RegisterMcpServerModel
-from agentchat.mcp_proxy.register_mcp import RegisterMcpService
 from agentchat.utils.contexts import get_user_id_context
 
 _checkpointer = InMemorySaver()
+_mcp_model_context = ContextVar("mcp_selected_model", default=None)
+
+
+def _chat_model():
+    # 同一轮中的生成、修复和修改工具使用当前选中的模型。
+    return _mcp_model_context.get() or ModelManager.get_chat_model()
+
+
+def _tool_writer(runtime, name):
+    """为工具进度附加真实调用标识，重复或并行执行时仍可准确匹配。"""
+    writer = get_stream_writer()
+    def emit(event):
+        writer(
+            {
+                **event,
+                "tool_call_id": runtime.tool_call_id,
+                "tool_name": name,
+            }
+        )
+    return emit
 
 
 @tool
@@ -31,30 +53,36 @@ def generate_mcp_json(user_query: str, runtime: ToolRuntime) -> str:
     Args:
         user_query: 用户原始输入，描述想要注册的 MCP Server 信息
     """
-    writer = get_stream_writer()
+    writer = _tool_writer(runtime, "generate_mcp_json")
 
-    writer({
-        "title": "提取Query中的Mcp必要信息",
-        "status": "START",
-        "is_error": False,
-        "content": ""
-    })
+    writer(
+        {
+            "title": "提取Query中的Mcp必要信息",
+            "status": "START",
+            "is_error": False,
+            "content": "",
+        }
+    )
 
-    client = ModelManager.get_chat_model()
+    client = _chat_model()
 
     response = client.invoke(
         input=[HumanMessage(content=GENERATE_MCP_JSON_PROMPT + user_query)],
-        config={"callbacks": []}
+        config={
+            "callbacks": [],
+        },
     )
 
     mcp_json_str = response.content
 
-    writer({
-        "title": "提取Query中的Mcp必要信息",
-        "status": "END",
-        "is_error": False,
-        "content": mcp_json_str
-    })
+    writer(
+        {
+            "title": "提取Query中的Mcp必要信息",
+            "status": "END",
+            "is_error": False,
+            "content": mcp_json_str,
+        }
+    )
 
     return mcp_json_str
 
@@ -67,14 +95,16 @@ def verify_mcp_json(mcp_json_str: str, runtime: ToolRuntime) -> str:
     Args:
         mcp_json_str: 待校验的 MCP JSON 字符串
     """
-    writer = get_stream_writer()
+    writer = _tool_writer(runtime, "verify_mcp_json")
 
-    writer({
-        "title": "校验Mcp Json是否合规",
-        "status": "START",
-        "is_error": False,
-        "content": ""
-    })
+    writer(
+        {
+            "title": "校验Mcp Json是否合规",
+            "status": "START",
+            "is_error": False,
+            "content": "",
+        }
+    )
 
     try:
         if isinstance(mcp_json_str, str):
@@ -83,17 +113,38 @@ def verify_mcp_json(mcp_json_str: str, runtime: ToolRuntime) -> str:
             data = mcp_json_str
     except Exception as e:
         err = f"JSON解析失败: {e}"
-        writer({"title": "校验Mcp Json是否合规", "status": "END", "is_error": True, "content": err})
+        writer(
+            {
+                "title": "校验Mcp Json是否合规",
+                "status": "END",
+                "is_error": True,
+                "content": err,
+            }
+        )
         return f"VERIFY_FAILED: {err}"
 
     try:
         RegisterMcpServerModel.model_validate(data)
     except ValidationError as e:
         err = f"Pydantic校验失败: {e}"
-        writer({"title": "校验Mcp Json是否合规", "status": "END", "is_error": True, "content": err})
+        writer(
+            {
+                "title": "校验Mcp Json是否合规",
+                "status": "END",
+                "is_error": True,
+                "content": err,
+            }
+        )
         return f"VERIFY_FAILED: {err}"
 
-    writer({"title": "校验Mcp Json是否合规", "status": "END", "is_error": False, "content": "校验成功"})
+    writer(
+        {
+            "title": "校验Mcp Json是否合规",
+            "status": "END",
+            "is_error": False,
+            "content": "校验成功",
+        }
+    )
     return f"VERIFY_SUCCESS: {json.dumps(data, ensure_ascii=False)}"
 
 
@@ -107,11 +158,18 @@ def restore_mcp_json(mcp_json_str: str, error_message: str, runtime: ToolRuntime
         mcp_json_str: 需要修复的 MCP JSON 字符串
         error_message: verify_mcp_json 返回的错误信息
     """
-    writer = get_stream_writer()
+    writer = _tool_writer(runtime, "restore_mcp_json")
 
-    writer({"title": "修复Mcp Json", "status": "START", "is_error": False, "content": ""})
+    writer(
+        {
+            "title": "修复Mcp Json",
+            "status": "START",
+            "is_error": False,
+            "content": "",
+        }
+    )
 
-    client = ModelManager.get_chat_model()
+    client = _chat_model()
 
     response = client.invoke([
         SystemMessage(content=RESTORE_MCP_JSON_PROMPT.format(mcp_json=mcp_json_str)),
@@ -120,7 +178,14 @@ def restore_mcp_json(mcp_json_str: str, error_message: str, runtime: ToolRuntime
 
     fixed_json = response.content
 
-    writer({"title": "修复Mcp Json", "status": "END", "is_error": False, "content": fixed_json})
+    writer(
+        {
+            "title": "修复Mcp Json",
+            "status": "END",
+            "is_error": False,
+            "content": fixed_json,
+        }
+    )
     return fixed_json
 
 
@@ -134,37 +199,47 @@ def revise_mcp_json(mcp_json_str: str, user_feedback: str, runtime: ToolRuntime)
         mcp_json_str: 当前的 MCP JSON 字符串
         user_feedback: 用户的自然语言修改意见
     """
-    writer = get_stream_writer()
+    writer = _tool_writer(runtime, "revise_mcp_json")
 
-    writer({
-        "title": "根据用户反馈优化Mcp配置",
-        "status": "START",
-        "is_error": False,
-        "content": user_feedback
-    })
+    writer(
+        {
+            "title": "根据用户反馈优化Mcp配置",
+            "status": "START",
+            "is_error": False,
+            "content": user_feedback,
+        }
+    )
 
-    client = ModelManager.get_chat_model()
+    client = _chat_model()
     response = client.invoke(
         input=[
-            SystemMessage(content=REVISE_MCP_JSON_SYSTEM_PROMPT.format(mcp_json_str=mcp_json_str)),
-            HumanMessage(content=REVISE_MCP_JSON_HUMAN_PROMPT.format(user_feedback=user_feedback))
+            SystemMessage(
+                content=REVISE_MCP_JSON_SYSTEM_PROMPT.format(mcp_json_str=mcp_json_str)
+            ),
+            HumanMessage(
+                content=REVISE_MCP_JSON_HUMAN_PROMPT.format(user_feedback=user_feedback)
+            ),
         ],
-        config={"callbacks": []}
+        config={
+            "callbacks": [],
+        },
     )
 
     new_json = response.content.strip()
-    
+
     # 清理可能的 markdown 代码块
     if new_json.startswith("```"):
         lines = new_json.split("\n")
         new_json = "\n".join(lines[1:-1])
 
-    writer({
-        "title": "根据用户反馈优化Mcp配置",
-        "status": "END",
-        "is_error": False,
-        "content": new_json
-    })
+    writer(
+        {
+            "title": "根据用户反馈优化Mcp配置",
+            "status": "END",
+            "is_error": False,
+            "content": new_json,
+        }
+    )
 
     return new_json
 
@@ -180,8 +255,15 @@ async def register_mcp_server(mcp_json_str: str, runtime: ToolRuntime) -> str:
     """
     user_id = get_user_id_context()
 
-    writer = get_stream_writer()
-    writer({"title": "开始创建Mcp Server", "status": "START", "is_error": False, "content": ""})
+    writer = _tool_writer(runtime, "register_mcp_server")
+    writer(
+        {
+            "title": "开始创建Mcp Server",
+            "status": "START",
+            "is_error": False,
+            "content": "",
+        }
+    )
 
     async def _register():
         try:
@@ -200,10 +282,24 @@ async def register_mcp_server(mcp_json_str: str, runtime: ToolRuntime) -> str:
     ok, result = await _register()
 
     if not ok:
-        writer({"title": "开始创建Mcp Server", "status": "END", "is_error": True, "content": result})
+        writer(
+            {
+                "title": "开始创建Mcp Server",
+                "status": "END",
+                "is_error": True,
+                "content": result,
+            }
+        )
         return f"REGISTER_FAILED: {result}"
 
-    writer({"title": "开始创建Mcp Server", "status": "END", "is_error": False, "content": "注册成功"})
+    writer(
+        {
+            "title": "开始创建Mcp Server",
+            "status": "END",
+            "is_error": False,
+            "content": "注册成功",
+        }
+    )
     return f"REGISTER_SUCCESS: {json.dumps(result, ensure_ascii=False)}"
 
 
@@ -220,9 +316,12 @@ class AbstractMcpAgent:
             register_mcp_server,
         ]
 
+        self.agent = self._create_agent(self.model)
+
+    def _create_agent(self, model):
         # LangChain 1.0+ create_agent，加入 HITL middleware 和 checkpointer
-        self.agent = create_agent(
-            model=self.model,
+        return create_agent(
+            model=model,
             tools=self.tools,
             system_prompt=MCP_AGENT_SYSTEM_PROMPT,
             middleware=[
@@ -249,7 +348,7 @@ class AbstractMcpAgent:
 
     # 初次调用：启动流
 
-    async def astream(self, messages, thread_id: str):
+    async def astream(self, messages, thread_id: str, model=None):
         """
         流式执行 Agent（初次对话）。
         yield 三种类型：
@@ -257,31 +356,51 @@ class AbstractMcpAgent:
           {"type": "event",     "content": "",    "event": {...}}    # 工具进度
           {"type": "interrupt", "content": "",    "event": {...}}    # HITL 中断
         """
-        config = {"configurable": {"thread_id": thread_id}}
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            },
+        }
 
-        async for mode, chunk in self.agent.astream(
-            input={"messages": messages},
-            config=config,
-            stream_mode=["messages", "updates", "custom"],
-        ):
-            async for item in self._process_chunk(mode, chunk):
-                yield item
+        agent = self._create_agent(model) if model is not None else self.agent
+        token = _mcp_model_context.set(model)
+        try:
+            async for mode, chunk in agent.astream(
+                input={
+                    "messages": messages,
+                },
+                config=config,
+                stream_mode=["messages", "updates", "custom"],
+            ):
+                async for item in self._process_chunk(mode, chunk):
+                    yield item
+        finally:
+            _mcp_model_context.reset(token)
 
     # resume：处理用户 HITL 决策后继续流
-    async def astream_resume(self, command: Command, thread_id: str):
+    async def astream_resume(self, command: Command, thread_id: str, model=None):
         """
         在用户做出 HITL 决策后，resume Agent 继续执行。
         command 由接口层构建后传入。
         """
-        config = {"configurable": {"thread_id": thread_id}}
+        config = {
+            "configurable": {
+                "thread_id": thread_id,
+            },
+        }
 
-        async for mode, chunk in self.agent.astream(
-            command,
-            config=config,
-            stream_mode=["messages", "updates", "custom"]
-        ):
-            async for item in self._process_chunk(mode, chunk):
-                yield item
+        agent = self._create_agent(model) if model is not None else self.agent
+        token = _mcp_model_context.set(model)
+        try:
+            async for mode, chunk in agent.astream(
+                command,
+                config=config,
+                stream_mode=["messages", "updates", "custom"]
+            ):
+                async for item in self._process_chunk(mode, chunk):
+                    yield item
+        finally:
+            _mcp_model_context.reset(token)
 
     # 内部统一 chunk 处理
     async def _process_chunk(self, mode, chunk):
@@ -289,7 +408,11 @@ class AbstractMcpAgent:
         if mode == "messages":
             msg, metadata = chunk
             if msg.content and isinstance(msg, AIMessageChunk):
-                yield {"type": "text", "content": msg.content, "event": {}}
+                yield {
+                    "type": "text",
+                    "content": msg.content,
+                    "event": {},
+                }
 
         # 处理图节点更新（包含 HITL interrupt）
         elif mode == "updates":
@@ -298,27 +421,36 @@ class AbstractMcpAgent:
                     interrupts = node_update if isinstance(node_update, tuple) else [node_update[0]]
                     for interrupt in interrupts:
                         interrupt_value = interrupt.value if hasattr(interrupt, "value") else interrupt
-                        
+
                         # 解析 mcp_json_str 供前端预览表格
                         action_requests = interrupt_value.get("action_requests", [])
                         review_configs = interrupt_value.get("review_configs", [])
                         preview = _parse_mcp_preview(action_requests)
-                        
+
                         yield {
                             "type": "interrupt",
                             "content": "",
                             "event": {
+                                "interrupt_id": getattr(interrupt, "id", None),
                                 "status": False,  # 用户是否决定
                                 "action_requests": action_requests,
-                                "review_configs": interrupt_value.get("review_configs", []),
+                                "review_configs": interrupt_value.get(
+                                    "review_configs", []
+                                ),
                                 "preview": preview,
-                                "allowed_decisions": review_configs[0].get("allowed_decisions", [])
+                                "allowed_decisions": review_configs[0].get(
+                                    "allowed_decisions", []
+                                ),
                             },
                         }
 
         # 处理工具内部流式进度
         elif mode == "custom":
-            yield {"type": "event", "content": "", "event": chunk}
+            yield {
+                "type": "event",
+                "content": "",
+                "event": chunk,
+            }
 
 
 def _parse_mcp_preview(action_requests: list) -> list:
@@ -327,22 +459,24 @@ def _parse_mcp_preview(action_requests: list) -> list:
     for action in action_requests:
         args = action.get("arguments", {})
         mcp_str = args.get("mcp_json_str", "")
-        
+
         # 兼容 VERIFY_SUCCESS: {...} 前缀
         if mcp_str.startswith("VERIFY_SUCCESS:"):
             mcp_str = mcp_str[len("VERIFY_SUCCESS:"):].strip()
-            
+
         parsed = {}
         try:
             parsed = json.loads(mcp_str)
         except Exception:
             pass
-            
-        result.append({
-            "tool_name": action.get("name"),
-            "mcp_json_str": mcp_str,
-            "mcp_preview": parsed,
-        })
+
+        result.append(
+            {
+                "tool_name": action.get("name"),
+                "mcp_json_str": mcp_str,
+                "mcp_preview": parsed,
+            }
+        )
     return result
 
 

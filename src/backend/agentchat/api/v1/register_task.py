@@ -1,10 +1,11 @@
 import uuid
+
 from fastapi import APIRouter, Depends
 
+from agentchat.api.responses.builder import resp_200
 from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.database.dao.register_task import RegisterMcpTaskDao
 from agentchat.schemas.register_mcp import DeleteMcpTaskRequest
-from agentchat.api.responses.builder import resp_200
 
 router = APIRouter(prefix="/mcp/register", tags=["Register-Task"])
 
@@ -32,6 +33,6 @@ async def delete_register_mcp_task(
     req: DeleteMcpTaskRequest,
     login_user: UserPayload = Depends(get_login_user)
 ):
-    result = await RegisterMcpTaskDao.delete_task(req.task_id)
+    result = await RegisterMcpTaskDao.delete_task(req.task_id, login_user.user_id)
     return resp_200(data=result)
 
