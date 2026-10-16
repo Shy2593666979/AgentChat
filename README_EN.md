@@ -1,5 +1,5 @@
 <div align='center'>
-    <img src="https://github.com/user-attachments/assets/eb9b3b09-e2bf-4c9d-95a0-5c2d9712723d" alt="alt text" width="70%">
+    <img src="docs/media/cover.jpg" alt="agentchat: connecting models, knowledge, and tools" width="100%">
 </div>
 
 <div align="center">
@@ -37,21 +37,23 @@ The local setup uses SQLite, an in-process cache, local file storage, and Chroma
 
 ## Capabilities
 
+![agentchat technical architecture](docs/media/architecture.png)
+
 | Capability | What it does |
 | --- | --- |
-| Flexible conversations | Switch agents within a conversation; generate a short topic title asynchronously from the first message |
+| Flexible conversations | Switch agents within a conversation; asynchronously generate a topic title of 2–10 Chinese characters from the first message |
 | Agents | Select a model, edit instructions, and bind tools, MCP servers, Skills, and knowledge bases |
 | Mars tasks | Start a task from Explore and inspect tool execution and the resulting Markdown report |
-| Tools and MCP | Use built-in tools, import OpenAPI specs, connect SSE / Streamable HTTP MCP servers, and review human confirmation steps |
-| Skills | Load six templates for research, data analysis, product documents, code review, email writing, and knowledge organization |
+| Tools and MCP | Use built-in tools, import OpenAPI specs, or connect SSE / Streamable HTTP MCP servers; create MCP servers through conversation with human confirmation |
+| Skills | Load six templates at startup for research reports, data analysis, product documents, code review, email writing, and knowledge organization |
 | Knowledge bases | Upload and index documents for retrieval and reranking, with optional full-text search |
-| Resource isolation | New users receive separate copies of default agents, tools, Skills, and MCP servers |
+| Resource isolation | New users receive separate copies of default agents, tools, Skills, and MCP servers; edits do not affect other users |
 | Usage and logs | Track provider-reported token usage and inspect request, run, and tool logs |
 | Streaming | Adapt conversation and task events through the shared AG-UI layer |
 
 Basic chat needs a working chat model. Knowledge retrieval needs suitable embedding and reranking services, and some external tools require separate credentials. A single chat API key does not automatically enable every capability.
 
-See the [changelog](docs/CHANGELOG.md) for this branch's interface, conversation, resource isolation, protocol, usage, logging, and CI changes.
+This update covers the interface and brand, conversations, user resource isolation, AG-UI, token usage, unified logging, and GitHub CI. See the [changelog](docs/CHANGELOG.md) for details.
 
 ## Contents
 
@@ -65,63 +67,51 @@ See the [changelog](docs/CHANGELOG.md) for this branch's interface, conversation
 
 ## Screenshots and demos
 
-See also the [current interface gallery and Mars video](README.md#功能展示).
+### Explore task demo
 
-<div align="center">
-<img width="800" height="400" src="https://github.com/user-attachments/assets/f35e8a9a-0905-46a2-a167-a3c8e876760a" />
-</div>
+Enter a goal on the Explore page to follow task execution and read the full report:
 
-<div align="center">
+> Compare the influence of China's four great ancient capitals and create a travel guide for these four cities.
 
-### 1. Human-In-The-Loop (HITL)
-Conversational MCP Server generation from API information using the Human-In-The-Loop mechanism
-<img width="800" height="450" src="https://github.com/user-attachments/assets/cabb59d8-0e14-432a-9aee-aa9115e266cd" />
+https://github.com/user-attachments/assets/640650f3-4134-452a-9d17-6f850dabe95f
 
-### 2. Workspace
-Switch between the workspace and app center.
-<img width="800" height="450" src="https://github.com/user-attachments/assets/766c7628-2256-4c8b-a838-c400eaa78d6b" />
+Start a task from Explore and follow deep search, source organization, and report generation. The video is edited to show only the application.
 
-### 3. Task Planning
-Real-time task flowchart for a more intuitive experience
-<img width="800" height="450" src="https://github.com/user-attachments/assets/53f7fe9f-d70d-4cc2-bf7e-b47a712a6d7a" />
+### Current interface
 
-### 4. Data Dashboard
-Filter call counts and token usage by Agent, model, and time range
-<img width="800" height="450" src="https://github.com/user-attachments/assets/b0cb4ccf-b868-4f1b-9b26-8a882d8130da" />
+#### Dashboard
 
-### 5. Platform Homepage
-Clean and modern main interface with intuitive navigation
-<img width="800" height="450" src="https://github.com/user-attachments/assets/dc626494-4797-4a86-b350-3a0759d52d64" />
+View model calls, token usage, seven-day trends, and recent activity.
 
-</div>
+![Dashboard: Mingguang's seven-day demo data](docs/media/dashboard.jpg)
 
-### 6. Intelligent Agent Demo
+#### Model services
+
+One model from each of six providers illustrates display names, provider icons, and API configuration. The `show_model` display name and the model identifier sent in requests are managed separately.
+
+![Model services: display configurations for six providers](docs/media/models.jpg)
+
+#### Agents and capability management
+
+![Agents: my assistants](docs/media/agents.jpg)
 
 <table>
 <tr>
-<td width="50%">
-
-#### Weather Query Agent
-Real-time weather information query and forecast
-<img width="400" height="240" src="https://github.com/user-attachments/assets/91a95c2b-f194-4c25-ba0f-f8cb393cba50" />
-
-</td>
-<td width="50%">
-
-#### Text-to-Image Agent
-AI-driven image generation service
-<img width="400" height="240" src="https://github.com/user-attachments/assets/58194798-5c3e-4d7d-895c-944b6665e5a6" />
-
-</td>
+<td width="50%"><b>Tools</b><br>Manage built-in tools and custom capabilities.<br><a href="docs/media/tools.jpg"><img src="docs/media/tools.jpg" alt="Tool management page" width="100%"></a></td>
+<td width="50%"><b>Skills</b><br>Organize reusable working knowledge into Skills.<br><a href="docs/media/skills.jpg"><img src="docs/media/skills.jpg" alt="Skill management page" width="100%"></a></td>
+</tr>
+<tr>
+<td width="50%"><b>MCP</b><br>Connect external tools and data services.<br><a href="docs/media/mcp.jpg"><img src="docs/media/mcp.jpg" alt="MCP server management page" width="100%"></a></td>
+<td width="50%"><b>Knowledge bases</b><br>Organize knowledge spaces by topic.<br><a href="docs/media/knowledge.jpg"><img src="docs/media/knowledge.jpg" alt="Knowledge base management page" width="100%"></a></td>
 </tr>
 </table>
 
-### 7. Multi-turn Tool Calling
+<details>
+<summary>View the sign-in page</summary>
 
-The platform supports multi-turn tool calling for agents (Tool C depends on the result of Tool B, which depends on the result of Tool A, so the calling order is A --> B --> C)
-<div align="center">
-<img width="800" height="450" src="https://github.com/user-attachments/assets/029c70ce-e5fa-4f2c-926a-a5dfd719e237" />
-</div>
+![agentchat sign-in page](docs/media/login.jpg)
+
+</details>
 
 ## Quick start
 
@@ -203,12 +193,12 @@ For a different backend address, set `VITE_API_BASE_URL=http://your-backend:port
 
 ## First use
 
-1. Register and sign in. Your account receives its own default agents, tools, Skills, and MCP servers. Create knowledge bases when needed.
-2. Check the model setup. The YAML `chat_model` configures the system default model. Models added on the model page can be selected by agents; their display names and provider model identifiers are separate fields.
-3. Open a conversation, select an agent, and send a message. You can switch agents within the conversation. A short title is generated in the background and can be renamed manually.
-4. Bind tools, Skills, MCP servers, or knowledge bases in the agent editor. A listed MCP server is not automatically enabled for every agent. Confirm external credentials and connectivity before calling it.
-5. Upload documents and wait for indexing before using a knowledge base. Check embedding and reranking configuration. Start research tasks from Explore after configuring the tools they use.
-6. Inspect usage on the dashboard. Token statistics depend on the usage information returned by the provider and may be incomplete when it is missing.
+1. **Register and sign in**: Your account receives its own default agents, tools, Skills, and MCP servers. Create knowledge bases when needed.
+2. **Check the model setup**: The YAML `chat_model` configures the system default model. Models added on the model page can be selected by agents. Display names and provider model identifiers are separate fields; use the identifier required by the provider for actual requests.
+3. **Start a conversation**: Select an agent and send a message. You can switch agents within the conversation. A topic title is generated in the background and can be renamed manually.
+4. **Add capabilities**: Bind tools, Skills, MCP servers, or knowledge bases in the agent editor. A listed MCP server is not automatically bound to the current agent. Confirm external credentials and connectivity before calling it.
+5. **Use documents and tasks**: Upload documents and wait for processing before using a knowledge base. Start search and research tasks from Explore. Knowledge retrieval depends on embedding and reranking models; tasks depend on the configuration of the tools they use.
+6. **Inspect usage**: View model calls and token usage on the dashboard. Statistics depend on the usage information returned by the provider and may be incomplete when it is missing.
 
 ## Advanced configuration
 
@@ -221,7 +211,7 @@ Simple mode uses the same YAML structure as the full configuration, filling omit
 | Local files, MinIO, or OSS | `storage.mode` and the selected storage configuration |
 | Separate models | `multi_models.chat_model`, `tool_call_model`, `reasoning_model`, `embedding`, `rerank`, and other model entries |
 | Vector store and full-text search | `rag.vector_db`, `rag.enable_elasticsearch`, and the relevant connection settings |
-| Default resources | `agentchat/config/mcp_server.json`, `default_skills.json`, and `config/skills/` |
+| Default MCP / Skill templates | `agentchat/config/mcp_server.json`, `agentchat/config/default_skills.json`, and `config/skills/` |
 | Logging | `log_level` and the `AGENTCHAT_LOG_DIR` environment variable |
 
 Configuration precedence is: explicit loader path → `AGENTCHAT_CONFIG` → `agentchat/config.local.yaml` → `agentchat/config.yaml`. Select `config.local.simple.yaml` explicitly and restart the backend after changes.

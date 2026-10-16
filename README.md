@@ -79,16 +79,6 @@ https://github.com/user-attachments/assets/640650f3-4134-452a-9d17-6f850dabe95f
 
 ### 当前界面
 
-以下使用 **Mingguang** 账号展示。会话、统计及多厂商模型配置为演示数据；展示模型未配置调用密钥，不代表已验证这些厂商的实际调用。
-
-#### 会话与任务结果
-
-会话历史、Markdown 回复与输入框保持统一；Mars 将报告与执行过程并排呈现。
-
-![会话 · 城市文化与旅行](docs/media/conversation.jpg)
-
-![Mars · 执行过程与报告](docs/media/mars.jpg)
-
 #### 数据看板
 
 查看模型调用、Token 用量、七日趋势与最近活动。
