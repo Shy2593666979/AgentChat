@@ -1,12 +1,29 @@
 import time
-from loguru import logger
-from typing import List, Dict, Any, AsyncGenerator, NotRequired, TypedDict, Union, Optional
+from typing import (
+    Any,
+    AsyncGenerator,
+    Dict,
+    List,
+    NotRequired,
+    Optional,
+    TypedDict,
+    Union,
+)
+
 from langchain_core.language_models import BaseChatModel
-from langgraph.constants import START, END
-from langgraph.graph import MessagesState, StateGraph
-from langgraph.config import get_stream_writer
+from langchain_core.messages import (
+    AIMessage,
+    AIMessageChunk,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_core.tools import BaseTool
-from langchain_core.messages import BaseMessage, SystemMessage, ToolMessage, AIMessageChunk, AIMessage, HumanMessage
+from langgraph.config import get_stream_writer
+from langgraph.constants import END, START
+from langgraph.graph import MessagesState, StateGraph
+from loguru import logger
 
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.prompts.completion import DEFAULT_CALL_PROMPT
@@ -203,7 +220,7 @@ class ReactAgent:
                 tool_messages.append(
                     ToolMessage(content=tool_result_str, name=tool_name, tool_call_id=tool_call_id)
                 )
-                logger.info(f"Tool {tool_name} executed. Args: {tool_args}, Result: {tool_result_str}")
+                logger.debug(f"Tool {tool_name} executed. Args: {tool_args}, Result: {tool_result_str}")
 
             except Exception as err:
                 error_message = f"执行工具 {tool_name} 失败: {str(err)}"

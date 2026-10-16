@@ -1,18 +1,30 @@
 import asyncio
 import json
 from typing import List
-from loguru import logger
-from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage, AIMessage, ToolMessage
+
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langchain_core.tools import BaseTool
+from loguru import logger
 
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
-from agentchat.core.models.manager import ModelManager
-from agentchat.prompts.completion import FIX_JSON_PROMPT, PLAN_CALL_TOOL_PROMPT, SINGLE_PLAN_CALL_PROMPT
-from agentchat.schemas.completion import PlanToolFlow
 from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
+from agentchat.core.models.manager import ModelManager
+from agentchat.prompts.completion import (
+    FIX_JSON_PROMPT,
+    PLAN_CALL_TOOL_PROMPT,
+    SINGLE_PLAN_CALL_PROMPT,
+)
+from agentchat.schemas.completion import PlanToolFlow
 from agentchat.services.mcp.manager import MCPManager
 from agentchat.utils.convert import convert_mcp_config
+
 
 # A Plan-and-Execute Agent Execution Paradigm
 class PlanExecuteAgent:
@@ -180,7 +192,7 @@ class PlanExecuteAgent:
 
                 tool_messages.append(
                     ToolMessage(content=tool_result, name=tool_name, tool_call_id=tool_call_id))
-                logger.info(f"Plugin Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
+                logger.debug(f"Plugin Tool {tool_name}, Args: {tool_args}, Result: {tool_result}")
 
             except Exception as err:
                 logger.error(f"Plugin Tool {tool_name} Error: {str(err)}")

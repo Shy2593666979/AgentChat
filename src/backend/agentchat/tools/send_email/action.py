@@ -1,10 +1,11 @@
 import smtplib
-from loguru import logger
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
 from email.header import Header
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
 
 from langchain.tools import tool
+from loguru import logger
+
 
 @tool(parse_docstring=True)
 def send_email(sender: str, receiver: str, email_message: str, password: str):
@@ -42,7 +43,7 @@ def _send_email(sender: str, receiver: str, email_message: str, password: str):
         server.sendmail(sender, receiver, message.as_string())  # 括号中对应的是发件人邮箱账号、收件人邮箱账号、发送邮件
         server.quit()  # 关闭连接
 
-        logger.info(f"sender: {sender}, receiver: {receiver}, emailMessage: {email_message}, password: {password}")
+        logger.info("邮件发送完成")
         return "send email successful, please check receiver`s email"
 
     except Exception as err:

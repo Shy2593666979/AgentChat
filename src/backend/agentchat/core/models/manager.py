@@ -1,9 +1,11 @@
-from openai import AsyncOpenAI
-from langchain_openai import ChatOpenAI
 from langchain_core.language_models import BaseChatModel
+from langchain_openai import ChatOpenAI
+from openai import AsyncOpenAI
+
 from agentchat.core.models.embedding import EmbeddingModel
 from agentchat.core.models.reason_model import ReasoningModel
 from agentchat.settings import app_settings
+from agentchat.utils.logging import register_log_secrets
 
 
 class ModelManager:
@@ -65,6 +67,7 @@ class ModelManager:
     @classmethod
     def get_user_model(cls, **kwargs) -> BaseChatModel:
         user_model = kwargs
+        register_log_secrets(user_model.get("api_key"))
 
         return ChatOpenAI(
             stream_usage=True,

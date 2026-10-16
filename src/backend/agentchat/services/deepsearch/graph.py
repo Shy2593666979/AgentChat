@@ -1,32 +1,31 @@
+import json
 import os
 from typing import Dict, List
 
-from agentchat.services.deepsearch.tools_and_schemas import SearchQueryList, Reflection
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage
-from langgraph.types import Send
-from langgraph.graph import StateGraph
-from langgraph.graph import START, END
 from langchain_core.runnables import RunnableConfig
-from tavily import TavilyClient
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
 from loguru import logger
-import json
+from tavily import TavilyClient
 
+from agentchat.core.models.manager import ModelManager
+from agentchat.services.deepsearch.configuration import Configuration
+from agentchat.services.deepsearch.prompts import (
+    answer_instructions,
+    get_current_date,
+    query_writer_instructions,
+    reflection_instructions,
+    web_searcher_instructions,
+)
 from agentchat.services.deepsearch.state import (
     OverallState,
     QueryGenerationState,
     ReflectionState,
     WebSearchState,
 )
-from agentchat.services.deepsearch.configuration import Configuration
-from agentchat.services.deepsearch.prompts import (
-    get_current_date,
-    query_writer_instructions,
-    web_searcher_instructions,
-    reflection_instructions,
-    answer_instructions,
-)
-from agentchat.core.models.manager import ModelManager
+from agentchat.services.deepsearch.tools_and_schemas import Reflection, SearchQueryList
 
 load_dotenv()
 
@@ -122,7 +121,7 @@ def web_research(state: WebSearchState, config: RunnableConfig) -> OverallState:
     search_query = state["search_query"]
     query_id = state["id"]
     
-    logger.info(f"🔍 执行搜索: {search_query}")
+    logger.debug(f"🔍 执行搜索: {search_query}")
     
     try:
         # 使用Tavily执行搜索
@@ -227,8 +226,8 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
         
         logger.info(f"📊 反思结果: {'足够' if is_sufficient else '不足够'}")
         if not is_sufficient:
-            logger.info(f"💭 知识缺口: {knowledge_gap}")
-            logger.info(f"🔄 后续查询: {follow_up_queries}")
+            logger.debug(f"💭 知识缺口: {knowledge_gap}")
+            logger.debug(f"🔄 后续查询: {follow_up_queries}")
         
         return {
             "is_sufficient": is_sufficient,

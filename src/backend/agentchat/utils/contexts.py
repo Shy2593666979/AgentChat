@@ -4,6 +4,7 @@
 from contextvars import ContextVar
 from typing import Optional, Union
 
+from agentchat.utils.logging import bind_log_context
 
 # 请求跟踪 ID, 中间件设置,
 trace_id: ContextVar[Optional[str]] = ContextVar("trace_id", default=None)
@@ -29,6 +30,7 @@ def get_conversation_id_context():
 def set_conversation_id_context(value: Optional[str]):
     """设置会话 ID，使用 ContextVar 隔离并发请求。"""
     conversation_id.set(value)
+    bind_log_context(conversation_id=value)
 
 def get_trace_id_context() -> str:
     """
@@ -58,6 +60,7 @@ def set_user_id_context(uid: str):
     设置 user id
     """
     user_id.set(uid)
+    bind_log_context(user_id=uid)
 
 def get_agent_name_context():
     """

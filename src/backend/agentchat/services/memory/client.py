@@ -3,29 +3,28 @@ import hashlib
 import json
 import logging
 import uuid
-import pytz
-from enum import Enum
 from copy import deepcopy
 from datetime import datetime
+from enum import Enum
 from typing import Any, Dict, Optional
 
+import pytz
+from langchain_core.messages import HumanMessage, SystemMessage
 
 from agentchat.core.models.manager import ModelManager
+from agentchat.database.dao.memory_history import MemoryHistoryDao
+from agentchat.services.memory.base import MemoryBase
 from agentchat.services.memory.config import MemoryItem
 from agentchat.services.memory.prompts import (
     PROCEDURAL_MEMORY_SYSTEM_PROMPT,
     get_update_memory_messages,
 )
-from agentchat.services.memory.base import MemoryBase
-from agentchat.database.dao.memory_history import MemoryHistoryDao
 from agentchat.services.memory.utils import (
     get_fact_retrieval_messages,
     parse_messages,
     parse_vision_messages,
     remove_code_blocks,
 )
-
-from langchain_core.messages import HumanMessage, SystemMessage
 from agentchat.services.memory.vector_stores import VectorStoreManager
 
 
@@ -786,7 +785,7 @@ class AsyncMemory(MemoryBase):
         return result
 
     async def _update_memory(self, memory_id, data, existing_embeddings, metadata=None):
-        logger.info(f"Updating memory with {data=}")
+        logger.debug(f"Updating memory with {data=}")
 
         try:
             existing_memory = await asyncio.to_thread(self.vector_store.get, vector_id=memory_id)
@@ -826,7 +825,7 @@ class AsyncMemory(MemoryBase):
             vector=embeddings,
             payload=new_metadata,
         )
-        logger.info(f"Updating memory with ID {memory_id=} with {data=}")
+        logger.debug(f"Updating memory with ID {memory_id=} with {data=}")
 
         await asyncio.to_thread(
             self.db.add_history,

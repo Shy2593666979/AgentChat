@@ -1,12 +1,22 @@
 import inspect
-from typing import List
-from typing import Any, Awaitable, Callable, Optional, Sequence, Type, TypeVar, Union
-from langgraph.types import Command
-from langchain_core.messages import BaseMessage
+from typing import (
+    Any,
+    Awaitable,
+    Callable,
+    List,
+    Optional,
+    Sequence,
+    Type,
+    TypeVar,
+    Union,
+)
+
 from langchain_core.language_models import BaseChatModel
+from langchain_core.messages import BaseMessage
 from langchain_core.tools import StructuredTool
 from langchain_core.tools import tool as create_tool
 from langgraph.graph import END, START, MessagesState, StateGraph
+from langgraph.types import Command
 
 from agentchat.core.models.manager import ModelManager
 from agentchat.services.sandbox import PyodideSandbox

@@ -1,29 +1,32 @@
 import asyncio
 import json
-import time
 import random
-from typing import List, Optional, Union
-from loguru import logger
-from langchain.tools import tool
-from langgraph.config import get_stream_writer
-
+import time
 from functools import wraps
-from agentchat.api.services.llm import LLMService
-from agentchat.api.services.tool import ToolService
-from agentchat.api.services.knowledge import KnowledgeService
-from agentchat.api.services.mcp_server import MCPService
+from typing import List, Optional, Union
+
+from langchain.tools import tool
+from langchain_core.messages import ToolMessage
+from loguru import logger
+
 from agentchat.api.services.agent import AgentService
+from agentchat.api.services.knowledge import KnowledgeService
+from agentchat.api.services.llm import LLMService
+from agentchat.api.services.mcp_server import MCPService
+from agentchat.api.services.tool import ToolService
 from agentchat.core.models.manager import ModelManager
 from agentchat.database import AgentTable
 from agentchat.database.dao.agent import AgentDao
 from agentchat.prompts.mars import Mars_Autobuild_Answer_Prompt
+from agentchat.services.mars.events import get_mars_writer, mars_tool_id, progress
 from agentchat.settings import app_settings
+
 
 def return_chunk_format(type: str, data: Union[str, dict]):
     return {
         "type": type,
         "time": time.time(),
-        "data": data
+        "data": data,
     }
 
 
@@ -135,9 +138,11 @@ async def auto_build_agent(
     # func = auto_build_agent
     # original_doc = func.__doc__
     # func.__doc__ = original_doc.replace("{{{user_configs_placeholder}}}", auto_build_prompt)
-    writer = get_stream_writer()
+    writer = get_mars_writer()
+    writer(progress("验证智能体名称、模型与能力配置"))
 
     agent_message = ""
+    failed = False
     try:
         if len(agent_name) < 2 or len(agent_name) > 10:
             error_message = f"智能体名称: {agent_name}, 不满足智能体名称要求的字符数限制, 字数要求大于等于2, 小于等于10"
@@ -166,6 +171,7 @@ async def auto_build_agent(
             mcp_servers_name=mcp_servers_name if isinstance(mcp_servers_name, List) else [mcp_servers_name],
         )
 
+        writer(progress("能力配置已匹配，正在创建智能体", "complete"))
         await AgentDao.create_agent(
             AgentTable(
                 name=agent_name,
@@ -179,7 +185,10 @@ async def auto_build_agent(
             )
         )
         agent_message = f"您的智能体{agent_name}已经创建完毕, 请点击智能体页面进行查看 \n 如果想要创建更多的智能体, 请跟我说哦~"
+        writer(progress(f"智能体「{agent_name}」已创建", "complete"))
     except Exception as err:
+        failed = True
+        writer(progress("智能体创建失败，请检查名称与能力配置", "error"))
         agent_message = f"创建智能体失败,请根据该原因进行修改, 失败原因:{err}"
         logger.error(agent_message)
     finally:
@@ -189,6 +198,8 @@ async def auto_build_agent(
             writer(
                 return_chunk_format("response_chunk", chunk.content)
             )
+
+    return ToolMessage(content=agent_message, tool_call_id=mars_tool_id.get(), status="error" if failed else "success")
 
         # 按1-3个字符长度拆分字符串形成流式输出的效果
         # start = 0

@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
+from pydantic import BaseModel
 
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.core.models.manager import ModelManager

@@ -12,6 +12,7 @@ from agentchat.mcp_proxy.session.manager import SessionManager
 from agentchat.middleware.trace_id_middleware import TraceIDMiddleware
 from agentchat.middleware.white_list_middleware import WhitelistMiddleware
 from agentchat.settings import app_settings, init_app_settings
+from agentchat.utils.logging import configure_logging
 
 
 async def register_router(app: FastAPI):
@@ -50,6 +51,7 @@ def register_middleware(app: FastAPI):
 
 async def init_config():
     await init_app_settings()
+    configure_logging(app_settings.log_level, secrets=app_settings.dict())
 
     from agentchat.database.init_data import init_agentchat_system
     await init_agentchat_system()
@@ -89,6 +91,7 @@ async def lifespan(app: FastAPI):
 
 
 def create_app():
+    configure_logging(app_settings.log_level)
     app = FastAPI(
         title=app_settings.server.name,
         version=app_settings.server.version,

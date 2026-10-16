@@ -1,9 +1,10 @@
 import asyncio
-from loguru import logger
+
 from fastapi import APIRouter, Request, Response
 from fastapi.responses import PlainTextResponse
-
 from langchain_core.messages import HumanMessage, SystemMessage
+from loguru import logger
+
 from agentchat.api.services.wechat import WeChatService
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.services.redis import redis_client
@@ -94,7 +95,7 @@ async def handle_wechat_message(request: Request):
     if not content:
         reply_xml = WeChatService.build_text_reply(to_user, from_user, "您发送的内容为空。")
         return reply_xml
-    logger.info(f"收到用户消息: {content}")
+    logger.debug(f"收到用户消息: {content}")
 
     # 检验包含关键词
     if response := await WeChatService.process_user_keyword(content, from_user, to_user):
@@ -144,7 +145,7 @@ async def handle_wechat_message(request: Request):
                         },
                         expiration=7200
                     )
-                    logger.info(f"Background task completed and saved to Redis: {response.content[:50]}...")
+                    logger.debug(f"Background task completed and saved to Redis: {response.content[:50]}...")
                 return response
 
             run_wechat_agent_task = asyncio.create_task(run_wechat_agent())
@@ -162,7 +163,7 @@ async def handle_wechat_message(request: Request):
 
     # 构造回复给微信的 XML
     reply_xml = WeChatService.build_text_reply(to_user, from_user, model_reply)
-    logger.info(f"返回给微信的 XML：{reply_xml}")
+    logger.debug(f"返回给微信的 XML：{reply_xml}")
     return Response(
         content=reply_xml,
         media_type="text/xml; charset=utf-8",
