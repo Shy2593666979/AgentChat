@@ -1,0 +1,28 @@
+.scrollbar-on-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: transparent transparent;
+}
+.scrollbar-on-scroll.is-scrolling {
+  scrollbar-color: #aabbd1 transparent;
+}
+.scrollbar-on-scroll::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+.scrollbar-on-scroll::-webkit-scrollbar-track,
+.scrollbar-on-scroll::-webkit-scrollbar-corner {
+  background: transparent;
+}
+.scrollbar-on-scroll::-webkit-scrollbar-thumb {
+  background: transparent;
+  border-radius: 6px;
+  transition: background-color .15s ease;
+}
+.scrollbar-on-scroll.is-scrolling::-webkit-scrollbar-thumb {
+  background: #aabbd1;
+}
+.scrollbar-on-scroll::-webkit-scrollbar-button {
+  display: none;
+  width: 0;
+  height: 0;
+}

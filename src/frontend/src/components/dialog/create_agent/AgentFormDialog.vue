@@ -28,6 +28,7 @@ const formData = reactive<AgentFormData>({
   mcp_ids: [],
   system_prompt: '',
   knowledge_ids: [],
+  agent_skill_ids: [],
   enable_memory: false
 })
 
@@ -85,12 +86,12 @@ const open = (mode: 'create' | 'edit', agent?: Agent) => {
   isEditing.value = mode === 'edit'
   // 阻止背景滚动
   document.body.style.overflow = 'hidden'
-  
+
   // 创建自定义遮罩层，确保覆盖所有内容
   setTimeout(() => {
     createCustomOverlay()
   }, 50)
-  
+
   if (mode === 'edit' && agent) {
     editingAgentId.value = agent.agent_id
     Object.assign(formData, {
@@ -104,7 +105,7 @@ const open = (mode: 'create' | 'edit', agent?: Agent) => {
       knowledge_ids: agent.knowledge_ids || [],
       enable_memory: agent.enable_memory
     })
-    
+
     if (agent.logo_url) {
       fileList.value = [{
         name: 'avatar',
@@ -121,7 +122,7 @@ const open = (mode: 'create' | 'edit', agent?: Agent) => {
 const createCustomOverlay = () => {
   // 先移除可能存在的旧遮罩
   removeCustomOverlay()
-  
+
   // 创建新的遮罩层
   const overlay = document.createElement('div')
   overlay.id = 'custom-dialog-overlay'
@@ -136,10 +137,10 @@ const createCustomOverlay = () => {
     pointer-events: auto;
     backdrop-filter: blur(4px);
   `
-  
+
   // 添加到body
   document.body.appendChild(overlay)
-  
+
   // 点击遮罩关闭弹窗
   overlay.addEventListener('click', (e) => {
     if (e.target === overlay) {
@@ -177,6 +178,7 @@ const resetForm = () => {
     mcp_ids: [],
     system_prompt: '你是一个智能助手 tmg-GPT，具有丰富的自然语言处理经验，擅长理解和生成文本内容，你的任务是帮助用户解决问题并提供信息支持，确保按照用户的指示执行任务。',
     knowledge_ids: [],
+    agent_skill_ids: [],
     enable_memory: false
   })
   fileList.value = []
@@ -213,15 +215,15 @@ const uploadAvatarFile = async (file: File) => {
     ElMessage.error('上传头像图片只能是 JPG/PNG 格式!')
     return
   }
-  
+
   // 开始上传
   uploadLoading.value = true
   try {
     const uploadFormData = new FormData()
     uploadFormData.append('file', file)
-    
+
     const response = await uploadFileAPI(uploadFormData)
-    
+
     if (response.data.status_code === 200) {
       formData.logo_url = response.data.data
       ElMessage.success('头像上传成功')
@@ -245,7 +247,7 @@ const handleSubmit = async () => {
   try {
     await formRef.value?.validate()
     loading.value = true
-    
+
     if (isEditing.value) {
       // 编辑智能体
       if (!editingAgentId.value) {
@@ -253,12 +255,12 @@ const handleSubmit = async () => {
         loading.value = false
         return
       }
-      
+
       const updateData = {
         agent_id: editingAgentId.value,
         ...formData
       }
-      
+
       console.log('更新智能体数据:', updateData)
       await updateAgentAPI(updateData)
       ElMessage.success('智能体更新成功')
@@ -268,7 +270,7 @@ const handleSubmit = async () => {
       await createAgentAPI(formData)
       ElMessage.success('智能体创建成功')
     }
-    
+
     emits('update')
     // 移除自定义遮罩层
     removeCustomOverlay()
@@ -397,12 +399,12 @@ defineExpose({ open, close })
                         </div>
                       </div>
                     </div>
-                    
+
                     <div class="form-group">
                       <label>助手名称 *</label>
                       <input v-model="formData.name" type="text" placeholder="请输入助手名称" required />
                     </div>
-                    
+
                     <div class="form-group">
                       <label>助手描述 *</label>
                       <textarea v-model="formData.description" rows="3" placeholder="请输入助手描述" required></textarea>
@@ -422,14 +424,12 @@ defineExpose({ open, close })
                   <div v-show="collapseItems.aiModel" class="section-content">
                     <div class="form-group">
                       <label>选择模型 *</label>
-                      <select v-model="formData.llm_id" required>
-                        <option value="">请选择大模型</option>
-                        <option v-for="llm in llmOptions" :key="llm.id" :value="llm.id">
-                          {{ llm.name }}
-                        </option>
-                      </select>
+                      <el-select v-model="formData.llm_id" class="catalog-select" style="width:100%" placeholder="请选择大模型">
+
+                        <el-option v-for="llm in llmOptions" :key="llm.id" :value="llm.id" :label="llm.name"/>
+                      </el-select>
                     </div>
-                    
+
                     <div class="form-group">
                       <label>系统提示词 *</label>
                       <textarea v-model="formData.system_prompt" rows="6" placeholder="请输入系统提示词" required></textarea>
@@ -454,10 +454,10 @@ defineExpose({ open, close })
                       <label>选择知识库</label>
                       <div class="multi-select">
                         <div v-for="knowledge in knowledgeOptions" :key="knowledge.id" class="checkbox-item">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             :id="'knowledge-' + knowledge.id"
-                            :value="knowledge.id" 
+                            :value="knowledge.id"
                             v-model="formData.knowledge_ids"
                           />
                           <label :for="'knowledge-' + knowledge.id">{{ knowledge.name }}</label>
@@ -484,10 +484,10 @@ defineExpose({ open, close })
                       <label>选择工具</label>
                       <div class="multi-select">
                         <div v-for="tool in toolOptions" :key="tool.id" class="checkbox-item">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             :id="'tool-' + tool.id"
-                            :value="tool.id" 
+                            :value="tool.id"
                             v-model="formData.tool_ids"
                           />
                           <label :for="'tool-' + tool.id">{{ tool.name }}</label>
@@ -514,10 +514,10 @@ defineExpose({ open, close })
                       <label>MCP服务器</label>
                       <div class="multi-select">
                         <div v-for="mcp in mcpOptions" :key="mcp.id" class="checkbox-item">
-                          <input 
-                            type="checkbox" 
+                          <input
+                            type="checkbox"
                             :id="'mcp-' + mcp.id"
-                            :value="mcp.id" 
+                            :value="mcp.id"
                             v-model="formData.mcp_ids"
                           />
                           <label :for="'mcp-' + mcp.id">{{ mcp.name }}</label>
@@ -545,8 +545,8 @@ defineExpose({ open, close })
               <!-- 操作按钮 -->
               <div class="action-buttons">
                 <button type="button" @click="close" class="btn btn-cancel">取消</button>
-                <button 
-                  type="button" 
+                <button
+                  type="button"
                   @click="handleSubmit"
                   :disabled="loading"
                   class="btn btn-primary"
@@ -571,7 +571,7 @@ defineExpose({ open, close })
     padding: 0;
     z-index: 1000000 !important;
   }
-  
+
   .el-overlay {
     display: none !important; // 隐藏Element UI自带的遮罩，使用我们的自定义遮罩
   }
@@ -754,31 +754,31 @@ defineExpose({ open, close })
           transition: all 0.3s ease;
           background: #fafafa;
           position: relative;
-          
+
           &:hover:not(.uploading) {
             border-color: #409eff;
             background: #f0f7ff;
           }
-          
+
           &.uploading {
             cursor: not-allowed;
             border-color: #409eff;
             background: #f0f7ff;
           }
-          
+
           img {
             width: 100%;
             height: 100%;
             object-fit: cover;
             border-radius: 10px;
           }
-          
+
           .upload-loading {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 8px;
-            
+
             .loading-spinner {
               width: 20px;
               height: 20px;
@@ -787,19 +787,19 @@ defineExpose({ open, close })
               border-radius: 50%;
               animation: spin 1s linear infinite;
             }
-            
+
             span {
               font-size: 12px;
               color: #409eff;
             }
           }
-          
+
           .upload-placeholder {
             display: flex;
             flex-direction: column;
             align-items: center;
             gap: 6px;
-            
+
             span {
               font-size: 12px;
               color: #999;
@@ -807,7 +807,7 @@ defineExpose({ open, close })
           }
         }
       }
-      
+
       @keyframes spin {
         0% { transform: rotate(0deg); }
         100% { transform: rotate(360deg); }
@@ -886,4 +886,4 @@ defineExpose({ open, close })
     }
   }
 }
-</style> 
+</style>

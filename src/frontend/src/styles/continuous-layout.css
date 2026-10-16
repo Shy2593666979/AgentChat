@@ -1,0 +1,17 @@
+/* 正式页面统一采用连续分栏，保留细分隔线，不修改冻结的侧边栏。 */
+body[data-column-layout='continuous'] #app :is(.ai-main,.workspace-main)>.content{margin:0;border-radius:0}
+body[data-column-layout='continuous'] #app :is(.b5-conversation,.b5-mcp-chat){padding:0;gap:0}
+body[data-column-layout='continuous'] #app :is(.conversation-history,.session-rail,.preview-history){border:0;border-right:1px solid #e4ebf5;border-radius:0;box-shadow:none;background:#fbfdff}
+body[data-column-layout='continuous'] #app :is(.conversation-view,.mcp-chat-main,.preview-chat,.mars-main){border:0;border-radius:0;box-shadow:none;background:#fff}
+body[data-column-layout='continuous'] #app .preview-columns{padding:0;gap:0}
+body[data-column-layout='continuous'] #app .mars-layout{gap:0;padding:0}
+body[data-column-layout='continuous'] #app .b5-mars{padding:0}
+body[data-column-layout='continuous'] #app .task-workspace{padding-inline:0;padding-bottom:0}
+body[data-column-layout='continuous'] #app .task-page-heading{padding-inline:28px}
+body[data-column-layout='continuous'] #app .task-columns{gap:0;border-top:1px solid #e4ebf5}
+body[data-column-layout='continuous'] #app .task-panel{border:0;border-right:1px solid #e4ebf5;border-radius:0;box-shadow:none;background:#fff}
+body[data-column-layout='continuous'] #app .task-panel:last-child{border-right:0}
+body[data-column-layout='continuous'] #app .data-surface{border:0;border-radius:0;box-shadow:none}
+body[data-column-layout='continuous'] #app .b3-models .model-panel{margin-inline:-28px;padding-inline:28px;border-top:1px solid #e4ebf5;background:#fff}
+@media(max-width:1050px){body[data-column-layout='continuous'] #app .session-rail.open{border:1px solid #e1e9f7;border-radius:12px;box-shadow:0 12px 45px #21447928}}
+@media(max-width:700px){body[data-column-layout='continuous'] #app .conversation-history.open{border:1px solid #e1e9f7;border-radius:12px;box-shadow:0 12px 45px #21447928}body[data-column-layout='continuous'] #app .task-panel{border-right:0;border-bottom:1px solid #e4ebf5}}

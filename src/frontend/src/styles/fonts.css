@@ -1,0 +1,21 @@
+@font-face {
+  font-family: 'AgentChat Inter';
+  src: url('/fonts/InterVariable.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'AgentChat Sans SC';
+  src: url('/fonts/NotoSansSC-UI.woff2') format('woff2');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'AgentChat Brand';
+  src: url('/fonts/Outfit-Variable.ttf') format('truetype');
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+}

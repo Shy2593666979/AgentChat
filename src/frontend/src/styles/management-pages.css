@@ -1,0 +1,378 @@
+.b4-page {
+  --resource-ink: #0b1737
+}
+.b4-page .resource-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 24px
+}
+.b4-page .resource-toolbar .search-field {
+  flex: 1;
+  min-width: 180px
+}
+.b4-page .resource-toolbar>.primary-button {
+  margin-left: auto
+}
+.b4-page .resource-tabs {
+  display: flex;
+  gap: 8px;
+  padding: 8px;
+  border: 1px solid #eef2fb;
+  border-radius: 17px;
+  background: #ffffffd9
+}
+.b4-page .resource-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  min-height: 38px;
+  padding: 8px 18px;
+  border: 0;
+  border-radius: 13px;
+  background: #f5f8ff;
+  color: #21346c;
+  font-size: 14px;
+  white-space: nowrap
+}
+.b4-page .resource-tabs button.active {
+  color: white;
+  background: linear-gradient(120deg,#5382ff,#2867ff);
+  box-shadow: 0 4px 10px #3676ff25
+}
+.b4-page .resource-tabs span {
+  min-width: 33px;
+  padding: 1px 8px;
+  border-radius: 12px;
+  background: #e2edff;
+  color: #1767ff;
+  font-size: 14px
+}
+.b4-page .resource-tabs .active span {
+  background: #ffffff24;
+  color: white
+}
+.b4-page .resource-grid {
+  display: grid;
+  grid-template-columns: repeat(3,minmax(0,1fr));
+  gap: 18px
+}
+.b4-page .resource-card {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #e1ebfb;
+  border-radius: 17px;
+  background: #ffffffed;
+  box-shadow: 0 4px 16px #6494ca06;
+  transition: border-color .15s,box-shadow .15s
+}
+.b4-page .resource-card:hover {
+  border-color: #b5d0fc;
+  box-shadow: 0 5px 20px #3d7acb0c
+}
+.b4-page .resource-main {
+  position: relative;
+  display: flex;
+  gap: 16px;
+  min-width: 0;
+  padding: 18px 18px 12px;
+  flex: 1
+}
+.b4-page .resource-copy {
+  flex: 1;
+  min-width: 0
+}
+.b4-page .resource-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  margin: 2px 0 7px
+}
+.b4-page .resource-copy h2 {
+  font-size: 18px;
+  line-height: 1.5;
+  font-weight: 650;
+  margin: 0;
+  color: #0b183b;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0
+}
+.b4-page .resource-copy p {
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  color: #6f7f9e;
+  overflow-wrap: anywhere;
+  display: -webkit-box;
+  -webkit-line-clamp: 3;
+  -webkit-box-orient: vertical;
+  overflow: hidden
+}
+.b4-page .resource-tag {
+  font-size: 13px;
+  line-height: 1.5;
+  flex: none;
+  padding: 3px 10px;
+  border-radius: 18px;
+  color: #1267ff;
+  background: #edf5ff;
+  white-space: nowrap
+}
+.b4-page .resource-tag.green {
+  color: #00b56d;
+  background: #eafff2
+}
+.b4-page .resource-tag.purple,.b4-page .resource-tag.violet {
+  color: #7a36ff;
+  background: #f3edff
+}
+.b4-page .resource-tag.orange {
+  color: #ff8a0e;
+  background: #fff4e8
+}
+.b4-page .resource-tag.rose {
+  color: #f74689;
+  background: #ffedf4
+}
+.b4-page .resource-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  min-height: 44px;
+  margin: 0 18px;
+  padding: 8px 0;
+  border-top: 1px solid #e6edf9
+}
+.b4-page .resource-footer button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 0;
+  background: transparent;
+  color: #24385e;
+  font-size: 14px;
+  padding: 5px 0;
+  white-space: nowrap
+}
+.b4-page .resource-footer button:hover {
+  color: #1767ff
+}
+.b4-page .resource-footer .p-icon {
+  width: 22px;
+  height: 22px
+}
+.b4-page .resource-footer .muted {
+  font-size: 13px
+}
+.b4-page .resource-more {
+  position: absolute;
+  right: 14px;
+  top: 13px
+}
+.b4-page .resource-empty {
+  grid-column: 1/-1;
+  min-height: 220px;
+  display: grid;
+  place-items: center;
+  text-align: center;
+  padding: 30px;
+  color: #8798b6;
+  border: 1px dashed #d5e3fa;
+  border-radius: 16px;
+  background: #fff
+}
+.b4-page .filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 8px
+}
+.b4-page .filter-controls select {
+  height: 48px;
+  padding: 0 18px;
+  border: 1px solid #dce7f9;
+  border-radius: 11px;
+  background: white;
+  color: #40567b
+}
+.b4-dialog {
+  max-width: calc(100vw - 32px);
+  border-radius: 18px;
+  padding: 24px;
+  font-family: 'AgentChat Inter','AgentChat Sans SC',sans-serif
+}
+.b4-dialog .el-dialog__title {
+  font-size: 22px;
+  font-weight: 650;
+  color: #102045
+}
+.b4-dialog .el-dialog__body {
+  color: #4c6083
+}
+.b4-dialog .el-form-item__label {
+  color: #1e325a;
+  font-weight: 550
+}
+.b4-dialog .el-input__wrapper,.b4-dialog .el-select__wrapper {
+  min-height: 42px;
+  border-radius: 9px;
+  box-shadow: 0 0 0 1px #d7e3fa inset
+}
+.b4-dialog .el-textarea__inner {
+  border-radius: 9px;
+  box-shadow: 0 0 0 1px #d7e3fa inset;
+  padding: 12px 14px
+}
+.b4-dialog .code-input textarea {
+  font-family: Consolas,monospace;
+  background: #f7faff;
+  font-size: 13px;
+  line-height: 1.7
+}
+.b4-dialog .el-button {
+  min-height: 42px;
+  padding-inline: 26px;
+  border-radius: 10px
+}
+.b4-dialog .dialog-error {
+  padding: 10px 14px;
+  background: #fff3f4;
+  border-radius: 8px;
+  color: #bd4358;
+  font-size: 13px;
+  overflow-wrap: anywhere
+}
+.b4-dialog .el-form-item {
+  margin-bottom: 22px
+}
+.b4-dialog .el-dialog__footer {
+  padding-top: 16px
+}
+.b4-dialog button:focus-visible {
+  outline: 3px solid #9bbcff;
+  outline-offset: 3px
+}
+@media(max-width:1500px) {
+  .b4-page .resource-main {
+    gap: 18px;
+    padding: 22px 20px 18px
+  }
+  .b4-page .resource-copy h2 {
+    font-size: 19px
+  }
+  .b4-page .resource-copy p {
+    font-size: 15px
+  }
+  .b4-page .resource-main .resource-glyph {
+    width: 78px;
+    height: 78px
+  }
+  .b4-page .resource-title {
+    flex-wrap: wrap;
+    margin-top: 2px
+  }
+  .b4-page .resource-tag {
+    font-size: 12px;
+    padding: 4px 11px
+  }
+  .b4-page .resource-tabs button {
+    padding-inline: 19px;
+    font-size: 15px
+  }
+  .b4-page .resource-toolbar {
+    flex-wrap: wrap
+  }
+}
+@media(max-width:1150px) {
+  .b4-page .resource-grid {
+    grid-template-columns: repeat(2,minmax(0,1fr))
+  }
+  .b4-page .resource-tabs {
+    order: 3
+  }
+  .b4-page .resource-toolbar>.search-field {
+    min-width: 220px
+  }
+  .b4-page .resource-footer {
+    margin-inline: 20px;
+    padding-inline: 0
+  }
+  .b4-page .resource-footer button {
+    font-size: 14px;
+    gap: 8px
+  }
+}
+@media(max-width:700px) {
+  .b4-page .resource-grid {
+    grid-template-columns: 1fr;
+    gap: 14px
+  }
+  .b4-page .resource-toolbar {
+    gap: 8px
+  }
+  .b4-page .resource-toolbar>.search-field {
+    flex-basis: 100%;
+    min-width: 0
+  }
+  .b4-page .resource-tabs {
+    order: 0;
+    flex: 1;
+    padding: 5px;
+    gap: 5px
+  }
+  .b4-page .resource-tabs button {
+    font-size: 13px;
+    padding: 9px;
+    min-height: 42px;
+    gap: 7px;
+    flex: 1
+  }
+  .b4-page .resource-tabs span {
+    font-size: 12px;
+    padding: 1px 6px;
+    min-width: 25px
+  }
+  .b4-page .resource-toolbar>.primary-button {
+    font-size: 13px;
+    padding: 10px 13px;
+    gap: 6px
+  }
+  .b4-page .resource-toolbar>.primary-button .p-icon {
+    width: 18px;
+    height: 18px
+  }
+  .b4-page .resource-main {
+    padding: 20px 18px 18px;
+    gap: 17px
+  }
+  .b4-page .resource-copy p {
+    font-size: 14px
+  }
+  .b4-page .resource-copy h2 {
+    font-size: 18px
+  }
+  .b4-page .resource-main .resource-glyph {
+    width: 68px;
+    height: 68px
+  }
+  .b4-page .resource-footer {
+    margin-inline: 18px;
+    min-height: 54px
+  }
+  .b4-page .resource-title {
+    padding-right: 15px
+  }
+  .b4-dialog {
+    padding: 20px
+  }
+  .b4-dialog .el-dialog__title {
+    font-size: 20px
+  }
+}

@@ -24,6 +24,7 @@ const form = ref<AgentFormData>({
   tool_ids: [],
   mcp_ids: [],
   knowledge_ids: [],
+  agent_skill_ids: [],
   enable_memory: false
 })
 
@@ -84,6 +85,7 @@ const open = async (event: string, item?: Agent) => {
       tool_ids: [],
       mcp_ids: [],
       knowledge_ids: [],
+      agent_skill_ids: [],
       enable_memory: false
     }
   } else {
@@ -101,6 +103,7 @@ const open = async (event: string, item?: Agent) => {
         tool_ids: item.tool_ids || [],
         mcp_ids: item.mcp_ids || [],
         knowledge_ids: item.knowledge_ids || [],
+        agent_skill_ids: item.agent_skill_ids || [],
         enable_memory: item.enable_memory
       }
       id.value = item.agent_id
@@ -130,15 +133,15 @@ const uploadAvatarFile = async (file: File) => {
     ElMessage.error('上传头像图片只能是 JPG/PNG 格式!')
     return
   }
-  
+
   // 开始上传
   uploadLoading.value = true
   try {
     const uploadFormData = new FormData()
     uploadFormData.append('file', file)
-    
+
     const response = await uploadFileAPI(uploadFormData)
-    
+
     if (response.data.status_code === 200) {
       form.value.logo_url = response.data.data
       ElMessage.success('头像上传成功')
@@ -182,8 +185,8 @@ defineExpose({ open, close })
 </script>
 
 <template>
-  <el-dialog 
-    v-model="visible" 
+  <el-dialog
+    v-model="visible"
     width="90%"
     class="agent-config-dialog"
     :show-close="false"
