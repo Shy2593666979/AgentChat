@@ -8,6 +8,8 @@ export interface ToolResponse {
   user_id: string
   description: string
   logo_url: string
+  openapi_schema?: Record<string, any>
+  auth_config?: { type: '' | 'bearer' | 'basic'; token?: string }
 }
 
 export interface ApiResponse<T> {
@@ -92,9 +94,9 @@ export function getDefaultToolLogoAPI() {
 export function uploadFileAPI(file: File) {
   const formData = new FormData()
   formData.append('file', file)
-  
+
   return request<ApiResponse<string>>({
-    url: '/api/v1/upload/upload',
+    url: '/api/v1/upload',
     method: 'POST',
     data: formData,
     headers: {

@@ -1,9 +1,11 @@
 from typing import List
 
+from fastapi import HTTPException
 from sqlalchemy.orm.attributes import flag_modified
 from sqlmodel import delete, select
-from agentchat.database.session import async_session_getter
+
 from agentchat.database.models.register_task import RegisterMcpTask
+from agentchat.database.session import async_session_getter
 
 
 class RegisterMcpTaskDao:
@@ -17,10 +19,14 @@ class RegisterMcpTaskDao:
             return task
 
     @classmethod
-    async def delete_task(cls, task_id: str):
+    async def delete_task(cls, task_id: str, user_id: str):
         async with async_session_getter() as session:
+            task = await session.get(RegisterMcpTask, task_id)
+            if not task or str(task.user_id) != str(user_id):
+                raise HTTPException(status_code=403, detail="无权访问此 MCP 会话")
             statement = delete(RegisterMcpTask).where(
-                RegisterMcpTask.id == task_id
+                RegisterMcpTask.id == task_id,
+                RegisterMcpTask.user_id == user_id,
             )
 
             result = await session.exec(statement)
@@ -95,6 +101,8 @@ class RegisterMcpTaskDao:
         async with async_session_getter() as session:
             task = await session.get(RegisterMcpTask, task_id)
 
+            if task and str(task.user_id) != str(user_id):
+                raise HTTPException(status_code=403, detail="无权访问此 MCP 会话")
             if not task:
                 task = RegisterMcpTask(
                     id=task_id,

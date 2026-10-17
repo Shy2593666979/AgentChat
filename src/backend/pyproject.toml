@@ -1,6 +1,6 @@
 [project]
 name = "agentchat"
-version = "2.5.0"
+version = "3.0.0"
 description = "An intelligent agent communication platform based on LLM"
 authors = [{ name = "tianmingguang", email = "2593666979@qq.com" }]
 readme = "README.md"
@@ -29,6 +29,7 @@ dependencies = [
     "selenium==4.38.0",
     "pymysql==1.1.2",
     "aiomysql==0.3.2",
+    "aiosqlite==0.21.0",
     "google-search-results==2.4.2",
     "arxiv==2.3.0",
     "html2image==2.0.7",
@@ -38,4 +39,10 @@ dependencies = [
     "rsa==4.9.1",
     "tiktoken==0.12.0",
     "cachetools>=7.0.5",
+    "ag-ui-protocol==1.0.0",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.1,<10",
 ]

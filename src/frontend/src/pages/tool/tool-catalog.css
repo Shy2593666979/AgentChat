@@ -1,0 +1,165 @@
+.b4-tools { padding: 0 50px 58px; }
+.hero { position: relative; isolation: isolate; height: 260px; margin: 0 -50px; text-align: center; padding: 70px 20px 22px; }
+.hero-heading { display: flex; align-items: center; justify-content: center; gap: 22px; transform: translateX(-60px); }
+.hero h1 { font-size: 60px; line-height: 1.15; font-weight: 750; color: #0966ff; margin: 0; letter-spacing: 2px; text-shadow: 0 4px 8px #3172ff18; }
+.hero .sparkles { width: 76px; height: 76px; }
+.hero>p { font-size: 26px; color: #172563; line-height: 1.5; margin: 8px 0 0; transform: translateX(-44px); }
+.hero-art { position: absolute; top: 24px; height: 248px; z-index: -1; pointer-events: none; }
+.left-art { left: 0; width: 490px; opacity: .65; }
+.right-art { right: 0; width: 405px; opacity: .7; }
+.b4-tools .resource-toolbar { gap: 14px; margin-bottom: 24px; min-height: 72px; flex-wrap: nowrap; }
+.b4-tools .resource-toolbar .search-field { max-width: 638px; height: 56px; min-width: 180px; background: #ffffffdb; border-radius: 13px; padding: 0 20px; }
+.b4-tools .search-field input { font-size: 18px; }
+.b4-tools .search-field .p-icon { color: #465d91; }
+.b4-tools .resource-tabs { margin-right: auto; flex: none; padding: 8px 10px; gap: 18px; border-radius: 17px; }
+.b4-tools .resource-tabs button { height: 56px; min-width: 168px; padding: 0 24px; font-size: 18px; gap: 14px; border-radius: 14px; }
+.b4-tools .resource-tabs span { font-size: 16px; min-width: 34px; }
+.b4-tools .primary-button { height: 58px; padding-inline: 28px; border-radius: 13px; font-size: 18px; box-shadow: 0 5px 13px #257aff22; }
+.b4-tools .tools-grid { gap: 22px 18px; }
+.b4-tools .tool-card { min-height: 226px; border-radius: 17px; }
+.b4-tools .resource-main { gap: 26px; padding: 24px 24px 14px; }
+.tool-art { width: 94px; height: 94px; flex: none; overflow: hidden; border-radius: 21px; }
+.tool-art :deep(.tool-glyph) { width: 100%; height: 100%; }
+.b4-tools .resource-title { margin: 3px 0 10px; padding-right: 0; flex-wrap: nowrap; justify-content: space-between; gap: 10px; }
+.b4-tools .resource-copy h2 { font-size: 21px; font-weight: 650; line-height: 1.5; color: #0b1132; }
+.b4-tools .resource-copy p { font-size: 18px; line-height: 1.45; color: #6c7590; -webkit-line-clamp: 3; }
+.b4-tools .resource-tag { font-size: 14px; padding: 5px 15px; line-height: 1.5; }
+.b4-tools .tool-card:hover .resource-title,.b4-tools .tool-card:focus-within .resource-title { padding-right: 30px; }
+.b4-tools .resource-more { top: 28px; right: 24px; opacity: 0; }
+.b4-tools .tool-card:hover .resource-more,.b4-tools .tool-card:focus-within .resource-more { opacity: 1; }
+.b4-tools .more-button { width: 32px; height: 32px; display: grid; place-items: center; padding: 0; border: 0; border-radius: 11px; background: #e9f2ff; color: #1767ff; }
+.b4-tools .more-button .p-icon { width: 22px; height: 22px; }
+.b4-tools .resource-footer { margin: 0 24px; min-height: 60px; padding: 10px 14px; border-color: #e8eef9; }
+.b4-tools .resource-footer button { font-size: 18px; gap: 12px; color: #25316c; }
+.b4-tools .resource-footer .p-icon { width: 23px; height: 23px; }
+.b4-tools .resource-footer .muted { font-size: 14px; color: #8998b3; }
+.logo-field { display: flex; align-items: center; gap: 18px; margin-bottom: 24px; }
+.logo-field :deep(.tool-glyph),.tool-detail-heading :deep(.tool-glyph) { width: 64px; height: 64px; border-radius: 15px; }
+.logo-field :deep(svg),.tool-detail-heading :deep(svg) { width: 38px; height: 38px; }
+.logo-field strong { font-size: 15px; font-weight: 600; color: #182949; }
+.logo-field p { font-size: 13px; color: #8898b3; margin: 6px 0 0; }
+.tool-detail-heading { display: flex; align-items: center; gap: 18px; margin-bottom: 18px; }
+.tool-detail-tag { padding: 6px 14px; border-radius: 20px; color: #1767ff; background: #edf5ff; font-size: 13px; }
+:global(.tool-actions-popover) { border-radius: 13px !important; border: 1px solid #e3ecfb !important; box-shadow: 0 8px 24px #2263c014 !important; }
+:global(.tool-actions-popover .el-dropdown-menu) { padding: 10px 5px; min-width: 112px; border-radius: 13px; }
+:global(.tool-actions-popover .el-dropdown-menu__item) { gap: 14px; padding: 8px 15px; font-size: 15px; color: #22315b; }
+:global(.tool-actions-popover .p-icon) { width: 21px; height: 21px; }
+:global(.tool-actions-popover .tool-delete-action) { color: #ff294c; }
+.auth-fields {
+  display: grid;
+  grid-template-columns: 1fr 1.5fr;
+  gap: 18px
+}
+.auth-fields :deep(.el-select) {
+  width: 100%
+}
+.operation-preview {
+  display: grid;
+  gap: 6px;
+  max-height: 150px;
+  overflow: auto;
+  margin: -8px 0 20px;
+  font-size: 12px;
+  color: #577397
+}
+.operation-preview>span {
+  display: flex;
+  gap: 12px
+}
+.operation-preview b {
+  color: #1767ff;
+  width: 50px
+}
+.operation-preview small {
+  margin-left: auto
+}
+.tool-description {
+  font-size: 15px;
+  line-height: 1.8;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere
+}
+.tool-detail-meta {
+  display: grid;
+  grid-template-columns: 95px 1fr;
+  gap: 12px;
+  font-size: 14px
+}
+.tool-detail-meta dt {
+  color: #8697b2
+}
+.tool-detail-meta dd {
+  margin: 0;
+  overflow-wrap: anywhere
+}
+.schema-preview {
+  padding: 15px;
+  background: #f5f9ff;
+  border: 1px solid #e0eafa;
+  border-radius: 10px;
+  max-height: 350px;
+  overflow: auto;
+  font-size: 12px;
+  line-height: 1.7
+}
+
+@media(max-width:1500px) {
+ .b4-tools { padding-inline: 36px; }
+ .hero { margin-inline: -36px; height: 244px; padding-top: 66px; }
+ .hero h1 { font-size: 54px; }
+ .hero>p { font-size: 23px; }
+ .hero .sparkles { width: 68px; height: 68px; }
+ .left-art { width: 370px; opacity: .5; }
+ .right-art { width: 320px; opacity: .5; }
+ .b4-tools .resource-tabs { gap: 8px; }
+ .b4-tools .resource-tabs button { min-width: 132px; padding-inline: 16px; font-size: 16px; }
+ .b4-tools .primary-button { padding-inline: 18px; font-size: 16px; }
+ .b4-tools .resource-main { padding: 22px 20px 16px; gap: 18px; }
+ .tool-art { width: 76px; height: 76px; border-radius: 17px; }
+ .tool-art :deep(svg) { width: 44px; height: 44px; }
+ .b4-tools .resource-title { flex-wrap: wrap; gap: 6px; margin-top: 0; }
+ .b4-tools .resource-copy h2 { font-size: 19px; }
+ .b4-tools .resource-copy p { font-size: 15px; line-height: 1.6; }
+ .b4-tools .resource-tag { font-size: 12px; padding: 3px 10px; }
+ .b4-tools .resource-footer { margin-inline: 20px; padding-inline: 4px; }
+ .b4-tools .resource-footer button { font-size: 16px; }
+ .b4-tools .resource-more { top: 24px; right: 18px; }
+}
+@media(max-width:1150px) {
+ .b4-tools { padding-inline: 28px; }
+ .hero { margin-inline: -28px; }
+ .b4-tools .resource-toolbar { flex-wrap: wrap; gap: 12px; }
+ .b4-tools .resource-toolbar .search-field { max-width: none; }
+ .b4-tools .resource-tabs { order: 3; width: 100%; margin: 0; }
+ .b4-tools .resource-tabs button { flex: 1; }
+ .hero-art { opacity: .35; }
+}
+@media(max-width:700px) {
+ .b4-tools { padding: 0 16px 24px; }
+ .hero { height: 222px; margin-inline: -16px; padding: 80px 16px 25px; }
+ .hero h1 { font-size: 38px; }
+ .hero .sparkles { width: 45px; height: 45px; }
+ .hero-heading { gap: 16px; transform: none; }
+ .hero>p { font-size: 16px; margin-top: 12px; transform: none; }
+ .hero-art { height: 170px; top: 40px; opacity: .25; }
+ .left-art { width: 190px; left: -40px; }
+ .right-art { width: 180px; right: -45px; }
+ .b4-tools .resource-toolbar { gap: 10px; }
+ .b4-tools .resource-toolbar .search-field { height: 46px; min-width: 0; flex-basis: 100%; }
+ .b4-tools .search-field input { font-size: 14px; }
+ .b4-tools .primary-button { height: 46px; font-size: 14px; padding-inline: 16px; }
+ .b4-tools .resource-tabs { padding: 6px; gap: 6px; }
+ .b4-tools .resource-tabs button { height: 42px; min-width: 0; padding-inline: 10px; font-size: 14px; gap: 8px; }
+ .b4-tools .resource-tabs span { font-size: 12px; min-width: 25px; }
+ .b4-tools .tool-card { min-height: 210px; }
+ .b4-tools .resource-main { padding: 20px 18px 16px; gap: 16px; }
+ .tool-art { width: 60px; height: 60px; border-radius: 14px; }
+ .tool-art :deep(svg) { width: 36px; height: 36px; }
+ .b4-tools .resource-copy h2 { font-size: 18px; }
+ .b4-tools .resource-copy p { font-size: 14px; }
+ .b4-tools .resource-footer { margin-inline: 18px; min-height: 54px; padding-inline: 0; }
+ .b4-tools .resource-footer button { font-size: 14px; gap: 8px; }
+ .b4-tools .resource-more { top: 20px; right: 16px; opacity: 1; }
+ .b4-tools .resource-title { padding-right: 30px; }
+ .auth-fields { grid-template-columns: 1fr; gap: 0; }
+}

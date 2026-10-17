@@ -9,6 +9,7 @@ export interface MCPTask {
 }
 
 export interface MCPMessage {
+  model_id?: string
   query: string
   content: MCPContent[]
 }

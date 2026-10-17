@@ -1,4 +1,5 @@
-from typing import List, Optional, Literal
+from typing import List, Literal, Optional
+
 from pydantic import BaseModel, Field, model_validator
 
 
@@ -13,7 +14,7 @@ class MultiModels(BaseModel):
         extra = "allow"
 
     reasoning_model: ModelConfig = Field(default_factory=ModelConfig)
-    conversation_model: ModelConfig = Field(default_factory=ModelConfig)
+    chat_model: ModelConfig = Field(default_factory=ModelConfig)
     tool_call_model: ModelConfig = Field(default_factory=ModelConfig)
     qwen3_coder: ModelConfig = Field(default_factory=ModelConfig)
     qwen_vl: ModelConfig = Field(default_factory=ModelConfig)
@@ -61,8 +62,14 @@ class MinioConfig(BaseModel):
     bucket_name: str
     base_url: str
 
+class LocalStorageConfig(BaseModel):
+    path: str = "data/uploads"
+    base_url: str = "http://127.0.0.1:7860/uploads/"
+
+
 class StorageConfig(BaseModel):
-    mode: Literal["oss", "minio"]
+    mode: Literal["oss", "minio", "local"]
+    local: LocalStorageConfig = Field(default_factory=LocalStorageConfig)
     oss: Optional[OSSConfig] = None
     minio: Optional[MinioConfig] = None
 
@@ -76,11 +83,13 @@ class StorageConfig(BaseModel):
 
     @property
     def active(self):
+        if self.mode == "local":
+            return self.local
         return self.oss if self.mode == "oss" else self.minio
 
 class ServerConfig(BaseModel):
     name: str = "AgentChat"
-    version: str = "2.5.0"
+    version: str = "3.0.0"
     host: str = "127.0.0.1"
     port: int = 7860
     env: str = "dev"

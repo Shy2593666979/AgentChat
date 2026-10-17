@@ -1,8 +1,8 @@
-from sqlmodel import select, and_, update, delete, or_
+from sqlmodel import and_, delete, or_, select, update
 
 from agentchat.database import SystemUser
-from agentchat.database.session import session_getter, async_session_getter
 from agentchat.database.models.llm import LLMTable
+from agentchat.database.session import async_session_getter, session_getter
 
 
 class LLMDao:
@@ -15,11 +15,13 @@ class LLMDao:
         llm_type: str,
         api_key: str,
         provider: str,
-        user_id: str
+        user_id: str,
+        show_model: str = ""
     ):
         with session_getter() as session:
             llm = LLMTable(
                 model=model,
+                show_model=show_model.strip(),
                 base_url=base_url,
                 api_key=api_key,
                 provider=provider,
@@ -44,16 +46,20 @@ class LLMDao:
         base_url: str = None,
         api_key: str = None,
         provider: str = None,
-        llm_type: str = None
+        llm_type: str = None,
+        show_model: str = None
     ):
         update_values = {
-            k: v for k, v in {
+            k: v
+            for k, v in {
                 "model": model,
+                "show_model": show_model.strip() if show_model is not None else None,
                 "base_url": base_url,
                 "api_key": api_key,
                 "provider": provider,
-                "llm_type": llm_type
-            }.items() if v is not None
+                "llm_type": llm_type,
+            }.items()
+            if v is not None
         }
 
         if not update_values:
@@ -121,7 +127,7 @@ class LLMDao:
                     LLMTable.user_id == user_id,
                     LLMTable.user_id == SystemUser
                 ),
-                LLMTable.model.ilike(f"%{llm_name}%")
+                or_(LLMTable.model.ilike(f"%{llm_name}%"), LLMTable.show_model.ilike(f"%{llm_name}%"))
             )
 
             result = await session.exec(statement)
@@ -136,7 +142,7 @@ class LLMDao:
                 LLMTable.create_time
             )
             result = await session.exec(statement)
-            return result.one_or_none()
+            return result.first()
 
     @classmethod
     async def update_first_llm(cls, llm_id, model, provider, api_key, base_url):

@@ -1,12 +1,12 @@
 from typing import List, Optional
-from pydantic import BaseModel
 
-from langchain.tools import BaseTool
 from langchain.agents import create_agent
+from langchain.agents.middleware import AgentState, before_agent, wrap_tool_call
+from langchain.tools import BaseTool
+from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.config import get_stream_writer
 from langgraph.prebuilt.tool_node import ToolCallRequest
-from langchain_core.messages import BaseMessage, SystemMessage, HumanMessage
-from langchain.agents.middleware import AgentState, wrap_tool_call, before_agent
+from pydantic import BaseModel
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
 from agentchat.core.models.manager import ModelManager
@@ -31,7 +31,7 @@ class MCPAgent:
         self.user_id = user_id
         self.mcp_tools: List[BaseTool] = []
 
-        self.conversation_model = None
+        self.chat_model = None
         self.tool_invocation_model = None
 
         self.react_agent = None
@@ -53,7 +53,7 @@ class MCPAgent:
 
     async def setup_language_model(self):
         # 普通对话模型
-        self.conversation_model = ModelManager.get_conversation_model()
+        self.chat_model = ModelManager.get_chat_model()
 
         # 工具调用模型
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
@@ -96,7 +96,7 @@ class MCPAgent:
 
     def setup_react_agent(self):
         return create_agent(
-            model=self.conversation_model,
+            model=self.chat_model,
             tools=self.mcp_tools,
             middleware=self.middlewares,
             system_prompt=CALL_END_PROMPT

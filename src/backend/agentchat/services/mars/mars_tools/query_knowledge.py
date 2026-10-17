@@ -1,16 +1,18 @@
 import json
 import time
-from loguru import logger
 from typing import Optional
+
 from langchain.tools import tool
-from langchain_core.messages import SystemMessage, HumanMessage
-from langgraph.config import get_stream_writer
+from langchain_core.messages import HumanMessage, SystemMessage
+from loguru import logger
 
 from agentchat.api.services.knowledge import KnowledgeService
 from agentchat.api.services.knowledge_file import KnowledgeFileService
 from agentchat.core.models.manager import ModelManager
 from agentchat.prompts.mars import Mars_Generate_Query_Prompt
+from agentchat.services.mars.events import get_mars_writer, progress
 from agentchat.services.rag.handler import RagHandler
+
 
 @tool(parse_docstring=True)
 async def query_knowledge(query: str, user_id: Optional[str] = None):
@@ -24,9 +26,10 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
     Returns:
         用户问题在知识库中有关的信息
     """
-    writer =get_stream_writer()
+    writer = get_mars_writer()
+    writer(progress("读取可访问的知识库与文档"))
 
-    conversation_model = ModelManager.get_conversation_model()
+    chat_model = ModelManager.get_chat_model()
 
     knowledges = await KnowledgeService.select_knowledge(user_id)
 
@@ -35,8 +38,9 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
     for knowledge_id in knowledges_id:
         knowledge_files.extend(await KnowledgeFileService.get_knowledge_file(knowledge_id))
 
+    writer(progress(f"读取了 {len(knowledges)} 个知识库、{len(knowledge_files)} 个文档", "complete"))
     generate_query = [query]
-    response = await conversation_model.ainvoke(Mars_Generate_Query_Prompt.format(file_names="\n".join([file["file_name"] for file in knowledge_files])))
+    response = await chat_model.ainvoke(Mars_Generate_Query_Prompt.format(file_names="\n".join([file["file_name"] for file in knowledge_files])))
     try:
         content = json.loads(response.content)
         generate_query.extend(content.get("query", []))
@@ -45,15 +49,19 @@ async def query_knowledge(query: str, user_id: Optional[str] = None):
         logger.error(f"Except JSON Error: {err}")
 
     documents = []
-    for query in generate_query:
-        document = await RagHandler.retrieve_ranked_documents(query, knowledges_id, knowledges_id)
+    for search_query in generate_query:
+        writer(progress(f"检索知识：{search_query}"))
+        document = await RagHandler.retrieve_ranked_documents(search_query, knowledges_id, knowledges_id)
         documents.append(document)
 
+    writer(progress("知识检索完成，正在整理报告", "complete"))
     messages = [HumanMessage(content=query), SystemMessage(content="\n\n".join(documents))]
 
-    async for chunk in conversation_model.astream(messages):
-         writer({
-            "type": "response_chunk",
-            "time": time.time(),
-            "data": chunk.content
-        })
+    async for chunk in chat_model.astream(messages):
+        writer(
+            {
+                "type": "response_chunk",
+                "time": time.time(),
+                "data": chunk.content,
+            }
+        )

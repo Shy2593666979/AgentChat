@@ -28,7 +28,7 @@
 - **请求参数**:
   ```json
   {
-    "dialog_id": "string",        // 对话ID
+    "conversation_id": "string",        // 对话ID
     "user_input": "string",       // 用户输入内容
     "file_url": "string"          // 可选，文件URL
   }
@@ -686,7 +686,7 @@
 ## 对话框 API
 
 ### 1. 获取对话列表
-- **接口 URL**: `/api/v1/dialog/list`
+- **接口 URL**: `/api/v1/conversation/list`
 - **请求方法**: `GET`
 - **请求参数**: 无
 - **返回参数**:
@@ -696,7 +696,7 @@
     "message": "success",
     "data": [
       {
-        "dialog_id": "string",
+        "conversation_id": "string",
         "name": "string",
         "agent_id": "string",
         "agent_type": "string",
@@ -707,7 +707,7 @@
   ```
 
 ### 2. 创建对话
-- **接口 URL**: `/api/v1/dialog`
+- **接口 URL**: `/api/v1/conversation`
 - **请求方法**: `POST`
 - **请求参数**:
   ```json
@@ -727,12 +727,12 @@
   ```
 
 ### 3. 删除对话
-- **接口 URL**: `/api/v1/dialog`
+- **接口 URL**: `/api/v1/conversation`
 - **请求方法**: `DELETE`
 - **请求参数**:
   ```json
   {
-    "dialog_id": "string"         // 对话ID
+    "conversation_id": "string"         // 对话ID
   }
   ```
 - **返回参数**:
@@ -979,7 +979,7 @@
 - **请求参数**:
   ```json
   {
-    "dialog_id": "string"         // 对话ID
+    "conversation_id": "string"         // 对话ID
   }
   ```
 - **返回参数**:

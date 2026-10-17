@@ -1,6 +1,7 @@
-from langchain.tools import tool
+from typing import Literal, Optional
+
 import requests
-from typing import Optional, Literal
+from langchain.tools import tool
 
 from agentchat.settings import app_settings
 
@@ -63,7 +64,6 @@ def bocha_search(
                 return f"搜索API请求失败，原因是: {response.msg or '未知错误'}"
 
             webpages = json_response["data"]["webPages"]["value"]
-            print(webpages)
             if not webpages:
                 return "未找到相关结果。"
             formatted_results = ""

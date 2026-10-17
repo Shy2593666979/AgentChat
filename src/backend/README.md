@@ -1,411 +1,186 @@
-# AgentChat 后端技术文档
+# agentchat 后端
 
-## 技术架构
+后端使用 Python、FastAPI、LangChain 和 SQLModel，提供智能体会话、Mars 任务、知识库、工具与 MCP 管理等接口。
 
-AgentChat 后端采用 FastAPI 异步框架构建，基于 Python 3.12+，支持多 Agent 协作、知识库检索（RAG）、工具调用和 MCP 协议集成。
+首次运行使用 [根目录快速开始](../../README.md#快速开始) 或 [简易配置指南](../../docs/simple-config.md)。默认本地方案使用 SQLite、内存缓存、文件目录和 Chroma，不要求额外启动 MySQL、Redis、MinIO 或 Milvus。
 
-### 核心技术栈
+## 本地启动
 
-| 层次 | 技术 |
-|------|------|
-| Web 框架 | FastAPI (async) |
-| ORM | SQLModel (SQLAlchemy + Pydantic) |
-| 数据库 | MySQL 8.0 (pymysql + aiomysql) |
-| 缓存 | Redis 7.0 (aioredis) |
-| 向量数据库 | Milvus / ChromaDB |
-| 全文检索 | Elasticsearch (IK 分词) |
-| 对象存储 | MinIO / 阿里云 OSS |
-| AI 框架 | LangChain 1.0+ |
-| 认证 | JWT (fastapi-jwt-auth) |
-| 日志 | Loguru |
+准备 Python 3.12 和 uv，在 `src/backend` 目录执行：
 
----
-
-## 项目结构
-
-```
-agentchat/
-├── main.py              # FastAPI 应用入口
-├── settings.py          # 配置加载（YAML → Pydantic）
-├── config.yaml          # 统一配置文件
-├── api/
-│   ├── router.py        # 顶层路由聚合
-│   ├── v1/              # REST API 端点（20+ 模块）
-│   ├── services/        # 业务逻辑服务层
-│   ├── mcp_proxy/       # MCP 协议代理路由
-│   ├── responses/       # 统一响应构建器
-│   └── errcode/         # 错误码定义
-├── auth/                # JWT 认证模块
-├── core/
-│   └── agents/          # Agent 实现（React/CodeAct/MCP/Plan 等）
-├── database/
-│   ├── models/          # 23 张数据表模型
-│   └── dao/             # 数据访问对象层
-├── services/
-│   ├── rag/             # RAG 检索增强生成
-│   ├── mcp/             # MCP 多服务器客户端管理
-│   ├── storage/         # 存储抽象（OSS/MinIO）
-│   └── rewrite/         # 查询改写
-├── middleware/          # TraceID / 白名单中间件
-├── schemas/             # Pydantic 数据模型
-├── prompts/             # Prompt 模板
-└── tools/               # 内置工具集成
+```bash
+uv sync --locked --python 3.12
 ```
 
----
+复制 `agentchat/config.simple.yaml` 为 `agentchat/config.local.simple.yaml`。以 [DeepSeek Flash](https://api-docs.deepseek.com/zh-cn/) 为例，修改以下字段并保留模板其他设置：
 
-## API 层设计
-
-所有业务接口统一挂载在 `/api/v1`，按领域拆分路由模块：
-
-- `completion` — 对话补全（流式 SSE）
-- `agent` — Agent CRUD 管理
-- `dialog / history / message` — 会话与消息管理
-- `knowledge / knowledge_file` — 知识库与文件管理
-- `mcp_server / mcp_user_config` — MCP 服务器配置
-- `llm / tool` — 模型与工具管理
-- `user / workspace` — 用户与工作空间
-- `usage_stats` — 用量统计
-- `register_mcp / register_task` — MCP 注册与任务调度
-
-MCP 代理路由独立挂载，支持 SSE 和 HTTP Streaming 两种传输协议。
-
----
-
-## Agent 系统
-
-支持多种 Agent 类型，按任务复杂度选用：
-
-| Agent 类型 | 适用场景 |
-|-----------|---------|
-| ReactAgent | 通用工具调用推理 |
-| CodeActAgent | 代码生成与执行 |
-| MCPAgent | MCP 工具集成 |
-| SkillAgent | 技能组合调用 |
-| PlanExecuteAgent | 复杂多步骤规划 |
-| StructuredResponseAgent | 结构化输出 |
-
----
-
-## RAG 知识库检索
-
-```
-用户查询
-  → 查询改写（多路 Query）
-  → 混合检索（Milvus 向量 + ES 全文）
-  → 去重 & 排序
-  → Rerank 重排序
-  → 注入 Prompt → LLM 生成
-```
-
-支持按 `min_score` 和 `top_k` 过滤，ES 可通过配置开关启用。
-
----
-
-## 多模型配置
-
-通过 `config.yaml` 统一配置，支持按用途分配不同模型：
-
-- `conversation_model` — 对话（Qwen-Plus）
-- `tool_call_model` — 工具调用
-- `reasoning_model` — 深度推理（DeepSeek-Reasoner）
-- `text2image` — 文生图（Wanx）
-- `qwen_vl` — 多模态视觉
-- `embedding` — 向量化（text-embedding-v4）
-- `rerank` — 重排序（gte-rerank-v2）
-
----
-
-## 认证与权限
-
-- JWT Token 支持 Header 和 Cookie 两种传输方式
-- 角色分为：`AdminUser`（超级管理员）、`SystemUser`、普通用户
-- 白名单中间件控制免鉴权路径
-- Token 吊销列表支持登出场景
-
----
-
-## 外部集成
-
-| 类型 | 集成方 |
-|------|--------|
-| LLM | 阿里云 Qwen、DeepSeek、OpenAI 兼容接口 |
-| 搜索 | Tavily、Google Search、BoCha |
-| 存储 | MinIO（本地）/ 阿里云 OSS（云端） |
-| 工具 | 高德天气、快递查询、ArXiv 论文 |
-| MCP | 动态加载，支持 SSE/HTTP 双协议 |
-
----
-
-## 数据库模型
-
-系统包含 23 张数据表，核心表包括：
-
-- `AgentTable` — Agent 配置
-- `DialogTable` — 对话会话
-- `HistoryTable` — 对话历史
-- `MessageTable` — 消息记录
-- `KnowledgeTable` — 知识库
-- `KnowledgeFileTable` — 知识库文件
-- `ToolTable` — 工具配置
-- `LLMTable` — 模型配置
-- `MCPServerTable` — MCP 服务器
-- `MCPUserConfigTable` — MCP 用户配置
-- `WorkSpaceSession` — 工作空间会话
-- `UsageStats` — 用量统计
-- `AgentSkill` — Agent 技能
-- `RegisterMcpServer` — 注册 MCP 服务器
-- `RegisterMcpTask` — 注册 MCP 任务
-
-所有模型继承自 `SQLModelSerializable` 基类，支持 JSON 序列化。
-
----
-
-## 配置文件说明
-
-主配置文件 `config.yaml` 包含以下部分：
-
-### 服务配置
-```yaml
-server:
-  env: "dev"           # prod / test / dev
-  host: "127.0.0.1"
-  port: 7860
-  name: "AgentChat"
-  version: "2.5.0"
-```
-
-### 数据库配置
-```yaml
-mysql:
-  endpoint: "mysql+pymysql://root:password@localhost:3306/agentchat"
-  async_endpoint: "mysql+aiomysql://root:password@localhost:3306/agentchat"
-
-redis:
-  endpoint: "redis://localhost:6379"
-```
-
-### 多模型配置
 ```yaml
 multi_models:
-  conversation_model:
-    api_key: "your-api-key"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    model_name: "qwen-plus"
-  
-  tool_call_model:
-    api_key: "your-api-key"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    model_name: "qwen-plus"
-  
-  reasoning_model:
-    api_key: "your-api-key"
-    base_url: "https://api.deepseek.com/v1"
-    model_name: "deepseek-reasoner"
-  
-  embedding:
-    api_key: "your-api-key"
-    base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
-    model_name: "text-embedding-v4"
-  
-  rerank:
-    api_key: "your-api-key"
-    base_url: "https://dashscope.aliyuncs.com/api/v1/services/rerank/text-rerank/text-rerank"
-    model_name: "gte-rerank-v2"
+  chat_model:
+    api_key: "填写你的 DeepSeek API Key"
+    base_url: "https://api.deepseek.com"
+    model_name: "deepseek-flash"
 ```
 
-### 存储配置
+Windows PowerShell：
+
+```powershell
+$env:AGENTCHAT_CONFIG = "agentchat/config.local.simple.yaml"
+uv run --locked uvicorn agentchat.main:app --host 127.0.0.1 --port 7860
+```
+
+Linux / macOS：
+
+```bash
+export AGENTCHAT_CONFIG=agentchat/config.local.simple.yaml
+uv run --locked uvicorn agentchat.main:app --host 127.0.0.1 --port 7860
+```
+
+- 健康检查：`GET http://127.0.0.1:7860/health`，返回 `{"status":"OK"}`。
+- API 文档：[Swagger UI](http://127.0.0.1:7860/docs)。
+- 前端启动与代理设置见 [根目录 README](../../README.md#快速开始)。
+
+JWT 实现位于 `agentchat/auth/`，当前启动流程无需执行旧的 `fix_fastapi_jwt_auth.py` 修补脚本。
+
+## 配置与数据目录
+
+配置优先级：显式传入 `init_app_settings` 的路径 → `AGENTCHAT_CONFIG` → `agentchat/config.local.yaml` → `agentchat/config.yaml`。环境变量中的相对路径以启动命令的工作目录为基准。`config.local.simple.yaml` 不会被自动选择，需要显式指定。
+
+`simple_mode: true` 启用默认值补齐，并让工具调用、推理等模型复用对话配置。完整配置模式不自动复用这些模型，按需填写各项。配置修改后需要重启后端。
+
+| 数据 | 本地方案位置 | 说明 |
+| --- | --- | --- |
+| 业务数据库 | `data/agentchat.db` | 相对 SQLite 路径固定以 `src/backend` 为基准 |
+| 上传文件 | `data/uploads/` | 相对存储路径固定以 `src/backend` 为基准，通过 `/uploads/` 访问 |
+| 知识库向量 | `vector_db/` | 相对启动工作目录 |
+| 长期记忆向量 | `memory_db/` | 相对启动工作目录 |
+| 应用日志 | `logs/app.log`、`logs/error.log` | 默认位于 `src/backend`，可用 `AGENTCHAT_LOG_DIR` 覆盖 |
+| 内存缓存 | 当前进程 | 重启后清空；多进程应配置 Redis |
+
+因此建议始终从 `src/backend` 启动。数据库、文件和向量目录分别保存不同数据，需要持久化或备份时一起考虑。本地上传链接是直接访问地址，不是临时签名链接。
+
+### 数据库与缓存
+
 ```yaml
-storage:
-  mode: "minio"   # 或 "oss"
-  minio:
-    endpoint: "localhost:9000"
-    access_key_id: "minioadmin"
-    access_key_secret: "minioadmin"
-    bucket_name: "agentchat"
-  oss:
-    endpoint: "oss-cn-hangzhou.aliyuncs.com"
-    access_key_id: "your-access-key"
-    access_key_secret: "your-secret-key"
-    bucket_name: "agentchat"
+database:
+  url: "sqlite:///data/agentchat.db"
+redis:
+  endpoint: null
 ```
 
-### 工具配置
-```yaml
-tools:
-  weather:
-    api_key: "your-amap-key"
-    endpoint: "https://restapi.amap.com/v3/weather/weatherInfo?parameters"
-  
-  tavily:
-    api_key: "your-tavily-key"
-  
-  google:
-    api_key: "your-serpapi-key"
-  
-  bocha:
-    api_key: "your-bocha-key"
-    endpoint: "https://api.bochaai.com/v1/web-search"
+切换 MySQL 时，将 `database.url` 改为 `mysql+pymysql://用户名:密码@127.0.0.1:3306/agentchat`；需要 Redis 时填写 `redis://127.0.0.1:6379`。密码中的 URL 特殊字符需要编码。
+
+数据库同步与异步连接由同一 URL 派生，不需要分别维护两个地址。切换 URL 不会自动搬迁旧数据库的数据。SQLite 文件会启用外键检查、繁忙等待和 WAL；`sqlite:///:memory:` 用于临时运行，进程退出后不保留数据。
+
+### 模型与知识库
+
+| 配置项 | 用途 |
+| --- | --- |
+| `multi_models.chat_model` | 系统默认对话、会话标题等 |
+| `multi_models.tool_call_model` | 工具调用模型 |
+| `multi_models.reasoning_model` | 推理模型 |
+| `multi_models.embedding` | 知识库与长期记忆向量化 |
+| `multi_models.rerank` | 知识库检索重排 |
+| `multi_models.qwen_vl` | 视觉处理 |
+| `multi_models.qwen3_coder` | 代码场景 |
+| `multi_models.text2image` | 文生图工具 |
+
+前端模型服务页中的自定义模型供智能体等场景选择；它不会替换配置文件中的向量与重排模型。`show_model` 是展示名称，`model` 是服务商实际请求标识。
+
+本文示例使用 DeepSeek Flash 对话模型。加载器的向量、视觉和重排默认项仍是通义模型，需要单独配置相应的 Key、模型和接口，不能复用 DeepSeek Key；重排接口并非普通聊天接口。知识库默认使用 Chroma，可通过 `rag.vector_db.mode` 选择其他实现；全文检索由 `rag.enable_elasticsearch` 控制。完整示例见 [简易配置指南](../../docs/simple-config.md#模型继承与能力边界)。
+
+## 代码结构
+
+```text
+src/backend/
+├── agentchat/
+│   ├── main.py                 # FastAPI 入口与生命周期
+│   ├── settings.py             # 配置加载与默认值
+│   ├── config.simple.yaml      # 简易配置模板
+│   ├── config/                 # 默认工具、MCP、智能体和 Skill 模板
+│   ├── api/v1/                 # HTTP 与流式接口
+│   ├── api/services/           # 业务服务，包含 ConversationService
+│   ├── auth/                   # JWT 实现
+│   ├── core/                   # 智能体、模型封装与用量回调
+│   ├── database/
+│   │   ├── connection.py       # 数据库 URL、驱动与连接
+│   │   ├── init_data.py        # 系统模板初始化
+│   │   ├── models/             # 数据表定义
+│   │   └── dao/                # 数据访问与新用户资源复制
+│   ├── protocols/ag_ui/        # SSE 编码与场景适配
+│   ├── mcp_proxy/              # MCP 代理与会话管理
+│   ├── services/               # RAG、记忆、MCP、存储与任务服务
+│   ├── tools/                  # 内置工具
+│   ├── middleware/             # 请求追踪与白名单
+│   └── utils/                  # 日志、上下文等公共辅助模块
+└── tests/
+    ├── test_*.py               # 自动化测试
+    └── manual/                 # 需要显式运行的手动脚本
 ```
 
----
+## 接口与流式事件
 
-## 启动流程
+业务路由以 `/api/v1` 为前缀，准确请求结构以运行中的 Swagger 文档为准。
 
-### 1. 安装依赖
+| 接口或模块 | 作用 |
+| --- | --- |
+| `/conversation`、`/conversation/list` | 会话创建、编辑、删除与列表；字段使用 `conversation_id` |
+| `/completion` | 智能体流式对话 |
+| `/mars/chat` | Mars 任务流式对话 |
+| `history` | 历史消息与反馈 |
+| `agent`、`tool`、`agent_skill` | 智能体、工具和技能管理 |
+| `knowledge`、`knowledge_file` | 知识库与文件处理 |
+| `mcp_server`、`mcp_user_config` | MCP 服务与连接配置 |
+| `register_mcp`、`register_task` | MCP 创建与任务记录 |
+| `llm`、`usage_stats` | 模型配置与调用统计 |
+| `workspace`、`user` | 工作区与用户相关接口 |
+
+同一会话可以切换智能体。首条用户消息保存后异步生成标题，不阻塞主回复；服务层保留会话归属、资源权限和历史保存校验。
+
+AG-UI 通过请求头 `X-AgentChat-Protocol: ag-ui/1.0` 协商，响应仍是 SSE。适配器负责事件转换与 SDK 编码，权限、历史保存和 Token 统计保留在业务层。没有该请求头时保留原事件格式，详情见 [协议说明](../../docs/ag-ui.md)。
+
+## 初始化与用户资源
+
+启动时按顺序准备数据库表、系统模型、工具、Skill、MCP 和默认智能体。模板位于 `agentchat/config/`，初始化不会下载默认头像、联网探测 MCP 或调用模型生成 MCP 名称。
+
+新账号与其默认资源在同一事务中创建。智能体、工具、Skill 和 MCP 使用独立 ID，绑定也指向当前用户副本；知识库由用户自行创建。系统默认模型与用户自定义模型分别管理，不应将所有系统配置理解成用户副本。
+
+新增 MCP 的名称和描述由当前进程的异步任务补齐，不建立任务表。页面工具列表的默认快照不能保证远端服务始终可用，实际连接仍取决于远端状态。模板修改也不会自动覆盖用户已经编辑的副本。
+
+当前初始化按新表结构创建数据，不提供旧 `dialog` 数据库结构的自动迁移。更新已有部署时，需要单独处理数据库结构与数据。
+
+## Token 统计与日志
+
+模型回调记录服务商返回的输入、输出用量，并通过请求上下文关联用户、智能体和会话。供应商没有返回 usage 时，不应把估算值当作实际用量。详见 [统计说明](../../docs/conversation-token-usage.md)。
+
+日志输出到终端与文件，默认级别 `INFO`；文件按 20 MB 轮转、保留 7 天。请求日志包含 trace ID，任务和工具日志按场景补充会话、运行与调用 ID。常见凭据会被脱敏，正文类日志主要位于 `DEBUG`。详见 [日志说明](../../docs/logging.md)。
+
+## 开发与测试
+
+在 `src/backend` 执行：
 
 ```bash
-pip install -r requirements.txt
+uv sync --locked --group dev
+uv run --locked pytest tests -q
 ```
 
-### 2. 修复 fastapi-jwt-auth 兼容性
+跨语言协议测试需要 Node.js 和前端依赖，先在 `src/frontend` 执行 `npm ci`。`tests/manual/` 默认不收集，其中部分脚本依赖额外库、文件或外部服务。详见 [测试说明](tests/README.md)。
 
-```bash
-python scripts/fix_fastapi_jwt_auth.py
-```
+新增接口时，在 `api/v1/` 定义路由、在 `api/services/` 放业务逻辑，并在路由聚合文件注册。新增数据表需在数据库模块导入；自动建表不能代替已有表的结构迁移。
 
-### 3. 配置数据库
+## 故障排查与部署
 
-确保 MySQL 和 Redis 服务已启动，并在 `config.yaml` 中配置正确的连接信息。
+| 现象 | 检查方向 |
+| --- | --- |
+| 启动仍连接 Redis 或对象存储 | 确认 `AGENTCHAT_CONFIG` 指向简易配置；配置加载日志会显示所选文件名 |
+| 简易模式启动失败 | 检查 YAML 格式及非空的 `multi_models.chat_model.api_key` |
+| 健康检查正常但聊天失败 | 检查模型 Key、模型标识、地址与服务权限；健康检查不调用模型 |
+| 聊天可用但知识库失败 | 检查 embedding、rerank 配置及向量目录权限 |
+| 出现记忆检索失败日志 | 检查向量模型；辅助记忆异常会跳过本轮记忆，不代表记忆服务已经恢复 |
+| MCP 工具调用失败 | 检查服务连接、认证与远端状态，确认智能体已绑定该 MCP |
+| 上传链接打不开 | 检查 `storage.local.base_url`、后端实际地址及反向代理的 `/uploads/` 转发 |
+| 前端请求失败或端口被占用 | 检查后端监听端口、前端代理与实际启动地址 |
 
-### 4. 初始化数据库
+FastAPI 是 ASGI 应用，可通过 Uvicorn 运行。对外部署时配置反向代理、SSE 转发与持久化目录；多进程需要共享缓存和文件存储。现有 [Docker 文件](../../docker/) 保留开发部署组合，本轮没有验证完整容器启动流程。
 
-首次启动时，系统会自动创建数据库表和初始数据。
-
-### 5. 启动服务
-
-```bash
-cd src/backend
-uvicorn agentchat.main:app --port 7860 --host 0.0.0.0
-```
-
-### 6. 访问 API 文档
-
-浏览器访问 [http://localhost:7860/docs](http://localhost:7860/docs) 查看 Swagger API 文档。
-
----
-
-## 开发指南
-
-### 添加新的 API 端点
-
-1. 在 `api/v1/` 下创建新的路由模块
-2. 在 `api/services/` 下创建对应的服务层
-3. 在 `api/v1/router.py` 中注册路由
-
-### 添加新的 Agent 类型
-
-1. 在 `core/agents/` 下创建新的 Agent 类
-2. 继承 `BaseAgent` 基类
-3. 实现 `run` 方法
-
-### 添加新的工具
-
-1. 在 `tools/` 下创建新的工具目录
-2. 实现工具的 `run` 方法
-3. 在 `tools/__init__.py` 中注册工具
-
-### 添加新的数据表
-
-1. 在 `database/models/` 下创建新的模型类
-2. 继承 `SQLModel` 基类
-3. 在 `database/__init__.py` 中导入模型
-4. 重启服务，系统会自动创建表
-
----
-
-## 性能优化
-
-### 数据库连接池
-
-```python
-engine = create_engine(
-    url=app_settings.mysql.get('endpoint'),
-    pool_pre_ping=True,      # 连接前检查有效性
-    pool_recycle=3600,       # 每小时重连一次
-)
-```
-
-### Redis 缓存策略
-
-- 用户会话缓存：30 分钟
-- API 响应缓存：5 分钟
-- 向量检索缓存：1 小时
-
-### 异步处理
-
-所有 I/O 操作均使用异步方式，提高并发性能：
-
-```python
-async def get_agent(agent_id: str):
-    async with get_async_session() as session:
-        result = await session.execute(
-            select(AgentTable).where(AgentTable.id == agent_id)
-        )
-        return result.scalar_one_or_none()
-```
-
----
-
-## 故障排查
-
-### 常见问题
-
-**1. fastapi-jwt-auth 版本冲突**
-
-运行修复脚本：
-```bash
-python scripts/fix_fastapi_jwt_auth.py
-```
-
-**2. 数据库连接失败**
-
-检查 MySQL 服务是否启动，配置文件中的连接信息是否正确。
-
-**3. Redis 连接失败**
-
-检查 Redis 服务是否启动，端口是否正确。
-
-**4. 向量数据库连接失败**
-
-确保 Milvus 或 ChromaDB 服务已启动，配置文件中的连接信息正确。
-
-**5. 模型 API 调用失败**
-
-检查 API Key 是否正确，网络是否可访问模型服务。
-
----
-
-## 测试
-
-### 运行单元测试
-
-```bash
-pytest test/
-```
-
-### API 测试
-
-使用 Swagger UI 进行交互式测试：[http://localhost:7860/docs](http://localhost:7860/docs)
-
----
-
-## 部署
-
-### Docker 部署
-
-参考项目根目录的 [docker/README.md](../../docker/README.md)
-
-### 生产环境部署
-
-1. 使用 Gunicorn + Uvicorn 作为 WSGI 服务器
-2. 配置 Nginx 反向代理
-3. 使用 Supervisor 或 systemd 管理进程
-4. 配置日志轮转
-5. 启用 HTTPS
-
----
-
-## 许可证
-
-本项目采用 [MIT License](../../LICENSE) 开源许可证。
+本项目采用 [MIT License](../../LICENSE)。

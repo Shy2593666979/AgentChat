@@ -1,0 +1,336 @@
+.b4-configuration {
+  padding: 100px 30px 25px;
+  background: radial-gradient(ellipse at 12% -20%,#c9eaff66,transparent 65%),linear-gradient(160deg,#edf8ff,#fff 55%)
+}
+.b4-configuration .data-heading {
+  padding: 0 10px;
+  margin-bottom: 20px
+}
+.b4-configuration .data-heading h1 {
+  font-size: 36px
+}
+.b4-configuration .data-heading p {
+  font-size: 19px;
+  color: #637a9d;
+  margin-top: 3px
+}
+.configuration-columns {
+  display: grid;
+  grid-template-columns: minmax(0,2.24fr) minmax(320px,1fr);
+  gap: 14px
+}
+.configuration-panel {
+  padding: 23px;
+  display: flex;
+  flex-direction: column;
+  border-radius: 18px;
+  min-width: 0
+}
+.configuration-panel>header {
+  display: flex;
+  align-items: center;
+  gap: 17px;
+  margin-bottom: 22px;
+  min-height: 39px
+}
+.b4-configuration h2 {
+  font-size: 25px;
+  color: #0a1b44;
+  line-height: 1.5;
+  font-weight: 650;
+  margin: 0
+}
+.configuration-format {
+  font-size: 16px;
+  line-height: 1.5;
+  padding: 6px 15px;
+  border-radius: 22px;
+  background: #edf3fb;
+  color: #587095
+}
+.configuration-editor {
+  position: relative;
+  min-width: 0;
+  height: 518px;
+  overflow: hidden;
+  border: 1px solid #dce9fb;
+  background: #f6faff;
+  border-radius: 11px
+}
+.configuration-monaco {
+  width: 100%;
+  height: 100%
+}
+.copy-config {
+  position: absolute;
+  right: 14px;
+  top: 12px;
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid #d4e4fa;
+  border-radius: 10px;
+  background: #ffffffeb;
+  color: #3a5984;
+  z-index: 1
+}
+.copy-config :deep(.p-icon) {
+  width: 23px;
+  height: 23px
+}
+.configuration-status {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  font-size: 12px;
+  color: #8a9fbc;
+  min-height: 28px;
+  padding-top: 10px
+}
+.configuration-notes {
+  padding: 25px 28px;
+  border-radius: 18px
+}
+.configuration-notes>h2 {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  font-size: 24px;
+  line-height: 1.5;
+  margin: 3px 0 28px
+}
+.configuration-notes>h2 :deep(.p-icon) {
+  width: 27px;
+  height: 27px;
+  color: #1767ff
+}
+.configuration-note {
+  display: flex;
+  gap: 18px;
+  align-items: flex-start;
+  margin-bottom: 36px
+}
+.configuration-note:last-child {
+  margin-bottom: 0
+}
+.configuration-note>span {
+  display: grid;
+  place-items: center;
+  flex: none;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: #edf5ff;
+  color: #1367ff;
+  font-size: 20px;
+  font-weight: 600
+}
+.configuration-note h3 {
+  font-size: 20px;
+  line-height: 1.5;
+  color: #0b1e49;
+  font-weight: 600;
+  margin: 3px 0 8px
+}
+.configuration-note p {
+  font-size: 17px;
+  line-height: 1.7;
+  margin: 0;
+  color: #7489aa;
+  overflow-wrap: anywhere
+}
+.configuration-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 19px;
+  margin: 14px 6px 0;
+  padding-top: 20px;
+  border-top: 1px solid #e2ebf8
+}
+.configuration-actions :deep(.el-button) {
+  min-width: 131px;
+  height: 50px;
+  border-radius: 12px;
+  font-size: 17px;
+  margin: 0
+}
+.config-unavailable {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: #8aa0c0
+}
+.config-unavailable :deep(.p-icon) {
+  width: 39px;
+  height: 39px
+}
+.config-unavailable p {
+  margin: 0;
+  font-size: 15px
+}
+.config-unavailable button {
+  font-size: 13px;
+  color: #1767ff;
+  border: 1px solid #c7ddff;
+  border-radius: 8px;
+  background: white;
+  padding: 8px 15px
+}
+.configuration-error {
+  padding: 12px 15px;
+  margin: 15px 0 0;
+  border: 1px solid #f6d4db;
+  border-radius: 10px;
+  background: #fff4f6;
+  color: #b8556b;
+  font-size: 13px;
+  line-height: 1.7;
+  overflow-wrap: anywhere
+}
+@media(max-width:1500px) {
+  .configuration-columns {
+    grid-template-columns: minmax(0,2fr) minmax(290px,1fr)
+  }
+  .configuration-notes {
+    padding: 24px 22px
+  }
+  .configuration-note {
+    gap: 14px
+  }
+  .configuration-note p {
+    font-size: 15px
+  }
+  .configuration-note h3 {
+    font-size: 18px
+  }
+  .configuration-panel {
+    padding: 20px
+  }
+  .configuration-notes>h2 {
+    font-size: 22px
+  }
+  .configuration-note>span {
+    width: 36px;
+    height: 36px;
+    font-size: 18px
+  }
+}
+@media(max-width:1100px) {
+  .configuration-columns {
+    grid-template-columns: 1fr
+  }
+  .configuration-notes {
+    display: grid;
+    grid-template-columns: repeat(3,minmax(0,1fr));
+    gap: 20px
+  }
+  .configuration-notes>h2 {
+    grid-column: 1/-1;
+    margin: 0
+  }
+  .configuration-note {
+    margin: 0;
+    gap: 12px
+  }
+  .configuration-note p {
+    font-size: 14px
+  }
+  .configuration-note h3 {
+    font-size: 16px
+  }
+  .configuration-note>span {
+    width: 30px;
+    height: 30px;
+    font-size: 16px
+  }
+  .configuration-editor {
+    height: 480px
+  }
+}
+@media(max-width:700px) {
+  .b4-configuration {
+    padding: 82px 16px 24px
+  }
+  .b4-configuration .data-heading {
+    padding: 0
+  }
+  .b4-configuration .data-heading h1 {
+    font-size: 29px
+  }
+  .b4-configuration .data-heading p {
+    font-size: 15px
+  }
+  .configuration-panel {
+    padding: 16px
+  }
+  .configuration-panel>header {
+    gap: 12px;
+    margin-bottom: 16px
+  }
+  .b4-configuration h2 {
+    font-size: 21px
+  }
+  .configuration-format {
+    font-size: 12px;
+    padding: 5px 10px
+  }
+  .configuration-editor {
+    height: 430px
+  }
+  .copy-config {
+    width: 33px;
+    height: 33px;
+    top: 8px;
+    right: 8px
+  }
+  .copy-config :deep(.p-icon) {
+    width: 19px;
+    height: 19px
+  }
+  .configuration-notes {
+    display: block;
+    padding: 21px 20px
+  }
+  .configuration-notes>h2 {
+    font-size: 21px;
+    margin-bottom: 23px
+  }
+  .configuration-note {
+    margin-bottom: 23px;
+    gap: 14px
+  }
+  .configuration-note h3 {
+    font-size: 18px
+  }
+  .configuration-note p {
+    font-size: 14px
+  }
+  .configuration-note>span {
+    width: 35px;
+    height: 35px;
+    font-size: 18px
+  }
+  .configuration-actions {
+    gap: 12px;
+    margin-inline: 0;
+    padding-top: 18px
+  }
+  .configuration-actions :deep(.el-button) {
+    min-width: 112px;
+    height: 46px;
+    font-size: 15px
+  }
+  .configuration-status {
+    font-size: 10px;
+    gap: 8px
+  }
+  .config-unavailable p {
+    font-size: 13px
+  }
+}

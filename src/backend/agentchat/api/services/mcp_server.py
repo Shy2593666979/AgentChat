@@ -1,17 +1,15 @@
-import pytz
-import json
-from datetime import datetime, timedelta
-from typing import Dict, Any
+from typing import Any, Dict
+from uuid import uuid4
 
 from agentchat.api.services.mcp_user_config import MCPUserConfigService
-from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
+from agentchat.api.services.user import UserService
 from agentchat.database.dao.mcp_server import MCPServerDao
 from agentchat.database.models.user import AdminUser, SystemUser
-from agentchat.prompts.mcp import McpAsToolPrompt
-from agentchat.schemas.mcp import MCPResponseFormat
-from agentchat.services.mcp.manager import MCPManager
-from agentchat.utils.convert import convert_mcp_config
-from agentchat.api.services.user import UserService
+from agentchat.services.mcp.metadata import (
+    forget_metadata,
+    metadata_statuses,
+    queue_metadata,
+)
 from agentchat.settings import app_settings
 
 
@@ -73,44 +71,41 @@ class MCPService:
 
     @classmethod
     async def delete_server_from_id(cls, mcp_server_id):
-        return await MCPServerDao.delete_mcp_server(mcp_server_id)
+        result = await MCPServerDao.delete_mcp_server(mcp_server_id)
+        forget_metadata(mcp_server_id)
+        return result
 
     @classmethod
     async def verify_user_permission(cls, server_id, user_id, action: str="update"):
         mcp_server = await MCPServerDao.get_mcp_server_from_id(server_id)
         if mcp_server:
-            if user_id not in (mcp_server.user_id, AdminUser):
+            if user_id != mcp_server.user_id:
                 raise ValueError(f"没有权限访问")
         else:
             raise ValueError(f"服务不存在")
 
     @classmethod
     async def get_all_servers(cls, user_id):
-        # 管理员可看见所有用户的MCP Server
-        if user_id in (AdminUser, SystemUser):
-            all_servers = await MCPServerDao.get_all_mcp_servers()
-        else:
-            personal_servers = await MCPServerDao.get_mcp_servers_from_user(user_id)
-            admin_servers = await MCPServerDao.get_mcp_servers_from_user(SystemUser)
-            all_servers = personal_servers + admin_servers
+        # 管理页面仅显示当前用户的独立服务副本。
+        all_servers = await MCPServerDao.get_mcp_servers_from_user(user_id)
         all_servers = [server.to_dict() for server in all_servers]
+        statuses = metadata_statuses()
         for server in all_servers:
+            # 进程内的异步任务不会在后端重启后自动恢复。
+            unfinished = server.get("description") == "服务已保存，正在后台生成工具信息与描述。"
+            server.update(
+                statuses.get(
+                    server["mcp_server_id"],
+                    {
+                        "metadata_status": "failed" if unfinished else "ready",
+                        "metadata_error": "生成已中断，请重试。" if unfinished else "",
+                    },
+                )
+            )
             user_config = await MCPUserConfigService.show_mcp_user_config(user_id, server["mcp_server_id"])
             if user_config.get("config"):
                 server["config"] = user_config.get("config")
         return all_servers
-
-    @classmethod
-    async def mcp_server_need_update(cls):
-        server = await MCPServerDao.get_first_mcp_server()
-
-        # 获取当前时间（使用与数据库相同的时区）
-        current_time = datetime.now(pytz.timezone('Asia/Shanghai'))
-        # 计算时间差
-        time_difference = current_time - server.update_time.replace(tzinfo=pytz.timezone('Asia/Shanghai'))
-
-        # 判断是否超过7天
-        return time_difference > timedelta(days=7)
 
     @classmethod
     async def get_mcp_tools_info(cls, server_id):
@@ -122,24 +117,27 @@ class MCPService:
             properties = param["input_schema"]["properties"]
             required = param["input_schema"].get("required", [])
             for param_key, param_value in properties.items():
-                tool_schema.append({
-                    "name": param_key,
-                    "description": param_value.get("description", ""),
-                    "type": param_value.get("type"),
-                    "required": True if param_key in required else False
-                })
+                tool_schema.append(
+                    {
+                        "name": param_key,
+                        "description": param_value.get("description", ""),
+                        "type": param_value.get("type"),
+                        "required": True if param_key in required else False,
+                    }
+                )
 
-            tools_info.append({
-                "tool_name": param["name"],
-                "tool_description": param.get("description", ""),
-                "tool_schema": tool_schema
-            })
+            tools_info.append(
+                {
+                    "tool_name": param["name"],
+                    "tool_description": param.get("description", ""),
+                    "tool_schema": tool_schema,
+                }
+            )
         return tools_info
 
     @classmethod
     async def get_mcp_server_ids_from_name(cls, mcp_servers_name, user_id):
         mcp_servers = await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, user_id)
-        mcp_servers.extend(await MCPServerDao.get_mcp_server_ids_from_name(mcp_servers_name, SystemUser))
         return [mcp_server.mcp_server_id for mcp_server in mcp_servers]
 
 
@@ -164,6 +162,8 @@ class MCPService:
 
         if not mcp_servers:
             raise ValueError("mcpServers 不能为空")
+        if len(mcp_servers) != 1:
+            raise ValueError("一次只能添加一个 MCP 服务")
 
         for server_name, server_conf in mcp_servers.items():
             if not isinstance(server_name, str) or not server_name.strip():
@@ -171,6 +171,8 @@ class MCPService:
 
             if not isinstance(server_conf, dict):
                 raise ValueError(f"mcpServer `{server_name}` 配置必须是对象")
+            if server_conf.get("type") not in {"sse", "streamable_http", "websocket"}:
+                raise ValueError("不支持的 MCP 传输类型")
 
             # 必填字段
             for required_field in ("type", "url"):
@@ -185,41 +187,41 @@ class MCPService:
                 raise ValueError(f"mcpServer `{server_name}` 的 headers 必须是对象 (dict)")
 
     @classmethod
-    async def register_and_import_mcp_server(cls, server_info, user_id):
-        server_name = server_info.get("server_name", "MCP-Server") #
-        server_type = server_info.get("type", "sse")
-        server_headers = server_info.get("headers")
-        server_url = server_info.get("url")
-
-        mcp_manager = MCPManager(
-            [convert_mcp_config(server_info)]
-        )
-        tools_params = await mcp_manager.show_mcp_tools()
-        tools_name_str = []
-        for key, tools in tools_params.items():
-            for tool in tools:
-                tools_name_str.append(tool["name"])
-
-        # 每次更新配置需要修改Mcp As Tool的信息
-        structured_agent = StructuredResponseAgent(MCPResponseFormat)
-        structured_response = structured_agent.get_structured_response(
-            McpAsToolPrompt.format(
-                tools_info=json.dumps(tools_params, indent=4)
-            )
-        )
-        user_name = UserService.get_user_info_by_id(user_id).get("user_name")
-
-        await MCPService.create_mcp_server(
-            tools=tools_name_str,
-            url=server_url,
+    async def create_user_mcp_server(cls, server_info, user_id, user_name, logo_url=None, imported_config=None):
+        server_id = await cls.create_mcp_server(
+            tools=[],
+            params=[],
+            url=server_info["url"],
             config={},
-            type=server_type,
+            type=server_info["type"],
             user_id=user_id,
-            server_name=server_name,
-            config_enabled=False,
-            logo_url=app_settings.default_config.get("mcp_logo_url", ""),
-            params=tools_params.get(server_name),
+            server_name=server_info["server_name"],
             user_name=user_name,
-            description=structured_response.description,
-            mcp_as_tool_name=structured_response.mcp_as_tool_name,
+            config_enabled=False,
+            logo_url=logo_url or app_settings.default_config.get("mcp_logo_url", ""),
+            imported_config=imported_config
+            or {
+                "mcpServers": {
+                    server_info["server_name"]: {
+                        "url": server_info["url"],
+                        "type": server_info["type"],
+                        **(
+                            {
+                                "headers": server_info["headers"],
+                            }
+                            if server_info.get("headers")
+                            else {}
+                        ),
+                    },
+                },
+            },
+            description="服务已保存，正在后台生成工具信息与描述。",
+            mcp_as_tool_name="mcp_service_" + uuid4().hex,
         )
+        queue_metadata(server_id)
+        return server_id
+
+    @classmethod
+    async def register_and_import_mcp_server(cls, server_info, user_id):
+        user_name = UserService.get_user_info_by_id(user_id).get("user_name")
+        return await cls.create_user_mcp_server(server_info, user_id, user_name)

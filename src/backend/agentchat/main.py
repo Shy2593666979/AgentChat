@@ -1,22 +1,19 @@
-import logging
-import warnings
-import redis.asyncio as aioredis
 from contextlib import asynccontextmanager
+
+import redis.asyncio as aioredis
 from fastapi import FastAPI
-from agentchat.auth import AuthJWT
-from agentchat.auth.exceptions import AuthJWTException
-from fastapi.responses import JSONResponse
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 
 from agentchat.api.JWT import Settings as AuthJwtSettings
+from agentchat.auth import AuthJWT
+from agentchat.auth.exceptions import AuthJWTException
 from agentchat.mcp_proxy.session.manager import SessionManager
 from agentchat.middleware.trace_id_middleware import TraceIDMiddleware
 from agentchat.middleware.white_list_middleware import WhitelistMiddleware
-from agentchat.settings import init_app_settings
-from agentchat.settings import app_settings
+from agentchat.settings import app_settings, init_app_settings
+from agentchat.utils.logging import configure_logging
 
-warnings.filterwarnings("ignore")
-logging.getLogger("chromadb").setLevel(logging.WARNING)
 
 async def register_router(app: FastAPI):
     from agentchat.api.router import router
@@ -26,7 +23,9 @@ async def register_router(app: FastAPI):
     # 健康探针
     @app.get("/health")
     def check_health():
-        return {'status': 'OK'}
+        return {
+            'status': 'OK',
+        }
 
 
 def register_middleware(app: FastAPI):
@@ -41,17 +40,18 @@ def register_middleware(app: FastAPI):
         allow_headers=['*'],
     )
 
-    # Trace ID的中间件操作
-    app.add_middleware(TraceIDMiddleware)
-
     # 注册白名单中间件
     app.add_middleware(WhitelistMiddleware)
+
+    # 日志中间件放在最外层，覆盖真实响应发送和客户端断开。
+    app.add_middleware(TraceIDMiddleware)
 
     return app
 
 
 async def init_config():
     await init_app_settings()
+    configure_logging(app_settings.log_level, secrets=app_settings.dict())
 
     from agentchat.database.init_data import init_agentchat_system
     await init_agentchat_system()
@@ -66,21 +66,32 @@ def print_logo():
 async def lifespan(app: FastAPI):
     await init_config()
 
-    redis_client = aioredis.from_url(
-        app_settings.redis.get("endpoint"),
-        decode_responses=True
-    )
+    endpoint = app_settings.redis.get("endpoint")
+    redis_client = aioredis.from_url(endpoint, decode_responses=True) if endpoint else None
     app.state.session_manager = SessionManager(redis_client)
 
+    if app_settings.storage.mode == "local":
+        from fastapi.staticfiles import StaticFiles
+
+        from agentchat.services.storage import storage_client
+        # 上传文件与现有对象存储一样通过 URL 访问。
+        app.mount("/uploads", StaticFiles(directory=str(storage_client.root)), name="uploads")
+
     await register_router(app)
+    from agentchat.api.services.conversation import ConversationService
+    from agentchat.services.mcp.metadata import stop_metadata_tasks
     print_logo()
 
     yield
 
-    await redis_client.close()
+    await stop_metadata_tasks()
+    await ConversationService.stop_conversation_title_tasks()
+    if redis_client is not None:
+        await redis_client.close()
 
 
 def create_app():
+    configure_logging(app_settings.log_level)
     app = FastAPI(
         title=app_settings.server.name,
         version=app_settings.server.version,
@@ -99,7 +110,9 @@ def create_app():
     def authjwt_exception_handler(request, exc):
         return JSONResponse(
             status_code=exc.status_code,
-            content={"detail": exc.message}
+            content={
+                "detail": exc.message,
+            },
         )
 
     return app

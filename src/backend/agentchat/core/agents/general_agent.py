@@ -1,30 +1,42 @@
+import asyncio
 import copy
 import time
-import asyncio
-from loguru import logger
-from pydantic import BaseModel
-from typing import List, Dict, Any, AsyncGenerator, Callable, NotRequired
+from typing import Any, AsyncGenerator, Callable, Dict, List, NotRequired
+
+from langchain.agents import AgentState, create_agent
+from langchain.agents.middleware import (
+    AgentMiddleware,
+    LLMToolSelectorMiddleware,
+    ModelRequest,
+    ModelResponse,
+)
+from langchain.tools.tool_node import ToolCallRequest
+from langchain_core.messages import (
+    AIMessageChunk,
+    BaseMessage,
+    HumanMessage,
+    ToolMessage,
+)
+from langchain_core.tools import BaseTool, StructuredTool, tool
+from langgraph.config import get_stream_writer
 from langgraph.runtime import Runtime
 from langgraph.types import Command
-from langchain_core.tools import BaseTool, tool, StructuredTool
-from langchain.tools.tool_node import ToolCallRequest
-from langchain.agents import create_agent, AgentState
-from langgraph.config import get_stream_writer
-from langchain_core.messages import BaseMessage, ToolMessage, HumanMessage, AIMessageChunk
-from langchain.agents.middleware import LLMToolSelectorMiddleware, ModelRequest, ModelResponse, AgentMiddleware
+from loguru import logger
+from pydantic import BaseModel
 
 from agentchat.api.services.agent_skill import AgentSkillService
+from agentchat.api.services.llm import LLMService
+from agentchat.api.services.mcp_server import MCPService
+from agentchat.api.services.tool import ToolService
+from agentchat.core.agents.mcp_agent import MCPAgent, MCPConfig
 from agentchat.core.agents.skill_agent import SkillAgent
 from agentchat.core.callbacks import usage_metadata_callback
-from agentchat.database import AgentSkill
-from agentchat.tools import AgentToolsWithName
-from agentchat.api.services.llm import LLMService
 from agentchat.core.models.manager import ModelManager
-from agentchat.api.services.tool import ToolService
+from agentchat.database import AgentSkill
 from agentchat.services.rag.handler import RagHandler
-from agentchat.core.agents.mcp_agent import MCPAgent, MCPConfig
-from agentchat.api.services.mcp_server import MCPService
+from agentchat.tools import AgentToolsWithName
 from agentchat.tools.openapi_tool.adapter import OpenAPIToolAdapter
+from agentchat.utils.logging import log_event, tool_operation
 
 
 class StreamAgentState(AgentState):
@@ -61,11 +73,11 @@ class EmitEventAgentMiddleware(AgentMiddleware):
         last_message = state["messages"][-1]
         if last_message.tool_calls:
             return {
-                "model_call_count": state["model_call_count"] + 1
+                "model_call_count": state["model_call_count"] + 1,
             }
 
         return {
-            "jump_to": "end"
+            "jump_to": "end",
         }
 
     async def awrap_model_call(
@@ -79,7 +91,8 @@ class EmitEventAgentMiddleware(AgentMiddleware):
             response = await handler(request)
             return response
         except Exception as err:
-            logger.error(f"Model call error: {err}")
+            log_event("model", "模型调用失败", level="ERROR", error_type=type(err).__name__,
+                      upstream_status=getattr(err, "status_code", None))
             raise ValueError(err)
 
     async def awrap_tool_call(
@@ -91,33 +104,52 @@ class EmitEventAgentMiddleware(AgentMiddleware):
         tool_call_count = request.state.get("tool_call_count", 0)
         # 发送工具分析开始事件
         tool_type, display_tool_name = self.name_resolver_func(request.tool_call["name"])
-        writer({
-            "status": "START",
-            "title": f"执行可用{tool_type}: {display_tool_name}",
-            "message": f"正在调用插件工具 {display_tool_name}..."
-            })
+        writer(
+            {
+                "tool_call_id": request.tool_call["id"],
+                "tool_name": request.tool_call["name"],
+                "args": request.tool_call.get("args", {}),
+                "status": "START",
+                "title": f"执行可用{tool_type}: {display_tool_name}",
+                "message": f"正在调用插件工具 {display_tool_name}...",
+            }
+        )
         request.state["tool_call_count"] = tool_call_count + 1
         try:
-            tool_result = await handler(request)
-            writer({
-                "status": "END",
-                "title": f"执行可用{tool_type}: {display_tool_name}",
-                "message": tool_result.content
-                })
+            with tool_operation("agent.tool", tool=request.tool_call["name"], tool_call_id=request.tool_call["id"]) as operation:
+                tool_result = await handler(request)
+                operation["failed"] = getattr(tool_result, "status", None) == "error"
+            writer(
+                {
+                    "tool_call_id": request.tool_call["id"],
+                    "tool_name": request.tool_call["name"],
+                    "status": (
+                        "ERROR"
+                        if getattr(tool_result, "status", None) == "error"
+                        else "END"
+                    ),
+                    "title": f"执行可用{tool_type}: {display_tool_name}",
+                    "message": tool_result.content,
+                }
+            )
             return tool_result
         except Exception as err:
-            writer({
-                "status": "ERROR",
-                "title": f"执行可用{tool_type}: {display_tool_name}",
-                "message": str(err)
-            })
+            writer(
+                {
+                    "tool_call_id": request.tool_call["id"],
+                    "tool_name": request.tool_call["name"],
+                    "status": "ERROR",
+                    "title": f"执行可用{tool_type}: {display_tool_name}",
+                    "message": str(err),
+                }
+            )
             return ToolMessage(content=str(err), name=request.tool_call["name"], tool_call_id=request.tool_call["id"])
 
 class GeneralAgent:
     def __init__(self, agent_config: AgentConfig):
         self.agent_config = agent_config
 
-        self.conversation_model = None
+        self.chat_model = None
         self.tool_invocation_model = None
         self.react_agent = None
 
@@ -136,7 +168,7 @@ class GeneralAgent:
         event = {
             "type": "event",
             "timestamp": time.time(),
-            "data": data
+            "data": data,
         }
         return event
 
@@ -170,16 +202,16 @@ class GeneralAgent:
         # 普通对话模型
         if self.agent_config.llm_id:
             model_config = await LLMService.get_llm_by_id(self.agent_config.llm_id)
-            self.conversation_model = ModelManager.get_user_model(**model_config)
+            self.chat_model = ModelManager.get_user_model(**model_config)
         else:
-            self.conversation_model = ModelManager.get_conversation_model()
+            self.chat_model = ModelManager.get_chat_model()
 
         # 意图识别模型
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
 
     def setup_react_agent(self):
         return create_agent(
-            model=self.conversation_model,
+            model=self.chat_model,
             tools=self.tools + self.mcp_agent_as_tools + self.skill_agent_as_tools,
             #tools=[self.search_tool] if len(self.tools + self.mcp_agent_as_tools) >= MAX_TOOLS_SIZE else self.tools + self.mcp_agent_as_tools,
             middleware=self.middlewares,
@@ -224,7 +256,12 @@ class GeneralAgent:
                 name="search_available_tools"
             )
 
-            return Command(update={"available_tools": found_tools, "messages": [tool_msg]})
+            return Command(
+                update={
+                    "available_tools": found_tools,
+                    "messages": [tool_msg],
+                }
+            )
         return search_available_tools
 
 
@@ -260,15 +297,23 @@ class GeneralAgent:
 
                     self.tool_metadata_map[openapi_tool["function"].get("name", "")] = {
                         "name": db_tool.display_name,
-                        "type": "工具"
+                        "type": "工具",
                     }
             else:
                 agent_tool = AgentToolsWithName.get(db_tool.name)
                 if agent_tool:
-                    tools.append(agent_tool)
+                    tools.append(
+                        agent_tool.model_copy(
+                            update={
+                                "description": db_tool.description,
+                            }
+                        )
+                        if db_tool.description
+                        else agent_tool
+                    )
                 self.tool_metadata_map[db_tool.name] = {
                     "name": db_tool.display_name,
-                    "type": "工具"
+                    "type": "工具",
                 }
 
         return tools
@@ -292,7 +337,7 @@ class GeneralAgent:
         for agent_skill in agent_skills:
             self.tool_metadata_map[agent_skill.as_tool_name] = {
                 "name": agent_skill.name,  # 技能的中文/友好名称
-                "type": "Skill"
+                "type": "Skill",
             }
             agent_skill_as_tools.append(create_skill_agent_as_tool(agent_skill))
 
@@ -330,7 +375,7 @@ class GeneralAgent:
             # 更新元数据映射
             self.tool_metadata_map[tool_name] = {
                 "name": mcp_config.server_name,
-                "type": "MCP"
+                "type": "MCP",
             }
 
             # 创建并添加工具
@@ -360,7 +405,7 @@ class GeneralAgent:
             self.tools.append(retrival_knowledge)
             self.tool_metadata_map[retrival_knowledge.name] = {
                 "name": "检索知识库",
-                "type": "工具"
+                "type": "工具",
             }
 
 
@@ -369,9 +414,15 @@ class GeneralAgent:
         response_content = ""
         try:
             async for token, metadata in self.react_agent.astream(
-                    input={"messages": copy.deepcopy(messages), "model_call_count": 0, "user_id": self.agent_config.user_id},
-                    config={"callbacks": [usage_metadata_callback]},
-                    stream_mode=["messages", "custom"],
+                input={
+                    "messages": copy.deepcopy(messages),
+                    "model_call_count": 0,
+                    "user_id": self.agent_config.user_id,
+                },
+                config={
+                    "callbacks": [usage_metadata_callback],
+                },
+                stream_mode=["messages", "custom"],
             ):
                 if token == "custom":
                     yield self.wrap_event(metadata)
@@ -382,20 +433,19 @@ class GeneralAgent:
                         "timestamp": time.time(),
                         "data": {
                             "chunk": metadata[0].content,
-                            "accumulated": response_content
-                        }
+                            "accumulated": response_content,
+                        },
                     }
 
         # 针对模型回复进行兜底操作，错误类型包括：敏感词，模型问题
         except Exception as err:
             logger.error(f"LLM Model Error: {err}")
             yield {
-                "type": "response_chunk",
+                "type": "error",
                 "timestamp": time.time(),
                 "data": {
-                    "chunk": "您的问题触及到我的知识盲区，请换个问题吧✨",
-                    "accumulated": response_content
-                }
+                    "message": "模型执行失败，已保留收到的内容，请重试。",
+                },
             }
 
     def stop_streaming_callback(self):

@@ -1,19 +1,23 @@
 import json
-from fastapi import APIRouter, Depends, HTTPException
-from langchain_core.messages import HumanMessage, SystemMessage
-from starlette.responses import StreamingResponse
 
+from fastapi import APIRouter, Depends, HTTPException, Request
+from langchain_core.messages import HumanMessage, SystemMessage
+
+from agentchat.api.responses.builder import resp_200
+from agentchat.api.responses.streaming import (
+    WatchedStreamingResponse as StreamingResponse,
+)
 from agentchat.api.services.llm import LLMService
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.tool import ToolService
+from agentchat.api.services.user import UserPayload, get_login_user
 from agentchat.api.services.workspace_session import WorkSpaceSessionService
 from agentchat.prompts.completion import SYSTEM_PROMPT
-from agentchat.api.responses.builder import resp_200
+from agentchat.protocols.ag_ui import protocol_stream
 from agentchat.schemas.usage_stats import UsageStatsAgentType
 from agentchat.schemas.workspace import WorkSpaceSimpleTask
-from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.services.workspace.simple_agent import WorkSpaceSimpleAgent, MCPConfig
-from agentchat.utils.contexts import set_user_id_context, set_agent_name_context
+from agentchat.services.workspace.simple_agent import MCPConfig, WorkSpaceSimpleAgent
+from agentchat.utils.contexts import set_agent_name_context, set_user_id_context
 
 router = APIRouter(prefix="/workspace", tags=["WorkSpace"])
 
@@ -57,6 +61,7 @@ async def create_workspace_session(session_id: str,
 
 @router.post("/simple/chat", summary="工作台日常对话")
 async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
+                                request: Request,
                                 login_user: UserPayload = Depends(get_login_user)):
     # 设置全局变量统计调用
     set_user_id_context(login_user.user_id)
@@ -65,6 +70,7 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
     model_config = await LLMService.get_llm_by_id(simple_task.model_id)
     servers_config = []
     for mcp_id in simple_task.mcp_servers:
+        await MCPService.verify_user_permission(mcp_id, login_user.user_id)
         mcp_server = await MCPService.get_mcp_server_from_id(mcp_id)
         servers_config.append(
             MCPConfig(**mcp_server)
@@ -80,7 +86,7 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
         mcp_configs=servers_config,
         plugins=simple_task.plugins,
         user_id=login_user.user_id,
-        session_id=simple_task.session_id
+        session_id=simple_task.session_id,
     )
 
     workspace_session = await WorkSpaceSessionService.get_workspace_session_from_id(simple_task.session_id, login_user.user_id)
@@ -97,13 +103,13 @@ async def workspace_simple_chat(simple_task: WorkSpaceSimpleTask,
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
 
     return StreamingResponse(
-        general_generate(),
+        protocol_stream(
+            general_generate(), request, "workspace", simple_task.session_id
+        ),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
             "Connection": "keep-alive",
             "X-Accel-Buffering": "no",
-        }
+        },
     )
-
-

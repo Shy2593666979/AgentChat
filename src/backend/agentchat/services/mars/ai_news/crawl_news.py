@@ -25,6 +25,7 @@ def sync_crawl_with_selenium(url):
 
     driver = webdriver.Chrome(options=chrome_options)
     try:
+        driver.set_page_load_timeout(15)
         driver.get(url)
         driver.implicitly_wait(3)  # 等待页面加载
 

@@ -1,24 +1,28 @@
 import asyncio
 import json
+from typing import Dict, List, TypedDict
 
 from fastapi import WebSocket
-from typing import TypedDict, List, Dict
-
 from langchain_core.messages import HumanMessage
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.prompts import PromptTemplate
 from langchain_openai import ChatOpenAI
-from langgraph.graph import StateGraph, START, END
+from langgraph.graph import END, START, StateGraph
 from loguru import logger
 from pydantic import BaseModel, Field
 
-from agentchat.prompts.llm import agent_guide_word, auto_build_ask_prompt, auto_build_abstract_prompt, create_agent_prompt, \
-    PROMPT_REACT_BASE
 from agentchat.api.services.agent import AgentService
-from agentchat.core.agents.general_agent import ChatService
+from agentchat.api.services.llm import LLMService, React_provider
 from agentchat.api.services.tool import ToolService
 from agentchat.api.services.user import UserPayload
-from agentchat.api.services.llm import LLMService, React_provider
+from agentchat.core.agents.general_agent import ChatService
+from agentchat.prompts.llm import (
+    PROMPT_REACT_BASE,
+    agent_guide_word,
+    auto_build_abstract_prompt,
+    auto_build_ask_prompt,
+    create_agent_prompt,
+)
 from agentchat.tools import action_Function_call
 
 
@@ -154,7 +158,7 @@ class AutoBuildClient:
                 function_name = message.additional_kwargs["function_call"]["name"]
                 arguments = json.loads(message.additional_kwargs["function_call"]["arguments"])
     
-                logger.info(f"function call result: \n function_name: {function_name} \n arguments: {arguments}")
+                logger.debug(f"function call result: \n function_name: {function_name} \n arguments: {arguments}")
                 return function_name, arguments
         except Exception as err:
             logger.info(f"function call is not appear: {err}")

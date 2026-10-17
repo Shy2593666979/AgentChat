@@ -1,0 +1,134 @@
+/*
+ * 已确认的公共侧边栏：以“探索页.png”（1668 × 943）为基准。
+ * 用户要求冻结此设计。其他页面只能使用本组件，不得覆盖其视觉参数。
+ */
+body[data-design='screenshot'] {
+  --sidebar-width: 266px;
+  --sidebar-ink: #12164d;
+  --sidebar-muted: #61688e;
+  --sidebar-blue: #0860ff;
+}
+body[data-sidebar-collapsed='true'][data-design='screenshot'] { --sidebar-width: 84px; }
+body[data-design='screenshot'] #app .p-shell { padding-left: var(--sidebar-width); }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-shell { padding-left: var(--sidebar-width); }
+body[data-design='screenshot'] #app .s-home-shell :is(.ai-nav,.workspace-nav),
+body[data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-nav { left: var(--sidebar-width); }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .s-home-shell :is(.ai-nav,.workspace-nav),
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-nav { left: var(--sidebar-width); }
+body[data-design='screenshot'] #app .p-sidebar {
+  position: fixed;
+  inset: 0 auto 0 0;
+  width: var(--sidebar-width);
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 20px 16px;
+  border-right: 1px solid #e3edf8;
+  border-radius: 0;
+  background: linear-gradient(180deg,#f9fcff,#f8fcff);
+  color: var(--sidebar-ink);
+  font-family: var(--ac-font);
+}
+body[data-design='screenshot'] #app .p-sidebar-brand {
+  display: flex;
+  align-items: flex-start;
+  flex: none;
+  min-height: 68px;
+  padding: 0 12px 12px;
+  text-decoration: none;
+}
+body[data-design='screenshot'] #app .p-sidebar-brand .brand-logo { gap: 16px; transform: none; }
+body[data-design='screenshot'] #app .p-sidebar-brand .brand-logo__mark { width: 56px; height: 56px; }
+body[data-design='screenshot'] #app .p-sidebar-brand .brand-logo__name {
+  color: var(--brand-wordmark-color);
+  font-size: 30px;
+  font-family: var(--brand-wordmark-font);
+  font-weight: var(--brand-wordmark-weight);
+  line-height: 56px;
+  letter-spacing: var(--brand-wordmark-spacing);
+}
+body[data-design='screenshot'] #app .p-sidebar-brand .brand-logo__caption { display: none; }
+body[data-design='screenshot'] #app .p-navigation { margin: 0; overflow-y: auto; overflow-x: hidden; min-height: 0; scrollbar-width: thin; }
+body[data-design='screenshot'] #app .p-nav-section {
+  padding: 26px 13px 7px;
+  color: var(--sidebar-muted);
+  font: 400 16px/26px var(--ac-font);
+}
+body[data-design='screenshot'] #app .p-navigation>div:first-child .p-nav-section { padding-top: 22px; padding-bottom: 8px; }
+body[data-design='screenshot'] #app .p-navigation>div:last-child .p-nav-section { padding-top: 29px; padding-bottom: 8px; }
+body[data-design='screenshot'] #app .s-nav-row { display: flow-root; }
+body[data-design='screenshot'] #app .p-nav-item {
+  display: flex;
+  align-items: center;
+  flex: none;
+  height: 52px;
+  min-height: 52px;
+  margin: 1px 0;
+  padding: 0 24px;
+  gap: 21px;
+  border-radius: 14px;
+  color: var(--sidebar-ink);
+  font: 550 20px/28px var(--ac-font);
+  letter-spacing: 0;
+  text-decoration: none;
+  background: transparent;
+}
+body[data-design='screenshot'] #app .s-workspace-nav { margin: 0; }
+body[data-design='screenshot'] #app .p-nav-item .p-icon { width: 28px; height: 28px; flex: none; stroke-width: 2; }
+body[data-design='screenshot'] #app .p-nav-item:hover { background: #edf5ff; }
+body[data-design='screenshot'] #app .p-nav-item.active {
+  background: #e6f1fe;
+  color: var(--sidebar-blue);
+  font-weight: 550;
+}
+body[data-design='screenshot'] #app .s-submenu-toggle {
+  top: 15px;
+  right: 15px;
+  padding: 3px;
+  color: var(--sidebar-ink);
+}
+body[data-design='screenshot'] #app .s-submenu-toggle>.p-icon { width: 16px; height: 16px; }
+body[data-design='screenshot'] #app .p-nav-subitem { display: flex; align-items: center; gap: 10px; margin: 0 0 5px 71px; color: var(--sidebar-muted); font-size: 14px; text-decoration: none; }
+body[data-design='screenshot'] #app .p-nav-subitem>.p-icon { width: 16px; height: 16px; }
+body[data-design='screenshot'] #app .p-sidebar-footer { flex: none; margin-top: auto; padding: 0; }
+body[data-design='screenshot'] #app .s-collapse-sidebar {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 22px;
+  width: 100%;
+  height: 52px;
+  margin: 0;
+  padding: 0 20px;
+  border: 0;
+  background: transparent;
+  color: #43557c;
+  font: 500 18px/26px var(--ac-font);
+}
+body[data-design='screenshot'] #app .s-collapse-sidebar>.p-icon { width: 24px; height: 24px; flex: none; }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-sidebar { padding-inline: 12px; }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-sidebar-brand { padding: 0 7px 24px; }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-sidebar-brand .brand-logo__mark { width: 44px; height: 44px; }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-nav-item { justify-content: center; padding: 0; gap: 0; }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-nav-section,
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-nav-item>span,
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-sidebar .brand-logo__type,
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .p-nav-subitem,
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .s-submenu-toggle,
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .s-collapse-sidebar>span { display: none; }
+body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .s-collapse-sidebar { justify-content: center; padding: 0; }
+@media(max-width:700px) {
+  body[data-design='screenshot'],body[data-sidebar-collapsed='true'][data-design='screenshot'] { --sidebar-width: 68px; }
+  body[data-design='screenshot'] #app .p-sidebar { padding: 20px 8px; }
+  body[data-design='screenshot'] #app .p-sidebar-brand { padding: 0 3px 24px; }
+  body[data-design='screenshot'] #app .p-sidebar-brand .brand-logo__mark { width: 44px; height: 44px; }
+  body[data-design='screenshot'] #app .p-nav-item { justify-content: center; padding: 0; gap: 0; }
+  body[data-design='screenshot'] #app .p-nav-section,
+  body[data-design='screenshot'] #app .p-nav-item>span,
+  body[data-design='screenshot'] #app .p-sidebar .brand-logo__type,
+  body[data-design='screenshot'] #app .p-nav-subitem,
+  body[data-design='screenshot'] #app .s-submenu-toggle,
+  body[data-design='screenshot'] #app .s-collapse-sidebar>span { display: none; }
+  body[data-design='screenshot'] #app .p-sidebar-footer { display: block; }
+  body[data-design='screenshot'] #app .s-collapse-sidebar { justify-content: center; padding: 0; }
+}

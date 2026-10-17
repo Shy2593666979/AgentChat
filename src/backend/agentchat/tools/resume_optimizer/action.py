@@ -1,7 +1,9 @@
 import os
-from docx import Document
-from openai import OpenAI
+
 import fitz  # PyMuPDF
+from docx import Document
+from loguru import logger
+from openai import OpenAI
 
 
 class ResumeEnhancer:
@@ -24,7 +26,7 @@ class ResumeEnhancer:
             )
             return response.choices[0].message.content
         except Exception as e:
-            print(f"调用 API 时出错: {e}")
+            logger.warning("简历优化模型调用失败：{}", type(e).__name__)
             return text
 
     def process_docx(self, input_path, output_path):

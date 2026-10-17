@@ -1,16 +1,17 @@
-from loguru import logger
-from typing import Optional, Union, Dict, Literal, List
+from typing import Dict, List, Literal, Optional, Union
+
 from langchain.agents import create_agent
 from langchain.agents.middleware import wrap_tool_call
 from langchain.tools import tool
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
 from langgraph.config import get_stream_writer
 from langgraph.prebuilt.tool_node import ToolCallRequest
+from loguru import logger
 
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.core.models.manager import ModelManager
 from agentchat.database import AgentSkill
-from agentchat.schemas.agent_skill import AgentSkillFolder, AgentSkillFile
+from agentchat.schemas.agent_skill import AgentSkillFile, AgentSkillFolder
 
 
 class SkillAgent:
@@ -25,7 +26,7 @@ class SkillAgent:
         self.skill_folder: Optional[AgentSkillFolder] = None
         self.file_cache: Dict[str, AgentSkillFile] = {}  # 路径 -> 文件对象
 
-        self.conversation_model = None
+        self.chat_model = None
         self.tool_invocation_model = None
         self.tools = None
         self.middlewares = None
@@ -51,7 +52,7 @@ class SkillAgent:
 
     def setup_react_agent(self):
         """设置 ReAct Agent"""
-        if not self.conversation_model:
+        if not self.chat_model:
             raise ValueError("语言模型未初始化")
 
         skill_md = self.get_skill_md()
@@ -60,7 +61,7 @@ class SkillAgent:
             skill_md = f"技能名称: {self.skill.name}\n描述: {self.skill.description or '无描述'}"
 
         return create_agent(
-            model=self.conversation_model,
+            model=self.chat_model,
             tools=self.tools,
             middleware=self.middlewares,
             system_prompt=self._build_system_prompt(skill_md)
@@ -68,7 +69,7 @@ class SkillAgent:
 
     def setup_language_model(self):
         """设置语言模型"""
-        self.conversation_model = ModelManager.get_conversation_model()
+        self.chat_model = ModelManager.get_chat_model()
         self.tool_invocation_model = ModelManager.get_tool_invocation_model()
 
 

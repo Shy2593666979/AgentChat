@@ -2,7 +2,8 @@
 import { fetchEventSource } from '@microsoft/fetch-event-source';
 
 export interface Chat {
-  dialogId: string
+  conversationId: string
+  agentId?: string
   userInput: string
   fileUrl?: string
 }
@@ -23,14 +24,15 @@ export function sendMessage(data: Chat, onmessage: any, onclose: any) {
       'Authorization': `Bearer ${localStorage.getItem('token') || ''}`
     },
     body: JSON.stringify({
+      ...(data.agentId ? { agent_id: data.agentId } : {}),
       ...(data.fileUrl
         ? {
-            dialog_id: data.dialogId,
+            conversation_id: data.conversationId,
             user_input: data.userInput,
             file_url: data.fileUrl,
           }
         : {
-            dialog_id: data.dialogId,
+            conversation_id: data.conversationId,
             user_input: data.userInput,
           }),
     }),

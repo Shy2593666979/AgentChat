@@ -1,36 +1,40 @@
 import asyncio
-from typing import Dict, List, AsyncGenerator, Optional, Callable
 import contextvars
-from langchain_core.messages import HumanMessage
-from langchain_core.messages import AIMessage
-from langgraph.types import Send
-from langgraph.graph import StateGraph
-from langgraph.graph import START, END
-from langchain_core.runnables import RunnableConfig
-from tavily import TavilyClient
-from loguru import logger
 import json
 from dataclasses import dataclass
+from typing import AsyncGenerator, Callable, Dict, List, Optional
+
+from langchain_core.messages import AIMessage, HumanMessage
+from langchain_core.runnables import RunnableConfig
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
+from loguru import logger
+from tavily import TavilyClient
 
 from agentchat.core.models.manager import ModelManager
+from agentchat.services.deepsearch.configuration import Configuration
+from agentchat.services.deepsearch.prompts import (
+    answer_instructions,
+    get_current_date,
+    query_writer_instructions,
+    reflection_instructions,
+    web_searcher_instructions,
+)
 from agentchat.services.deepsearch.state import (
     OverallState,
     QueryGenerationState,
     ReflectionState,
     WebSearchState,
 )
-from agentchat.services.deepsearch.configuration import Configuration
-from agentchat.services.deepsearch.prompts import (
-    get_current_date,
-    query_writer_instructions,
-    web_searcher_instructions,
-    reflection_instructions,
-    answer_instructions,
-)
 from agentchat.settings import app_settings
 
-# 初始化Tavily客户端
-tavily_client = TavilyClient(api_key=app_settings.tools.tavily["api_key"])
+
+# 延迟创建外部搜索客户端，未配置的可选服务不影响启动。
+def get_tavily_client():
+    api_key = app_settings.tools.tavily.get("api_key")
+    if not api_key:
+        raise ValueError("当前未启用 Tavily 深度搜索服务")
+    return TavilyClient(api_key=api_key)
 
 # 使用contextvars来传递流式输出回调，支持并发
 stream_callback: contextvars.ContextVar[Optional[Callable]] = contextvars.ContextVar('stream_callback', default=None)
@@ -66,17 +70,19 @@ class StreamingGraph:
 
     def __init__(self):
         self.output_queue = asyncio.Queue()
-        self.conversation_model = ModelManager.get_conversation_model()
+        self.chat_model = ModelManager.get_chat_model()
 
     async def _stream_callback(self, output: StreamOutput):
         """内部流式输出回调"""
         try:
-            await self.output_queue.put({
-                "type": output.type,
-                "node": output.node,
-                "content": output.content,
-                "metadata": output.metadata
-            })
+            await self.output_queue.put(
+                {
+                    "type": output.type,
+                    "node": output.node,
+                    "content": output.content,
+                    "metadata": output.metadata,
+                }
+            )
         except asyncio.QueueFull:
             logger.warning("流式输出队列已满，丢弃输出")
 
@@ -107,9 +113,9 @@ class StreamingGraph:
         await stream_output("generate_query", f"开始生成搜索查询，主题：{research_topic}", "start")
 
         content = ""
-        async for chunk in self.conversation_model.astream(formatted_prompt):
+        async for chunk in self.chat_model.astream(formatted_prompt):
             content += chunk.content
-        
+
         try:
             content = content.replace("```json", "").replace("```", "")
             result = json.loads(content)
@@ -117,17 +123,34 @@ class StreamingGraph:
             if not queries:
                 queries = [research_topic]
 
-            await stream_output("generate_query", f"生成了{len(queries)}个搜索查询", "complete", {"queries": queries})
-            return {"search_query": queries}
+            await stream_output(
+                "generate_query",
+                f"生成了{len(queries)}个搜索查询",
+                "complete",
+                {
+                    "queries": queries,
+                },
+            )
+            return {
+                "search_query": queries,
+            }
         except Exception as e:
             logger.error(f"解析查询生成结果失败: {e}")
             await stream_output("generate_query", "解析失败，使用原始问题作为查询", "error")
-            return {"search_query": [research_topic]}
+            return {
+                "search_query": [research_topic],
+            }
 
     def continue_to_web_research(self, state: QueryGenerationState):
         """LangGraph节点，将搜索查询发送到网络研究节点。"""
         return [
-            Send("web_research", {"search_query": search_query, "id": int(idx)})
+            Send(
+                "web_research",
+                {
+                    "search_query": search_query,
+                    "id": int(idx),
+                },
+            )
             for idx, search_query in enumerate(state["search_query"])
         ]
 
@@ -136,20 +159,26 @@ class StreamingGraph:
         search_query = state["search_query"]
         query_id = state["id"]
 
-        await stream_output("web_research", f"开始搜索：{search_query}", "start",
-                      {"query_id": query_id})
-        logger.info(f"🔍 执行搜索: {search_query}")
+        await stream_output(
+            "web_research",
+            f"开始搜索：{search_query}",
+            "start",
+            {
+                "query_id": query_id,
+            },
+        )
+        logger.debug(f"🔍 执行搜索: {search_query}")
 
         try:
             response = await asyncio.to_thread(
-                tavily_client.search,
+                get_tavily_client().search,
                 query=search_query,
                 max_results=10,
                 time_range="month",
                 include_raw_content="markdown",
                 country="china"
             )
-            
+
             formatted_results = self.format_tavily_results(response)
 
             sources = []
@@ -157,15 +186,24 @@ class StreamingGraph:
                 source_id = f"{query_id}-{idx}"
                 source_url = result.get("url", "")
                 source_title = result.get("title", "未知标题")
-                sources.append({
-                    "short_url": f"https://search.result/{source_id}",
-                    "value": source_url,
-                    "label": source_title
-                })
+                sources.append(
+                    {
+                        "short_url": f"https://search.result/{source_id}",
+                        "value": source_url,
+                        "label": source_title,
+                    }
+                )
 
             result_count = len(response.get('results', []))
-            await stream_output("web_research", f"找到 {result_count} 个搜索结果", "complete",
-                          {"result_count": result_count, "query_id": query_id})
+            await stream_output(
+                "web_research",
+                f"找到 {result_count} 个搜索结果",
+                "complete",
+                {
+                    "result_count": result_count,
+                    "query_id": query_id,
+                },
+            )
             logger.info(f"✅ 找到 {result_count} 个结果")
 
             return {
@@ -175,7 +213,14 @@ class StreamingGraph:
             }
         except Exception as e:
             error_msg = f"搜索失败: {str(e)}"
-            await stream_output("web_research", error_msg, "error", {"query_id": query_id})
+            await stream_output(
+                "web_research",
+                error_msg,
+                "error",
+                {
+                    "query_id": query_id,
+                },
+            )
             logger.error(f"❌ {error_msg}")
             return {
                 "sources_gathered": [],
@@ -202,8 +247,14 @@ class StreamingGraph:
         configurable = Configuration.from_runnable_config(config)
         state["research_loop_count"] = state.get("research_loop_count", 0) + 1
 
-        await stream_output("reflection", "开始分析研究结果，识别知识缺口", "start",
-                      {"loop_count": state["research_loop_count"]})
+        await stream_output(
+            "reflection",
+            "开始分析研究结果，识别知识缺口",
+            "start",
+            {
+                "loop_count": state["research_loop_count"],
+            },
+        )
 
         current_date = get_current_date()
         research_topic = get_research_topic(state["messages"])
@@ -217,7 +268,7 @@ class StreamingGraph:
         )}
         """
 
-        response = await self.conversation_model.ainvoke(formatted_prompt)
+        response = await self.chat_model.ainvoke(formatted_prompt)
         content = response.content
 
         try:
@@ -228,13 +279,20 @@ class StreamingGraph:
             follow_up_queries = result.get("follow_up_queries", [])
 
             status = "足够" if is_sufficient else "不足够"
-            await stream_output("reflection", f"分析完成：当前信息{status}", "complete",
-                          {"is_sufficient": is_sufficient, "follow_up_count": len(follow_up_queries)})
+            await stream_output(
+                "reflection",
+                f"分析完成：当前信息{status}",
+                "complete",
+                {
+                    "is_sufficient": is_sufficient,
+                    "follow_up_count": len(follow_up_queries),
+                },
+            )
 
             logger.info(f"📊 反思结果: {status}")
             if not is_sufficient:
-                logger.info(f"💭 知识缺口: {knowledge_gap}")
-                logger.info(f"🔄 后续查询: {follow_up_queries}")
+                logger.debug(f"💭 知识缺口: {knowledge_gap}")
+                logger.debug(f"🔄 后续查询: {follow_up_queries}")
                 await stream_output("reflection", f"需要进行{len(follow_up_queries)}个后续查询", "info")
 
             return {
@@ -299,7 +357,7 @@ class StreamingGraph:
         """
 
         content = ""
-        async for chunk in self.conversation_model.astream(formatted_prompt):
+        async for chunk in self.chat_model.astream(formatted_prompt):
             content += chunk.content
             await stream_output("finalize_answer", chunk.content, "streaming")
 
@@ -341,12 +399,16 @@ class StreamingGraph:
     async def run_with_streaming(self, messages: List[HumanMessage]) -> AsyncGenerator[Dict, None]:
         """使用异步流式输出运行智能体"""
         graph = self.create_graph()
-        
+
         async def graph_task():
             token = stream_callback.set(self._stream_callback)
             try:
                 # 使用 astream 异步流式调用
-                async for chunk in graph.astream({"messages": messages}):
+                async for chunk in graph.astream(
+                    {
+                        "messages": messages,
+                    }
+                ):
                     # astream 已经将每个节点的输出流式化，
                     # 我们可以通过回调把它们送到队列
                     pass # astream本身就会触发节点中的stream_output
@@ -366,7 +428,7 @@ class StreamingGraph:
             yield output
             if output.get("type") == "end":
                 break
-        
+
         await task
 
 
@@ -394,7 +456,7 @@ async def main():
     for i, query in enumerate(queries, 1):
         print(f"\n--- 第{i}次查询: {query} ---")
         user_msg = HumanMessage(content=query)
-        
+
         async for output in agent.run_with_streaming([user_msg]):
             output_type = output.get('type', 'unknown')
             node = output.get('node', 'unknown')
@@ -403,11 +465,15 @@ async def main():
             if output_type == "streaming":
                 print(f"{content}", end='', flush=True)
             elif output_type in ["start", "complete", "error"]:
-                emoji = {"start": "🚀", "complete": "✅", "error": "❌"}[output_type]
+                emoji = {
+                    "start": "🚀",
+                    "complete": "✅",
+                    "error": "❌",
+                }[output_type]
                 print(f"\n{emoji} [{node}] {content}")
             elif output_type == "final_result":
                 print(f"\n🎯 查询{i}完成")
-            
+
             if output_type == 'end':
                 break
 

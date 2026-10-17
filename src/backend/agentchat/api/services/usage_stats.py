@@ -1,17 +1,19 @@
-from datetime import datetime
 from collections import defaultdict
-from typing import Dict, List, Optional, DefaultDict
+from datetime import datetime
+from typing import DefaultDict, Dict, List, Optional
 
-from agentchat.database.dao.usage_stats import UsageStatsDao, UsageStats
+from agentchat.database.dao.usage_stats import UsageStats, UsageStatsDao
+
 
 class UsageStatsService:
 
     @classmethod
-    async def create_usage_stats(cls, agent, model, user_id, input_tokens=0, output_tokens=0):
+    async def create_usage_stats(cls, agent, model, user_id, input_tokens=0, output_tokens=0, conversation_id=None):
         usage_stats = UsageStats(
             agent=agent,
             model=model,
             user_id=user_id,
+            conversation_id=conversation_id,
             input_tokens=input_tokens,
             output_tokens=output_tokens
         )
@@ -19,11 +21,12 @@ class UsageStatsService:
         await UsageStatsDao.create_usage_stats(usage_stats)
 
     @classmethod
-    def sync_create_usage_stats(cls, agent, model, user_id, input_tokens=0, output_tokens=0):
+    def sync_create_usage_stats(cls, agent, model, user_id, input_tokens=0, output_tokens=0, conversation_id=None):
         usage_stats = UsageStats(
             agent=agent,
             model=model,
             user_id=user_id,
+            conversation_id=conversation_id,
             input_tokens=input_tokens,
             output_tokens=output_tokens
         )
@@ -46,17 +49,21 @@ class UsageStatsService:
         user_id: str,
         agent: Optional[str] = None,
         model: Optional[str] = None,
-        delta_days: int = 10000  # 默认值可视为所有数据
+        delta_days: int = 10000,  # 默认值可视为所有数据
+        conversation_id: Optional[str] = None,
     ):
         results = await UsageStatsDao.get_agent_model_time_usage(
-            user_id, agent, model, delta_days
+            user_id, agent, model, delta_days, conversation_id
         )
         # 按日期升序排序
         results.sort(key=lambda x: x.create_time.date() if x.create_time else datetime.min.date())
 
         # 初始化嵌套字典（默认结构：日期→{"agent": {}, "model": {}}）
         date_usage_dict: DefaultDict[str, Dict[str, Dict]] = defaultdict(
-            lambda: {"agent": defaultdict(dict), "model": defaultdict(dict)}
+            lambda: {
+                "agent": defaultdict(dict),
+                "model": defaultdict(dict),
+            }
         )
 
         # 遍历数据，填充字典
@@ -71,7 +78,7 @@ class UsageStatsService:
                 date_usage_dict[date_key]["agent"][agent_key] = {
                     "input_tokens": 0,
                     "output_tokens": 0,
-                    "total_tokens": 0
+                    "total_tokens": 0,
                 }
             # 累加agent的token数量
             date_usage_dict[date_key]["agent"][agent_key]["input_tokens"] += item.input_tokens
@@ -85,7 +92,7 @@ class UsageStatsService:
                 date_usage_dict[date_key]["model"][model_key] = {
                     "input_tokens": 0,
                     "output_tokens": 0,
-                    "total_tokens": 0
+                    "total_tokens": 0,
                 }
             # 累加model的token数量
             date_usage_dict[date_key]["model"][model_key]["input_tokens"] += item.input_tokens
@@ -101,17 +108,21 @@ class UsageStatsService:
             user_id: str,
             agent: Optional[str] = None,
             model: Optional[str] = None,
-            delta_days: int = 10000  # 默认值可视为所有数据
+            delta_days: int = 10000,  # 默认值可视为所有数据
+            conversation_id: Optional[str] = None,
     ):
         results = await UsageStatsDao.get_agent_model_time_usage(
-            user_id, agent, model, delta_days
+            user_id, agent, model, delta_days, conversation_id
         )
         # 按日期升序排序
         results.sort(key=lambda x: x.create_time.date() if x.create_time else datetime.min.date())
 
         # 初始化嵌套字典（默认结构：日期→{"agent": {}, "model": {}}）
         date_usage_dict: DefaultDict[str, Dict[str, Dict]] = defaultdict(
-            lambda: {"agent": defaultdict(int), "model": defaultdict(int)}
+            lambda: {
+                "agent": defaultdict(int),
+                "model": defaultdict(int),
+            }
         )
 
         # 遍历数据，填充字典
@@ -130,5 +141,17 @@ class UsageStatsService:
         final_dict = dict(date_usage_dict)
         return final_dict
 
-
-
+    @classmethod
+    async def get_conversation_usage(cls, user_id: str, conversation_ids: List[str]):
+        """批量汇总会话累计模型用量，不与历史文本的估算 token 相加。"""
+        results = await UsageStatsDao.get_conversation_usage(user_id, conversation_ids)
+        return {
+            conversation_id: {
+                "input_tokens": int(input_tokens),
+                "output_tokens": int(output_tokens),
+                "total_tokens": int(input_tokens + output_tokens),
+                "model_calls": int(model_calls),
+                "usage_available": True,
+            }
+            for conversation_id, input_tokens, output_tokens, model_calls in results
+        }

@@ -1,6 +1,8 @@
-from typing import List, Set, Optional
+from typing import List, Optional, Set
+
 from fastapi import FastAPI, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
+
 from agentchat.settings import app_settings
 
 
@@ -22,6 +24,10 @@ class WhitelistChecker:
 
     def is_whitelisted(self, path: str) -> bool:
         """检查路径是否在白名单中"""
+        # MCP 管理和聊天接口始终使用真实登录身份，避免宽泛白名单将用户合并为管理员。
+        if path == "/api/v1/mcp" or path.startswith(("/api/v1/mcp/", "/api/v1/mcp_")):
+            return False
+
         # 优先检查精确匹配
         if path in self.exact_paths:
             return True

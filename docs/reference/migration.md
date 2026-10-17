@@ -420,7 +420,7 @@ class MarsAgent:
         memory = ConversationBufferMemory(return_messages=True)
         return initialize_agent(
             tools=self.mars_tools,
-            llm=self.conversation_model,
+            llm=self.chat_model,
             agent=AgentType.STRUCTURED_CHAT_ZERO_SHOT_REACT_DESCRIPTION,
             memory=memory,
             verbose=True
@@ -448,7 +448,7 @@ class MarsAgent:
 
     def setup_react_agent(self):
         return create_agent(
-            model=self.conversation_model,
+            model=self.chat_model,
             tools=self.mars_tools,
             middleware=self.middlewares,
             system_prompt="You are a helpful Mars assistant"
@@ -633,7 +633,7 @@ uvicorn agentchat.main:app --port 7860
 # 测试 API 接口
 curl -X POST "http://localhost:7860/api/v1/chat" \
   -H "Content-Type: application/json" \
-  -d '{"dialog_id": "test", "user_input": "Hello"}'
+  -d '{"conversation_id": "test", "user_input": "Hello"}'
 ```
 
 ---

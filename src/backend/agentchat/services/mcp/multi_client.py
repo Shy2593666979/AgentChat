@@ -17,6 +17,7 @@ from mcp import ClientSession
 
 from agentchat.services.mcp.load_mcp.prompts import load_mcp_prompt
 from agentchat.services.mcp.load_mcp.resources import load_mcp_resources
+from agentchat.services.mcp.load_mcp.tools import load_mcp_tools
 from agentchat.services.mcp.sessions import (
     Connection,
     McpHttpClientFactory,
@@ -26,7 +27,6 @@ from agentchat.services.mcp.sessions import (
     WebsocketConnection,
     create_session,
 )
-from agentchat.services.mcp.load_mcp.tools import load_mcp_tools
 
 ASYNC_CONTEXT_MANAGER_ERROR = (
     "context manager (e.g., async with MultiServerMCPClient(...)). "
@@ -144,13 +144,13 @@ class MultiServerMCPClient:
                     f"expected one of '{list(self.connections.keys())}'"
                 )
                 raise ValueError(msg)
-            return await load_mcp_tools(None, connection=self.connections[server_name])
+            return await load_mcp_tools(None, connection=self.connections[server_name], server_name=server_name)
 
         all_tools: list[BaseTool] = []
         load_mcp_tool_tasks = []
-        for connection in self.connections.values():
+        for name, connection in self.connections.items():
             load_mcp_tool_task = asyncio.create_task(
-                load_mcp_tools(None, connection=connection)
+                load_mcp_tools(None, connection=connection, server_name=name)
             )
             load_mcp_tool_tasks.append(load_mcp_tool_task)
         tools_list = await asyncio.gather(*load_mcp_tool_tasks)

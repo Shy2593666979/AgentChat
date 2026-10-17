@@ -1,49 +1,482 @@
 [
   {
     "server_name": "高德地图",
+    "mcp_as_tool_name": "amap_location",
+    "description": "处理地点查询、周边搜索、路线规划及出行相关问题。子智能体可以调用多个自身工具，所以将用户问题整合询问一次即可。",
     "url": "https://mcp.api-inference.modelscope.net/77df8a09751e4c/sse",
     "type": "sse",
     "config": {},
-    "params": {},
+    "params": [
+      {
+        "name": "maps_regeocode",
+        "description": "将一个高德经纬度坐标转换为行政区划地址信息",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "location": {
+              "type": "string",
+              "description": "经纬度"
+            }
+          },
+          "required": [
+            "location"
+          ]
+        }
+      },
+      {
+        "name": "maps_geo",
+        "description": "将详细的结构化地址转换为经纬度坐标。支持对地标性名胜景区、建筑物名称解析为经纬度坐标",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "address": {
+              "type": "string",
+              "description": "待解析的结构化地址信息"
+            },
+            "city": {
+              "type": "string",
+              "description": "指定查询的城市"
+            }
+          },
+          "required": [
+            "address"
+          ]
+        }
+      },
+      {
+        "name": "maps_ip_location",
+        "description": "IP 定位根据用户输入的 IP 地址，定位 IP 的所在位置",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "ip": {
+              "type": "string",
+              "description": "IP地址"
+            }
+          },
+          "required": [
+            "ip"
+          ]
+        }
+      },
+      {
+        "name": "maps_weather",
+        "description": "根据城市名称或者标准adcode查询指定城市的天气",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "city": {
+              "type": "string",
+              "description": "城市名称或者adcode"
+            }
+          },
+          "required": [
+            "city"
+          ]
+        }
+      },
+      {
+        "name": "maps_search_detail",
+        "description": "查询关键词搜或者周边搜获取到的POI ID的详细信息",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "id": {
+              "type": "string",
+              "description": "关键词搜或者周边搜获取到的POI ID"
+            }
+          },
+          "required": [
+            "id"
+          ]
+        }
+      },
+      {
+        "name": "maps_bicycling",
+        "description": "骑行路径规划用于规划骑行通勤方案，规划时会考虑天桥、单行线、封路等情况。最大支持 500km 的骑行路线规划",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "description": "出发点经纬度，坐标格式为：经度，纬度"
+            },
+            "destination": {
+              "type": "string",
+              "description": "目的地经纬度，坐标格式为：经度，纬度"
+            }
+          },
+          "required": [
+            "origin",
+            "destination"
+          ]
+        }
+      },
+      {
+        "name": "maps_direction_walking",
+        "description": "步行路径规划 API 可以根据输入起点终点经纬度坐标规划100km 以内的步行通勤方案，并且返回通勤方案的数据",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "description": "出发点经度，纬度，坐标格式为：经度，纬度"
+            },
+            "destination": {
+              "type": "string",
+              "description": "目的地经度，纬度，坐标格式为：经度，纬度"
+            }
+          },
+          "required": [
+            "origin",
+            "destination"
+          ]
+        }
+      },
+      {
+        "name": "maps_direction_driving",
+        "description": "驾车路径规划 API 可以根据用户起终点经纬度坐标规划以小客车、轿车通勤出行的方案，并且返回通勤方案的数据。",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "description": "出发点经度，纬度，坐标格式为：经度，纬度"
+            },
+            "destination": {
+              "type": "string",
+              "description": "目的地经度，纬度，坐标格式为：经度，纬度"
+            }
+          },
+          "required": [
+            "origin",
+            "destination"
+          ]
+        }
+      },
+      {
+        "name": "maps_direction_transit_integrated",
+        "description": "公交路径规划 API 可以根据用户起终点经纬度坐标规划综合各类公共（火车、公交、地铁）交通方式的通勤方案，并且返回通勤方案的数据，跨城场景下必须传起点城市与终点城市",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "origin": {
+              "type": "string",
+              "description": "出发点经度，纬度，坐标格式为：经度，纬度"
+            },
+            "destination": {
+              "type": "string",
+              "description": "目的地经度，纬度，坐标格式为：经度，纬度"
+            },
+            "city": {
+              "type": "string",
+              "description": "公共交通规划起点城市"
+            },
+            "cityd": {
+              "type": "string",
+              "description": "公共交通规划终点城市"
+            }
+          },
+          "required": [
+            "origin",
+            "destination",
+            "city",
+            "cityd"
+          ]
+        }
+      },
+      {
+        "name": "maps_distance",
+        "description": "距离测量 API 可以测量两个经纬度坐标之间的距离,支持驾车、步行以及球面距离测量",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "origins": {
+              "type": "string",
+              "description": "起点经度，纬度，可以传多个坐标，使用竖线隔离，比如120,30|120,31，坐标格式为：经度，纬度"
+            },
+            "destination": {
+              "type": "string",
+              "description": "终点经度，纬度，坐标格式为：经度，纬度"
+            },
+            "type": {
+              "type": "string",
+              "description": "距离测量类型,1代表驾车距离测量，0代表直线距离测量，3步行距离测量"
+            }
+          },
+          "required": [
+            "origins",
+            "destination"
+          ]
+        }
+      },
+      {
+        "name": "maps_text_search",
+        "description": "关键词搜，根据用户传入关键词，搜索出相关的POI",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "keywords": {
+              "type": "string",
+              "description": "搜索关键词"
+            },
+            "city": {
+              "type": "string",
+              "description": "查询城市"
+            },
+            "types": {
+              "type": "string",
+              "description": "POI类型，比如加油站"
+            }
+          },
+          "required": [
+            "keywords"
+          ]
+        }
+      },
+      {
+        "name": "maps_around_search",
+        "description": "周边搜，根据用户传入关键词以及坐标location，搜索出radius半径范围的POI",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "keywords": {
+              "type": "string",
+              "description": "搜索关键词"
+            },
+            "location": {
+              "type": "string",
+              "description": "中心点经度纬度"
+            },
+            "radius": {
+              "type": "string",
+              "description": "搜索半径"
+            }
+          },
+          "required": [
+            "location"
+          ]
+        }
+      }
+    ],
     "config_enabled": false,
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/map.png"
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/map.png",
+    "tools": [
+      "maps_regeocode",
+      "maps_geo",
+      "maps_ip_location",
+      "maps_weather",
+      "maps_search_detail",
+      "maps_bicycling",
+      "maps_direction_walking",
+      "maps_direction_driving",
+      "maps_direction_transit_integrated",
+      "maps_distance",
+      "maps_text_search",
+      "maps_around_search"
+    ]
   },
   {
     "server_name": "必应搜索",
+    "mcp_as_tool_name": "bing_web_search",
+    "description": "通过必应搜索查找网页资料，为需要联网检索的问题提供参考信息。子智能体可以调用多个自身工具，所以将用户问题整合询问一次即可。",
     "url": "https://mcp.api-inference.modelscope.net/23311e898a7e4a/sse",
     "type": "sse",
     "config": {},
-    "params": {},
+    "params": [
+      {
+        "name": "bing_search",
+        "description": "使用必应中文搜索引擎搜索信息。返回搜索结果包括标题、链接和摘要。",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "query": {
+              "type": "string",
+              "minLength": 1,
+              "description": "搜索关键词或查询语句"
+            },
+            "count": {
+              "type": "number",
+              "minimum": 1,
+              "maximum": 50,
+              "default": 10,
+              "description": "返回结果数量，默认10条，最多50条"
+            },
+            "offset": {
+              "type": "number",
+              "minimum": 0,
+              "default": 0,
+              "description": "结果偏移量，用于分页，默认0"
+            }
+          },
+          "required": [
+            "query"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      },
+      {
+        "name": "crawl_webpage",
+        "description": "根据搜索结果的UUID抓取网页内容。支持批量抓取多个网页。会自动过滤黑名单中的网站(如知乎、小红书等)。",
+        "input_schema": {
+          "type": "object",
+          "properties": {
+            "uuids": {
+              "type": "array",
+              "items": {
+                "type": "string"
+              },
+              "minItems": 1,
+              "description": "搜索结果的UUID列表，可以是单个或多个UUID"
+            },
+            "urlMap": {
+              "type": "object",
+              "additionalProperties": {
+                "type": "string"
+              },
+              "description": "UUID到URL的映射对象，格式: {\"uuid1\": \"url1\", \"uuid2\": \"url2\"}"
+            }
+          },
+          "required": [
+            "uuids",
+            "urlMap"
+          ],
+          "additionalProperties": false,
+          "$schema": "http://json-schema.org/draft-07/schema#"
+        }
+      }
+    ],
     "config_enabled": false,
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/biying.png"
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/biying.png",
+    "tools": [
+      "bing_search",
+      "crawl_webpage"
+    ]
   },
   {
     "server_name": "Parallel 搜索",
+    "mcp_as_tool_name": "parallel_web_research",
+    "description": "检索网页并提取相关内容，支持资料搜集与研究问题。子智能体可以调用多个自身工具，所以将用户问题整合询问一次即可。",
     "url": "https://search.parallel.ai/mcp",
     "type": "streamable_http",
     "config": {},
-    "params": {},
-    "config_enabled": false,
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png"
-  },
-  {
-    "server_name": "飞书",
-    "url": "http://47.95.23.87:8000/sse",
-    "type": "sse",
-    "config": [
+    "params": [
       {
-        "label": "APP_ID",
-        "key": "app_id",
-        "value": ""
+        "name": "web_search",
+        "description": "Purpose: Perform web searches and return\nLLM-friendly results, including excerpts that are usually sufficient to\nanswer directly without a follow-up fetch.\n\nIdeal Use Cases:\n- Answering questions that require fresh or current information\n- Research, comparison, documentation, and troubleshooting questions\n- Broad tasks where multiple `search_queries` can be issued in a single call\n\nFor multiple independent objectives, make one web_search call per objective\nconcurrently. Put related query variations for the same objective in a single\ncall's search_queries list.\n",
+        "input_schema": {
+          "properties": {
+            "objective": {
+              "description": "Natural-language description of what the web search is trying to find.\nTry to make the search objective atomic, looking for a specific piece of information. May include guidance about preferred sources or freshness.",
+              "title": "Objective",
+              "type": "string"
+            },
+            "search_queries": {
+              "description": "Concise keyword search queries, 3-6 words\neach, which may include search operators. At least one query is required;\nprovide 2-3 for best results. For broad tasks, you can include multiple\nrelated queries in a single call instead of chaining web_search calls. The\nqueries should be related to the objective.",
+              "items": {
+                "type": "string"
+              },
+              "title": "Search Queries",
+              "type": "array"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Stable identifier for the current conversation. Generate a random value (UUID or 32+ character hex string) at the start of your session and reuse the exact same value on every web_search / web_fetch call. Do NOT change it between turns. Used for free-tier rate limiting and correlating your tool calls in our logs; ignored on paid-tier keys.",
+              "maxLength": 100
+            },
+            "model_name": {
+              "type": "string",
+              "description": "The identifier of the LLM model making this tool call (e.g. 'claude-opus-4.7', 'gpt-5.5', 'gemini-2.5-pro'). Before the first call, verify the exact active model slug from trusted runtime/session metadata or active client configuration. Pass the full slug verbatim; never shorten or substitute a model-family alias like 'gpt-5'. Used for product analytics only; does not affect search behavior.",
+              "maxLength": 100
+            }
+          },
+          "required": [
+            "objective",
+            "search_queries"
+          ],
+          "title": "v1_search_toolArguments",
+          "type": "object"
+        }
       },
       {
-        "label": "APP_SECRET",
-        "key": "app_secret",
-        "value": ""
+        "name": "web_fetch",
+        "description": "Purpose: Fetch and extract relevant content\nfrom specific web URLs. Use only when web_search excerpts are insufficient\nfor the task at hand.\n\nIdeal Use Cases:\n- The user asked about a specific URL or page\n- You need exact wording or quotes that excerpts may have truncated\n- You need full-page analysis (long article, document, or page structure)\n- web_search excerpts are conflicting or clearly insufficient to answer\n\nFor multiple independent extraction objectives, make separate web_fetch calls\nconcurrently. Put related URLs that share one objective in a single call.\n",
+        "input_schema": {
+          "properties": {
+            "urls": {
+              "description": "List of URLs to extract content from. Must be\nvalid HTTP/HTTPS URLs. Up to 20 URLs per request.",
+              "items": {
+                "type": "string"
+              },
+              "title": "Urls",
+              "type": "array"
+            },
+            "objective": {
+              "anyOf": [
+                {
+                  "type": "string"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Natural-language description of what\ninformation you're looking for from the URLs. Limit to 200 characters.",
+              "title": "Objective"
+            },
+            "search_queries": {
+              "anyOf": [
+                {
+                  "items": {
+                    "type": "string"
+                  },
+                  "type": "array"
+                },
+                {
+                  "type": "null"
+                }
+              ],
+              "default": null,
+              "description": "Optional keyword search queries (3-6\nwords each) used together with objective to focus excerpts on the most\nrelevant content. Pass the queries from the prior web_search call that\nsurfaced these URLs, if applicable.",
+              "title": "Search Queries"
+            },
+            "full_content": {
+              "default": false,
+              "description": "Prefer leaving this off. The default\nexcerpt mode returns LLM-optimized snippets focused on your objective — they\nare much smaller, cheaper, and usually all you need. Only set to true when\nyou explicitly need the entire page as markdown (e.g. reading a long article\nin full, or running a document through a downstream summarizer).\n\nWarning: enabling full content can return a large amount of content —\noften tens of thousands of tokens for a long article. This may exceed your\nMCP client's tool-output limit and will substantially increase response\nsize and latency.",
+              "title": "Full Content",
+              "type": "boolean"
+            },
+            "allow_live_fetch": {
+              "default": true,
+              "description": "Whether live fetching is allowed. Leave\ntrue for the freshest available content. Set false to use cached content only,\nwhich makes web_fetch much faster by avoiding the source website, but may return\nolder content.",
+              "title": "Allow Live Fetch",
+              "type": "boolean"
+            },
+            "session_id": {
+              "type": "string",
+              "description": "Stable identifier for the current conversation. Generate a random value (UUID or 32+ character hex string) at the start of your session and reuse the exact same value on every web_search / web_fetch call. Do NOT change it between turns. Used for free-tier rate limiting and correlating your tool calls in our logs; ignored on paid-tier keys.",
+              "maxLength": 100
+            },
+            "model_name": {
+              "type": "string",
+              "description": "The identifier of the LLM model making this tool call (e.g. 'claude-opus-4.7', 'gpt-5.5', 'gemini-2.5-pro'). Before the first call, verify the exact active model slug from trusted runtime/session metadata or active client configuration. Pass the full slug verbatim; never shorten or substitute a model-family alias like 'gpt-5'. Used for product analytics only; does not affect search behavior.",
+              "maxLength": 100
+            }
+          },
+          "required": [
+            "urls"
+          ],
+          "title": "v1_extract_toolArguments",
+          "type": "object"
+        }
       }
     ],
-    "params": {},
-    "config_enabled": true,
-    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/feishu.png"
+    "config_enabled": false,
+    "logo_url": "https://agentchat.oss-cn-beijing.aliyuncs.com/icons/mcp/mcp.png",
+    "tools": [
+      "web_search",
+      "web_fetch"
+    ]
   }
 ]

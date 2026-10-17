@@ -1,6 +1,6 @@
-from pydantic import BaseModel
 from langchain.agents import create_agent
 from langchain.agents.structured_output import ToolStrategy
+from pydantic import BaseModel
 
 from agentchat.core.callbacks import usage_metadata_callback
 from agentchat.core.models.manager import ModelManager
@@ -13,7 +13,7 @@ class StructuredResponseAgent:
 
     def _create_structured_agent(self):
         return create_agent(
-            model=ModelManager.get_conversation_model(),
+            model=ModelManager.get_chat_model(),
             response_format=ToolStrategy(self.response_format)
         )
 

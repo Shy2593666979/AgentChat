@@ -1,5 +1,5 @@
 // axios的封装处理
-import axios from 'axios'
+import axios, { AxiosHeaders } from 'axios'
 // 1.根域名配置
 // 2.超时时间
 // 3.请求拦截器,响应拦截器
@@ -15,18 +15,18 @@ request.interceptors.request.use(function (config) {
   const token = localStorage.getItem('token');
   if (token) {
     // 确保headers对象存在
-    config.headers = config.headers || {};
+    config.headers = AxiosHeaders.from(config.headers);
     config.headers['Authorization'] = `Bearer ${token}`;
-    
+
     // 调试用
     // console.log('已添加Authorization头:', `Bearer ${token.substring(0, 10)}...`)
   }
-  
+
   // 删除可能泄露敏感信息的日志
   // console.log('发送请求:', config.method?.toUpperCase(), config.url)
   // console.log('请求数据:', config.data)
   // console.log('请求头:', config.headers)
-  
+
   return config;
 }, function (error) {
   // 对请求错误做些什么
@@ -47,7 +47,7 @@ request.interceptors.response.use(function (response) {
   // 对响应错误做点什么
   console.error('响应错误:', error.response?.status, error.config?.url)
   console.error('错误详情:', error.response?.data || error.message)
-  
+
   if (error.response?.status === 401) {
     // token过期，清除本地存储并跳转到登录页
     localStorage.removeItem('token');

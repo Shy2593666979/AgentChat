@@ -1,0 +1,378 @@
+.b5-conversation {
+  display: flex;
+  position: relative;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+  padding: 16px 12px 14px;
+  gap: 12px
+}
+.conversation-history {
+  width: 324px;
+  flex: none;
+  display: flex;
+  flex-direction: column;
+  background: #ffffffeb;
+  border: 1px solid #e5edfa;
+  border-radius: 17px;
+  padding: 18px 16px 12px;
+  min-height: 0
+}
+.conversation-history>header {
+  position: relative;
+  margin-bottom: 15px
+}
+.new-conversation {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  height: 50px;
+  width: 100%;
+  border: 0;
+  border-radius: 12px;
+  background: linear-gradient(125deg,#358bff,#2360ff);
+  color: white;
+  font-size: 18px
+}
+.new-conversation .p-icon {
+  width: 23px;
+  height: 23px
+}
+.history-search {
+  height: 42px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #dce8fb;
+  border-radius: 11px;
+  background: #f9fcff;
+  padding: 0 13px;
+  margin-bottom: 15px
+}
+.history-search .p-icon {
+  width: 18px;
+  height: 18px;
+  color: #8a9eba
+}
+.history-search input {
+  background: transparent;
+  border: 0;
+  outline: 0;
+  width: 100%;
+  min-width: 0;
+  color: #334f77;
+  font-size: 15px
+}
+.history-search input::placeholder {
+  color: #9aa9c1
+}
+.conversation-list {
+  overflow: auto;
+  flex: 1;
+  min-height: 0;
+  scrollbar-width: thin
+}
+.conversation-list section {
+  margin-bottom: 20px
+}
+.conversation-list h2 {
+  font-size: 14px;
+  font-weight: 400;
+  color: #8798b4;
+  margin: 8px 2px 9px
+}
+.conversation-entry {
+  display: flex;
+  align-items: center;
+  min-width: 0;
+  min-height: 72px;
+  border-radius: 11px;
+  margin-bottom: 7px;
+  padding: 7px 12px;
+  background: transparent
+}
+.conversation-entry.selected {
+  background: linear-gradient(110deg,#e5f0ff,#eef5ff)
+}
+.entry-select {
+  display: flex;
+  align-items: flex-start;
+  gap: 11px;
+  flex: 1;
+  min-width: 0;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  color: #264269;
+  padding: 4px 2px
+}
+.entry-select .p-icon {
+  width: 19px;
+  height: 19px;
+  margin-top: 2px
+}
+.entry-select>span {
+  min-width: 0
+}
+.entry-select strong {
+  display: block;
+  font-size: 14px;
+  line-height: 1.5;
+  font-weight: 550;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap
+}
+.entry-select small {
+  display: block;
+  color: #95a5c0;
+  font-size: 12px;
+  margin-top: 7px
+}
+.entry-more {
+  width: 25px;
+  height: 27px;
+  display: grid;
+  place-items: center;
+  border: 0;
+  background: transparent;
+  color: #91a5c1;
+  opacity: 1;
+  padding: 0
+}
+.entry-more .p-icon {
+  width: 18px;
+  height: 18px
+}
+.conversation-entry:hover .entry-more,.conversation-entry:focus-within .entry-more,.conversation-entry.selected .entry-more {
+  opacity: 1
+}
+.conversation-view {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  border: 0;
+  border-radius: 0;
+  background: transparent
+}
+/* 新建会话与聊天记录共用同一历史列表，保留日期和时间。 */
+.entry-avatar { width: 36px; height: 36px; flex: none; display: grid; place-items: center; border-radius: 11px; overflow: hidden; margin-top: 4px; background: #edf5ff; }
+.entry-avatar .p-icon { width: 26px; height: 26px; margin: 0; color: #6b8cbd; }
+.conversation-entry.selected .entry-avatar { background: #dceaff; }
+.conversation-entry.selected .entry-avatar .p-icon { color: #1767ff; }
+.entry-copy { flex: 1; }
+.history-error {
+  font-size: 12px;
+  color: #b8556c;
+  background: #fff5f6;
+  padding: 10px;
+  border-radius: 8px;
+  line-height: 1.7;
+  margin-bottom: 10px
+}
+.history-error button {
+  color: #1767ff;
+  border: 0;
+  background: transparent;
+  margin-left: 8px;
+  padding: 0
+}
+.history-empty {
+  font-size: 12px;
+  line-height: 1.7;
+  color: #97a7bf;
+  text-align: center;
+  padding: 30px 8px
+}
+.mobile-history,.close-history,.conversation-scrim {
+  display: none
+}
+.picker-agents {
+  display: grid;
+  grid-template-columns: repeat(2,minmax(0,1fr));
+  gap: 12px;
+  margin-top: 18px;
+  min-height: 100px;
+  max-height: 390px;
+  overflow: auto;
+  padding: 2px
+}
+.picker-agents>button {
+  display: flex;
+  align-items: center;
+  gap: 13px;
+  padding: 14px;
+  border: 1px solid #e0eafa;
+  border-radius: 12px;
+  background: #fbfdff;
+  color: #2b4871;
+  cursor: pointer;
+  min-width: 0;
+  text-align: left
+}
+.picker-agents>button.selected {
+  border-color: #84b3ff;
+  background: #edf5ff
+}
+.picker-agents>button>span:nth-child(2) {
+  min-width: 0;
+  flex: 1
+}
+.picker-agents strong {
+  display: block;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.5;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap
+}
+.picker-agents small {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #8a9db9;
+  margin-top: 4px
+}
+.picker-avatar {
+  width: 42px;
+  height: 42px;
+  display: block;
+  flex: none;
+  overflow: hidden;
+  border-radius: 12px
+}
+.picker-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover
+}
+.picker-avatar :deep(.capability-icon) {
+  width: 42px;
+  height: 42px;
+  border-radius: 12px
+}
+.picker-avatar :deep(svg) {
+  width: 35px;
+  height: 35px
+}
+.picker-agents>button>.p-icon {
+  width: 17px;
+  height: 17px;
+  color: #1767ff
+}
+.picker-agents>p {
+  grid-column: 1/-1;
+  font-size: 13px;
+  color: #9aabc1;
+  text-align: center;
+  padding: 25px
+}
+.picker-agents>button:disabled {
+  opacity: .5;
+  cursor: not-allowed
+}
+@media(max-width:1400px) {
+  .conversation-history {
+    width: 276px;
+    padding: 16px 12px
+  }
+  .b5-conversation {
+    gap: 10px;
+    padding: 12px 10px
+  }
+  .entry-select strong {
+    font-size: 13px
+  }
+}
+@media(max-width:1050px) {
+  .conversation-history {
+    display: none;
+    position: absolute;
+    top: 12px;
+    bottom: 12px;
+    left: 10px;
+    width: 300px;
+    max-width: calc(100% - 20px);
+    z-index: 50;
+    box-shadow: 0 10px 40px #234c8824;
+    background: #fcfdff
+  }
+  .conversation-history.open {
+    display: flex
+  }
+  .conversation-scrim {
+    display: block;
+    position: absolute;
+    inset: 0;
+    background: #0b24553b;
+    z-index: 49
+  }
+  .mobile-history {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    left: 26px;
+    top: 31px;
+    width: 32px;
+    height: 32px;
+    z-index: 25;
+    border: 1px solid #dce8fa;
+    border-radius: 9px;
+    background: #fff;
+    color: #406995
+  }
+  .close-history {
+    display: grid;
+    place-items: center;
+    position: absolute;
+    right: -7px;
+    top: -11px;
+    width: 24px;
+    height: 24px;
+    border: 1px solid #dbe7fa;
+    border-radius: 50%;
+    color: #728db5;
+    background: white
+  }
+  .close-history .p-icon {
+    width: 15px;
+    height: 15px
+  }
+}
+@media(max-width:700px) {
+  .b5-conversation {
+    padding: 0;
+    gap: 0
+  }
+  .conversation-view {
+    border: 0;
+    border-radius: 0
+  }
+  .mobile-history {
+    top: 19px;
+    left: 15px;
+    width: 28px;
+    height: 28px
+  }
+  .entry-more {
+    opacity: 1
+  }
+  .conversation-history {
+    top: 8px;
+    bottom: 8px;
+    left: 8px;
+    width: min(275px,calc(100% - 16px))
+  }
+  .picker-agents {
+    grid-template-columns: 1fr
+  }
+}
+/* 历史会话栏与确认后的示例保持相同宽度。 */
+@media(min-width:1051px){.conversation-history{width:288px;box-sizing:border-box}}
+@media(min-width:1600px){.conversation-history{width:300px}}

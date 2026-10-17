@@ -2,7 +2,10 @@ import asyncio
 from datetime import date
 
 from agentchat.core.models.manager import ModelManager
-from agentchat.services.mars.ai_news.crawl_news import crawl_today_ai_news, crawl_single_ai_news
+from agentchat.services.mars.ai_news.crawl_news import (
+    crawl_single_ai_news,
+    crawl_today_ai_news,
+)
 
 NEWS_PROMPT = """
 【系统角色】
@@ -23,7 +26,7 @@ async def crawl_summary_ai_news():
 
     message = NEWS_PROMPT.format(today=date.today(), news_content=total_news_content)
 
-    llm_client = ModelManager.get_conversation_model()
+    llm_client = ModelManager.get_chat_model()
     response = await llm_client.ainvoke(message)
 
     return response

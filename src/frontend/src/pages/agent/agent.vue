@@ -1,898 +1,139 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
+import CatalogHeader from '../../components/CatalogHeader.vue'
+import { ref, computed, onMounted, watch } from 'vue'
 import { useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { Plus, Edit, Delete, View, Search, Refresh, Tools } from '@element-plus/icons-vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
+import { getAgentsAPI, deleteAgentAPI } from '../../apis/agent'
+import { getVisibleLLMsAPI } from '../../apis/llm'
+import { getVisibleToolsAPI } from '../../apis/tool'
+import { getKnowledgeListAPI } from '../../apis/knowledge'
+import { createConversationAPI } from '../../apis/history'
+import { useHistoryChatStore } from '../../store/history_chat_msg'
+import AgentCatalogCard from './AgentCatalogCard.vue'
+import UiIcon from '../../components/UiIcon.vue'
+import { modelDisplayName } from '../../utils/model-display'
+import type { LLMResponse } from '../../apis/llm'
+import { agentIdentity } from '../../utils/agent-identity'
+import type { Agent } from '../../type'
 import robotIcon from '../../assets/robot.svg'
-import pluginIcon from '../../assets/plugin.svg'
-import knowledgeIcon from '../../assets/knowledge.svg'
-import mcpIcon from '../../assets/mcp.svg'
-import skillIcon from '../../assets/skill.svg'
-import { 
-  getAgentsAPI, 
-  deleteAgentAPI, 
-  searchAgentsAPI,
-  type AgentResponse 
-} from '../../apis/agent'
-import { Agent } from '../../type'
 
+const props = withDefaults(defineProps<{ assistantView?: boolean }>(), { assistantView: false })
+const router = useRouter(), chatStore = useHistoryChatStore()
+const modelDetails=ref<Record<string,LLMResponse>>({})
 
-const router = useRouter()
-const agents = ref<Agent[]>([])
-const loading = ref(false)
-const searchLoading = ref(false)
-const editingAgent = ref<Agent | null>(null)
-const searchKeyword = ref('')
-const showConfirmDialog = ref(false)
-const agentToDelete = ref<Agent | null>(null)
+const agents = ref<Agent[]>([]), models = ref<Record<string, string>>({})
+const toolNames = ref<Record<string, string>>({}), knowledgeNames = ref<Record<string, string>>({})
+function capabilityLabel(ids: string[], names: Record<string, string>, fallback: string) { return names[ids[0]!] ? names[ids[0]!] + (ids.length > 1 ? ` +${ids.length - 1}` : '') : `${ids.length} 个${fallback}` }
+function resourceCounts(agent:Agent){return [
+  {key:'tools',icon:'grid',label:'工具',count:agent.tool_ids.length,title:agent.tool_ids.map(id=>toolNames.value[id]||id).join('、')},
+  {key:'mcp',icon:'connect',label:'MCP',count:agent.mcp_ids.length,title:''},
+  {key:'skill',icon:'layers',label:'Skill',count:agent.agent_skill_ids?.length||0,title:''},
+  {key:'knowledge',icon:'database',label:'知识库',count:agent.knowledge_ids.length,title:agent.knowledge_ids.map(id=>knowledgeNames.value[id]||id).join('、')}
+].filter(item=>item.count>0)}
+const displayMode = ref('grid'), currentPage=ref(1)
+const pageSize=6
+const loading = ref(false), searchKeyword = ref(''), agentFilter = ref('all'), startingAgent = ref(''), catalogError = ref('')
 
-
-// 转换API响应为本地Agent类型
-const convertToAgent = (apiAgent: any): Agent => ({
-  agent_id: apiAgent.id || apiAgent.agent_id, // 兼容后端返回id字段
-  name: apiAgent.name,
-  description: apiAgent.description,
-  logo_url: apiAgent.logo_url,
-  tool_ids: apiAgent.tool_ids || [],
-  llm_id: apiAgent.llm_id,
-  mcp_ids: apiAgent.mcp_ids || [],
-  system_prompt: apiAgent.system_prompt,
-  knowledge_ids: apiAgent.knowledge_ids || [],
-  enable_memory: apiAgent.enable_memory,
-  created_time: apiAgent.create_time || apiAgent.created_time,
-  is_custom: apiAgent.is_custom // 新增is_custom字段
-})
-
-// 获取智能体列表
-const fetchAgents = async () => {
+const filteredAgents = computed(() => agents.value.filter(agent =>
+  (agentFilter.value === 'all' || (agentFilter.value === 'mine' ? agent.is_custom !== false : agent.is_custom === false)) &&
+  [agent.name, agent.description, models.value[agent.llm_id]].join(' ').toLowerCase().includes(searchKeyword.value.trim().toLowerCase())))
+const displayedAgents=computed(()=>filteredAgents.value.slice((currentPage.value-1)*pageSize,currentPage.value*pageSize))
+watch([searchKeyword,agentFilter],()=>currentPage.value=1)
+watch(()=>filteredAgents.value.length,count=>currentPage.value=Math.max(1,Math.min(currentPage.value,Math.ceil(count/pageSize)||1)))
+async function fetchAgents() {
+  if (loading.value) return
   loading.value = true
+  catalogError.value = ''
   try {
-    // 删除包含敏感信息的日志
-    // console.log('开始调用智能体API...')
-    // console.log('请求URL: /api/v1/agent')
-    // console.log('Token:', localStorage.getItem('token'))
-    
     const response = await getAgentsAPI()
-    // console.log('API响应:', response)
-    // console.log('响应数据:', response.data)
-    
-    // 兼容不同的后端响应格式
-    const responseCode = response.data.status_code || response.data.status_code
-    const responseMessage = response.data.status_message || response.data.status_message
-    const responseData = response.data.data
-    
-    if (responseCode === 200 || response.data.status_code === 200) {
-      // console.log('API调用成功，智能体数据:', responseData)
-      if (responseData && Array.isArray(responseData)) {
-        agents.value = responseData.map(convertToAgent)
-        // console.log('转换后的智能体列表:', agents.value)
-      } else {
-        console.warn('响应数据格式异常:', responseData)
-        agents.value = []
-      }
-    } else {
-      console.error('API返回错误:', responseMessage)
-      ElMessage.error(responseMessage || '获取智能体列表失败')
-    }
-  } catch (error: any) {
-    console.error('获取智能体列表失败 - 详细错误:', error)
-    console.error('错误类型:', typeof error)
-    console.error('错误信息:', error.message)
-    console.error('错误响应:', error.response)
-    
-    if (error.response) {
-      console.error('响应状态码:', error.response.status)
-      console.error('响应数据:', error.response.data)
-      ElMessage.error(`请求失败: ${error.response.status} - ${error.response.data?.message || '未知错误'}`)
-    } else if (error.request) {
-      console.error('请求对象:', error.request)
-      ElMessage.error('网络错误：无法连接到服务器')
-    } else {
-      ElMessage.error('获取智能体列表失败：' + error.message)
-    }
-  } finally {
-    loading.value = false
-  }
+    if (response.data.status_code !== 200) throw new Error(response.data.status_message || '获取智能体失败')
+    agents.value = (response.data.data || []).map((agent: any) => ({ ...agent, agent_id: agent.id || agent.agent_id,
+      tool_ids: agent.tool_ids || [], knowledge_ids: agent.knowledge_ids || [], mcp_ids: agent.mcp_ids || [], agent_skill_ids: agent.agent_skill_ids || [] }))
+  } catch (error: any) { catalogError.value = error.message || '获取智能体失败，请重试' }
+  finally { loading.value = false }
 }
-
-// 搜索智能体
-const searchAgents = async () => {
-  if (!searchKeyword.value.trim()) {
+const createAgent = () => router.push({ path: '/agent/editor', query: props.assistantView ? { from: 'explore' } : {} })
+const editAgent = (agent: Agent) => router.push({ path: '/agent/editor', query: { id: agent.agent_id, ...(props.assistantView ? { from: 'explore' } : {}) } })
+async function removeAgent(agent: Agent) {
+  try {
+    await ElMessageBox.confirm('确定删除智能体“' + agent.name + '”？', '确认删除', { confirmButtonText: '删除', cancelButtonText: '取消', type: 'warning' })
+    const response = await deleteAgentAPI({ agent_id: agent.agent_id })
+    if (response.data.status_code !== 200) throw new Error(response.data.status_message || '删除失败')
+    ElMessage.success('删除成功')
     await fetchAgents()
-    return
-  }
-  
-  searchLoading.value = true
+  } catch (error: any) { if (error !== 'cancel' && error !== 'close') ElMessage.error(error.message || '删除失败') }
+}
+async function startChat(agent: Agent) {
+  if (startingAgent.value) return
+  startingAgent.value = agent.agent_id
   try {
-    const response = await searchAgentsAPI({ name: searchKeyword.value.trim() })
-    if (response.data.status_code === 200) {
-      // 搜索结果转换为Agent格式
-      agents.value = response.data.data.map(item => ({
-        agent_id: item.agent_id,
-        name: item.name,
-        description: item.description,
-        logo_url: item.logo_url,
-        tool_ids: [],
-        llm_id: '',
-        mcp_ids: [],
-        system_prompt: '',
-        knowledge_ids: [],
-        enable_memory: false,
-        is_custom: false // 搜索结果默认为系统智能体
-      }))
-    } else {
-      ElMessage.error(response.data.status_message || '搜索失败')
-    }
-  } catch (error: any) {
-    console.error('搜索智能体失败:', error)
-    ElMessage.error('搜索智能体失败')
-  } finally {
-    searchLoading.value = false
-  }
+    const name = '与' + agent.name + '的对话'
+    const response = await createConversationAPI({ name, agent_id: agent.agent_id, agent_type: 'Agent' })
+    if (response.data.status_code !== 200 || !response.data.data?.conversation_id) throw new Error(response.data.status_message || '创建会话失败')
+    chatStore.conversationId = response.data.data.conversation_id
+    chatStore.name = name
+    chatStore.logo = agentIdentity(agent).url || robotIcon
+    await router.push({ path: '/conversation/chatPage', query: { conversation_id: response.data.data.conversation_id } })
+  } catch (error: any) { ElMessage.error(error.message || '创建会话失败') }
+  finally { startingAgent.value = '' }
 }
 
-// 清空搜索
-const clearSearch = () => {
-  searchKeyword.value = ''
-  fetchAgents()
-}
-
-// 创建智能体
-const createAgent = () => {
-  router.push('/agent/editor')
-}
-
-// 编辑智能体
-const editAgent = (agent: Agent) => {
-  // 确保只能编辑自定义智能体
-  if (agent.is_custom === false) {
-    ElMessage.warning(`"${agent.name}" 是官方智能体，无法编辑。`)
-    return
-  }
-  
-  router.push({
-    path: '/agent/editor',
-    query: { id: agent.agent_id }
-  })
-}
-
-// 显示系统智能体提示
-const showSystemAgentMessage = (agent: Agent) => {
-  ElMessage.warning(`"${agent.name}" 是官方智能体，无法编辑。`)
-}
-
-
-// 处理智能体更新
-const handleAgentUpdate = () => {
-  fetchAgents()
-}
-
-// 删除智能体
-const deleteAgent = (agent: Agent) => {
-  // 确保只能删除自定义智能体
-  if (agent.is_custom === false) {
-    ElMessage.error('官方智能体不能删除')
-    return
-  }
-  
-  // 显示确认对话框
-  agentToDelete.value = agent
-  showConfirmDialog.value = true
-}
-
-// 确认删除
-const confirmDelete = async () => {
-  if (!agentToDelete.value) return
-  
-  try {
-    //ElMessage.info('正在删除智能体...')
-    
-    const response = await deleteAgentAPI({ agent_id: agentToDelete.value.agent_id })
-    if (response.data.status_code === 200) {
-      ElMessage.success('删除成功')
-      await fetchAgents() // 刷新列表
-    } else {
-      ElMessage.error(response.data.status_message || '删除失败')
-    }
-  } catch (error: any) {
-    console.error('删除智能体失败:', error)
-    ElMessage.error('删除失败，请稍后重试')
-  } finally {
-    // 关闭确认对话框
-    showConfirmDialog.value = false
-    agentToDelete.value = null
-  }
-}
-
-// 取消删除
-const cancelDelete = () => {
-  showConfirmDialog.value = false
-  agentToDelete.value = null
-}
-
-// 查看智能体详情
-const viewAgent = (agent: Agent) => {
-  // TODO: 实现智能体详情查看功能
-  ElMessage.info('智能体详情功能开发中...')
-  console.log('查看智能体:', agent)
-}
-
-// 刷新智能体列表
-const refreshAgents = async () => {
-  await fetchAgents()
-}
-
-// 处理图片加载错误
-const handleImageError = (event: Event) => {
-  const target = event.target as HTMLImageElement
-  if (target) {
-    target.src = '/src/assets/robot.svg'
-  }
-}
-
-onMounted(() => {
-  fetchAgents()
+onMounted(async () => {
+  await Promise.all([fetchAgents(), getVisibleLLMsAPI().then(response => {
+    if (response.data.status_code === 200) {const list=(Array.isArray(response.data.data) ? response.data.data : Object.values(response.data.data || {}).flat()) as LLMResponse[];models.value=Object.fromEntries(list.map(model=>[model.llm_id,modelDisplayName(model)]));modelDetails.value=Object.fromEntries(list.map(model=>[model.llm_id,model]));}
+  }).catch(() => {}), getVisibleToolsAPI().then(r => { if (r.data.status_code === 200) toolNames.value = Object.fromEntries((r.data.data || []).map(t => [t.tool_id, t.display_name || t.name])) }).catch(() => {}), getKnowledgeListAPI().then(r => { if (r.data.status_code === 200) knowledgeNames.value = Object.fromEntries((r.data.data || []).map(k => [k.id, k.name])) }).catch(() => {})])
 })
 </script>
-
-<template>
-  <div class="agent-page">
-    <div class="page-header">
-      <div class="header-title">
-        <img :src="robotIcon" alt="智能体" class="title-icon" />
-        <h2>智能体管理</h2>
+<template><div class="b2-catalog catalog-page" :class="{ 'assistant-view': assistantView }"><svg class="svg-library" xmlns="http://www.w3.org/2000/svg"><defs>
+<linearGradient id="robotBlue" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#277bff"/><stop offset="1" stop-color="#0054ff"/></linearGradient>
+<symbol id="robot" viewBox="0 0 68 76"><path d="M34 18V7" stroke="#1266ff" stroke-width="3.5"/><circle cx="34" cy="6" r="5" fill="#216aff"/><rect x="1" y="33" width="8" height="20" rx="4" fill="#599aff"/><rect x="59" y="33" width="8" height="20" rx="4" fill="#599aff"/><rect x="6" y="17" width="56" height="55" rx="18" fill="url(#robotBlue)"/><path d="M14 26c2-3 6-5 12-5" fill="none" stroke="#77baff" stroke-width="2" stroke-linecap="round" opacity=".65"/><rect x="18" y="32" width="33" height="26" rx="11" fill="#fff"/><rect x="24" y="41" width="5" height="9" rx="2.5" fill="#2677ff"/><rect x="40" y="41" width="5" height="9" rx="2.5" fill="#2677ff"/><path d="M32 49q2 3 5 0" fill="none" stroke="#7eacff" stroke-width="1.5" stroke-linecap="round"/><circle cx="48" cy="30" r="2.7" fill="#abd9ff"/><path d="M21 66h23" stroke="#004aff" stroke-width="2" stroke-linecap="round" opacity=".25"/></symbol>
+<symbol id="brandRobot" viewBox="0 0 40 40"><rect x="6" y="9" width="28" height="25" rx="11" fill="white"/><rect x="12" y="18" width="4" height="8" rx="2" fill="#2977ff"/><rect x="25" y="18" width="4" height="8" rx="2" fill="#2977ff"/><path d="M18 26q2 2 4 0" fill="none" stroke="#97baff" stroke-width="1.4"/><circle cx="32" cy="8" r="3.3" fill="#d3e8ff"/></symbol>
+<symbol id="home" viewBox="0 0 24 24"><path d="m2 11 10-9 10 9M5 9v12h5v-7h4v7h5V9"/></symbol>
+<symbol id="search" viewBox="0 0 24 24"><circle cx="10.3" cy="10.3" r="7.6"/><path d="m16 16 5.5 5.5"/></symbol>
+<symbol id="chat" viewBox="0 0 24 24"><path d="M21 11.4a9.2 9.2 0 0 1-9.3 9.1c-1.6 0-3.2-.4-4.5-1.1L2 21l1.6-5A9.2 9.2 0 1 1 21 11.4Z"/><circle cx="7.3" cy="11.4" r=".8" fill="currentColor" stroke="none"/><circle cx="11.5" cy="11.4" r=".8" fill="currentColor" stroke="none"/><circle cx="15.7" cy="11.4" r=".8" fill="currentColor" stroke="none"/></symbol>
+<symbol id="link" viewBox="0 0 24 24"><path d="m9 15 6-6M7.5 16.5l-1 1a4.5 4.5 0 0 1-6.3-6.4l5-5a4.5 4.5 0 0 1 6.4 0M16.5 7.5l1-1a4.5 4.5 0 0 1 6.3 6.4l-5 5a4.5 4.5 0 0 1-6.4 0" transform="translate(1 0) scale(.91)"/></symbol>
+<symbol id="cube" viewBox="0 0 24 24"><path d="m12 1.5 9.5 5.2v10.5L12 22.5 2.5 17.2V6.7Z M2.5 6.7 12 12l9.5-5.3M12 12v10.5"/></symbol>
+<symbol id="book" viewBox="0 0 24 24"><path d="M12 5C9 2 5 2 2 3v17c4-1 7-1 10 2 3-3 6-3 10-2V3c-3-1-7-1-10 2Zm0 0v11"/></symbol>
+<symbol id="chart" viewBox="0 0 24 24"><path d="M4 21V12M12 21V3M20 21V7" stroke-width="2.8"/></symbol>
+<symbol id="grid" viewBox="0 0 24 24"><rect x="2" y="2" width="8" height="8" rx="3"/><rect x="14" y="2" width="8" height="8" rx="3"/><rect x="2" y="14" width="8" height="8" rx="3"/><rect x="14" y="14" width="8" height="8" rx="3"/></symbol>
+<symbol id="layers" viewBox="0 0 24 24"><path d="m12 1.5 10 5.7L12 13 2 7.2Zm-10 11L12 18l10-5.5M2 18l10 5.5L22 18"/></symbol>
+<symbol id="chevron" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></symbol>
+<symbol id="plus" viewBox="0 0 24 24"><path d="M12 3v18M3 12h18"/></symbol>
+<symbol id="edit" viewBox="0 0 24 24"><path d="m4 16 12-12a2.5 2.5 0 0 1 3.5 0l.5.5a2.5 2.5 0 0 1 0 3.5L8 20l-5 1ZM14.5 5.5l4 4"/></symbol>
+<symbol id="more" viewBox="0 0 24 24"><circle cx="4" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="12" cy="12" r="1.5" fill="currentColor" stroke="none"/><circle cx="20" cy="12" r="1.5" fill="currentColor" stroke="none"/></symbol>
+<symbol id="brain" viewBox="0 0 24 24"><path d="M11 4.5c-2-3-5-.8-4.6 1.4-3-.2-4.5 3-3 5-2.5 2-.8 5 1.2 5.5-.4 3.2 3.3 5.4 6.4 2.7Zm2 0c2-3 5-.8 4.6 1.4 3-.2 4.5 3 3 5 2.5 2 .8 5-1.2 5.5.4 3.2-3.3 5.4-6.4 2.7ZM7 6l1 3-2 2m5 1H8l-1 3m10-9-1 3 2 2m-5 1h3l1 3M8 19v-2m8 2v-2"/></symbol>
+<symbol id="enterprise" viewBox="0 0 24 24"><path d="M3 21V4h14v17M17 9h4v12M1 21h22M7 7v3m6-3v3M7 13v3m6-3v3M9 21v-3h3v3"/></symbol>
+<symbol id="calendar" viewBox="0 0 24 24"><rect x="5" y="5" width="16" height="16" rx="1.5"/><path d="M5 10h16M9 3v4m8-4v4M2 17V2h15M9 13h3v4H9"/></symbol>
+<symbol id="mail" viewBox="0 0 24 24"><rect x="2" y="4" width="20" height="16" rx="2"/><path d="m3 6 9 7 9-7M16 1l2 2 2-2"/></symbol>
+<symbol id="close" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+<linearGradient id="greenIcon" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#00dd83"/><stop offset="1" stop-color="#00be68"/></linearGradient><linearGradient id="purpleIcon" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#a276ff"/><stop offset="1" stop-color="#6f31f5"/></linearGradient><linearGradient id="orangeIcon" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#ffb42f"/><stop offset="1" stop-color="#ff920b"/></linearGradient>
+<symbol id="avatar-research" viewBox="0 0 64 64"><circle cx="27" cy="27" r="16" fill="none" stroke="#00c978" stroke-width="6"/><path d="m39 39 13 13" stroke="#00c978" stroke-width="7" stroke-linecap="round"/><path d="M16 25a12 12 0 0 1 13-10" stroke="#84efbd" stroke-width="2" fill="none" stroke-linecap="round"/></symbol>
+<symbol id="avatar-writing" viewBox="0 0 64 64"><path d="M15 9h25l10 12v32a3 3 0 0 1-3 3H15a4 4 0 0 1-4-4V13a4 4 0 0 1 4-4" fill="url(#purpleIcon)"/><path d="M39 9v12h11" fill="#c5aaff"/><path d="M19 24h17M19 32h22M19 40h12" stroke="white" stroke-width="3" stroke-linecap="round"/><path d="m33 50 18-18 9 8-18 18-12 3Z" fill="#8950ff" stroke="#efe8ff" stroke-width="2.5"/><path d="m48 35 9 8" stroke="#efe8ff" stroke-width="2"/></symbol>
+<symbol id="avatar-analytics" viewBox="0 0 64 64"><rect x="10" y="33" width="9" height="23" rx="3" fill="url(#orangeIcon)"/><rect x="26" y="21" width="9" height="35" rx="3" fill="url(#orangeIcon)"/><rect x="42" y="8" width="9" height="48" rx="3" fill="url(#orangeIcon)"/><path d="M45 12v39" stroke="#ffc968" stroke-width="1.5" stroke-linecap="round"/></symbol>
+<symbol id="avatar-coding" viewBox="0 0 64 64"><path d="m19 21-12 12 12 11M45 21l12 12-12 11M36 13 27 52" stroke="#0863ff" fill="none" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/><path d="m35 14-8 35" stroke="#79b3ff" stroke-width="2" stroke-linecap="round"/></symbol>
+<symbol id="avatar-enterprise" viewBox="0 0 64 64"><path d="M9 13h14l6 6h23a4 4 0 0 1 4 4v29a4 4 0 0 1-4 4H13a5 5 0 0 1-5-5V17a4 4 0 0 1 1-4Z" fill="url(#greenIcon)"/><path d="M15 27h35" stroke="#eefff8" stroke-width="3" stroke-linecap="round"/><path d="M11 18v31" stroke="#56ebad" stroke-width="2" stroke-linecap="round" opacity=".6"/></symbol>
+<symbol id="avatar-daily" viewBox="0 0 64 64"><rect x="9" y="14" width="44" height="44" rx="7" fill="url(#purpleIcon)"/><rect x="14" y="29" width="34" height="23" rx="3" fill="#f2eaff"/><path d="M21 12v10M41 12v10" stroke="#7d3eff" stroke-width="6" stroke-linecap="round"/><path d="M35 40c2-4 7-4 6 1s-4 8-7 6-1-4 1-7" fill="#925bff"/><path d="M13 19h36" stroke="#c2a0ff" stroke-width="1.5" opacity=".5"/></symbol>
+</defs></svg><CatalogHeader :title="assistantView ? '我的助手' : '智能体'" :subtitle="assistantView ? '把重复的工作交给 AI' : '构建你的专属 AI 助手'" description="通过自然语言、知识和工具，创建能够执行特定任务的智能体"><template #actions><button class="create-button" @click="createAgent"><UiIcon name="plus-circle"/>{{ assistantView ? '新建助手' : '创建智能体' }}</button></template></CatalogHeader>
+    <section class="workspace" :aria-label="assistantView ? '助手列表' : '智能体列表'">
+      <div class="toolbar">
+        <label class="search-wrap"><svg class="icon" aria-hidden="true"><use href="#search"/></svg><input v-model="searchKeyword" type="search" :aria-label="assistantView ? '搜索助手' : '搜索智能体'" :placeholder="assistantView ? '搜索助手名称、描述…' : '搜索智能体名称、描述或模型…'"></label>
+        <template v-if="assistantView"><button class="create-button" @click="createAgent"><svg class="icon" aria-hidden="true"><use href="#plus"/></svg>新建助手</button><el-select v-model="agentFilter" class="catalog-select assistant-filter" aria-label="助手分类"><el-option value="all" label="全部助手"/><el-option value="mine" label="我的助手"/><el-option value="builtin" label="内置助手"/></el-select></template>
+        <div v-else class="tabs" role="group" aria-label="智能体分类"><button v-for="filter in [{ id: 'all', label: '全部' }, { id: 'mine', label: '我的' }, { id: 'builtin', label: '内置' }]" :key="filter.id" class="tab" :class="{ active: agentFilter === filter.id }" :aria-pressed="agentFilter === filter.id" @click="agentFilter = filter.id">{{ filter.label }}</button></div>
+        <div class="view-switch" role="group" aria-label="列表布局"><button aria-label="卡片视图" :aria-pressed="displayMode === 'grid'" :class="{ active: displayMode === 'grid' }" @click="displayMode = 'grid'"><UiIcon name="grid"/></button><button aria-label="列表视图" :aria-pressed="displayMode === 'list'" :class="{ active: displayMode === 'list' }" @click="displayMode = 'list'"><UiIcon name="list"/></button></div>
       </div>
-      <div class="header-actions">
-        <div class="search-box">
-          <div class="search-input-wrapper">
-            <el-input
-              v-model="searchKeyword"
-              placeholder="🔍 搜索智能体名称..."
-              @keyup.enter="searchAgents"
-              @clear="clearSearch"
-              clearable
-              size="large"
-              style="width: 320px"
-            />
-            <el-button 
-              type="primary" 
-              :icon="Search" 
-              @click="searchAgents"
-              :loading="searchLoading"
-              size="large"
-              style="margin-left: 12px; border-radius: 12px;"
-            >
-              搜索
-            </el-button>
-          </div>
-        </div>
-        <div class="action-buttons">
-          <el-button 
-            :icon="Refresh" 
-            @click="refreshAgents"
-            :loading="loading"
-            title="刷新列表"
-            size="large"
-            circle
-            style="border-radius: 12px;"
-          />
-          <el-button 
-            type="primary" 
-            :icon="Plus" 
-            @click="createAgent"
-            size="large"
-            style="border-radius: 12px; background: linear-gradient(135deg, #3b82f6 0%, #8b5cf6 100%); border: none;"
-          >
-            创建智能体
-          </el-button>
-        </div>
+      <div v-if="catalogError" class="catalog-error" role="alert"><p>{{ catalogError }}</p><button :disabled="loading" @click="fetchAgents">重新加载</button></div>
+      <div class="cards" :class="{ 'list-mode': displayMode === 'list' }" v-loading="loading" :aria-busy="loading">
+        <button v-if="assistantView" class="new-card" @click="createAgent"><span class="plus-circle"><svg class="icon" aria-hidden="true"><use href="#plus"/></svg></span><strong>新建助手</strong><p>基于你的需求，快速创建专属 AI 助手，提升工作效率</p></button>
+        <AgentCatalogCard v-for="agent in displayedAgents" :key="agent.agent_id" :agent="agent"
+          :model-name="models[agent.llm_id] || (agent.llm_id ? '模型未加载' : '模型未配置')"
+          :model="modelDetails[agent.llm_id]" :resources="resourceCounts(agent)"
+          :starting="startingAgent === agent.agent_id" :disabled="!!startingAgent"
+          @chat="startChat(agent)" @edit="editAgent(agent)" @remove="removeAgent(agent)" />
+        <div v-if="!loading && !catalogError && !displayedAgents.length" class="empty-state"><h3>{{ searchKeyword || agentFilter !== 'all' ? '没有找到匹配的智能体' : '暂无智能体' }}</h3><p>{{ searchKeyword || agentFilter !== 'all' ? '试试其他关键词或分类' : '创建你的第一个智能体，开始智能对话' }}</p><button v-if="!assistantView" class="create-button" @click="createAgent">创建智能体</button></div>
       </div>
-    </div>
-
-    <div class="agent-list" v-loading="loading">
-      <div class="agent-grid" v-if="agents.length > 0">
-        <div 
-          v-for="agent in agents" 
-          :key="agent.agent_id" 
-          class="agent-card"
-          :class="{'official-agent': agent.is_custom === false}"
-          @click="agent.is_custom !== false ? editAgent(agent) : showSystemAgentMessage(agent)"
-        >
-          <!-- 删除按钮 - 仅对自定义智能体显示 -->
-          <div 
-            v-if="agent.is_custom !== false" 
-            class="delete-icon" 
-            @click.stop="deleteAgent(agent)" 
-            title="删除"
-          >×</div>
-          
-          <!-- 官方智能体标识 -->
-          <div v-if="agent.is_custom === false" class="official-badge">官方</div>
-          
-          <div class="agent-avatar">
-            <img 
-              :src="agent.logo_url || '/src/assets/robot.svg'" 
-              :alt="agent.name"
-              @error="handleImageError"
-            />
-          </div>
-          
-          <div class="agent-info">
-            <h3 class="agent-name" :title="agent.name">{{ agent.name }}</h3>
-            <p class="agent-description" :title="agent.description">
-              {{ agent.description }}
-            </p>
-            
-            <div class="agent-meta">
-              <span class="meta-item" title="可用工具数量">
-                <img :src="pluginIcon" class="meta-icon-img" alt="工具" />
-                <span class="meta-count">{{ agent.tool_ids?.length || 0 }}</span>
-              </span>
-              <span class="meta-item" title="关联知识库数量">
-                <img :src="knowledgeIcon" class="meta-icon-img" alt="知识库" />
-                <span class="meta-count">{{ agent.knowledge_ids?.length || 0 }}</span>
-              </span>
-              <span class="meta-item" title="MCP服务数量">
-                <img :src="mcpIcon" class="meta-icon-img" alt="MCP" />
-                <span class="meta-count">{{ agent.mcp_ids?.length || 0 }}</span>
-              </span>
-              <span class="meta-item" title="Skill数量">
-                <img :src="skillIcon" class="meta-icon-img" alt="Skill" />
-                <span class="meta-count">{{ agent.agent_skill_ids?.length || 0 }}</span>
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-      
-      <div v-else-if="!loading" class="empty-state">
-        <div class="empty-icon">
-          <i class="empty-icon-symbol">🤖</i>
-        </div>
-        <h3 v-if="searchKeyword">未找到智能体</h3>
-        <h3 v-else>暂无智能体</h3>
-        <p v-if="searchKeyword">
-          未找到包含 "{{ searchKeyword }}" 的智能体
-        </p>
-        <p v-else>
-          创建您的第一个智能体，开始智能对话体验
-        </p>
-        <div class="empty-actions">
-          <el-button 
-            v-if="searchKeyword" 
-            type="primary" 
-            @click="clearSearch"
-          >
-            查看所有智能体
-          </el-button>
-          <el-button 
-            v-else
-            type="primary"
-            @click="createAgent"
-          >
-            创建智能体
-          </el-button>
-        </div>
-      </div>
-    </div>
-
-    <!-- 确认删除对话框 -->
-    <div v-if="showConfirmDialog" class="custom-confirm-dialog">
-      <div class="confirm-dialog-content">
-        <h3 class="dialog-title">确认删除</h3>
-        <div class="dialog-body">
-          确定要删除智能体 "{{ agentToDelete?.name }}" 吗？
-        </div>
-        <div class="dialog-footer">
-          <button class="btn-cancel" @click="cancelDelete">取消</button>
-          <button class="btn-confirm" @click="confirmDelete">确定</button>
-        </div>
-      </div>
-    </div>
-
+      <div v-if="!loading&&!catalogError&&filteredAgents.length" class="agent-pagination"><span class="agent-total">共 {{filteredAgents.length}} 个智能体</span><el-pagination v-model:current-page="currentPage" :page-size="pageSize" :total="filteredAgents.length" layout="prev, pager, next" background/></div>
+    </section>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.agent-page {
-  padding: 32px;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #f8fafc 0%, #f1f5f9 100%);
-  
-  .page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 24px; // 减小了margin-bottom
-    background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-    padding: 20px 28px; // 减小了padding
-    border-radius: 16px; // 减小了border-radius
-    box-shadow: 0 6px 24px rgba(0, 0, 0, 0.06); // 减小了阴影
-    border: 1px solid rgba(226, 232, 240, 0.6);
-    
-    .header-title {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      
-      .title-icon {
-        width: 36px;
-        height: 36px;
-      }
-      
-      h2 {
-        margin: 0;
-        font-size: 24px;
-        font-weight: 600;
-        background: linear-gradient(90deg, #1B7CE4, #409eff); // 与robot.svg图标颜色匹配
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
-        background-clip: text;
-      }
-    }
-    
-    .header-actions {
-      display: flex;
-      align-items: center;
-      gap: 32px;
-      
-      .search-box {
-        .search-input-wrapper {
-          display: flex;
-          align-items: center;
-          background: rgba(255, 255, 255, 0.8);
-          padding: 8px;
-          border-radius: 16px;
-          border: 1px solid rgba(59, 130, 246, 0.2);
-          box-shadow: 0 4px 12px rgba(59, 130, 246, 0.1);
-          
-          :deep(.el-input) {
-            .el-input__wrapper {
-              background: transparent;
-              border: none;
-              box-shadow: none;
-              border-radius: 12px;
-              
-              .el-input__inner {
-                font-size: 15px;
-                font-weight: 500;
-                color: #1e293b;
-                
-                &::placeholder {
-                  color: #64748b;
-                  font-weight: 400;
-                }
-              }
-            }
-          }
-        }
-      }
-      
-      .action-buttons {
-        display: flex;
-        gap: 16px;
-        
-        :deep(.el-button) {
-          font-weight: 600;
-          font-family: 'PingFang SC', 'Microsoft YaHei', 'Helvetica Neue', Arial, sans-serif;
-          transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-          
-          &:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 8px 20px rgba(59, 130, 246, 0.3);
-          }
-        }
-      }
-    }
-  }
-  
-  .agent-list {
-    height: calc(100vh - 140px);
-    overflow-y: auto;
-    
-    .agent-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-      gap: 16px;
-      
-      .agent-card {
-        background: linear-gradient(145deg, #ffffff 0%, #f8fafc 100%);
-        border-radius: 20px;
-        padding: 16px;
-        height: 200px;
-        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.1);
-        border: 1px solid rgba(226, 232, 240, 0.8);
-        transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-        position: relative;
-        display: flex;
-        flex-direction: column;
-        cursor: pointer; /* Add cursor pointer for clickability */
-        
-        &:hover {
-          box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
-          transform: translateY(-4px);
-          
-          .delete-icon {
-            opacity: 1;
-            transform: scale(1);
-          }
-        }
-        
-        // 系统智能体样式
-        &.official-agent {
-          background: linear-gradient(145deg, #fffaf0 0%, #fff8e5 100%);
-          border: 1px solid rgba(255, 152, 0, 0.3);
-          
-          &:hover {
-            box-shadow: 0 8px 24px rgba(255, 152, 0, 0.15);
-          }
-          
-          .agent-name {
-            color: #d87300 !important;
-          }
-          
-          .agent-meta {
-            .meta-item {
-              background: rgba(255, 243, 224, 0.5);
-              border: 1px solid rgba(255, 152, 0, 0.1);
-            }
-          }
-        }
-        
-        .delete-icon {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background-color: #f56c6c;
-          color: white;
-          border-radius: 50%;
-          width: 24px;
-          height: 24px;
-          display: flex;
-          align-items: center;
-          justify-content: center;
-          font-size: 16px;
-          font-weight: bold;
-          cursor: pointer;
-          z-index: 1;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-          transition: all 0.3s ease;
-          opacity: 0;
-          transform: scale(0.8);
-
-          &:hover {
-            background-color: #ff7a7a;
-          }
-        }
-
-        .official-badge {
-          position: absolute;
-          top: 10px;
-          right: 10px;
-          background-color: #ff9800;
-          color: white;
-          padding: 4px 8px;
-          border-radius: 8px;
-          font-size: 12px;
-          font-weight: bold;
-          z-index: 1;
-          box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-        }
-        
-        
-        .agent-avatar {
-          width: 48px;
-          height: 48px;
-          border-radius: 12px;
-          overflow: hidden;
-          margin-bottom: 12px;
-          border: 2px solid #f0f0f0;
-          
-          img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-          }
-        }
-        
-        .agent-info {
-          flex: 1;
-          overflow: hidden;
-          display: flex;
-          flex-direction: column;
-          
-          .agent-name {
-            font-size: 16px;
-            font-weight: 600;
-            color: #2c3e50;
-            margin: 0 0 6px 0;
-            overflow: hidden;
-            text-overflow: ellipsis;
-            white-space: nowrap;
-          }
-          
-          .agent-description {
-            color: #64748b;
-            font-size: 14px;
-            line-height: 1.4;
-            margin: 0 0 10px 0;
-            display: -webkit-box;
-            -webkit-line-clamp: 2;
-            -webkit-box-orient: vertical;
-            overflow: hidden;
-            min-height: 32px;
-            flex: 1;
-          }
-          
-          .agent-meta {
-            display: flex;
-            justify-content: flex-start;
-            gap: 3px;
-            margin-top: auto;
-            padding-top: 8px;
-            
-            .meta-item {
-              font-size: 11px;
-              color: #64748b;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              gap: 2px;
-              background: rgba(255, 255, 255, 0.3); /* 半透明背景 */
-              padding: 4px 5px;
-              border-radius: 6px;
-              min-width: 38px;
-              text-align: center;
-              box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
-              backdrop-filter: blur(2px); /* 轻微模糊效果 */
-              
-              .meta-icon-img {
-                width: 14px;
-                height: 14px;
-                object-fit: contain;
-              }
-              
-              .meta-count {
-                font-size: 13px;
-                font-weight: 600;
-              }
-            }
-          }
-          
-          .agent-status {
-            margin-top: 12px;
-          }
-        }
-        
-        .agent-actions {
-          display: flex;
-          gap: 8px;
-          margin-top: 8px;
-          justify-content: space-between;
-          
-          .el-button, .custom-delete-btn {
-            flex: 1;
-            text-align: center;
-            padding: 6px 0;
-            font-size: 12px;
-          }
-        }
-      }
-    }
-    
-    .empty-state {
-      text-align: center;
-      padding: 80px 20px;
-      color: #64748b;
-      background: white;
-      border-radius: 16px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
-      
-      p {
-        margin-top: 24px;
-        font-size: 16px;
-        line-height: 1.5;
-      }
-    }
-  }
-}
-
-.custom-confirm-dialog {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: rgba(0, 0, 0, 0.5);
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-
-  .confirm-dialog-content {
-    background-color: white;
-    border-radius: 12px;
-    padding: 24px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.2);
-    text-align: center;
-    width: 350px;
-    max-width: 90%;
-
-    .dialog-title {
-      font-size: 20px;
-      font-weight: 700;
-      color: #333;
-      margin-bottom: 16px;
-    }
-
-    .dialog-body {
-      font-size: 16px;
-      color: #555;
-      margin-bottom: 24px;
-      line-height: 1.6;
-    }
-
-    .dialog-footer {
-      display: flex;
-      justify-content: center;
-      gap: 20px;
-
-      .btn-cancel, .btn-confirm {
-        padding: 10px 20px;
-        border-radius: 8px;
-        font-size: 16px;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.3s ease;
-      }
-
-      .btn-cancel {
-        background-color: #f5f5f5;
-        color: #333;
-        border: 1px solid #ddd;
-        
-        &:hover {
-          background-color: #e5e5e5;
-        }
-      }
-
-      .btn-confirm {
-        background-color: #f56c6c;
-        color: white;
-        border: none;
-        
-        &:hover {
-          background-color: #ff8080;
-          transform: scale(1.05);
-        }
-        
-        &:active {
-          transform: scale(0.95);
-        }
-      }
-    }
-  }
-}
-
-
-// 响应式设计
-@media (min-width: 1400px) {
-  .agent-list .agent-grid {
-    grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
-  }
-}
-
-@media (min-width: 1200px) and (max-width: 1399px) {
-  .agent-list .agent-grid {
-    grid-template-columns: repeat(5, 1fr);
-  }
-}
-
-@media (min-width: 1000px) and (max-width: 1199px) {
-  .agent-list .agent-grid {
-    grid-template-columns: repeat(4, 1fr);
-  }
-}
-
-@media (min-width: 768px) and (max-width: 999px) {
-  .agent-list .agent-grid {
-    grid-template-columns: repeat(2, 1fr);
-    gap: 20px;
-  }
-}
-
-@media (max-width: 767px) {
-  .agent-page {
-    padding: 16px;
-    
-    .page-header {
-      flex-direction: column;
-      gap: 16px;
-      align-items: stretch;
-      padding: 16px; // 减小了padding
-      
-      .header-title {
-        .title-icon {
-          width: 28px;
-          height: 28px;
-        }
-        
-        h2 {
-          font-size: 24px;
-        }
-      }
-      
-      .header-actions {
-        flex-direction: column;
-        gap: 16px;
-        
-        .search-box {
-          .search-input-wrapper {
-            flex-direction: column;
-            gap: 12px;
-            padding: 12px;
-            
-            .el-input {
-              width: 100% !important;
-            }
-          }
-        }
-        
-        .action-buttons {
-          justify-content: center;
-        }
-      }
-    }
-    
-    .agent-list .agent-grid {
-      grid-template-columns: 1fr;
-      gap: 16px;
-    }
-  }
-}
-
-/* 空状态样式 */
-.empty-state {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  padding: 60px 20px;
-  text-align: center;
-  margin: 20px auto;
-  max-width: 600px;
-  
-  .empty-icon {
-    width: 120px;
-    height: 120px;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    background: rgba(64, 158, 255, 0.1);
-    border-radius: 50%;
-    margin-bottom: 20px;
-    
-    .empty-icon-symbol {
-      font-size: 60px;
-    }
-  }
-  
-  h3 {
-    font-size: 20px;
-    color: #303133;
-    margin: 0 0 16px;
-  }
-  
-  p {
-    margin: 0 0 20px;
-    font-size: 16px;
-    color: #909399;
-    max-width: 300px;
-  }
-  
-  .empty-actions {
-    display: flex;
-    gap: 12px;
-  }
-}
-</style> 
+<style scoped src="./agent-catalog-a.css"></style>

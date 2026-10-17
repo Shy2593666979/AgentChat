@@ -13,3 +13,15 @@ memory_db/
 vector_db/
 
 node_modules/
+
+# Local backend credentials; the checked-in config.yaml remains a template.
+src/backend/agentchat/config.local*.yaml
+src/backend/data/uploads/
+.venv*/
+*.db
+*.db-shm
+*.db-wal
+.runtime/
+src/backend/logs/
+src/frontend/public/ui-detail-review/
+docs/design-preview/

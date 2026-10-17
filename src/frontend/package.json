@@ -1,7 +1,7 @@
 {
   "name": "agentchat-frontend",
   "private": true,
-  "version": "1.0.0",
+  "version": "3.0.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -10,6 +10,7 @@
     "lint": "vue-tsc --noEmit"
   },
   "dependencies": {
+    "@ag-ui/core": "1.0.0",
     "@microsoft/fetch-event-source": "^2.0.1",
     "@vueuse/core": "^10.9.0",
     "axios": "^1.6.8",
@@ -24,7 +25,8 @@
     "pinia-plugin-persistedstate": "^3.2.1",
     "vditor": "^3.11.2",
     "vue": "^3.4.21",
-    "vue-router": "^4.3.0"
+    "vue-router": "^4.3.0",
+    "zod": "4.6.7"
   },
   "devDependencies": {
     "@types/lodash": "^4.17.0",

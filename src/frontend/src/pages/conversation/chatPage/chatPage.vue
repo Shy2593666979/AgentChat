@@ -1,809 +1,190 @@
 <script setup lang="ts">
-import { ref, onMounted, nextTick, watch, computed } from "vue"
-import { useRoute } from 'vue-router'
-import { MdPreview } from "md-editor-v3"
-import "md-editor-v3/lib/style.css"
-import { sendMessage, type Chat } from "../../../apis/chat"
-import { useHistoryChatStore } from "../../../store/history_chat_msg"
-import { useUserStore } from "../../../store/user"
-import { ElScrollbar, ElInput, ElButton, ElMessage, ElUpload, ElIcon } from "element-plus"
-import { UploadFilled, Promotion, Loading, VideoPause, Check, Close } from '@element-plus/icons-vue'
-
-// Import static assets
-import defaultUserAvatar from '../../../assets/user.svg';
-import defaultRobotAvatar from '../../../assets/robot.svg';
-
-// 使用与ChatMessage接口中定义的eventInfo类型一致的接口
-interface EventInfo {
-  event_type: string
-  show: boolean
-  status: string
-  message: string
+import AgentIdentity from "../../../components/AgentIdentity.vue";
+import ChatAttachmentCard from "../../../components/ChatAttachmentCard.vue";
+import type { ChatAttachment } from "../../../type";
+import UserAvatar from "../../../components/UserAvatar.vue";
+import { computed, inject, nextTick, onBeforeUnmount, ref, watch, type Ref } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
+import { ElMessage, type ElScrollbar } from 'element-plus';
+import { MdPreview } from 'md-editor-v3';
+import 'md-editor-v3/lib/style.css';
+import UiIcon from '../../../components/UiIcon.vue';
+import ChatToolProcess from '../../../components/ChatToolProcess.vue';
+import ChatActionIcon from '../../../components/ChatActionIcon.vue';
+import { visibleChatEvents, updateChatEvent } from '../../../utils/chat-tool-events';
+import { useHistoryChatStore } from '../../../store/history_chat_msg';
+import { useUserStore } from '../../../store/user';
+import { uploadFileAPI } from '../../../apis/tool';
+import { MsgLikeCreateAPI, MsgDisLikeAPI } from '../../../apis/history';
+import type { AgentResponse } from '../../../apis/agent';
+import CapabilityIcon from '../../../components/CapabilityIcon.vue';
+import { copyChatText, isSendKey, postEventStream } from '../../../utils/chat-ui';
+import { fitComposer } from '../../../utils/chat-ui';
+import { safeResourceUrl } from '../../../utils/data-pages';
+import { responseError } from '../../../utils/resource-visuals';
+import type { ChatMessage } from '../../../type';
+const route = useRoute(), router = useRouter(), store = useHistoryChatStore(), user = useUserStore();
+const agent = inject<Ref<AgentResponse | undefined>>('activeConversationAgent', ref());
+const attachment = inject<Ref<{
+    url: string;
+    name: string;
+    size?: number;
+    mime?: string;
+} | undefined>>('conversationAttachment', ref()), refreshConversations = inject<() => Promise<void>>('refreshConversations', async () => { });
+const agents = inject<Ref<AgentResponse[]>>('conversationAgents', ref([]));
+const agentsLoading = inject<Ref<boolean>>('conversationAgentsLoading', ref(false));
+const refreshAgents = inject<() => Promise<void>>('refreshConversationAgents', async () => {});
+const selectedAgent = ref('');
+const creating = inject<Ref<boolean>>('conversationCreating', ref(false));
+const switchingAgent = ref(false);
+const switchAgent = inject<(id:string)=>Promise<boolean>>('switchConversationAgent', async()=>false);
+watch(agent, value=>selectedAgent.value=String((value as any)?.id||value?.agent_id||''),{immediate:true});
+async function changeAgent(id: string) {
+    if (switchingAgent.value || id === String((agent.value as any)?.id || agent.value?.agent_id || '')) return;
+    switchingAgent.value = true;
+    try { await switchAgent(id); }
+    finally { switchingAgent.value = false; selectedAgent.value = String((agent.value as any)?.id || agent.value?.agent_id || ''); }
 }
 
-interface EventStatus {
-  id: string
-  event_type: string
-  message: string
-  status: 'START' | 'END' | 'ERROR'
-  timestamp: number
-  loading: boolean
-  success: boolean
-  error: boolean
+const displayAnswer = (content: string) => content.replace(/^##[ \t]+(?:\d+[.、．][ \t]*)/gm, '## ');
+const pendingAttachment = ref<ChatAttachment>();
+const draft = ref(''), busy = ref(false), uploading = ref(false), uploadError = ref(''), streamError = ref(''), scrollbar = ref<InstanceType<typeof ElScrollbar>>(), follow = ref(true), activeRow = ref(-1), rowState = ref<Record<number, string>>({}), votes = ref<Record<number, string>>({}), feedbackBusy = ref(-1), brokenAvatars = ref(new Set<string>());
+let controller: AbortController | undefined, disposed = false, operation = 0, scrollFrame = 0;
+function messageAvatar(item: ChatMessage) {
+    const identity = item.aiMessage.agent;
+    if (!identity) return '';
+    return agents.value.find(candidate => String((candidate as any).id || candidate.agent_id) === identity.id)?.logo_url || identity.logo_url || '';
 }
-
-const searchInput = ref("")
-const sendQuestion = ref(true)
-const historyChatStore = useHistoryChatStore()
-const userStore = useUserStore()
-const scrollbar = ref<InstanceType<typeof ElScrollbar>>()
-const route = useRoute()
-const abortCtrl = ref<AbortController | null>(null)
-const isCancelled = ref(false)
-// 标记是否有正在进行的事件
-const hasActiveEvents = ref(false)
-// 保存上传文件的URL和文件名
-const fileUrl = ref("")
-const fileName = ref("")
-
-// 事件状态管理
-const eventStatusMap = ref<Map<string, EventStatus>>(new Map())
-const eventDisplayOrder = ref<string[]>([])
-
-// Get user avatar from store or use default
-const userAvatar = computed(() => userStore.userInfo?.avatar || defaultUserAvatar)
-// Get AI avatar from store or use default
-const aiAvatar = computed(() => historyChatStore.logo || defaultRobotAvatar)
-
-// 计算显示的事件列表
-const displayEventList = computed(() => {
-  return eventDisplayOrder.value.map(id => eventStatusMap.value.get(id)).filter(Boolean) as EventStatus[]
-})
-
-// 检查是否有活跃事件
-const checkActiveEvents = (chatItem: any) => {
-  if (!chatItem.eventInfo || chatItem.eventInfo.length === 0) {
-    return false
-  }
-  return chatItem.eventInfo.some((event: EventInfo) => event.status === 'START')
-}
-
-const handleUploadSuccess = (response: any, file: any, fileList: any) => {
-  ElMessage.success(`文件 ${file.name} 上传成功!`)
-  console.log(response)
-  // 保存上传成功返回的文件URL和文件名
-  if (response && response.data) {
-    fileUrl.value = response.data
-    fileName.value = file.name
-  }
-}
-
-const handleUploadError = (error: any, file: any, fileList: any) => {
-  ElMessage.error(`文件 ${file.name} 上传失败.`)
-  console.error(error)
-}
-
-// 取消上传的文件
-const cancelUploadedFile = () => {
-  fileUrl.value = ""
-  fileName.value = ""
-  ElMessage.info('已取消选择的文件')
-}
-
-// 判断是否为图片文件以便展示缩略图
-const isImageFile = (name: string) => {
-  return /\.(png|jpe?g|gif|webp|bmp|svg)$/i.test(name)
-}
-
-
-// Function to scroll to the bottom of the chat
-function scrollBottom() {
-  nextTick(() => {
-    scrollbar.value?.wrapRef?.scrollTo(0, scrollbar.value?.wrapRef.scrollHeight)
-  })
-}
-
-// 清空事件状态
-const clearEventStatus = () => {
-  eventStatusMap.value.clear()
-  eventDisplayOrder.value = []
-}
-
-// 处理事件状态更新
-const handleEventStatus = (parsedData: any) => {
-  const { data } = parsedData
-  
-  // 确保事件有title字段，如果没有则使用event_type或默认值
-  const eventId = data.title || data.event_type || "event"
-  const { status, message } = data
-  
-  // 获取最后一条AI消息
-  const lastChat = historyChatStore.chatArr[historyChatStore.chatArr.length - 1]
-  
-  // 初始化eventInfo数组（如果不存在）
-  if (!lastChat.eventInfo) {
-    lastChat.eventInfo = []
-  }
-  
-  // 查找是否已有相同事件类型的事件
-  const existingEventIndex = lastChat.eventInfo.findIndex(
-    (event) => event.event_type === eventId
-  )
-  
-  if (status === 'START') {
-    // 如果是新事件，添加到事件列表
-    if (existingEventIndex === -1) {
-      lastChat.eventInfo.push({
-        event_type: eventId,
-        message: message || "处理中...",
-        status: status,
-        show: false // 默认折叠
-      })
-    } else {
-      // 更新已有事件
-      lastChat.eventInfo[existingEventIndex].status = status
-      lastChat.eventInfo[existingEventIndex].message = message || "处理中..."
+const userAvatar = computed(() => user.userInfo?.avatar || '');
+const validAvatar = (url: string) => !!safeResourceUrl(url) && !brokenAvatars.value.has(url);
+function failAvatar(url: string) { brokenAvatars.value = new Set([...brokenAvatars.value, url]); }
+function scrollBottom(force = false) { if (force)
+    follow.value = true; if (!follow.value)
+    return; cancelAnimationFrame(scrollFrame); nextTick(() => { if (disposed)
+    return; scrollFrame = requestAnimationFrame(() => { const element = scrollbar.value?.wrapRef; if (element)
+    element.scrollTo({ top: element.scrollHeight, behavior: 'auto' }); }); }); }
+function onScroll() { const element = scrollbar.value?.wrapRef; if (element)
+    follow.value = element.scrollHeight - element.scrollTop - element.clientHeight < 100; }
+function stop() { operation++; controller?.abort(); controller = undefined; if (busy.value && activeRow.value >= 0)
+    rowState.value[activeRow.value] = 'stopped'; busy.value = false; for (const event of store.chatArr[activeRow.value]?.eventInfo || [])
+    if (event.status === 'START')
+        event.status = 'STOPPED'; activeRow.value = -1; }
+async function loadHistory() { stop(); pendingAttachment.value=undefined; streamError.value = ''; uploadError.value = ''; rowState.value = {}; votes.value = {}; uploading.value = false; feedbackBusy.value = -1; draft.value = typeof route.query.initial_message === 'string' ? route.query.initial_message : ''; const id = typeof route.query.conversation_id === 'string' ? route.query.conversation_id : ''; if (!id) {
+    store.clear();
+    return;
+} const current = ++operation; const loaded = await store.HistoryChat(id);
+if (!selectedAgent.value) { await Promise.all([refreshConversations(), refreshAgents()]); await nextTick(); }
+if (disposed || current !== operation)
+    return; scrollBottom(true); const initial = typeof route.query.initial_message === 'string' ? route.query.initial_message : typeof route.query.message === 'string' ? route.query.message : ''; if (loaded && initial.trim()) {
+    draft.value = initial;
+    await router.replace({ path: route.path, query: { ...route.query, initial_message: undefined, message: undefined } });
+    if (!disposed && current === operation)
+        await send();
+} }
+async function send(text?: string, retryFile?: ChatAttachment) { const query = (text ?? draft.value).trim(), conversationId = String(route.query.conversation_id || ''); if (!query || !conversationId || busy.value || creating.value || uploading.value || store.loading || store.error)
+    return; if (switchingAgent.value) return; const requestAgentId = selectedAgent.value; if (!requestAgentId) { streamError.value = '请选择智能体后发送'; return; }
+    const requestAgent = agent.value;
+    const current = ++operation; controller = new AbortController(); busy.value = true; streamError.value = ''; draft.value = ''; const file = text === undefined ? attachment.value : retryFile; store.chatArr.push({ personMessage: { content: query, attachments: file ? [{...file}] : [] }, aiMessage: { content: '', agent: { id: requestAgentId, name: requestAgent?.name || '智能体', logo_url: requestAgent?.logo_url || '' } }, eventInfo: [] }); const index = store.chatArr.length - 1, row = store.chatArr[index]; activeRow.value = index; rowState.value[index] = 'streaming'; if (text === undefined) attachment.value = undefined; scrollBottom(true); try {
+    await postEventStream('/api/v1/completion', { conversation_id: conversationId, agent_id: requestAgentId, user_input: query, ...(file ? { file_url: file.url, file_name: file.name, file_size: file.size, file_type: file.mime } : {}) }, event => { if (disposed || current !== operation)
+        return; const data = event.data || {}; if (event.type === 'heartbeat')
+        return; if (event.type === 'agent') {
+        row.aiMessage.agent = { id: String(data.agent_id || requestAgentId), name: String(data.name || '智能体'), logo_url: String(data.logo_url || '') };
+        void refreshConversations();
     }
-    // 设置有活跃事件
-    hasActiveEvents.value = true
-  } else if (status === 'END' || status === 'ERROR') {
-    // 更新已有事件状态
-    if (existingEventIndex !== -1) {
-      lastChat.eventInfo[existingEventIndex].status = status
-      if (message) {
-        lastChat.eventInfo[existingEventIndex].message = message
-      }
-    } else {
-      // 如果没有找到对应的事件，创建一个新事件
-      lastChat.eventInfo.push({
-        event_type: eventId,
-        message: message || (status === 'END' ? "已完成" : "处理出错"),
-        status: status,
-        show: false // 默认折叠
-      })
+    else if (event.type === 'response_chunk') {
+        row.aiMessage.content += String(data.chunk || '');
     }
-    
-    // 检查是否还有其他活跃事件
-    hasActiveEvents.value = checkActiveEvents(lastChat)
-  }
-  
-  scrollBottom()
+    else if (event.type === 'event') {
+        const title = data.title || data.event_type || '事件';
+        updateChatEvent(row.eventInfo ||= [], title, data.status || 'UNKNOWN', data.message || '', data.tool_call_id);
+    }
+    else if (event.type === 'knowledge') {
+        store.chatArr.push({ personMessage: { content: '' }, aiMessage: { content: String(data.message || ''), type: 'knowledge' }, eventInfo: [] });
+    }
+    else if (typeof data.content === 'string' && data.content) {
+        row.aiMessage.content = data.content;
+    } scrollBottom(); }, controller.signal);
+    if (current === operation && !disposed) {
+        rowState.value[index] = 'done';
+        for (const event of row.eventInfo || [])
+            if (event.status === 'START')
+                event.status = 'UNKNOWN';
+        void refreshConversations();
+    }
 }
-
-// Function to handle sending a message
-const personQuestion = async () => {
-  if (!historyChatStore.dialogId) {
-    ElMessage.error('未获取到会话 ID，请先选择或创建会话')
-    return
-  }
-  if (searchInput.value.trim() && sendQuestion.value) {
-    sendQuestion.value = false
-    isCancelled.value = false
-    hasActiveEvents.value = false
-    const currentInput = searchInput.value
-    searchInput.value = ""
-
-    historyChatStore.chatArr.push({
-      personMessage: { content: currentInput },
-      aiMessage: { content: "" }, // 设置初始空内容，后续会被chunks累加
-      eventInfo: [] // 初始化事件信息数组
-    })
-    scrollBottom()
-
-    const data: Chat = {
-      dialogId: historyChatStore.dialogId,
-      userInput: currentInput,
+catch (error: any) {
+    if (current === operation && !disposed && error.name !== 'AbortError') {
+        streamError.value = responseError(error, '发送失败，请重试');
+        rowState.value[index] = 'error';
+        for (const event of row.eventInfo || [])
+            if (event.status === 'START')
+                event.status = 'ERROR';
     }
-    
-    // 如果有上传的文件URL，添加到请求中
-    if (fileUrl.value) {
-      data.fileUrl = fileUrl.value
-    }
-
-    try {
-      abortCtrl.value = sendMessage(
-        data,
-        (msg: any) => {
-          if (isCancelled.value) {
-            historyChatStore.chatArr[historyChatStore.chatArr.length - 1].aiMessage.content = '已取消本次对话！'
-            return
-          }
-          try {
-            const parsedData = JSON.parse(msg.data)
-            // 移除这些可能含有敏感信息的日志
-            // console.log("---------------------------")
-            // console.log(parsedData.data)
-            
-            if (parsedData.data.tools && Array.isArray(parsedData.data.tools)) {
-              // data.value.tools = parsedData.data.tools // This line was removed from the original file
-            }
-            // 只有当不是response_chunk类型时，才设置整个content
-            if (parsedData.type !== 'response_chunk') {
-              historyChatStore.chatArr[historyChatStore.chatArr.length - 1].aiMessage.content = parsedData.data.content || ''
-            }
-            if (parsedData.data.session_id) {
-              // sessionId.value = parsedData.data.session_id // This line was removed from the original file
-              // sessionStore().updateSessionId(sessionId.value) // This line was removed from the original file
-            }
-            // 处理不同类型的消息
-            if (parsedData.type === 'response_chunk') {
-              // 累加chunk内容而不是替换
-              const lastMessage = historyChatStore.chatArr[historyChatStore.chatArr.length - 1]
-              if (!lastMessage.aiMessage.content) {
-                lastMessage.aiMessage.content = parsedData.data.chunk
-              } else {
-                lastMessage.aiMessage.content += parsedData.data.chunk
-              }
-              scrollBottom()
-              // console.log('【Chunk接收】当前累加内容:', lastMessage.aiMessage.content) // 调试用
-            } else if (parsedData.type === 'event') {
-              // 处理事件消息
-              handleEventStatus(parsedData)
-            } else if (parsedData.type === 'knowledge') {
-              historyChatStore.chatArr.push({
-                personMessage: { content: '' },
-                aiMessage: { content: '[知识库检索结果]\n' + (parsedData.data.message || ''), type: 'knowledge' },
-                eventInfo: []
-              })
-              scrollBottom()
-            } else if (parsedData.type === 'error') {
-              historyChatStore.chatArr.push({
-                personMessage: { content: '' },
-                aiMessage: { content: '[错误]\n' + (parsedData.data.message || ''), type: 'error' },
-                eventInfo: []
-              })
-              scrollBottom()
-            } else if (parsedData.type === 'heartbeat') {
-              // 心跳包可忽略
-            } else {
-              // 其他类型作为普通消息展示
-              historyChatStore.chatArr.push({
-                personMessage: { content: '' },
-                aiMessage: { content: '[系统消息]\n' + JSON.stringify(parsedData.data), type: 'system' },
-                eventInfo: []
-              })
-              scrollBottom()
-            }
-          } catch (error) {
-            console.error('解析消息失败:', error)
-          }
-        },
-        () => {
-          sendQuestion.value = true
-          abortCtrl.value = null
-          hasActiveEvents.value = false
-          // 清空文件URL和文件名
-          fileUrl.value = ""
-          fileName.value = ""
-        }
-      )
-    } catch (error) {
-      ElMessage.error('发送消息失败，请重试')
-      sendQuestion.value = true
-      abortCtrl.value = null
-      hasActiveEvents.value = false
-      // 清空文件URL和文件名
-      fileUrl.value = ""
-      fileName.value = ""
-    }
-  }
 }
-
-const stopGeneration = () => {
-  if (abortCtrl.value) {
-    // console.log('[stopGeneration] 用户点击暂停, abort 请求')
-    isCancelled.value = true
-    abortCtrl.value.abort()
-    const lastMessage = historyChatStore.chatArr[historyChatStore.chatArr.length - 1]
-    if (lastMessage) {
-      //lastMessage.aiMessage.content = '已取消本次AI生成！'
-      sendQuestion.value = true
-      abortCtrl.value = null
-      hasActiveEvents.value = false
-      ElMessage.info('已取消本次AI生成！')
+finally {
+    if (current === operation && !disposed) {
+        busy.value = false;
+        controller = undefined;
+        activeRow.value = -1;
+        scrollBottom();
     }
-  }
+} }
+function keydown(event: KeyboardEvent) { if (isSendKey(event)) {
+    event.preventDefault();
+    send();
+} }
+async function upload(event: Event) { const input = event.target as HTMLInputElement, file = input.files?.[0]; input.value = ''; if (!file)
+    return; if (file.size > 20 * 1024 * 1024) {
+    uploadError.value = '附件不能超过 20MB';
+    return;
+} uploadError.value = ''; uploading.value = true; pendingAttachment.value={url:'',name:file.name,size:file.size,mime:file.type}; const id = operation; try {
+    const response = await uploadFileAPI(file);
+    if (disposed || id !== operation)
+        return;
+    if (response.data.status_code !== 200 || typeof response.data.data !== 'string')
+        throw new Error(response.data.status_message || '上传失败');
+    attachment.value = { url: response.data.data, name: file.name, size: file.size, mime: file.type };
 }
-
-// 切换事件信息的展开/折叠状态
-const toggleEventInfo = (event: EventInfo) => {
-  event.show = !event.show
+catch (error) {
+    if (id === operation && !disposed)
+        uploadError.value = responseError(error, '附件上传失败');
 }
-
-// Load history on mount
-onMounted(() => {
-  const dialog_id = route.query.dialog_id
-  const message = route.query.message
-  
-  if (dialog_id) {
-    historyChatStore.dialogId = dialog_id as string
-    historyChatStore.HistoryChat(dialog_id as string).then(() => {
-        scrollBottom()
-        
-        // 如果有来自首页的搜索消息，自动发送
-        if (message && typeof message === 'string') {
-          searchInput.value = message
-          nextTick(() => {
-            personQuestion()
-          })
-        }
-    })
-  } else if (message && typeof message === 'string') {
-    // 新会话，直接发送首页的搜索消息
-    searchInput.value = message
-    nextTick(() => {
-      personQuestion()
-    })
-  }
-})
-
-// Watch for route changes to load new chat history
-watch(
-  () => route.query.dialog_id,
-  (newVal, oldVal) => {
-    if (newVal && newVal !== oldVal) {
-      historyChatStore.dialogId = newVal as string
-      historyChatStore.HistoryChat(newVal as string).then(() => {
-        scrollBottom()
-        
-        // 如果有来自首页的搜索消息，自动发送
-        const message = route.query.message
-        if (message && typeof message === 'string') {
-          searchInput.value = message
-          nextTick(() => {
-            personQuestion()
-          })
-        }
-      })
-    }
-  }
-)
-
-// Watch for new messages to scroll down
-watch(
-  () => historyChatStore.chatArr,
-  (newVal) => {
-    // console.log('【消息更新】历史消息数组更新:', JSON.stringify(newVal))
-    scrollBottom()
-  },
-  { deep: true }
-)
+finally {
+    if (id === operation && !disposed)
+        uploading.value = false; pendingAttachment.value=undefined;
+} }
+async function copy(value: string) { try {
+    await copyChatText(value);
+    ElMessage.success('内容已复制');
+}
+catch {
+    ElMessage.error('复制失败，请选中内容复制');
+} }
+async function feedback(item: ChatMessage, index: number, positive: boolean) { if (feedbackBusy.value >= 0 || votes.value[index])
+    return; feedbackBusy.value = index; const conversationId = route.query.conversation_id; try {
+    const response = await (positive ? MsgLikeCreateAPI : MsgDisLikeAPI)({ userInput: item.personMessage.content, agentOutput: item.aiMessage.content });
+    if (response.data.status_code !== 200)
+        throw new Error(response.data.status_message || '反馈失败');
+    if (conversationId !== route.query.conversation_id || disposed)
+        return;
+    votes.value[index] = positive ? 'like' : 'dislike';
+    ElMessage.success('感谢你的反馈');
+}
+catch (error) {
+    ElMessage.error(responseError(error, '反馈提交失败'));
+}
+finally {
+    if (conversationId === route.query.conversation_id && !disposed)
+        feedbackBusy.value = -1;
+} }
+watch(() => route.query.conversation_id, (id, previous) => { if (previous && id !== previous)
+    attachment.value = undefined; loadHistory(); }, { immediate: true });
+watch(() => store.chatArr, () => scrollBottom(), { deep: true });
+onBeforeUnmount(() => { disposed = true; stop(); store.clear(); cancelAnimationFrame(scrollFrame); });
+const composerInput=ref<HTMLTextAreaElement>();
+watch(draft,()=>nextTick(()=>fitComposer(composerInput.value)));
 </script>
+<template><div class="b5-page b5-chat"><div class="chat-scroll-area"><el-scrollbar ref="scrollbar" @scroll="onScroll"><div class="chat-messages" v-loading="store.loading"><div v-if="store.error" class="chat-error" role="alert"><span>{{store.error}}</span><button @click="loadHistory">重新加载</button></div><div v-if="!store.loading&&!store.error&&!store.chatArr.length" class="empty-chat"><UiIcon name="chat"/><h2>开始与{{agent?.name||'智能体'}}对话</h2><p>输入问题，使用它已配置的模型和能力。</p></div><article v-for="(item,index) in store.chatArr" :key="index" class="chat-turn"><div v-if="item.personMessage.content||item.personMessage.attachments?.length" class="user-message"><div class="user-message-content"><div v-if="item.personMessage.content" class="user-bubble">{{item.personMessage.content}}</div><div v-if="item.personMessage.attachments?.length" class="message-attachments"><ChatAttachmentCard v-for="file in item.personMessage.attachments" :key="file.url" :file="file"/></div></div><span class="message-avatar"><UserAvatar :username="user.userInfo?.username" :src="userAvatar"/></span></div><div v-if="item.aiMessage.content||visibleChatEvents(item.eventInfo).length||activeRow===index||rowState[index]==='error'||rowState[index]==='stopped'" class="assistant-message"><span class="message-avatar" :title="item.aiMessage.agent?.name || '智能体'"><CapabilityIcon class="chat-agent-mark" kind="coding" robot/><img v-if="validAvatar(messageAvatar(item))" :src="safeResourceUrl(messageAvatar(item))" alt="智能体头像" @error="failAvatar(messageAvatar(item))"></span><div class="assistant-bubble" :class="item.aiMessage.type"><ChatToolProcess :events="visibleChatEvents(item.eventInfo)" :active="busy&&activeRow===index"/><div v-if="!item.aiMessage.content&&busy&&activeRow===index" class="chat-working" role="status"><span class="chat-waiting-dots"><i/><i/><i/></span><span>{{visibleChatEvents(item.eventInfo).some(event=>event.status==='START')?'正在获取资料，工具返回后继续生成回答…':'正在生成回答…'}}</span></div><MdPreview v-if="item.aiMessage.content" :editorId="`conversation-answer-${index}`" :modelValue="displayAnswer(item.aiMessage.content)"/><span v-if="busy&&activeRow===index&&item.aiMessage.content" class="chat-stream-caret" aria-label="回答生成中"/><span v-if="rowState[index]==='stopped'" class="response-state">已停止生成，保留已收到的内容</span><span v-if="rowState[index]==='error'" class="response-state error">{{streamError}}</span><button v-if="rowState[index]==='error'&&item.personMessage.content" class="chat-outline retry-message" :disabled="busy||store.loading" @click="send(item.personMessage.content,item.personMessage.attachments?.[0])">重试这条消息</button><footer v-if="item.aiMessage.content&&activeRow!==index" class="answer-actions"><button aria-label="复制回答" title="复制回答" @click="copy(item.aiMessage.content)"><ChatActionIcon name="copy"/></button><button v-if="item.personMessage.content" :disabled="busy||store.loading" aria-label="再问一次" title="重新回答这个问题" @click="send(item.personMessage.content,item.personMessage.attachments?.[0])"><ChatActionIcon name="retry"/></button><button v-if="item.personMessage.content" :disabled="feedbackBusy>=0||!!votes[index]" :class="{active:votes[index]==='like'}" aria-label="回答有帮助" title="回答有帮助" @click="feedback(item,index,true)"><ChatActionIcon name="like"/></button><button v-if="item.personMessage.content" :disabled="feedbackBusy>=0||!!votes[index]" :class="{active:votes[index]==='dislike'}" aria-label="回答需要改进" title="回答需要改进" @click="feedback(item,index,false)"><ChatActionIcon name="dislike"/></button></footer></div></div></article></div></el-scrollbar><button v-if="!follow" class="near-bottom" @click="scrollBottom(true)"><UiIcon name="arrow-down"/>回到最新消息</button></div><form class="chat-composer conversation-composer welcome-composer" @submit.prevent="send()"><p v-if="uploadError" class="chat-error" role="alert">{{uploadError}}</p><div v-if="pendingAttachment||attachment" class="composer-attachments"><ChatAttachmentCard :file="(pendingAttachment||attachment)!" :uploading="uploading" removable :disabled="creating" @remove="attachment=undefined"/></div><textarea ref="composerInput" v-model="draft" rows="3" :disabled="store.loading||creating" placeholder="输入你的问题，Enter 发送，Shift + Enter 换行…" aria-label="输入问题" @keydown="keydown"/><div class="composer-footer"><div class="composer-tools"><label class="upload-label" :class="{busy:uploading}" :title="uploading?'上传中…':'添加附件'"><UiIcon :name="uploading?'clock':'paperclip'"/><input type="file" :disabled="busy||uploading||store.loading||!!attachment" @change="upload"></label></div><div class="composer-send"><el-select v-model="selectedAgent" filterable class="welcome-agent-select" placeholder="选择智能体" aria-label="选择智能体" :loading="agentsLoading" :disabled="switchingAgent||creating||store.loading" title="在当前会话中切换智能体，保留聊天记录" @change="changeAgent"><template #prefix><AgentIdentity v-if="agent" class="dropdown-option-logo" :agent="agent"/><UiIcon v-else name="bot"/></template><el-option v-for="item in agents" :key="String((item as any).id||item.agent_id)" :value="String((item as any).id||item.agent_id)" :label="item.name"><span class="dropdown-option-row"><AgentIdentity class="dropdown-option-logo" :agent="item"/><span>{{item.name}}</span></span></el-option></el-select><button type="button" class="chat-primary" :aria-label="busy?'停止生成':'发送消息'" :disabled="!busy&&(!draft.trim()||uploading||store.loading||!!store.error)" @click="busy?stop():send()"><UiIcon :name="busy?'stop':'send'"/>{{busy?'停止':'发送'}}</button></div></div></form></div></template>
+<style scoped src="./chat.css"></style>
 
-<template>
-  <div class="chat-container">
-    <div class="chat-conversation">
-      <el-scrollbar ref="scrollbar">
-        <!-- 聊天消息区 -->
-        <div v-for="(item, index) in historyChatStore.chatArr" :key="index" class="message-group">
-          <!-- User Message -->
-          <div v-if="item.personMessage.content" class="user-message">
-            <div class="message-content">
-              <span>{{ item.personMessage.content }}</span>
-            </div>
-            <img :src="userAvatar" alt="User Avatar" class="avatar" />
-          </div>
-          
-          <!-- AI Message -->
-          <div v-if="item.aiMessage.content || (!sendQuestion && index === historyChatStore.chatArr.length - 1)" class="ai-message" :class="item.aiMessage.type ? 'ai-message-' + item.aiMessage.type : ''">
-            <img :src="aiAvatar" alt="AI Avatar" class="avatar" />
-            <div class="message-content">
-              <!-- 事件进度信息，每个事件一行，可折叠 -->
-              <div v-if="item.eventInfo && item.eventInfo.length" class="event-info-list">
-                <div v-for="(event, evIdx) in item.eventInfo" :key="evIdx" class="event-info-row" :class="event.status">
-                  <div class="event-info-header" @click="toggleEventInfo(event)">
-                    <el-icon v-if="event.status === 'START'" class="rotating"><Loading /></el-icon>
-                    <el-icon v-else-if="event.status === 'END'" class="success-icon"><Check /></el-icon>
-                    <el-icon v-else-if="event.status === 'ERROR'" class="error-icon"><Close /></el-icon>
-                    <span class="event-info-title">{{ event.event_type }}</span>
-                    <span class="event-info-status">
-                      {{ event.status === 'START' ? '进行中' : event.status === 'END' ? '已完成' : '失败' }}
-                    </span>
-                    <span class="event-info-toggle">{{ event.show ? '收起' : '展开' }}</span>
-                  </div>
-                  <div v-if="event.show" class="event-info-message">
-                    {{ event.message }}
-                  </div>
-                </div>
-              </div>
-              
-              <!-- Loading Indicator - 只在没有活跃事件时显示 -->
-              <div v-if="!item.aiMessage.content && !sendQuestion && index === historyChatStore.chatArr.length - 1 && !hasActiveEvents" class="loading-spinner">
-                  <el-icon class="is-loading" :size="20"><Loading /></el-icon>
-              </div>
-              <template v-else>
-                <div v-if="item.aiMessage.type === 'knowledge'" style="color: #409eff;">
-                  <MdPreview :editorId="'ai-knowledge-' + index" :modelValue="item.aiMessage.content" />
-                </div>
-                <div v-else-if="item.aiMessage.type === 'event'" style="color: #67c23a;">
-                  <MdPreview :editorId="'ai-event-' + index" :modelValue="item.aiMessage.content" />
-                </div>
-                <div v-else-if="item.aiMessage.type === 'error'" style="color: #f56c6c;">
-                  <MdPreview :editorId="'ai-error-' + index" :modelValue="item.aiMessage.content" />
-                </div>
-                <div v-else-if="item.aiMessage.type === 'system'" style="color: #e6a23c;">
-                  <MdPreview :editorId="'ai-system-' + index" :modelValue="item.aiMessage.content" />
-                </div>
-                <MdPreview v-else :editorId="'ai-' + index" :modelValue="item.aiMessage.content" />
-              </template>
-            </div>
-          </div>
-        </div>
-      </el-scrollbar>
-    </div>
-
-    <div class="input-area">
-      <el-upload
-        action="/api/v1/upload"
-        :on-success="handleUploadSuccess"
-        :on-error="handleUploadError"
-        :show-file-list="false"
-        :disabled="!!fileUrl"
-      >
-        <el-button circle class="action-btn" :class="{ 'file-uploaded': fileUrl }">
-          <el-icon><UploadFilled /></el-icon>
-        </el-button>
-      </el-upload>
-      <div class="input-wrapper">
-        <!-- 已上传文件显示 -->
-        <div v-if="fileUrl" class="uploaded-file-tag">
-          <span class="file-avatar" aria-hidden="true">
-            <img v-if="isImageFile(fileName)" :src="fileUrl" alt="" />
-            <svg v-else width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M21.44 11.05l-7.07 7.07a5 5 0 01-7.07-7.07l7.07-7.07a3 3 0 114.24 4.24l-7.07 7.07a1 1 0 01-1.41-1.41l6.36-6.36" stroke="#409eff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
-            </svg>
-          </span>
-          <a class="file-name" :href="fileUrl" target="_blank" rel="noopener" :title="fileName">{{ fileName }}</a>
-          <el-button size="small" type="danger" text @click="cancelUploadedFile" class="cancel-btn" title="移除">
-            <el-icon><Close /></el-icon>
-          </el-button>
-        </div>
-        <el-input
-          v-model="searchInput"
-          type="textarea"
-          :autosize="{ minRows: 1, maxRows: 4 }"
-          placeholder="请输入您的问题..."
-          @keydown.enter.exact.prevent="personQuestion"
-          class="message-input"
-        />
-      </div>
-      <el-button
-        @click="sendQuestion ? personQuestion() : stopGeneration()"
-        type="primary"
-        circle
-        class="send-btn"
-        :class="{ 'pause-mode': !sendQuestion }"
-        :disabled="sendQuestion ? !searchInput.trim() : false"
-      >
-        <el-icon v-if="sendQuestion"><Promotion /></el-icon>
-        <el-icon v-else><VideoPause /></el-icon>
-      </el-button>
-    </div>
-  </div>
-</template>
-
-<style lang="scss" scoped>
-.chat-container {
-  display: flex;
-  flex-direction: column;
-  height: 100%;
-  background-color: #f7f8fa;
-}
-
-.chat-conversation {
-  flex: 1;
-  padding: 20px;
-  overflow-y: hidden;
-  
-  .message-group {
-    margin-bottom: 20px;
-  }
-
-  .ai-message {
-    display: flex;
-    align-items: flex-start;
-    justify-content: flex-start;
-
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-right: 15px;
-      flex-shrink: 0;
-      border: 1px solid #eee;
-    }
-
-    .message-content {
-      background-color: #ffffff;
-      border-radius: 18px;
-      padding: 12px 18px;
-      max-width: 70%;
-      color: #333;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05);
-      word-break: break-word;
-    }
-  }
-
-  .user-message {
-    display: flex;
-    justify-content: flex-end;
-    align-items: flex-start;
-
-    .avatar {
-      width: 40px;
-      height: 40px;
-      border-radius: 50%;
-      margin-left: 12px;
-      flex-shrink: 0;
-      border: 1px solid #eee;
-    }
-
-    .message-content {
-      display: flex;
-      align-items: center;
-      background: linear-gradient(135deg, #6e8efb, #a777e3);
-      color: white;
-      border-radius: 18px;
-      padding: 12px 18px;
-      max-width: 70%;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.1);
-    }
-  }
-}
-
-/* 事件进度信息样式 */
-.event-info-list {
-  margin-bottom: 12px;
-}
-
-.event-info-row {
-  margin-bottom: 8px;
-  border-radius: 8px;
-  padding: 8px 12px;
-  background: #f8fafc;
-  cursor: pointer;
-  transition: background 0.3s ease;
-  display: flex;
-  flex-direction: column;
-  
-  &.START { 
-    border-left: 4px solid #409eff; 
-    background: #f0f7ff;
-  }
-  
-  &.END { 
-    border-left: 4px solid #67c23a; 
-    background: #f0fff4;
-  }
-  
-  &.ERROR { 
-    border-left: 4px solid #f56c6c; 
-    background: #fff0f0;
-  }
-  
-  &:hover {
-    transform: translateX(2px);
-  }
-}
-
-.event-info-header { 
-  display: flex; 
-  align-items: center; 
-}
-
-.event-info-title { 
-  margin-left: 8px; 
-  font-weight: 600;
-  color: #333;
-}
-
-.event-info-status {
-  margin-left: 8px;
-  font-size: 12px;
-  padding: 2px 6px;
-  border-radius: 10px;
-  background: #eee;
-  
-  .START & {
-    background: #e6f1ff;
-    color: #409eff;
-  }
-  
-  .END & {
-    background: #e7f9eb;
-    color: #67c23a;
-  }
-  
-  .ERROR & {
-    background: #ffeded;
-    color: #f56c6c;
-  }
-}
-
-.event-info-toggle { 
-  margin-left: auto; 
-  color: #aaa; 
-  font-size: 12px;
-  
-  &:hover {
-    color: #666;
-  }
-}
-
-.event-info-message { 
-  margin-top: 8px; 
-  color: #333;
-  padding: 8px;
-  background: rgba(255, 255, 255, 0.7);
-  border-radius: 4px;
-  font-size: 14px;
-  line-height: 1.5;
-}
-
-.rotating { 
-  animation: spin 1.2s linear infinite;
-  color: #409eff;
-}
-
-.success-icon {
-  color: #67c23a;
-}
-
-.error-icon {
-  color: #f56c6c;
-}
-
-@keyframes spin { 
-  from { transform: rotate(0deg); } 
-  to { transform: rotate(360deg); } 
-}
-
-.loading-spinner {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  min-height: 28px;
-  color: #6e8efb;
-}
-
-.input-area {
-  display: flex;
-  align-items: flex-end;
-  padding: 15px 20px;
-  border-top: 1px solid #e0e0e0;
-  background-color: #ffffff;
-  box-shadow: 0 -2px 10px rgba(0,0,0,0.05);
-
-  .action-btn {
-    margin-right: 10px;
-    background-color: #f0f2f5;
-    border: none;
-    width: 48px;
-    height: 48px;
-    font-size: 24px;
-    transition: all 0.3s ease;
-    &:hover {
-      background-color: #e6e8eb;
-    }
-    &.file-uploaded {
-      background-color: #67c23a;
-      color: white;
-      &:hover {
-        background-color: #5daf34;
-      }
-    }
-    &:disabled {
-      opacity: 0.6;
-      cursor: not-allowed;
-    }
-  }
-
-  .input-wrapper {
-    flex-grow: 1;
-    position: relative;
-  }
-
-  .uploaded-file-tag {
-    position: absolute;
-    top: -28px;
-    left: 0;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 6px 10px;
-    background: linear-gradient(135deg, #f5fbff 0%, #ecf5ff 100%);
-    border: 1px solid #b3d8ff;
-    border-radius: 16px;
-    font-size: 12px;
-    z-index: 10;
-    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-
-    .file-avatar {
-      width: 22px;
-      height: 22px;
-      border-radius: 6px;
-      overflow: hidden;
-      background: rgba(64, 158, 255, 0.1);
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      flex-shrink: 0;
-      border: 1px solid rgba(64, 158, 255, 0.2);
-      img {
-        width: 100%;
-        height: 100%;
-        object-fit: cover;
-        display: block;
-      }
-    }
-
-    .file-name {
-      color: #1f6fd6;
-      text-decoration: none;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
-      max-width: 180px;
-      font-weight: 500;
-    }
-
-    .cancel-btn {
-      padding: 0;
-      width: 20px;
-      height: 20px;
-      min-height: 20px;
-      font-size: 12px;
-      margin-left: 4px;
-      
-      &:hover {
-        background-color: rgba(245, 108, 108, 0.1);
-      }
-      :deep(.el-icon) {
-        font-size: 16px;
-      }
-    }
-  }
-
-  .message-input {
-    width: 100%;
-    :deep(.el-textarea__inner) {
-      border-radius: 20px;
-      background-color: #f0f2f5;
-      box-shadow: none;
-      border: 1px solid transparent;
-      padding: 12px 18px;
-      &:focus {
-        border-color: #6e8efb;
-      }
-    }
-  }
-
-  .send-btn {
-    margin-left: 10px;
-    background-color: #6e8efb;
-    border: none;
-    width: 48px;
-    height: 48px;
-    font-size: 24px;
-    &:hover {
-      background-color: #5a78e6;
-    }
-    &.pause-mode {
-      background-color: #f56c6c;
-      &:hover {
-        background-color: #dd6161;
-      }
-    }
-  }
-}
-
-
-// Override MdPreview background
-:deep(.md-editor-preview-wrapper) {
-    background-color: transparent !important;
-}
-
-:deep(.el-scrollbar__view) {
-  padding: 10px;
-}
-</style>
+<style scoped src="../defaultPage/conversation-welcome.css"></style>

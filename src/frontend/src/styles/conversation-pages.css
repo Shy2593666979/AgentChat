@@ -1,0 +1,515 @@
+body[data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-nav {
+  position: absolute;
+  left: 256px;
+  right: 0;
+  top: 0;
+  height: 70px;
+  z-index: 20;
+  pointer-events: none;
+  background: transparent
+}
+body[data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-nav .s-top-utility,body[data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-nav .right {
+  pointer-events: auto
+}
+body[data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-main {
+  height: 100dvh
+}
+body[data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-main>.content {
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  height: 100%;
+  min-width: 0
+}
+body[data-design='screenshot'] #app .b5-workspace-task-shell .workspace-nav {
+  display: none
+}
+body[data-design='screenshot'] #app .b5-workspace-task-shell .workspace-main {
+  height: 100dvh
+}
+body[data-design='screenshot'] #app .b5-workspace-task-shell .workspace-main>.content {
+  margin: 0;
+  border-radius: 0;
+  background: transparent;
+  height: 100%;
+  min-width: 0
+}
+@media(min-width:701px) {
+  body[data-sidebar-collapsed='true'][data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-nav {
+    left: 84px
+  }
+}
+@media(max-width:700px) {
+  body[data-design='screenshot'] #app :is(.b5-chat-shell,.b5-workspace-task-shell,.b5-task.p-shell) {
+    padding-left: 68px
+  }
+  body[data-design='screenshot'] #app :is(.b5-chat-shell,.b5-workspace-task-shell,.b5-task.p-shell) .p-sidebar {
+    width: 68px;
+    padding-inline: 8px
+  }
+}
+.b5-page {
+  font-family: 'AgentChat Inter','AgentChat Sans SC','Microsoft YaHei',sans-serif;
+  color: #102044;
+  background: radial-gradient(ellipse at 50% -30%,#d5ecff88,transparent 65%),linear-gradient(160deg,#edf7ff,#fff 55%)
+}
+.b5-page button,.b5-page input,.b5-page textarea {
+  font: inherit
+}
+.b5-page button {
+  cursor: pointer
+}
+.b5-page button:disabled {
+  cursor: not-allowed;
+  opacity: .5
+}
+.b5-page button:focus-visible,.b5-page a:focus-visible,.b5-page select:focus-visible {
+  outline: 3px solid #97bdff;
+  outline-offset: 3px
+}
+.b5-page .p-icon {
+  flex: none;
+  width: 21px;
+  height: 21px
+}
+.b5-page .chat-error {
+  padding: 12px 16px;
+  border: 1px solid #f1d2d9;
+  border-radius: 11px;
+  background: #fff5f6;
+  color: #b74b63;
+  font-size: 13px;
+  line-height: 1.6;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  overflow-wrap: anywhere
+}
+.b5-page .chat-error button {
+  color: #1767ff;
+  background: transparent;
+  border: 0;
+  font-size: 13px;
+  white-space: nowrap
+}
+.b5-page .empty-chat {
+  padding: 65px 20px;
+  text-align: center;
+  line-height: 1.8;
+  color: #8a9cba;
+  font-size: 14px
+}
+.b5-page .empty-chat .p-icon {
+  width: 42px;
+  height: 42px;
+  color: #6a9ce9;
+  margin-bottom: 15px
+}
+.b5-page .empty-chat h2 {
+  font-size: 22px;
+  font-weight: 600;
+  color: #304f7d;
+  margin: 0 0 8px
+}
+.b5-page .empty-chat p {
+  margin: 0
+}
+.b5-page .message-avatar {
+  width: 43px;
+  height: 43px;
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  flex: none;
+  overflow: hidden;
+  background: #e9f3ff;
+  color: #1267ff
+}
+.b5-page .message-avatar img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover
+}
+.b5-page .message-avatar .p-icon {
+  width: 29px;
+  height: 29px
+}
+.b5-page .chat-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  border: 1px solid #1767ff;
+  border-radius: 11px;
+  background: linear-gradient(125deg,#2c80ff,#1158ff);
+  color: white;
+  min-height: 46px;
+  padding: 10px 20px;
+  font-size: 15px
+}
+.b5-page .chat-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid #d4e3fb;
+  border-radius: 10px;
+  background: white;
+  color: #35577f;
+  min-height: 40px;
+  padding: 8px 16px;
+  font-size: 13px
+}
+.b5-page .chat-icon-button {
+  display: grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  color: #7a8cac
+}
+.b5-page .chat-icon-button:hover {
+  color: #1767ff;
+  background: #f0f6ff
+}
+.b5-page .chat-composer {
+  border: 1px solid #dce9fc;
+  border-radius: 16px;
+  background: #ffffffed;
+  box-shadow: 0 5px 20px #5681bc05;
+  padding: 14px;
+  min-width: 0
+}
+.b5-page .chat-composer textarea {
+  width: 100%;
+  min-height: 44px;
+  max-height: 160px;
+  resize: none;
+  outline: none;
+  border: 0;
+  background: transparent;
+  color: #243b64;
+  font-size: 15px;
+  line-height: 1.7;
+  display: block;
+  padding: 4px 8px
+}
+.b5-page .chat-composer textarea::placeholder {
+  color: #96a6c0
+}
+.b5-page .composer-footer {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  justify-content: space-between;
+  margin-top: 9px
+}
+.b5-page .composer-tools {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap
+}
+.b5-page .composer-send {
+  display: flex;
+  align-items: center;
+  gap: 10px
+}
+.b5-page .composer-help {
+  font-size: 12px;
+  color: #94a4bf;
+  margin: 0
+}
+.b5-page .attachment-chip {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  max-width: 100%;
+  padding: 7px 12px;
+  border: 1px solid #dbe7fa;
+  border-radius: 9px;
+  background: #f5f9ff;
+  font-size: 12px;
+  color: #5475a4;
+  margin-bottom: 9px
+}
+.b5-page .attachment-chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap
+}
+.b5-page .attachment-chip button {
+  border: 0;
+  background: transparent;
+  margin-left: auto;
+  color: #7c96bb;
+  display: grid;
+  place-items: center;
+  padding: 0
+}
+.b5-page .attachment-chip .p-icon {
+  width: 17px;
+  height: 17px
+}
+.b5-page .upload-label {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border: 1px solid #dce8fc;
+  background: white;
+  border-radius: 10px;
+  color: #304d77;
+  position: relative;
+  cursor: pointer
+}
+.b5-page .upload-label input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0
+}
+.b5-page .upload-label:focus-within {
+  outline: 3px solid #98baff;
+  outline-offset: 3px
+}
+.b5-page .upload-label.busy {
+  opacity: .5;
+  cursor: wait
+}
+.b5-page .answer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 12px;
+  padding-top: 10px;
+  border-top: 1px solid #edf2fb
+}
+.b5-page .answer-actions button {
+  border: 0;
+  background: transparent;
+  color: #8a9ebc;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  padding: 3px
+}
+.b5-page .answer-actions button.active {
+  color: #1767ff
+}
+.b5-page .answer-actions .p-icon {
+  width: 18px;
+  height: 18px
+}
+.b5-page .near-bottom {
+  position: absolute;
+  right: 24px;
+  bottom: 20px;
+  box-shadow: 0 3px 18px #345b9b18;
+  border: 1px solid #cde1ff;
+  border-radius: 24px;
+  background: white;
+  color: #1767ff;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  padding: 8px 13px;
+  z-index: 3
+}
+.b5-page .stream-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 12px;
+  line-height: 1.5;
+  padding: 4px 11px;
+  border-radius: 16px;
+  color: #6f8eae;
+  background: #f0f6ff;
+  white-space: nowrap
+}
+.b5-page .stream-status.working {
+  background: #edf5ff;
+  color: #1767ff
+}
+.b5-page .stream-status.error {
+  background: #fff2f4;
+  color: #ce5b71
+}
+.b5-page .stream-status.done {
+  background: #eafaf2;
+  color: #0eba75
+}
+.b5-page .stream-status .p-icon {
+  width: 15px;
+  height: 15px
+}
+.b5-page .md-editor-preview-wrapper {
+  padding: 0
+}
+.b5-page .md-editor-preview {
+  font-family: inherit;
+  font-size: 15px;
+  line-height: 1.8;
+  color: #405779;
+  word-break: normal;
+  overflow-wrap: anywhere
+}
+.b5-page .md-editor-preview p {
+  margin: 9px 0
+}
+.b5-page .md-editor-preview :is(h1,h2,h3,h4) {
+  color: #102452;
+  font-weight: 650;
+  margin: 20px 0 9px;
+  line-height: 1.6
+}
+.b5-page .md-editor-preview h1 {
+  font-size: 24px
+}
+.b5-page .md-editor-preview h2 {
+  font-size: 20px;
+  border-bottom: 1px solid #e5edf9;
+  padding-bottom: 7px
+}
+.b5-page .md-editor-preview h3 {
+  font-size: 17px
+}
+.b5-page .md-editor-preview ul,.b5-page .md-editor-preview ol {
+  padding-left: 24px
+}
+.b5-page .md-editor-preview li {
+  margin: 5px 0
+}
+.b5-page .md-editor-preview li::marker {
+  color: #1767ff
+}
+.b5-page .md-editor-preview a {
+  color: #1267ff
+}
+.b5-page .md-editor-preview table {
+  display: block;
+  max-width: 100%;
+  overflow: auto;
+  border-collapse: collapse;
+  font-size: 13px
+}
+.b5-page .md-editor-preview td,.b5-page .md-editor-preview th {
+  border: 1px solid #dce7f8;
+  padding: 8px 12px
+}
+.b5-page .md-editor-preview th {
+  background: #f1f7ff;
+  color: #355982
+}
+.b5-page .md-editor-preview pre {
+  max-width: 100%;
+  overflow: auto;
+  border-radius: 10px;
+  background: #f5f8fe;
+  border: 1px solid #e3ebf8;
+  font-size: 13px
+}
+.b5-page .md-editor-preview img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 10px
+}
+.b5-page .md-editor-preview blockquote {
+  background: #f7faff;
+  border-left: 3px solid #a2c7ff;
+  color: #7085a7;
+  padding: 8px 15px;
+  border-radius: 0 8px 8px 0;
+  margin: 12px 0
+}
+@media(max-width:700px) {
+  body[data-design='screenshot'] #app .ai-body.b5-chat-shell .ai-nav {
+    left: 68px;
+    height: 58px;
+    padding-inline: 16px
+  }
+  .b5-page .message-avatar {
+    width: 32px;
+    height: 32px
+  }
+  .b5-page .message-avatar .p-icon {
+    width: 23px;
+    height: 23px
+  }
+  .b5-page .chat-composer {
+    padding: 10px;
+    border-radius: 13px
+  }
+  .b5-page .chat-composer textarea {
+    font-size: 14px;
+    min-height: 42px;
+    padding-inline: 3px
+  }
+  .b5-page .composer-footer {
+    gap: 8px;
+    flex-wrap: wrap
+  }
+  .b5-page .composer-help {
+    font-size: 10px
+  }
+  .b5-page .chat-primary {
+    font-size: 13px;
+    min-height: 39px;
+    padding: 8px 13px;
+    gap: 7px
+  }
+  .b5-page .chat-outline {
+    font-size: 11px;
+    min-height: 35px;
+    padding: 7px 10px;
+    gap: 6px
+  }
+  .b5-page .chat-composer .p-icon {
+    width: 18px;
+    height: 18px
+  }
+  .b5-page .md-editor-preview {
+    font-size: 14px
+  }
+  .b5-page .md-editor-preview h1 {
+    font-size: 21px
+  }
+  .b5-page .md-editor-preview h2 {
+    font-size: 18px
+  }
+  .b5-page .md-editor-preview h3 {
+    font-size: 16px
+  }
+  .b5-page .upload-label {
+    width: 33px;
+    height: 33px
+  }
+  .b5-page .answer-actions {
+    gap: 8px
+  }
+  .b5-page .near-bottom {
+    right: 16px;
+    bottom: 12px
+  }
+}
+
+/* 聊天消息沿用新建会话的浅色背景，避免旧主题覆盖。 */
+body[data-design='screenshot'] #app .b5-chat .chat-messages { background: transparent; }
+
+/* 输入框与已发送消息采用同一文件卡片，附件不嵌入普通文字气泡。 */
+.composer-attachments{display:flex;gap:10px;flex-wrap:wrap;margin:0 0 12px;max-width:100%}
+.b5-chat .user-message-content{display:flex;flex-direction:column;align-items:flex-end;gap:10px;min-width:0;max-width:78%}
+.b5-chat .user-message-content .user-bubble{max-width:100%}
+.message-attachments{display:flex;flex-direction:column;align-items:flex-end;gap:8px;max-width:100%}
+@media(max-width:700px){.b5-chat .user-message-content{max-width:calc(100% - 42px)}}
+
+/* 图标型刷新和重新回答采用相同的轻量按钮质感。 */
+.b3-files .refresh-files{color:#6089c4;background:#f5f8fe;border-radius:8px}
+.b3-files .refresh-files:hover{color:#246bff;background:#eaf2ff}

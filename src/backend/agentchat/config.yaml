@@ -1,16 +1,18 @@
+# 日志级别，其余日志设置使用默认值。
+log_level: INFO
+
 # 服务配置
 server:
   env: "dev" # prod / test / dev
   host: "127.0.0.1"
   port: 7860
   name: "AgentChat" # 项目名称
-  version: "2.5.0" # 服务版本号
+  version: "3.0.0" # 服务版本号
 
-# 数据库配置：MySQL (请根据实际配置更改 endpoint)
-# 格式：mysql+pymysql://<user>:<password>@<host>:<port>/<database>
-mysql:
-  endpoint: "mysql+pymysql://root:123456@localhost:3306/agentchat" # 同步连接配置
-  async_endpoint: "mysql+aiomysql://root:123456@localhost:3306/agentchat" # 异步连接配置
+# 数据库配置：默认 SQLite；改为 MySQL URL 后自动切换
+# MySQL 示例：mysql+pymysql://用户名:密码@localhost:3306/agentchat
+database:
+  url: "sqlite:///data/agentchat.db" # 相对路径以 src/backend 为基准
 
 # 缓存配置：Redis
 redis:
@@ -19,7 +21,7 @@ redis:
 # 多模型服务配置 (LLM、Embedding、Rerank)
 multi_models:
   # 对话模型配置
-  conversation_model:
+  chat_model:
     api_key: "sk-fc40dd0604f04142a******"
     base_url: "https://dashscope.aliyuncs.com/compatible-mode/v1"
     model_name: "qwen-plus"

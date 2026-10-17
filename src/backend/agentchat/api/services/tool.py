@@ -2,8 +2,8 @@ import asyncio
 from typing import List, Union
 
 from agentchat.database import SystemUser, ToolTable
-from agentchat.database.models.user import AdminUser
 from agentchat.database.dao.tool import ToolDao
+from agentchat.database.models.user import AdminUser
 
 
 class ToolService:
@@ -39,8 +39,8 @@ class ToolService:
     ):
         authorized_user_id = await cls._get_user_by_tool_id(tool_id)
 
-        # 权限检查：如果不是管理员 且 不是工具所属用户，则拒绝访问
-        if user_id != AdminUser and user_id != authorized_user_id:
+        # 默认工具副本也属于个人，不能操作系统模板或其他用户记录。
+        if user_id != authorized_user_id:
             raise ValueError("没有权限访问该资源")
 
     @classmethod
@@ -61,8 +61,7 @@ class ToolService:
     ):
         try:
             personal_results = await ToolDao.get_tool_by_user_id(user_id=user_id)
-            system_results = await ToolDao.get_tool_by_user_id(user_id=SystemUser)
-            return [res.to_dict() for res in personal_results + system_results]
+            return [res.to_dict() for res in personal_results]
         except Exception as err:
             raise ValueError(f'Get All Tool By User Appear Error: {err}')
 
@@ -71,18 +70,9 @@ class ToolService:
         cls,
         user_id: str
     ) -> list[dict]:
-        """获取用户工具 + 系统默认工具"""
-        if user_id == SystemUser:
-            tools = await ToolDao.get_all_tools(SystemUser)
-            return [tool.to_dict() for tool in tools]
-
-        tools, default_tools = await asyncio.gather(
-            ToolDao.get_all_tools(user_id),
-            ToolDao.get_all_tools(SystemUser),
-        )
-
-        # 转成 list 再合并
-        return [tool.to_dict() for tool in [*tools, *default_tools]]
+        """默认资源已复制到个人名下，只读取当前用户的工具。"""
+        tools = await ToolDao.get_all_tools(user_id)
+        return [tool.to_dict() for tool in tools]
 
     @classmethod
     async def get_tool_name_by_id(
@@ -113,7 +103,9 @@ class ToolService:
     ):
         try:
             tool = await ToolDao.get_tool_by_id(tool_id=tool_id)
-            return tool.tool_id
+            if not tool:
+                raise ValueError("工具不存在")
+            return tool.user_id
         except Exception as err:
             raise ValueError(f'Get user by tool Id appear Error: {err}')
 
@@ -133,7 +125,9 @@ class ToolService:
     ):
         try:
             tool = await ToolDao.get_id_by_tool_name(tool_name, user_id)
-            return tool.tool_id
+            if not tool:
+                raise ValueError("工具不存在")
+            return tool.user_id
         except Exception as err:
             raise ValueError(f'Get Id by tool name appear Error: {err}')
 
@@ -146,8 +140,6 @@ class ToolService:
     ):
         try:
             tools = await ToolDao.get_tool_ids_from_name(tool_names, user_id)
-            # 加上系统自带的
-            tools.extend(await ToolDao.get_tool_ids_from_name(tool_names, SystemUser))
             return [tool.tool_id for tool in tools]
         except Exception as err:
             raise ValueError(f'Get Tool ID tool name appear Error: {err}')

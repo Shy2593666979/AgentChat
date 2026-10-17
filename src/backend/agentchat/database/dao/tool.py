@@ -1,9 +1,10 @@
 from datetime import datetime
+from typing import List
+
+from sqlmodel import Session, and_, delete, desc, or_, select, update
 
 from agentchat.database.models.tool import ToolTable
-from sqlmodel import Session, select, and_, update, desc, delete, or_
-from typing import List
-from agentchat.database.session import session_getter, async_session_getter
+from agentchat.database.session import async_session_getter, session_getter
 
 
 class ToolDao:
@@ -73,9 +74,10 @@ class ToolDao:
     @classmethod
     async def get_id_by_tool_name(cls, tool_name, user_id):
         with session_getter() as session:
-            sql = select(ToolTable).where(and_(ToolTable.en_name == tool_name,
-                                               or_(ToolTable.user_id == user_id,
-                                                   ToolTable.user_id == '0')))
+            sql = select(ToolTable).where(and_(
+                ToolTable.name == tool_name,
+                ToolTable.user_id == user_id,
+            ))
             tool = session.exec(sql).first()
             return tool
 

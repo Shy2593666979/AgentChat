@@ -103,13 +103,13 @@
 
 ### 3. 对话管理相关表
 
-#### 3.1 对话表 (dialog)
+#### 3.1 对话表 (conversation)
 
 存储用户与智能体的对话会话信息。
 
 | 字段名 | 类型 | 约束 | 描述 |
 |--------|------|------|------|
-| dialog_id | VARCHAR | PRIMARY KEY | 对话ID (UUID) |
+| conversation_id | VARCHAR | PRIMARY KEY | 对话ID (UUID) |
 | name | VARCHAR | | 对话名称 |
 | agent_id | VARCHAR | | 绑定的智能体ID |
 | agent_type | VARCHAR | DEFAULT: "Agent" | 智能体类型 (Agent/MCPAgent) |
@@ -125,7 +125,7 @@
 |--------|------|------|------|
 | id | VARCHAR | PRIMARY KEY | 消息ID (UUID) |
 | content | TEXT | | 消息内容 |
-| dialog_id | VARCHAR | | 所属对话ID |
+| conversation_id | VARCHAR | | 所属对话ID |
 | role | VARCHAR | | 消息角色 (assistant/system/user) |
 | events | JSON | | AI回复事件信息 |
 | create_time | DATETIME | DEFAULT: CURRENT_TIMESTAMP | 创建时间 |
@@ -341,7 +341,7 @@
 ## 索引策略
 
 - 用户相关字段 (`user_id`) 建立索引
-- 关联字段 (`dialog_id`, `knowledge_id` 等) 建立索引
+- 关联字段 (`conversation_id`, `knowledge_id` 等) 建立索引
 - 唯一性约束字段 (`user_name`, `knowledge.name`) 建立唯一索引
 
 ## 数据完整性

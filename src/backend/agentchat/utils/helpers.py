@@ -1,12 +1,14 @@
 import json
 import os
 import re
+from datetime import datetime, timedelta, timezone
+
 import requests
-from loguru import  logger
+from loguru import logger
 from pydantic import BaseModel, Field
 
 from agentchat.settings import app_settings
-from datetime import datetime, timedelta, timezone
+
 
 class ImportedConfigInfo(BaseModel):
     name: str
@@ -230,7 +232,7 @@ def send_message(prompt, user_input):
 
     response = requests.post("models.url", data=json.dumps(data),
                              headers=headers).content
-    print(response)
+    logger.debug("外部模型请求已返回")
 
     response_1 = json.loads(response)
     message = response_1["choices"][0]["message"]["content"]
@@ -385,7 +387,7 @@ def extract_json_from_string(input_string):
 
         return valid_jsons
     except Exception as e:
-        print(f"Error occurred: {e}")
+        logger.warning("JSON 提取失败：{}", type(e).__name__)
         return []
 
 
@@ -397,7 +399,7 @@ def fix_json(bad_json):
         return json.loads(fixed_json)
     except json.JSONDecodeError:
         # 如果解析失败，打印错误信息，但不会崩溃
-        print("给定的字符串不是有效的 JSON 格式。")
+        logger.warning("给定的字符串不是有效的 JSON 格式")
 
 
 # 打印当前工作目录

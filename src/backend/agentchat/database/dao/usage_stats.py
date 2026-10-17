@@ -1,8 +1,10 @@
-from typing import Optional, List
-from sqlmodel import select, and_
 from datetime import datetime, timedelta
-from agentchat.database.session import async_session_getter, session_getter
+from typing import List, Optional
+
+from sqlmodel import and_, func, select
+
 from agentchat.database.models.usage_stats import UsageStats
+from agentchat.database.session import async_session_getter, session_getter
 
 
 class UsageStatsDao:
@@ -116,7 +118,8 @@ class UsageStatsDao:
         user_id: str,
         agent: Optional[str] = None,
         model: Optional[str] = None,
-        delta_days: int = 10000 # 默认值可视为所有数据
+        delta_days: int = 10000, # 默认值可视为所有数据
+        conversation_id: Optional[str] = None,
     ):
         ago_time = datetime.now() - timedelta(days=delta_days)
 
@@ -130,6 +133,8 @@ class UsageStatsDao:
             conditions.append(UsageStats.agent == agent)
         if model is not None:
             conditions.append(UsageStats.model == model)
+        if conversation_id is not None:
+            conditions.append(UsageStats.conversation_id == conversation_id)
 
         statement = select(UsageStats).where(*conditions)
 
@@ -154,5 +159,20 @@ class UsageStatsDao:
                 UsageStats.user_id == user_id
             ).distinct()
 
+            result = await session.exec(statement)
+            return result.all()
+
+    @classmethod
+    async def get_conversation_usage(cls, user_id: str, conversation_ids: List[str]):
+        """用 SQL 批量求和，按用户隔离会话用量，避免逐个会话查询。"""
+        if not conversation_ids:
+            return []
+        statement = select(
+            UsageStats.conversation_id,
+            func.coalesce(func.sum(UsageStats.input_tokens), 0),
+            func.coalesce(func.sum(UsageStats.output_tokens), 0),
+            func.count(UsageStats.id),
+        ).where(UsageStats.user_id == user_id, UsageStats.conversation_id.in_(conversation_ids)).group_by(UsageStats.conversation_id)
+        async with async_session_getter() as session:
             result = await session.exec(statement)
             return result.all()

@@ -1,13 +1,16 @@
-import urllib.request
-import urllib.parse
-import ssl
 import json
+import ssl
+import urllib.parse
+import urllib.request
 from typing import Type
+
 from langchain.tools import tool
-from pydantic import Field, BaseModel
-from agentchat.settings import app_settings
-from agentchat.prompts.tool import DELIVERY_PROMPT
 from loguru import logger
+from pydantic import BaseModel, Field
+
+from agentchat.prompts.tool import DELIVERY_PROMPT
+from agentchat.settings import app_settings
+
 
 @tool(parse_docstring=True)
 def get_delivery_info(delivery_number: str):
@@ -48,7 +51,7 @@ def _get_delivery(delivery_number: str):
                 result.append(f"时间为{data.get('time')}, 快递信息是: {data.get('status')}")
             result.reverse()
             final_result = DELIVERY_PROMPT.format(company, delivery_number, result)
-            logger.info(f"------执行API------\n {final_result}")
+            logger.debug(f"------执行API------\n {final_result}")
             return final_result
     except Exception as err:
         logger.error(f"delivery action appear: {err}")

@@ -21,6 +21,7 @@ from mcp.types import Tool as MCPTool
 from pydantic import BaseModel, create_model
 
 from agentchat.services.mcp.sessions import Connection, create_session
+from agentchat.utils.logging import tool_operation
 
 NonTextContent = ImageContent | EmbeddedResource
 MAX_ITERATIONS = 1000
@@ -102,6 +103,7 @@ def convert_mcp_tool_to_langchain_tool(
     tool: MCPTool,
     *,
     connection: Connection | None = None,
+    server_name: str | None = None,
 ) -> BaseTool:
     """Convert an MCP tool to a LangChain tool.
 
@@ -124,17 +126,17 @@ def convert_mcp_tool_to_langchain_tool(
     async def call_tool(
         **arguments: dict[str, Any],
     ) -> tuple[str | list[str], list[NonTextContent] | None]:
-        if session is None:
-            # If a session is not provided, we will create one on the fly
-            async with create_session(connection) as tool_session:
-                await tool_session.initialize()
-                call_tool_result = await cast("ClientSession", tool_session).call_tool(
-                    tool.name,
-                    arguments,
-                )
-        else:
-            call_tool_result = await session.call_tool(tool.name, arguments)
-        return _convert_call_tool_result(call_tool_result)
+        with tool_operation("mcp.tool", tool=tool.name, server=server_name):
+            if session is None:
+                async with create_session(connection) as tool_session:
+                    await tool_session.initialize()
+                    call_tool_result = await cast("ClientSession", tool_session).call_tool(
+                        tool.name,
+                        arguments,
+                    )
+            else:
+                call_tool_result = await session.call_tool(tool.name, arguments)
+            return _convert_call_tool_result(call_tool_result)
 
     return StructuredTool(
         name=tool.name,
@@ -150,6 +152,7 @@ async def load_mcp_tools(
     session: ClientSession | None,
     *,
     connection: Connection | None = None,
+    server_name: str | None = None,
 ) -> list[BaseTool]:
     """Load all available MCP tools and convert them to LangChain tools.
 
@@ -177,7 +180,7 @@ async def load_mcp_tools(
         tools = await _list_all_tools(session)
 
     return [
-        convert_mcp_tool_to_langchain_tool(session, tool, connection=connection)
+        convert_mcp_tool_to_langchain_tool(session, tool, connection=connection, server_name=server_name)
         for tool in tools
     ]
 

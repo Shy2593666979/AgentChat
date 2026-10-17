@@ -1,12 +1,13 @@
 import json
 from typing import List
+
 from elasticsearch import Elasticsearch
+from loguru import logger
 
 from agentchat.config.es_index import ESIndex
 from agentchat.schemas.chunk import ChunkModel
 from agentchat.schemas.search import SearchModel
 from agentchat.settings import app_settings
-from loguru import logger
 
 
 class ESClient:
@@ -104,7 +105,8 @@ class ESClient:
         pass
 
 
-client = ESClient()
+# 未启用全文检索时不创建外部客户端。
+client = ESClient() if app_settings.rag.enable_elasticsearch else None
 
 # ⭐Elasticsearch 在7.11版本之前不支持异步，因本地部署的7.0.0版本，所以使用的同步，如果ES版本较高，建议使用下面的异步代码⭐
 # import json

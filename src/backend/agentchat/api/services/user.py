@@ -1,23 +1,23 @@
-import json
-import random
-import rsa
 import hashlib
+import json
 from base64 import b64decode
-from fastapi import Request, Depends, HTTPException
 
+import rsa
+from fastapi import Depends, HTTPException, Request
+
+from agentchat.api.errcode.user import UserNameAlreadyExistError
 from agentchat.auth import AuthJWT
-from agentchat.services.storage import storage_client
-from agentchat.services.redis import redis_client
+from agentchat.database.dao.user import UserDao
 from agentchat.database.dao.user_role import UserRoleDao
 from agentchat.database.models.role import AdminRole
-from agentchat.api.errcode.user import UserNameAlreadyExistError
-from agentchat.settings import app_settings
-from agentchat.utils.hash import md5_hash
 from agentchat.database.models.user import UserTable
-from agentchat.database.dao.user import UserDao
-from agentchat.utils.constants import RSA_KEY
 from agentchat.schemas.user import CreateUserReq
+from agentchat.services.redis import redis_client
+from agentchat.utils.constants import RSA_KEY
+from agentchat.utils.contexts import set_user_id_context
+from agentchat.utils.hash import md5_hash
 from agentchat.utils.JWT import ACCESS_TOKEN_EXPIRE_TIME
+
 
 class UserPayload:
 
@@ -78,25 +78,13 @@ class UserService:
         )
         user = UserDao.add_user_and_default_role(
             user_name=user.user_name,
-            user_password=user.user_password
+            user_password=user.user_password,
+            user_email=None,
+            user_avatar="",
         )
         return user
 
-    @classmethod
-    def get_random_user_avatar(cls):
-        files_url = storage_client.list_files_in_folder("icons/user")
-        avatars_url = []
-        for file_url in files_url:
-            avatars_url.append(f"{app_settings.storage.active.base_url}/{file_url}")
-        return random.choice(avatars_url) if avatars_url else ""
 
-    @classmethod
-    def get_available_avatars(cls):
-        files_url = storage_client.list_files_in_folder("icons/user")
-        avatars_url = []
-        for file_url in files_url:
-            avatars_url.append(f"{app_settings.storage.active.base_url}/{file_url}")
-        return avatars_url
 
     @classmethod
     def get_user_info_by_id(cls, user_id):
@@ -118,13 +106,16 @@ async def get_login_user(request: Request, authorize: AuthJWT = Depends()) -> Us
     """
     if request.state.is_whitelisted:
         # 白名单路径：直接返回Admin
+        set_user_id_context("1")
         return UserPayload(user_id="1", user_name="Admin")
 
     # 非白名单路径：执行 JWT 验证
     try:
         authorize.jwt_required()
         current_user = json.loads(authorize.get_jwt_subject())
-        return UserPayload(**current_user)
+        user = UserPayload(**current_user)
+        set_user_id_context(user.user_id)
+        return user
     except Exception as e:
         raise HTTPException(status_code=401, detail="Invalid authentication credentials")
 
@@ -148,7 +139,11 @@ def get_user_jwt(db_user: UserTable):
     # 查询角色
     role = get_user_role(db_user)
     # 生成JWT令牌
-    payload = {'user_name': db_user.user_name, 'user_id': db_user.user_id, 'role': role}
+    payload = {
+        'user_name': db_user.user_name,
+        'user_id': db_user.user_id,
+        'role': role,
+    }
 
     access_token = AuthJWT().create_access_token(subject=json.dumps(payload), expires_time=ACCESS_TOKEN_EXPIRE_TIME)
 

@@ -4,7 +4,7 @@ server:
   host: "127.0.0.1"
   port: 7860
   name: "AgentChat" # 项目名称
-  version: "2.5.0" # 服务版本号
+  version: "3.0.0" # 服务版本号
 
 # 数据库配置：MySQL (请根据实际配置更改 endpoint)
 # 格式：mysql+pymysql://<user>:<password>@<host>:<port>/<database>

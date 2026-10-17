@@ -127,3 +127,8 @@ export function deleteAgentSkillFileAPI(data: DeleteAgentSkillFileRequest) {
     data
   })
 }
+
+// 修改 Skill 显示信息，保持文件路径不变。
+export function updateAgentSkillAPI(data: { agent_skill_id: string; name: string; description: string }) {
+  return request<ApiResponse<AgentSkill>>({ url: '/api/v1/agent_skill/update', method: 'POST', data })
+}

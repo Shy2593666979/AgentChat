@@ -1,32 +1,31 @@
+import json
 import os
 from typing import Dict, List
 
-from agentchat.services.deepsearch.tools_and_schemas import SearchQueryList, Reflection
 from dotenv import load_dotenv
 from langchain_core.messages import AIMessage
-from langgraph.types import Send
-from langgraph.graph import StateGraph
-from langgraph.graph import START, END
 from langchain_core.runnables import RunnableConfig
-from tavily import TavilyClient
+from langgraph.graph import END, START, StateGraph
+from langgraph.types import Send
 from loguru import logger
-import json
+from tavily import TavilyClient
 
+from agentchat.core.models.manager import ModelManager
+from agentchat.services.deepsearch.configuration import Configuration
+from agentchat.services.deepsearch.prompts import (
+    answer_instructions,
+    get_current_date,
+    query_writer_instructions,
+    reflection_instructions,
+    web_searcher_instructions,
+)
 from agentchat.services.deepsearch.state import (
     OverallState,
     QueryGenerationState,
     ReflectionState,
     WebSearchState,
 )
-from agentchat.services.deepsearch.configuration import Configuration
-from agentchat.services.deepsearch.prompts import (
-    get_current_date,
-    query_writer_instructions,
-    web_searcher_instructions,
-    reflection_instructions,
-    answer_instructions,
-)
-from agentchat.core.models.manager import ModelManager
+from agentchat.services.deepsearch.tools_and_schemas import Reflection, SearchQueryList
 
 load_dotenv()
 
@@ -58,7 +57,7 @@ def generate_query(state: OverallState, config: RunnableConfig) -> QueryGenerati
         state["initial_search_query_count"] = configurable.number_of_initial_queries
 
     # 使用ModelManager获取模型
-    llm = ModelManager.get_conversation_model()
+    llm = ModelManager.get_chat_model()
 
     # 格式化提示词
     current_date = get_current_date()
@@ -122,7 +121,7 @@ def web_research(state: WebSearchState, config: RunnableConfig) -> OverallState:
     search_query = state["search_query"]
     query_id = state["id"]
     
-    logger.info(f"🔍 执行搜索: {search_query}")
+    logger.debug(f"🔍 执行搜索: {search_query}")
     
     try:
         # 使用Tavily执行搜索
@@ -199,7 +198,7 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
     state["research_loop_count"] = state.get("research_loop_count", 0) + 1
     
     # 使用ModelManager获取模型
-    llm = ModelManager.get_conversation_model()
+    llm = ModelManager.get_chat_model()
 
     # 格式化提示词
     current_date = get_current_date()
@@ -227,8 +226,8 @@ def reflection(state: OverallState, config: RunnableConfig) -> ReflectionState:
         
         logger.info(f"📊 反思结果: {'足够' if is_sufficient else '不足够'}")
         if not is_sufficient:
-            logger.info(f"💭 知识缺口: {knowledge_gap}")
-            logger.info(f"🔄 后续查询: {follow_up_queries}")
+            logger.debug(f"💭 知识缺口: {knowledge_gap}")
+            logger.debug(f"🔄 后续查询: {follow_up_queries}")
         
         return {
             "is_sufficient": is_sufficient,
@@ -299,7 +298,7 @@ def finalize_answer(state: OverallState, config: RunnableConfig):
         包含状态更新的字典，包括包含格式化最终摘要和源的running_summary键
     """
     # 使用ModelManager获取模型
-    llm = ModelManager.get_conversation_model()
+    llm = ModelManager.get_chat_model()
 
     # 格式化提示词
     current_date = get_current_date()

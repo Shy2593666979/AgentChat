@@ -1,0 +1,133 @@
+/* Earlier designs are fallback styles; converted page components own their appearance. */
+@layer previousDesign {
+/* Refine typography and spacing while retaining the existing blue palette. */
+#app :is(.ai-nav, .workspace-nav) {
+  flex-shrink: 0;
+  border-bottom: 1px solid rgb(148 163 184 / 18%);
+  box-shadow: 0 1px 6px rgb(15 23 42 / 3%);
+  padding-inline: 24px;
+}
+#app .ai-main > .el-col { flex: 0 0 212px; width: 212px; min-width: 212px; max-width: 212px; }
+#app .sidebar-content { padding: 16px 10px; box-shadow: none; overflow-y: auto; }
+#app .ai-main > .content { min-width: 0; margin-left: 0; border-radius: 0; box-shadow: none; }
+#app .el-menu-vertical-demo { border: 0; --el-menu-item-height: 46px; }
+#app .el-menu-vertical-demo :is(.el-menu-item, .el-sub-menu__title) {
+  height: 46px; line-height: 46px; margin: 4px 0; padding-inline: 14px;
+  border-radius: 9px; letter-spacing: 0; font-family: var(--ac-nav-font);
+  font-size: 15px; font-weight: 700; box-shadow: none; transform: none;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+#app .el-menu-vertical-demo :is(.el-menu-item, .el-sub-menu__title) span { font-family: var(--ac-nav-font); font-size: 15px; font-weight: 700; }
+#app .el-menu-vertical-demo :is(.el-menu-item, .el-sub-menu__title) .el-icon { width: 21px; height: 21px; margin-right: 12px; border: 0; background: transparent; }
+#app .el-menu-vertical-demo :is(.el-menu-item, .el-sub-menu__title) .el-icon img { width: 21px; height: 21px; transform: none; }
+#app .el-menu-vertical-demo .el-menu-item.is-active { box-shadow: none; }
+#app .el-menu-vertical-demo .el-sub-menu .el-menu-item { margin: 3px 0 3px 14px; min-width: 0; }
+#app .el-menu-vertical-demo .el-sub-menu__icon-arrow { position: absolute; right: 12px; margin: 0; top: 50%; width: 14px; height: 14px; transform: translateY(-50%); }
+#app .el-menu-vertical-demo .el-sub-menu.is-opened > .el-sub-menu__title .el-sub-menu__icon-arrow { transform: translateY(-50%) rotate(180deg); }
+#app .el-menu-vertical-demo .el-menu-item::before { display: none; }
+
+#app .workspace-main > .sidebar { flex: 0 0 244px; width: 244px; min-width: 244px; box-shadow: none; }
+#app .workspace-main > .content { min-width: 0; }
+#app .workspace-container .create-section { padding: 18px 16px 14px; }
+#app .workspace-container .create-btn-native { height: 44px; border-radius: 9px; font-family: var(--ac-nav-font); font-size: 15px; font-weight: 700; box-shadow: none; }
+#app .workspace-container .create-btn-native .icon img { width: 23px; height: 23px; }
+#app .workspace-container .session-list { padding: 4px 12px 16px; }
+#app .workspace-container .session-card { padding: 13px 12px; gap: 10px; border-radius: 9px; box-shadow: none; transform: none; }
+#app .workspace-container .session-title { font-family: var(--ac-nav-font); font-size: 14px; font-weight: 700; line-height: 1.6; }
+#app .workspace-container .session-time { font-size: 11px; line-height: 1.5; margin-top: 3px; }
+#app .workspace-container .session-icon img { width: 23px; height: 23px; }
+
+/* Shared page rhythm; page-specific backgrounds and state colors are unchanged. */
+#app :is(.agent-page, .knowledge-page, .knowledge-file-page, .model-page, .tool-page, .skill-page, .mcp-server-page, .profile-page, .dashboard-container) { padding: 28px 32px; min-height: 100%; }
+#app :is(.page-header, .profile-header, .dashboard-header) { gap: 20px; margin-bottom: 24px; }
+#app :is(.agent-page, .knowledge-page, .model-page, .tool-page, .skill-page, .mcp-server-page) .page-header { padding: 20px 24px; border-radius: var(--ac-radius); box-shadow: var(--ac-shadow); }
+#app :is(.page-header, .profile-header, .dashboard-header) h2 { font-size: 24px; line-height: 1.4; font-weight: 600; letter-spacing: -0.5px; }
+#app .header-title { gap: 12px; }
+#app .header-title .title-icon { width: 28px; height: 28px; }
+#app :is(.header-actions, .action-buttons) { gap: 10px; }
+#app :is(.agent-grid, .skill-grid, .model-grid) { gap: 20px; }
+#app .agent-grid { grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); }
+#app :is(.agent-card, .skill-card, .model-card, .knowledge-container, .tool-container, .chart-wrapper, .kpi-card, .profile-card) { border-radius: var(--ac-radius); box-shadow: var(--ac-shadow); }
+#app .agent-grid .agent-card { height: auto; min-height: 226px; padding: 20px; transform: none; }
+#app :is(.agent-name, .skill-name, .model-name) { font-size: 17px; font-weight: 600; line-height: 1.5; }
+#app :is(.agent-description, .skill-description, .model-description, .knowledge-description, .tool-desc) { font-size: 13px; line-height: 1.8; }
+#app .agent-list { height: auto; min-height: 0; overflow: visible; }
+#app .el-table { --el-table-header-text-color: #64748b; font-size: 13px; }
+#app .el-table th.el-table__cell { font-size: 12px; font-weight: 600; }
+#app .el-table .el-table__cell { padding-block: 13px; }
+#app :is(.knowledge-row, .tool-row, .model-row) { padding-block: 17px; }
+#app :is(.knowledge-name, .tool-name) { font-size: 14px; line-height: 1.6; font-weight: 600; }
+#app :is(.list-header, .time-text, .create-time) { font-size: 12px; letter-spacing: 0; }
+#app :is(.chart-wrapper, .kpi-card) { padding: 22px; }
+
+#app .el-button { border-radius: 8px; font-weight: 500; letter-spacing: 0; }
+#app .header-actions .el-button { min-height: 38px; padding-inline: 18px; transform: none; }
+#app :is(.el-input__wrapper, .el-select__wrapper) { border-radius: 8px; }
+#app .el-textarea__inner { border-radius: 8px; font-family: var(--ac-font); font-size: 14px; line-height: 1.75; }
+#app .el-form-item__label { font-size: 13px; font-weight: 600; }
+#app :is(.form-label, .drawer-label, .label-text) { font-size: 13px; font-weight: 600; line-height: 1.5; }
+#app :is(.form-input, .drawer-input, .drawer-select, .drawer-textarea) { border-radius: 8px; font-family: var(--ac-font); font-size: 14px; line-height: 1.7; }
+#app :is(.drawer-code-textarea, .code-textarea) { font-family: "Cascadia Code", Consolas, monospace; }
+#app :is(.modal-dialog, .dialog-container, .create-modal, .confirm-modal, .custom-dialog, .create-dialog) { border-radius: 14px; max-width: calc(100vw - 32px); box-shadow: 0 20px 60px rgb(15 23 42 / 16%); }
+#app :is(.modal-header, .drawer-header, .dialog-header, .custom-dialog-header) { padding: 20px 24px; }
+#app :is(.modal-body, .drawer-body, .dialog-body, .custom-dialog-body) { padding: 22px 24px; }
+#app :is(.modal-footer, .drawer-footer, .dialog-footer, .custom-dialog-footer) { padding: 16px 24px; gap: 10px; }
+
+/* Readable conversations and calmer input chrome. */
+#app .homepage { padding-inline: clamp(20px, 4vw, 64px); }
+#app .homepage :is(.search-box, .example-card) { border-radius: 14px; box-shadow: var(--ac-shadow); }
+#app .homepage .examples-grid { gap: 20px; }
+#app .homepage .brand-name { font-size: 34px; letter-spacing: -0.8px; }
+#app .homepage .example-description { font-size: 13px; line-height: 1.8; }
+#app .chat-page:not(.chat-active) .chat-container { max-width: 860px; padding-top: clamp(38px, 6vh, 68px); }
+#app .welcome-section { margin-bottom: 30px; }
+#app .welcome-section .avatar { width: 88px; height: 88px; }
+#app .welcome-title { font-size: 30px; font-weight: 600; }
+#app .welcome-subtitle { font-size: 14px; line-height: 1.85; }
+#app .mode-selector { gap: 12px; margin-bottom: 26px; }
+#app .mode-btn { border-radius: 9px; padding: 10px 18px; }
+#app :is(.search-input, .input-container, .chat-input-container) { border-radius: 12px; }
+#app .chat-conversation { overflow-y: auto; }
+#app .chat-conversation .message-content { font-family: var(--ac-font); font-size: 14px; line-height: 1.85; padding: 15px 19px; border-radius: 13px; }
+#app :is(.ai-message, .user-message) .message-content { max-width: min(78%, 840px); }
+#app :is(.chat-input-wrapper, .input-section) { padding-inline: 24px; }
+
+/* Preserve the blue login gradient and decorative geometry. */
+#app :is(.login-container, .register-container) { min-height: 100dvh; height: auto; }
+#app :is(.login-container, .register-container) .left-section { flex: 1 1 52%; min-width: 0; }
+#app :is(.login-container, .register-container) .right-section { flex: 1 1 48%; width: auto; min-width: 0; padding: 44px 40px; }
+#app :is(.login-form-container, .register-form-container) { width: 100%; max-width: 410px; }
+#app :is(.login-container, .register-container) .header { margin-bottom: 30px; }
+#app :is(.login-container, .register-container) .header .subtitle { font-family: var(--ac-font); font-size: 14px; line-height: 1.8; margin-top: 16px; }
+#app :is(.login-container, .register-container) .form-label { font-family: var(--ac-font); font-size: 14px; line-height: 1.5; margin-bottom: 8px; }
+#app :is(.login-container, .register-container) .el-input__wrapper { padding: 11px 14px; border-radius: 9px; }
+#app :is(.login-container, .register-container) .el-input__inner { font-family: var(--ac-font); font-size: 14px; }
+#app :is(.login-button, .register-button) { height: 46px; font-size: 15px; border-radius: 9px; letter-spacing: 0.5px; }
+#app :is(.login-container, .register-container) .form-actions { font-size: 13px; margin-bottom: 18px; }
+#app :is(.login-container, .register-container) .footer { margin-top: 28px; }
+
+@media (max-width: 1100px) {
+  #app .ai-main > .el-col { flex-basis: 190px; width: 190px; min-width: 190px; max-width: 190px; }
+  #app .workspace-main > .sidebar { flex-basis: 220px; width: 220px; min-width: 220px; }
+  #app :is(.agent-page, .knowledge-page, .knowledge-file-page, .model-page, .tool-page, .skill-page, .mcp-server-page, .profile-page, .dashboard-container) { padding: 24px; }
+}
+@media (max-width: 700px) {
+  #app .ai-main > .el-col { flex-basis: 156px; width: 156px; min-width: 156px; max-width: 156px; }
+  #app .sidebar-content { padding: 10px 6px; }
+  #app .el-menu-vertical-demo :is(.el-menu-item, .el-sub-menu__title) { padding-inline: 10px; }
+  #app .el-menu-vertical-demo :is(.el-menu-item, .el-sub-menu__title) .el-icon { margin-right: 8px; }
+  #app .el-menu-vertical-demo .el-sub-menu .el-menu-item { margin-left: 0; }
+  #app :is(.page-header, .profile-header, .dashboard-header) { flex-wrap: wrap; gap: 14px; }
+  #app :is(.agent-page, .knowledge-page, .knowledge-file-page, .model-page, .tool-page, .skill-page, .mcp-server-page, .profile-page, .dashboard-container) { padding: 18px; }
+  #app .header-actions { flex-wrap: wrap; }
+  #app .workspace-main > .sidebar { flex-basis: 174px; width: 174px; min-width: 174px; }
+  #app .workspace-container .session-title { font-size: 13px; }
+  #app .workspace-container .session-card { gap: 7px; padding: 11px 9px; }
+  #app :is(.login-container, .register-container) { flex-direction: column; }
+  #app :is(.login-container, .register-container) .left-section { display: none; }
+  #app :is(.login-container, .register-container) .right-section { min-height: 100dvh; padding: 30px 24px; }
+  #app .homepage { padding-inline: 18px; }
+  #app :is(.chat-input-wrapper, .input-section) { padding-inline: 14px; }
+}
+
+}

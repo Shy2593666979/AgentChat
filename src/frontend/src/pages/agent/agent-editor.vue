@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, nextTick, watch } from 'vue'
+import { modelProviderDisplayName } from '../../utils/model-provider-brand'
+import ProviderLogo from "../../components/ProviderLogo.vue";
+import { modelDisplayName } from "../../utils/model-display";
+import UiIcon from '../../components/UiIcon.vue'
+import AgentIdentity from '../../components/AgentIdentity.vue'
+import { agentIcons, agentColors, automaticIdentity, identityUrl, parseIdentity, isLegacyAgentLogo } from '../../utils/agent-identity'
+import CapabilityPicker from '../../components/CapabilityPicker.vue'
+import { ref, reactive, computed, onMounted, nextTick, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import { ElMessage } from 'element-plus'
-import { 
-  Edit, 
-  Plus, 
-  Delete, 
-  VideoPlay, 
-  Check, 
-  ArrowDown, 
+import { ElMessage, ElMessageBox } from 'element-plus'
+import {
+  Edit,
+  Plus,
+  Delete,
+  VideoPlay,
+  Check,
+  ArrowDown,
   ArrowRight,
   ArrowLeft,
   ChatDotRound,
@@ -36,8 +43,22 @@ const emit = defineEmits<{
 const loading = ref(false)
 const formRef = ref()
 const isEditing = ref(false)
+const editingBuiltin = ref(false)
 const editingAgentId = ref('')
 const fileList = ref<UploadUserFile[]>([])
+const identityMode = ref<'auto' | 'preset' | 'upload'>('auto')
+const chosenIcon = ref('bot'), chosenColor = ref('blue'), identityPickerOpen = ref(false)
+const autoIdentity = computed(() => automaticIdentity(formData, toolOptions.value.filter(t => formData.tool_ids.includes(t.tool_id)).map(t => t.name).join(' ')))
+const previewLogo = computed(() => identityMode.value === 'upload' ? formData.logo_url : identityMode.value === 'auto' ? identityUrl(autoIdentity.value.icon, autoIdentity.value.color, true) : identityUrl(chosenIcon.value, chosenColor.value))
+function restoreIdentity() {
+  const stored = parseIdentity(formData.logo_url)
+  identityMode.value = stored ? stored.auto ? 'auto' : 'preset' : isLegacyAgentLogo(formData.logo_url) ? 'auto' : 'upload'
+  chosenIcon.value = stored?.icon || 'bot'
+  chosenColor.value = stored?.color || 'blue'
+}
+function selectIcon(icon: string) { chosenIcon.value = icon; identityMode.value = 'preset' }
+function selectColor(color: string) { if (identityMode.value === 'auto') chosenIcon.value = autoIdentity.value.icon; chosenColor.value = color; identityMode.value = 'preset' }
+function useAutomaticIcon() { identityMode.value = 'auto'; fileList.value = [] }
 
 
 // 智能体表单数据
@@ -67,18 +88,19 @@ const collapseItems = ref({
 
 // 选项数据
 const llmOptions = ref<Array<LLMResponse & { name: string }>>([])
-const toolOptions = ref<Array<ToolResponse & { name: string; icon: string }>>([])
-const mcpOptions = ref<Array<MCPServer & { name: string; icon: string }>>([])
+const toolOptions = ref<Array<ToolResponse & { name: string; icon?: string }>>([])
+const mcpOptions = ref<Array<MCPServer & { name: string; icon?: string }>>([])
 const agentSkillOptions = ref<Array<AgentSkill & { name: string; icon: string }>>([])
-const knowledgeOptions = ref<Array<KnowledgeResponse & { 
+const knowledgeOptions = ref<Array<KnowledgeResponse & {
   knowledge_id: string
-  knowledge_name: string 
+  knowledge_name: string
   knowledge_desc: string
   name: string
-  icon: string 
+  icon: string
 }>>([])
 
 // 数据加载状态
+const resourceErrors = reactive({ llm: '', tool: '', mcp: '', agentSkill: '', knowledge: '' })
 const dataLoading = ref({
   llm: false,
   tool: false,
@@ -88,12 +110,12 @@ const dataLoading = ref({
 })
 
 // 表单验证规则
-const rules = {
+const rules = computed(() => ({
   name: [{ required: true, message: '请输入智能体名称', trigger: 'blur' }],
   description: [{ required: true, message: '请输入智能体描述', trigger: 'blur' }],
-  system_prompt: [{ required: true, message: '请输入系统提示词', trigger: 'blur' }],
+  system_prompt: [{ required: !editingBuiltin.value, message: '请输入系统提示词', trigger: 'blur' }],
   llm_id: [{ required: true, message: '请选择大模型', trigger: 'change' }]
-}
+}))
 
 
 
@@ -104,28 +126,29 @@ const loadAgent = (agent?: Agent) => {
   if (agent) {
     console.log('📝 加载智能体数据进行编辑:', agent)
     isEditing.value = true
+    editingBuiltin.value = agent.is_custom === false
     editingAgentId.value = agent.agent_id
-    
+
     // 处理knowledge_ids字段映射 - 确保与选择器的value一致
-    const processedKnowledgeIds = Array.isArray(agent.knowledge_ids) 
+    const processedKnowledgeIds = Array.isArray(agent.knowledge_ids)
       ? agent.knowledge_ids.filter(id => id) // 过滤空值
       : []
-    
-    // 处理tool_ids字段映射 - 确保与选择器的value一致  
-    const processedToolIds = Array.isArray(agent.tool_ids) 
+
+    // 处理tool_ids字段映射 - 确保与选择器的value一致
+    const processedToolIds = Array.isArray(agent.tool_ids)
       ? agent.tool_ids.filter(id => id) // 过滤空值
       : []
-      
+
     // 处理mcp_ids字段映射 - 确保与选择器的value一致
-    const processedMcpIds = Array.isArray(agent.mcp_ids) 
+    const processedMcpIds = Array.isArray(agent.mcp_ids)
       ? agent.mcp_ids.filter(id => id) // 过滤空值
       : []
-    
+
     // 处理agent_skill_ids字段映射 - 确保与选择器的value一致
-    const processedAgentSkillIds = Array.isArray(agent.agent_skill_ids) 
+    const processedAgentSkillIds = Array.isArray(agent.agent_skill_ids)
       ? agent.agent_skill_ids.filter(id => id) // 过滤空值
       : []
-    
+
     Object.assign(formData, {
       name: agent.name || '',
       description: agent.description || '',
@@ -138,18 +161,19 @@ const loadAgent = (agent?: Agent) => {
       agent_skill_ids: processedAgentSkillIds,
       enable_memory: agent.enable_memory || false
     })
-    
+
+    restoreIdentity()
     console.log('✅ 表单数据已更新:', formData)
     console.log('🔧 当前工具选项:', toolOptions.value.map(t => ({ id: t.tool_id, name: t.name })))
     console.log('📚 当前知识库选项:', knowledgeOptions.value.map(k => ({ id: k.knowledge_id, name: k.name })))
     console.log('🤖 当前MCP选项:', mcpOptions.value.map(m => ({ id: m.mcp_server_id, name: m.name })))
     console.log('🧠 当前大模型选项:', llmOptions.value.map(l => ({ id: l.llm_id, name: l.name })))
-    
+
     // 延迟验证ID匹配性，确保选择器已渲染
     setTimeout(() => {
       validateIdMatching()
     }, 100)
-    
+
     if (agent.logo_url) {
       fileList.value = [{
         name: 'avatar',
@@ -161,8 +185,9 @@ const loadAgent = (agent?: Agent) => {
   } else {
     console.log('🆕 创建新智能体，重置表单数据')
     isEditing.value = false
+    editingBuiltin.value = false
     editingAgentId.value = ''
-    
+
     // 重置为默认值
     Object.assign(formData, {
       name: '',
@@ -177,6 +202,7 @@ const loadAgent = (agent?: Agent) => {
       enable_memory: false
     })
     fileList.value = []
+    restoreIdentity()
     console.log('✅ 表单已重置为创建模式')
   }
 }
@@ -205,17 +231,18 @@ const handleFileChange: UploadProps['onChange'] = async (uploadFile) => {
       ElMessage.error('上传头像图片只能是 JPG/PNG 格式!')
       return
     }
-    
+
     // 开始上传
     uploadLoading.value = true
     try {
       const uploadFormData = new FormData()
       uploadFormData.append('file', file)
-      
+
       const response = await uploadFileAPI(uploadFormData)
-      
+
       if (response.data.status_code === 200) {
         formData.logo_url = response.data.data
+        identityMode.value = 'upload'
         ElMessage.success('头像上传成功')
       } else {
         ElMessage.error(response.data.status_message || '头像上传失败')
@@ -230,26 +257,30 @@ const handleFileChange: UploadProps['onChange'] = async (uploadFile) => {
 }
 
 const handleFileRemove: UploadProps['onRemove'] = () => {
+  identityMode.value = 'auto'
   formData.logo_url = ''
 }
 
 // 保存智能体
 const saveAgent = async () => {
+  if (loading.value || uploadLoading.value) return
+  loading.value = true
   try {
     // 表单验证
-    const valid = await formRef.value?.validate()
+    const valid = await formRef.value?.validate().catch(() => false)
     if (!valid) {
+      activeEditorTab.value = 'basic'
       ElMessage.warning('请完善必填信息后再提交')
       return
     }
-    
+
     loading.value = true
-    
+
     // 构建请求数据，确保字段正确
     const requestData = {
       name: formData.name,
       description: formData.description,
-      logo_url: formData.logo_url,
+      logo_url: previewLogo.value,
       tool_ids: formData.tool_ids,
       llm_id: formData.llm_id,
       mcp_ids: formData.mcp_ids,
@@ -258,7 +289,7 @@ const saveAgent = async () => {
       agent_skill_ids: formData.agent_skill_ids,
       enable_memory: formData.enable_memory
     }
-    
+
     if (isEditing.value) {
       // 确保agent_id字段存在
       if (!editingAgentId.value) {
@@ -266,31 +297,31 @@ const saveAgent = async () => {
         loading.value = false
         return
       }
-      
+
       // 将agent_id添加到请求数据中
       const updateData = {
         agent_id: editingAgentId.value,
         ...requestData
       }
-      
+
       console.log('更新智能体数据:', updateData)
       const response = await updateAgentAPI(updateData)
-      
+
       if (response.data.status_code === 200) {
         ElMessage.success('智能体更新成功')
         // 保存成功后跳转到智能体列表页
-        router.push('/agent')
+        router.push(route.query.from === 'explore' ? '/homepage' : '/agent')
       } else {
         ElMessage.error(response.data.status_message || '更新失败')
       }
     } else {
       console.log('创建智能体数据:', requestData)
       const response = await createAgentAPI(requestData)
-      
+
       if (response.data.status_code === 200) {
         ElMessage.success('智能体创建成功')
         // 保存成功后跳转到智能体列表页
-        router.push('/agent')
+        router.push(route.query.from === 'explore' ? '/homepage' : '/agent')
       } else {
         ElMessage.error(response.data.status_message || '创建失败')
       }
@@ -317,8 +348,9 @@ const saveAgent = async () => {
 const loadLLMOptions = async () => {
   try {
     dataLoading.value.llm = true
+    resourceErrors.llm = ''
     console.log('🔄 开始加载大模型数据...')
-    
+
     // 优先使用智能体专用的大模型API
     let response
     try {
@@ -329,14 +361,14 @@ const loadLLMOptions = async () => {
       response = await getVisibleLLMsAPI()
       console.log('📡 通用大模型API响应:', response)
     }
-    
+
     if (response.data.status_code === 200) {
       const rawData = response.data.data
       console.log('📦 原始大模型数据:', rawData)
-      
+
       // 处理数据结构：可能是 Record<string, LLMResponse[]> 或直接的 LLMResponse[]
       let llmArray: LLMResponse[] = []
-      
+
       if (Array.isArray(rawData)) {
         // 如果是直接数组（智能体API返回的）
         llmArray = rawData
@@ -346,28 +378,30 @@ const loadLLMOptions = async () => {
           llmArray = rawData.LLM
         } else {
           // 如果没有LLM字段，尝试提取所有值并合并
-          llmArray = Object.values(rawData).flat()
+          llmArray = Object.values(rawData).flat() as LLMResponse[]
         }
       }
-      
-      console.log('🔄 处理后的数组:', llmArray)
-      
+
+      console.log('模型列表数量:', llmArray.length)
+
       llmOptions.value = llmArray.map(llm => ({
         ...llm,
-        name: `${llm.model} (${llm.provider})`
+        name: `${modelDisplayName(llm)} (${modelProviderDisplayName(llm.provider)})`
       }))
-      
+
       console.log(`✅ 成功加载 ${llmOptions.value.length} 个大模型`)
-      console.log('🧠 处理后的大模型数据:', llmOptions.value)
+      console.log('模型选项数量:', llmOptions.value.length)
       // 新建模式下默认选第一个
       if (!isEditing.value && !formData.llm_id && llmOptions.value.length > 0) {
         formData.llm_id = llmOptions.value[0].llm_id
       }
     } else {
+      resourceErrors.llm = '模型加载失败，请重试'
       console.error('❌ 大模型API返回错误:', response.data.status_message)
       ElMessage.error(`加载大模型失败: ${response.data.status_message}`)
     }
   } catch (error) {
+    resourceErrors.llm = '加载失败，请重试'
     console.error('❌ 加载大模型失败:', error)
     ElMessage.error('加载大模型列表失败')
   } finally {
@@ -379,26 +413,29 @@ const loadLLMOptions = async () => {
 const loadToolOptions = async () => {
   try {
     dataLoading.value.tool = true
+    resourceErrors.tool = ''
     console.log('🔄 开始加载工具数据...')
-    
+
     const response = await getVisibleToolsAPI()
     console.log('📡 工具API响应:', response)
-    
+
     if (response.data.status_code === 200) {
       const rawData = response.data.data
       console.log('📦 原始工具数据:', rawData)
-      
+
       toolOptions.value = rawData.map(tool => ({
         ...tool,
-        name: tool.display_name
+        name: tool.display_name || tool.name
       }))
-      
+
       console.log(`✅ 成功加载 ${toolOptions.value.length} 个工具`)
       console.log('🔧 处理后的工具数据:', toolOptions.value)
     } else {
+      resourceErrors.tool = '工具加载失败，请重试'
       console.error('❌ 工具API返回错误:', response.data.status_message)
     }
   } catch (error) {
+    resourceErrors.tool = '加载失败，请重试'
     console.error('❌ 加载工具失败:', error)
     ElMessage.error('加载工具列表失败')
   } finally {
@@ -410,23 +447,26 @@ const loadToolOptions = async () => {
 const loadMCPOptions = async () => {
   try {
     dataLoading.value.mcp = true
+    resourceErrors.mcp = ''
     const response = await getMCPServersAPI()
-    
+
     // 处理不同的响应格式
     let mcpData: MCPServer[] = []
+    if (response.data.status_code !== 200) throw new Error(response.data.status_message || '加载失败')
     if (response.data.status_code === 200) {
       // 检查data字段是否存在且不为null
       if (response.data.data && Array.isArray(response.data.data)) {
         mcpData = response.data.data
       }
     }
-    
+
     mcpOptions.value = mcpData.map(mcp => ({
       ...mcp,
       name: mcp.server_name
     }))
     console.log(`✅ 成功加载 ${mcpOptions.value.length} 个MCP服务器`)
   } catch (error) {
+    resourceErrors.mcp = '加载失败，请重试'
     console.error('加载MCP服务器失败:', error)
     ElMessage.error('加载MCP服务器列表失败')
   } finally {
@@ -438,8 +478,10 @@ const loadMCPOptions = async () => {
 const loadAgentSkillOptions = async () => {
   try {
     dataLoading.value.agentSkill = true
+    resourceErrors.agentSkill = ''
     const response = await getAgentSkillsAPI()
-    
+
+    if (response.data.status_code !== 200) throw new Error(response.data.status_message || '加载失败')
     if (response.data.status_code === 200) {
       const skillData = response.data.data || []
       agentSkillOptions.value = skillData.map(skill => ({
@@ -450,6 +492,7 @@ const loadAgentSkillOptions = async () => {
       console.log(`✅ 成功加载 ${agentSkillOptions.value.length} 个Agent Skill`)
     }
   } catch (error) {
+    resourceErrors.agentSkill = '加载失败，请重试'
     console.error('加载Agent Skill失败:', error)
     ElMessage.error('加载Agent Skill列表失败')
   } finally {
@@ -461,12 +504,14 @@ const loadAgentSkillOptions = async () => {
 const loadKnowledgeOptions = async () => {
   try {
     dataLoading.value.knowledge = true
+    resourceErrors.knowledge = ''
     const response = await getKnowledgeListAPI()
+    if (response.data.status_code !== 200) throw new Error(response.data.status_message || '加载失败')
     if (response.data.status_code === 200) {
       knowledgeOptions.value = response.data.data.map(knowledge => ({
         ...knowledge,
         knowledge_id: knowledge.id,           // 映射 id -> knowledge_id
-        knowledge_name: knowledge.name,       // 映射 name -> knowledge_name  
+        knowledge_name: knowledge.name,       // 映射 name -> knowledge_name
         knowledge_desc: knowledge.description, // 映射 description -> knowledge_desc
         name: knowledge.name,                 // 用于显示的名称
         icon: getKnowledgeIcon(knowledge.name)
@@ -474,6 +519,7 @@ const loadKnowledgeOptions = async () => {
       console.log(`✅ 成功加载 ${knowledgeOptions.value.length} 个知识库`)
     }
   } catch (error) {
+    resourceErrors.knowledge = '加载失败，请重试'
     console.error('加载知识库失败:', error)
     ElMessage.error('加载知识库列表失败')
   } finally {
@@ -492,7 +538,7 @@ const getKnowledgeIcon = (knowledgeName: string): string => {
     '技术': '⚙️',
     '产品': '📦'
   }
-  
+
   for (const [key, icon] of Object.entries(iconMap)) {
     if (knowledgeName.includes(key)) {
       return icon
@@ -510,7 +556,7 @@ const validateIdMatching = () => {
       console.warn('⚠️ 大模型ID不匹配:', formData.llm_id, '可用选项:', llmOptions.value.map(l => l.llm_id))
     }
   }
-  
+
   // 验证工具ID匹配
   if (formData.tool_ids.length > 0) {
     const toolOptionsIds = toolOptions.value.map(t => t.tool_id)
@@ -519,7 +565,7 @@ const validateIdMatching = () => {
       console.warn('⚠️ 工具ID不匹配:', unmatchedToolIds, '可用选项:', toolOptionsIds)
     }
   }
-  
+
   // 验证知识库ID匹配
   if (formData.knowledge_ids.length > 0) {
     const knowledgeOptionsIds = knowledgeOptions.value.map(k => k.knowledge_id)
@@ -528,7 +574,7 @@ const validateIdMatching = () => {
       console.warn('⚠️ 知识库ID不匹配:', unmatchedKnowledgeIds, '可用选项:', knowledgeOptionsIds)
     }
   }
-  
+
   // 验证MCP ID匹配
   if (formData.mcp_ids.length > 0) {
     const mcpOptionsIds = mcpOptions.value.map(m => m.mcp_server_id)
@@ -544,15 +590,16 @@ const loadAgentFromAPI = async (agentId: string) => {
   try {
     loading.value = true
     // ElMessage.info('正在加载智能体数据...')
-    
+
     const response = await getAgentByIdAPI(agentId)
     if (response.data.status_code === 200 && response.data.data) {
       const agentData = response.data.data as any
       // console.log('🔍 API返回的智能体原始数据:', agentData)
-      
+
       // 转换API数据为Agent类型，兼容 id 和 agent_id
       const agent: Agent = {
         agent_id: agentData.id || agentData.agent_id,
+        is_custom: agentData.is_custom,
         name: agentData.name,
         description: agentData.description,
         logo_url: agentData.logo_url,
@@ -565,7 +612,7 @@ const loadAgentFromAPI = async (agentId: string) => {
         enable_memory: agentData.enable_memory,
         created_time: new Date().toISOString()
       }
-      
+
       // console.log('🔄 转换后的智能体数据:', agent)
       loadAgent(agent)
       ElMessage.success('智能体数据加载成功')
@@ -584,13 +631,13 @@ const loadAgentFromAPI = async (agentId: string) => {
 
 // 返回智能体列表
 const goBack = () => {
-  router.push('/agent')
+  router.push(route.query.from === 'explore' ? '/homepage' : '/agent')
 }
 
 // 初始化数据
 const initializeData = async () => {
   console.log('🔄 开始初始化数据...')
-  
+
   try {
     await Promise.all([
       loadLLMOptions(),
@@ -599,7 +646,7 @@ const initializeData = async () => {
       loadAgentSkillOptions(),
       loadKnowledgeOptions()
     ])
-    
+
     console.log('✅ 数据初始化完成')
     console.log('📊 数据统计:')
     console.log('  - 大模型:', llmOptions.value.length, '个')
@@ -607,56 +654,7 @@ const initializeData = async () => {
     console.log('  - MCP:', mcpOptions.value.length, '个')
     console.log('  - Agent Skill:', agentSkillOptions.value.length, '个')
     console.log('  - 知识库:', knowledgeOptions.value.length, '个')
-    
-    // 如果没有数据，添加一些测试数据
-    if (toolOptions.value.length === 0) {
-      console.log('⚠️ 工具数据为空，添加测试数据')
-      toolOptions.value.push({
-        tool_id: 'test_tool_1',
-        zh_name: '搜索工具',
-        en_name: 'Search Tool',
-        user_id: 'test',
-        description: '用于搜索网络信息',
-        logo_url: '',
-        name: '🔍 搜索工具',
-        icon: '🔍'
-      } as any)
-    }
-    
-    if (mcpOptions.value.length === 0) {
-      console.log('⚠️ MCP数据为空，添加测试数据')
-      mcpOptions.value.push({
-        mcp_server_id: 'test_mcp_1',
-        server_name: '邮件服务',
-        url: 'http://localhost:8080',
-        type: 'email',
-        config: {},
-        config_enabled: false,
-        tools: [],
-        params: [],
-        name: '📧 邮件服务',
-        icon: '📧'
-      } as any)
-    }
-    
-    if (knowledgeOptions.value.length === 0) {
-      console.log('⚠️ 知识库数据为空，添加测试数据')
-      knowledgeOptions.value.push({
-        id: 'test_knowledge_1',
-        name: '技术文档',
-        description: '技术相关文档',
-        user_id: 'test',
-        create_time: new Date().toISOString(),
-        update_time: new Date().toISOString(),
-        count: 0,
-        file_size: '0',
-        knowledge_id: 'test_knowledge_1',
-        knowledge_name: '技术文档',
-        knowledge_desc: '技术相关文档',
-        icon: '📚'
-      } as any)
-    }
-    
+
   } catch (error) {
     console.error('❌ 数据初始化失败:', error)
   }
@@ -665,12 +663,12 @@ const initializeData = async () => {
 onMounted(async () => {
   console.log('📱 页面加载开始...')
   console.log('🔍 当前路由参数:', route.query)
-  
+
   // 先加载选项数据，这是前提条件
   console.log('⏳ 正在加载选项数据...')
   await initializeData()
   console.log('✅ 选项数据加载完成')
-  
+
   // 確保所有選項數據都加載完成後，再加載智能體數據
   const agentId = route.query.id as string
   if (agentId) {
@@ -685,1136 +683,96 @@ onMounted(async () => {
       formData.llm_id = llmOptions.value[0].llm_id
     }
   }
-  
+
 
 })
 
 defineExpose({ loadAgent })
+
+const activeEditorTab = ref('basic')
+const expandedPrompt = ref(false), promptTemplateOpen = ref(false), avatarFailed = ref(false)
+watch(() => formData.logo_url, () => { avatarFailed.value = false })
+const editorTabs = [{ id: 'basic', label: '基础信息' }, { id: 'prompt', label: '提示词' }, { id: 'advanced', label: '高级设置' }]
+const capabilityGroups = computed(() => [
+  { field: 'tool_ids' as const, label: '工具', icon: 'cube', managePath: '/tool', loading: dataLoading.value.tool, error: resourceErrors.tool, retry: loadToolOptions, options: toolOptions.value.map(item => ({ id: item.tool_id, name: item.name })) },
+  { field: 'mcp_ids' as const, label: 'MCP', icon: 'connect', managePath: '/mcp-server', loading: dataLoading.value.mcp, error: resourceErrors.mcp, retry: loadMCPOptions, options: mcpOptions.value.map(item => ({ id: item.mcp_server_id, name: item.name })) },
+  { field: 'agent_skill_ids' as const, label: 'Skill', icon: 'layers', managePath: '/agent-skill', loading: dataLoading.value.agentSkill, error: resourceErrors.agentSkill, retry: loadAgentSkillOptions, options: agentSkillOptions.value.map(item => ({ id: item.id, name: item.name })) },
+  { field: 'knowledge_ids' as const, label: '知识库', icon: 'book', managePath: '/knowledge', loading: dataLoading.value.knowledge, error: resourceErrors.knowledge, retry: loadKnowledgeOptions, options: knowledgeOptions.value.map(item => ({ id: item.knowledge_id, name: item.name })) }
+])
+const selectedModel = computed(() => llmOptions.value.find(model => model.llm_id === formData.llm_id))
+const promptTemplates = [
+  { title: '深度研究助手', description: '明确问题、收集资料、核验事实并整理研究报告', prompt: '你是一位专业的研究助手。先明确用户的研究目标和范围，再收集并核验信息，区分事实和推断，最后提供结构清晰、注明来源的研究报告。信息不足时先提出必要的问题。' },
+  { title: '写作助手', description: '根据受众、目标与语气，撰写和修改内容', prompt: '你是一位写作助手。先理解内容的用途、目标受众、语气和格式要求，再组织结构并撰写内容。修改时保留原意，使用简洁、自然的语言，避免编造事实。' },
+  { title: '数据分析助手', description: '检查数据质量、分析趋势并提出可验证的结论', prompt: '你是一位数据分析助手。先检查数据字段、单位、缺失值与异常值，再依据用户目标开展分析。说明方法、关键发现及其局限，区分相关性与因果关系，并提出可执行的建议。' }
+]
+async function applyPromptTemplate(template: typeof promptTemplates[number]) {
+  try {
+    if (formData.system_prompt.trim()) await ElMessageBox.confirm('应用模板将替换当前系统提示词，是否继续？', '应用提示词模板', { confirmButtonText: '替换', cancelButtonText: '取消' })
+    formData.system_prompt = template.prompt
+    promptTemplateOpen.value = false
+  } catch { /* Keep the current prompt when the dialog is dismissed. */ }
+}
 </script>
 
 <template>
-  <div class="agent-editor">
-    <!-- 顶部工具栏 -->
-    <!-- 三栏布局主体 -->
-    <div class="editor-body">
-      <!-- 左侧：系统提示词编辑器 -->
-      <div class="left-panel">
-        <div class="panel-header">
-          <div class="header-content">
-            <el-icon class="panel-icon"><DocumentCopy /></el-icon>
-            <span class="panel-title">智能体画像</span>
-          </div>
+  <div class="b2-agent-editor" v-loading="loading">
+    <svg class="sprite" xmlns="http://www.w3.org/2000/svg"><defs>
+<symbol id="i-home" viewBox="0 0 24 24"><path d="M3 10.5 12 3l9 7.5M5 9v11h5v-7h4v7h5V9" fill="currentColor" stroke="currentColor" opacity=".72"/></symbol>
+<symbol id="i-search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="7.5"/><path d="m16 16 5 5"/></symbol>
+<symbol id="i-chat" viewBox="0 0 24 24"><path d="M21 11.5a9 9 0 0 1-9 9H3l1.7-4.4A9 9 0 1 1 21 11.5Z"/><path d="M8 11.5h.01m4 0h.01m4 0h.01" stroke-width="2.7"/></symbol>
+<symbol id="i-robot" viewBox="0 0 24 24"><rect x="4" y="6.5" width="16" height="14" rx="4"/><path d="M12 3v3M1.5 11v5M22.5 11v5M9 16.5c1.7 1.3 4.3 1.3 6 0"/><path d="M8.5 11.5v1m7-1v1" stroke-width="2.5"/><circle cx="12" cy="2.5" r=".8" fill="currentColor"/></symbol>
+<symbol id="i-link" viewBox="0 0 24 24"><path d="m9.5 7.5 3-3a5 5 0 0 1 7 7l-4 4a5 5 0 0 1-7 0M14.5 16.5l-3 3a5 5 0 0 1-7-7l4-4a5 5 0 0 1 7 0M8.5 15.5l7-7"/></symbol>
+<symbol id="i-cube" viewBox="0 0 24 24"><path d="m12 2 9 5v10l-9 5-9-5V7l9-5Zm0 10 9-5M12 12 3 7m9 5v10"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 5v16M12 5C8 1.5 2 3 2 4v15c4-1.5 7-1 10 2 3-3 6-3.5 10-2V4c0-1-6-2.5-10 1Z"/></symbol>
+<symbol id="i-chart" viewBox="0 0 24 24"><path d="M4 21V12m8 9V4m8 17V8" stroke-width="2.7"/></symbol>
+<symbol id="i-grid" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="2.5"/><rect x="14" y="3" width="7" height="7" rx="2.5"/><rect x="3" y="14" width="7" height="7" rx="2.5"/><rect x="14" y="14" width="7" height="7" rx="2.5"/></symbol>
+<symbol id="i-layers" viewBox="0 0 24 24"><path d="m12 2 10 6-10 6L2 8l10-6Zm10 11-10 6-10-6m20 5-10 6-10-6" transform="translate(0 -1)"/></symbol>
+<symbol id="i-arrow" viewBox="0 0 24 24"><path d="M19 12H5m7-7-7 7 7 7"/></symbol>
+<symbol id="i-chevron" viewBox="0 0 24 24"><path d="m5 9 7 7 7-7"/></symbol>
+<symbol id="i-collapse" viewBox="0 0 24 24"><path d="m12 5-7 7 7 7m6-14-7 7 7 7"/></symbol>
+<symbol id="i-tools" viewBox="0 0 24 24"><path d="M14 3a6 6 0 0 0-5 8L3 17a2.8 2.8 0 0 0 4 4l6-6a6 6 0 0 0 8-7l-4 4-4-4 4-4a6 6 0 0 0-3-1Z"/><path d="m3 3 4 4M3 2l-1 1 3 4 2-2M17 17l4 4m-5-3 3-3"/></symbol>
+<symbol id="i-toolbox" viewBox="0 0 24 24"><path d="m4 7 8-3 8 3v11l-8 4-8-4V7Zm5-2V2h6v3m-3-1v4"/></symbol>
+<symbol id="i-plus" viewBox="0 0 24 24"><path d="M12 4v16M4 12h16"/></symbol>
+<symbol id="i-x" viewBox="0 0 24 24"><path d="m6 6 12 12M6 18 18 6"/></symbol>
+<symbol id="i-globe" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><ellipse cx="12" cy="12" rx="4" ry="9"/><path d="M3 12h18M5 6.5h14M5 17.5h14"/></symbol>
+<symbol id="i-file" viewBox="0 0 24 24"><path d="M5 3h10l4 4v14H5V3Zm9 0v5h5M9 12h6m-6 4h6"/></symbol>
+<symbol id="i-code" viewBox="0 0 24 24"><path d="m7 7-5 5 5 5m10-10 5 5-5 5m-4-9-2 8"/></symbol>
+<symbol id="i-edit" viewBox="0 0 24 24"><path d="M10 4H4v16h16v-7M9 15l1-5L19 1l4 4-9 9-5 1Zm8-12 4 4"/></symbol>
+<symbol id="i-folder" viewBox="0 0 24 24"><path d="M2 7V4h8l2 3h10v14H2V7Z"/><path d="M2 9h20" stroke="#fff" stroke-width="1"/></symbol>
+<symbol id="i-database" viewBox="0 0 24 24"><ellipse cx="12" cy="5" rx="8" ry="3.5"/><path d="M4 5v14c0 4.5 16 4.5 16 0V5M4 12c0 4.5 16 4.5 16 0"/></symbol>
+<symbol id="i-expand" viewBox="0 0 24 24"><path d="M15 3h6v6m0-6-7 7M9 21H3v-6m0 6 7-7"/></symbol>
+<symbol id="i-template" viewBox="0 0 24 24"><path d="M4 5h3v3H4zM4 11h3v3H4zM4 17h3v3H4z" fill="currentColor" stroke="none"/><path d="M11 5h9m-9 6h9m-9 6h9M14 3v17" stroke-width="2"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M3 7h5l2-3h4l2 3h5v14H3V7Z"/><circle cx="12" cy="13" r="4"/></symbol>
+<symbol id="i-menu" viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></symbol>
+<symbol id="logo" viewBox="0 0 40 40"><defs><linearGradient id="logo-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#3d8aff"/><stop offset="1" stop-color="#034aff"/></linearGradient></defs><rect x="1" y="1" width="38" height="38" rx="10" fill="url(#logo-bg)"/><rect x="3" y="3" width="34" height="34" rx="8" fill="none" stroke="#75adff" stroke-opacity=".45"/><path d="M13 15c0-5 14-5 14 0v1h2v11H11V16h2Z" fill="#fff"/><rect x="9" y="16" width="22" height="13" rx="6" fill="#fff"/><rect x="15" y="19" width="3" height="5" rx="1.5" fill="#316aff"/><rect x="22" y="19" width="3" height="5" rx="1.5" fill="#316aff"/><circle cx="29" cy="10" r="2.5" fill="#fff"/></symbol>
+<symbol id="avatar" viewBox="0 0 122 120"><defs><linearGradient id="av-bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#c280ff"/><stop offset=".48" stop-color="#8e78ff"/><stop offset="1" stop-color="#485bff"/></linearGradient><linearGradient id="av-body" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#fff"/><stop offset="1" stop-color="#eeebff"/></linearGradient><linearGradient id="av-eye" x1="0" y1="0" x2="0" y2="1"><stop stop-color="#6652ff"/><stop offset="1" stop-color="#447bff"/></linearGradient><filter id="av-shadow"><feDropShadow dx="0" dy="3" stdDeviation="4" flood-color="#4435d8" flood-opacity=".3"/></filter></defs><rect width="122" height="120" rx="28" fill="url(#av-bg)"/><path d="M0 23C29 43 35 22 23 0H0Zm50-23c-8 31 6 43 31 40s24-18 41-12V0ZM0 70c28-21 43-25 48-8S31 89 17 98s-4 16 8 22H0Z" fill="#d9a3ff" opacity=".25"/><path d="M70 120c-15-23 3-25 25-43s20-18 27-20v63Z" fill="#bec3ff" opacity=".3"/><path d="M8 44c-10 20 3 23 22 11s26-9 22-30C42 50 24 17 8 44ZM37 113c-6-18 19-22 20-38s15-22 29-19-18 25-16 38-10 22-33 19Z" fill="#7942ff" opacity=".26"/><circle cx="103" cy="27" r="17" fill="#a8a6ff" opacity=".18"/><path d="M91 19c1 5 3 7 7 8-5 1-6 3-7 7-1-4-3-6-7-7 4-1 6-3 7-8Z" fill="white"/><g filter="url(#av-shadow)"><rect x="29" y="51" width="7" height="24" rx="3.5" fill="#fff" opacity=".7"/><rect x="86" y="51" width="7" height="24" rx="3.5" fill="#fff" opacity=".7"/><rect x="34" y="39" width="54" height="48" rx="16" fill="url(#av-body)"/><rect x="57" y="24" width="7" height="15" rx="3.5" fill="#ffbe68"/><circle cx="60.5" cy="25" r="4" fill="#ffbf70"/><path d="M45 38c0-4 32-4 32 0" stroke="#fff" stroke-width="3" fill="none" opacity=".6"/><rect x="45" y="52" width="9" height="12" rx="4.5" fill="url(#av-eye)"/><rect x="67" y="52" width="9" height="12" rx="4.5" fill="url(#av-eye)"/><path d="M54 72c4 3 10 3 14 0" stroke="#6564ff" stroke-width="6" stroke-linecap="round" fill="none"/></g><rect x="38" y="44" width="7" height="37" rx="3.5" fill="#fff" opacity=".42"/></symbol>
+<symbol id="deepseek" viewBox="0 0 32 24"><path d="M5 8c3-5 10-5 15-1 4 4 7 2 9-1 0 6-3 9-7 9 0 4-4 7-8 6C6 20 1 14 3 9l2-1Z" fill="#5357ff"/><path d="M6 9c4 1 7 4 10 9M11 8c-1 5 3 8 8 9" stroke="#fff" stroke-width="1.1" fill="none"/><path d="m20 6 7-4-1 7M7 19l-4 3 7-1" fill="#7775ff"/><circle cx="19" cy="9" r="1" fill="white"/></symbol>
+<symbol id="notion" viewBox="0 0 24 24"><path d="m3 3 13-1 5 3v17L5 23l-3-4V4Z" fill="#fff" stroke="#111" stroke-width="1.5"/><path d="m3 3 3 3 15-1M6 6v16" fill="none" stroke="#111" stroke-width="1.4"/><path d="M8 18V8h2l6 8V7h2v12h-2L10 11v7Z" fill="#111"/></symbol>
+<symbol id="github" viewBox="0 0 24 24"><path fill="#080b0e" d="M12 .5a12 12 0 0 0-3.8 23.4c.6.1.8-.3.8-.6v-2.4c-3.3.7-4-1.4-4-1.4-.6-1.4-1.3-1.8-1.3-1.8-1.1-.8.1-.8.1-.8 1.2.1 1.8 1.2 1.8 1.2 1.1 1.9 2.8 1.3 3.5 1 .1-.8.4-1.3.8-1.6-2.7-.3-5.5-1.3-5.5-5.9 0-1.3.5-2.4 1.2-3.2-.1-.3-.5-1.6.1-3.2 0 0 1-.3 3.3 1.2a11.6 11.6 0 0 1 6 0c2.3-1.5 3.3-1.2 3.3-1.2.6 1.6.2 2.9.1 3.2.8.8 1.2 1.9 1.2 3.2 0 4.6-2.8 5.6-5.5 5.9.4.4.8 1.1.8 2.2v3.4c0 .3.2.7.8.6A12 12 0 0 0 12 .5Z"/></symbol>
+</defs></svg>
+    <header class="page-header">
+      <div><div class="breadcrumb"><button @click="goBack" aria-label="返回列表">←</button><span>{{ route.query.from === 'explore' ? '我的助手' : '智能体' }}</span><span>/</span><span class="current">{{ formData.name || '新建智能体' }}</span></div><h1>{{ isEditing ? '编辑智能体' : '创建智能体' }}</h1></div>
+      <div class="page-actions"><el-button @click="goBack" :disabled="loading || uploadLoading">取消</el-button><el-button type="primary" @click="saveAgent" :loading="loading" :disabled="uploadLoading">{{ isEditing ? '保存配置' : '创建智能体' }}</el-button></div>
+    </header>
+    <el-form ref="formRef" :model="formData" :rules="rules" label-position="top" class="editor-grid" :disabled="loading">
+      <section class="card editor-card">
+        <div class="editor-tabs" role="group" aria-label="智能体设置分区"><button v-for="tab in editorTabs" :key="tab.id" type="button" class="editor-tab" :class="{ active: activeEditorTab === tab.id }" :aria-pressed="activeEditorTab === tab.id" @click="activeEditorTab = tab.id">{{ tab.label }}</button></div>
+        <div v-show="activeEditorTab === 'basic'" class="basic-fields">
+          <div class="identity-editor"><label class="field-label">智能体图标</label><button type="button" class="identity-preview" aria-label="选择智能体图标" @click="identityPickerOpen = true"><AgentIdentity :agent="{ ...formData, logo_url: previewLogo }"/><span class="identity-edit"><UiIcon name="edit"/></span></button><button type="button" class="identity-choose" @click="identityPickerOpen = true">图标与颜色</button><span class="identity-mode">{{ identityMode === 'auto' ? '自动匹配' : identityMode === 'preset' ? '内置图标' : '自定义图片' }}</span></div>
+          <div><el-form-item label="名称" prop="name"><el-input v-model="formData.name" maxlength="50" show-word-limit placeholder="为智能体起个名字"/></el-form-item><el-form-item label="描述" prop="description"><el-input v-model="formData.description" type="textarea" :rows="3" maxlength="200" show-word-limit placeholder="描述它可以帮助你完成的任务"/></el-form-item></div>
         </div>
-        
-        <div class="panel-content">
-          <!-- 基础信息 -->
-          <div class="basic-info-section">
-            <div class="basic-info-layout">
-              <!-- 头像 -->
-              <el-upload
-                v-model:file-list="fileList"
-                class="avatar-uploader"
-                action="#"
-                :show-file-list="false"
-                :auto-upload="false"
-                :on-change="handleFileChange"
-                :on-remove="handleFileRemove"
-              >
-                <div class="avatar-wrapper">
-                  <img v-if="formData.logo_url" :src="formData.logo_url" class="avatar" />
-                  <div v-else class="avatar-placeholder">
-                    <el-icon class="avatar-icon"><Plus /></el-icon>
-                    <span class="avatar-text">上传</span>
-                  </div>
-                </div>
-              </el-upload>
-
-              <!-- 名称 + 描述 -->
-              <div class="basic-info-fields">
-                <div class="field-with-label">
-                  <span class="field-label"><span class="required-mark">*</span>名称：</span>
-                  <el-input v-model="formData.name" placeholder="" class="form-input name-input" />
-                </div>
-                <div class="field-with-label field-with-label--textarea">
-                  <span class="field-label">描述：</span>
-                  <el-input
-                    v-model="formData.description"
-                    type="textarea"
-                    :rows="2"
-                    placeholder=""
-                    class="form-textarea"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- 系统提示词 -->
-          <div class="prompt-editor-wrapper">
-            <div class="prompt-label">系统提示词：</div>
-            <el-input
-              v-model="formData.system_prompt"
-              type="textarea"
-              :rows="13"
-              placeholder="请输入系统提示词，定义智能体的角色、能力和行为规范..."
-              class="prompt-editor"
-            />
-          </div>
-        </div>
-      </div>
-
-      <!-- 中间：智能体配置 -->
-      <div class="center-panel">
-        <div class="panel-header">
-          <div class="header-content">
-            <el-icon class="panel-icon"><Setting /></el-icon>
-            <span class="panel-title">基础配置</span>
-          </div>
-          <div class="panel-actions">
-            <el-button @click="goBack" :disabled="loading" class="cancel-btn">取消</el-button>
-            <el-button @click="saveAgent" type="primary" :loading="loading" :icon="Check" class="save-btn">
-              {{ isEditing ? '保存更改' : '创建智能体' }}
-            </el-button>
-          </div>
-        </div>
-        
-        <div class="panel-content">
-          <el-form ref="formRef" :model="formData" :rules="rules" label-width="100px" class="config-form">
-            <!-- AI模型 -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('aiModel')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.aiModel" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>AI模型</span>
-                </div>
-                <div class="section-badge">
-                  <el-tag size="small" type="warning" effect="plain">核心</el-tag>
-                </div>
-              </div>
-              <div v-show="collapseItems.aiModel" class="section-content">
-                <el-form-item label="模型" prop="llm_id">
-                  <el-select 
-                    v-model="formData.llm_id" 
-                    placeholder="🔍 搜索或选择大语言模型"
-                    :loading="dataLoading.llm"
-                    class="form-select"
-                    filterable
-                    clearable
-                    reserve-keyword
-                  >
-                    <template #prefix>
-                      <span v-if="dataLoading.llm" style="color: #1d4ed8; font-size: 12px; font-weight: 500;">加载中...</span>
-                      <span v-else style="color: #1d4ed8; font-size: 12px; font-weight: 600;"><img src="/src/assets/model.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ llmOptions.length }}个模型</span>
-                    </template>
-                    <el-option
-                      v-for="llm in llmOptions"
-                      :key="llm.llm_id"
-                      :label="llm.name"
-                      :value="llm.llm_id"
-                    >
-                      <div class="custom-option">
-                        <img src="/src/assets/model.svg" class="option-logo" alt="AI Model" />
-                        <span class="option-name">{{ llm.name }}</span>
-                        <span class="option-badge ai-badge">AI</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-
-              </div>
-            </div>
-
-            <!-- 记忆功能 -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('memory')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.memory" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>记忆功能</span>
-                </div>
-                <div class="section-badge">
-                  <el-tag size="small" :type="formData.enable_memory ? 'success' : 'info'" effect="plain">
-                    {{ formData.enable_memory ? '已开启' : '已关闭' }}
-                  </el-tag>
-                </div>
-              </div>
-              <div v-show="collapseItems.memory" class="section-content">
-                <el-form-item label="启用记忆">
-                  <div class="memory-toggle-wrapper">
-                    <button 
-                      type="button"
-                      class="memory-toggle-btn" 
-                      :class="{ 'active': formData.enable_memory }"
-                      @click="formData.enable_memory = !formData.enable_memory"
-                    >
-                      <div class="toggle-slider"></div>
-                      <span class="toggle-text">
-                        {{ formData.enable_memory ? '🧠 已开启' : '💭 已关闭' }}
-                      </span>
-                    </button>
-                    <div class="memory-description">
-                      {{ formData.enable_memory ? '智能体将长期记忆你的对话和喜好，提供更连贯的对话体验' : '智能体仅保留最近几轮对话记忆，适合轻量交互的场景' }}
-                    </div>
-                  </div>
-                </el-form-item>
-              </div>
-            </div>
-
-            <!-- 知识库 -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('knowledge')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.knowledge" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>知识库</span>
-                </div>
-                <div class="section-badge">
-                </div>
-              </div>
-              <div v-show="collapseItems.knowledge" class="section-content">
-                <el-form-item label="知识库">
-                  <el-select
-                    v-model="formData.knowledge_ids"
-                    multiple
-                    placeholder="🔍 搜索或选择知识库"
-                    class="form-select"
-                    :loading="dataLoading.knowledge"
-                    filterable
-                    clearable
-                    collapse-tags
-                    collapse-tags-tooltip
-                    :max-collapse-tags="2"
-                  >
-                    <template #prefix>
-                      <span v-if="dataLoading.knowledge" style="color: #15803d; font-size: 12px; font-weight: 500;">加载中...</span>
-                      <span v-else style="color: #15803d; font-size: 12px; font-weight: 600;"><img src="/src/assets/knowledge.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ knowledgeOptions.length }}个知识库</span>
-                    </template>
-                    <el-option
-                      v-for="knowledge in knowledgeOptions"
-                      :key="knowledge.knowledge_id"
-                      :label="knowledge.name"
-                      :value="knowledge.knowledge_id"
-                    >
-                      <div class="custom-option">
-                        <img src="/src/assets/knowledge.svg" class="option-logo" :alt="knowledge.name" />
-                        <span class="option-name">{{ knowledge.name }}</span>
-                        <span class="option-badge kb-badge">KB</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-              </div>
-            </div>
-
-            <!-- 工具 -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('tools')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.tools" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>工具</span>
-                </div>
-                <div class="section-badge">
-                </div>
-              </div>
-              <div v-show="collapseItems.tools" class="section-content">
-                <el-form-item label="选择工具">
-                  <el-select
-                    v-model="formData.tool_ids"
-                    multiple
-                    placeholder="🔍 搜索或选择工具"
-                    class="form-select"
-                    :loading="dataLoading.tool"
-                    filterable
-                    clearable
-                    collapse-tags
-                    collapse-tags-tooltip
-                    :max-collapse-tags="3"
-                  >
-                    <template #prefix>
-                      <span v-if="dataLoading.tool" style="color: #c2410c; font-size: 12px; font-weight: 500;">加载中...</span>
-                      <span v-else style="color: #c2410c; font-size: 12px; font-weight: 600;"><img src="/src/assets/plugin.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ toolOptions.length }}个工具</span>
-                    </template>
-                    <el-option
-                      v-for="tool in toolOptions"
-                      :key="tool.tool_id"
-                      :label="tool.name"
-                      :value="tool.tool_id"
-                    >
-                      <div class="custom-option">
-                        <img :src="tool.logo_url || '/src/assets/plugin.svg'" class="option-logo" :alt="tool.name" />
-                        <span class="option-name">{{ tool.name }}</span>
-                        <span class="option-badge tool-badge">TOOL</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-              </div>
-            </div>
-
-            <!-- MCP -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('mcp')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.mcp" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>MCP</span>
-                </div>
-                <div class="section-badge">
-                </div>
-              </div>
-              <div v-show="collapseItems.mcp" class="section-content">
-                <el-form-item label="MCP服务">
-                  <el-select
-                    v-model="formData.mcp_ids"
-                    multiple
-                    placeholder="🔍 搜索或选择MCP服务器"
-                    class="form-select"
-                    :loading="dataLoading.mcp"
-                    filterable
-                    clearable
-                    collapse-tags
-                    collapse-tags-tooltip
-                    :max-collapse-tags="2"
-                  >
-                    <template #prefix>
-                      <span v-if="dataLoading.mcp" style="color: #7c2d12; font-size: 12px; font-weight: 500;">加载中...</span>
-                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;"><img src="/src/assets/mcp.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ mcpOptions.length }}个服务</span>
-                    </template>
-                    <el-option
-                      v-for="mcp in mcpOptions"
-                      :key="mcp.mcp_server_id"
-                      :label="mcp.name"
-                      :value="mcp.mcp_server_id"
-                    >
-                      <div class="custom-option">
-                        <img :src="mcp.logo_url || '/src/assets/mcp.svg'" class="option-logo" :alt="mcp.name" />
-                        <span class="option-name">{{ mcp.name }}</span>
-                        <span class="option-badge mcp-badge">MCP</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-              </div>
-            </div>
-
-            <!-- 技能（Skill） -->
-            <div class="config-section">
-              <div class="section-header" @click="toggleCollapse('skills')">
-                <div class="section-title">
-                  <el-icon class="section-icon">
-                    <ArrowDown v-if="collapseItems.skills" />
-                    <ArrowRight v-else />
-                  </el-icon>
-                  <span>技能（Skill）</span>
-                </div>
-                <div class="section-badge">
-                </div>
-              </div>
-              <div v-show="collapseItems.skills" class="section-content">
-                <el-form-item label="选择技能">
-                  <el-select
-                    v-model="formData.agent_skill_ids"
-                    multiple
-                    placeholder="🔍 搜索或选择Agent Skill"
-                    class="form-select"
-                    :loading="dataLoading.agentSkill"
-                    filterable
-                    clearable
-                    collapse-tags
-                    collapse-tags-tooltip
-                    :max-collapse-tags="2"
-                  >
-                    <template #prefix>
-                      <span v-if="dataLoading.agentSkill" style="color: #7c2d12; font-size: 12px; font-weight: 500;">加载中...</span>
-                      <span v-else style="color: #7c2d12; font-size: 12px; font-weight: 600;"><img src="/src/assets/skill.svg" style="width:14px;height:14px;vertical-align:middle;margin-right:4px;" />{{ agentSkillOptions.length }}个技能</span>
-                    </template>
-                    <el-option
-                      v-for="skill in agentSkillOptions"
-                      :key="skill.id"
-                      :label="skill.name"
-                      :value="skill.id"
-                    >
-                      <div class="custom-option">
-                        <img src="/src/assets/skill.svg" class="option-logo" :alt="skill.name" />
-                        <span class="option-name">{{ skill.name }}</span>
-                        <span class="option-badge skill-badge">Skill</span>
-                      </div>
-                    </el-option>
-                  </el-select>
-                </el-form-item>
-              </div>
-            </div>
-          </el-form>
-        </div>
-      </div>
-
-
-    </div>
+        <div v-show="activeEditorTab !== 'advanced'" class="prompt-section"><div class="prompt-toolbar"><button class="template-button" type="button" @click="promptTemplateOpen = true"><UiIcon name="grid"/>提示词模板</button><button class="expand-button" type="button" aria-label="放大系统提示词编辑器" @click="expandedPrompt = true"><UiIcon name="expand"/></button></div><el-form-item label="系统提示词" prop="system_prompt"><el-input v-model="formData.system_prompt" type="textarea" :rows="20" class="prompt-field" placeholder="定义智能体的角色、目标、工作流程和输出要求…"/><p class="prompt-count">{{ formData.system_prompt.length }} 字符</p></el-form-item></div>
+        <section v-show="activeEditorTab === 'advanced'" class="advanced-panel"><h2>能力与记忆</h2><p>在右侧配置智能体使用的模型、工具、MCP、Skill 和知识库。开启记忆后，智能体可在后续会话中调用历史信息。</p><div class="advanced-summary"><div v-for="group in capabilityGroups" :key="group.field"><strong>{{ formData[group.field].length }} 项</strong><span>已选择{{ group.label }}</span></div></div></section>
+      </section>
+      <aside class="configuration">
+        <section class="card config-card model-card"><div class="config-heading"><span class="config-icon"><UiIcon name="cube"/></span><div><h2>模型配置</h2><p>选择合适的模型处理任务</p></div></div><el-form-item label="基础模型" prop="llm_id"><el-select v-model="formData.llm_id" filterable :loading="dataLoading.llm" placeholder="选择模型" style="width:100%"><template #prefix><ProviderLogo v-if="selectedModel" class="dropdown-option-logo" :provider="selectedModel.provider" :base-url="selectedModel.base_url"/></template><el-option v-for="llm in llmOptions" :key="llm.llm_id" :value="llm.llm_id" :label="modelDisplayName(llm)"><span class="dropdown-option-row"><ProviderLogo class="dropdown-option-logo" :provider="llm.provider" :base-url="llm.base_url"/><span>{{modelDisplayName(llm)}}</span></span></el-option></el-select></el-form-item><p v-if="!dataLoading.llm && !llmOptions.length" class="empty-model">暂无可用模型，请先添加模型。</p><dl class="model-details"><div><dt>服务提供方</dt><dd>{{ modelProviderDisplayName(selectedModel?.provider) || '—' }}</dd></div><div><dt>模型类型</dt><dd>{{ selectedModel ? (selectedModel.llm_type === 'LLM' ? '对话模型' : selectedModel.llm_type) : '—' }}</dd></div></dl><div class="model-info"><span>使用已连接的模型</span><router-link to="/model">管理模型 →</router-link></div></section>
+        <section class="card config-card capability-card"><div class="config-heading"><span class="config-icon"><UiIcon name="tool"/></span><div><h2>能力配置</h2><p>为智能体选择合适的工具和能力</p></div></div><CapabilityPicker v-for="group in capabilityGroups" :key="group.field" v-model="formData[group.field]" :label="group.label" :icon="group.icon" :options="group.options" :loading="group.loading" :manage-path="group.managePath" :error="group.error" @retry="group.retry"/></section>
+        <section class="card config-card memory-card"><div class="config-heading"><span class="config-icon"><UiIcon name="database"/></span><div class="memory-copy"><h2>记忆</h2><p>开启后，智能体可记住对话中的信息</p></div><el-switch v-model="formData.enable_memory" aria-label="启用记忆"/></div></section>
+      </aside>
+    </el-form>
+    <el-dialog v-model="identityPickerOpen" title="智能体图标" width="min(480px, calc(100vw - 32px))" append-to-body><div class="identity-picker"><div class="identity-picker-preview"><AgentIdentity :agent="{ ...formData, logo_url: previewLogo }"/><div><strong>{{ formData.name || '你的智能体' }}</strong><p>不上传图片，也能拥有清晰统一的标识</p></div></div><button type="button" class="auto-identity" :class="{ selected: identityMode === 'auto' }" :disabled="uploadLoading" @click="useAutomaticIcon"><UiIcon name="spark"/>自动匹配图标<span v-if="identityMode === 'auto'">已启用</span></button><label class="field-label">选择图标</label><div class="identity-icons"><button v-for="icon in agentIcons" :key="icon.id" type="button" :class="{ selected: identityMode === 'preset' && chosenIcon === icon.id }" :disabled="uploadLoading" :aria-pressed="identityMode === 'preset' && chosenIcon === icon.id" @click="selectIcon(icon.id)"><img :src="identityUrl(icon.id, identityMode === 'auto' ? autoIdentity.color : chosenColor)" alt=""/><span>{{ icon.label }}</span></button></div><label class="field-label">背景颜色</label><div class="identity-colors"><button v-for="color in agentColors" :key="color.id" type="button" :style="{ background: color.tint, color: color.ink }" :class="{ selected: identityMode !== 'upload' && (identityMode === 'auto' ? autoIdentity.color : chosenColor) === color.id }" :aria-label="color.label" :disabled="uploadLoading" @click="selectColor(color.id)"><UiIcon v-if="identityMode !== 'upload' && (identityMode === 'auto' ? autoIdentity.color : chosenColor) === color.id" name="check"/></button></div><div class="identity-upload-row"><el-upload v-model:file-list="fileList" :show-file-list="false" :auto-upload="false" :on-change="handleFileChange" :on-remove="handleFileRemove" accept="image/png,image/jpeg" :disabled="uploadLoading"><el-button :loading="uploadLoading"><UiIcon name="upload"/>上传自己的图片</el-button></el-upload><span>PNG / JPG · 小于 2MB</span></div><button v-if="identityMode === 'upload'" class="identity-choose" type="button" @click="useAutomaticIcon">移除图片，恢复自动图标</button></div><template #footer><el-button type="primary" :disabled="uploadLoading" @click="identityPickerOpen = false">完成</el-button></template></el-dialog>
+    <el-dialog v-model="promptTemplateOpen" title="提示词模板" width="560px" append-to-body><div class="template-list"><button v-for="template in promptTemplates" :key="template.title" @click="applyPromptTemplate(template)"><strong>{{ template.title }}</strong><span>{{ template.description }}</span></button></div></el-dialog>
+    <el-dialog v-model="expandedPrompt" title="系统提示词" width="min(900px, calc(100vw - 32px))" append-to-body><el-input v-model="formData.system_prompt" type="textarea" :rows="22" class="expanded-prompt" aria-label="系统提示词"/><template #footer><el-button type="primary" @click="expandedPrompt = false">完成</el-button></template></el-dialog>
   </div>
 </template>
-
-<style lang="scss" scoped>
-.agent-editor {
-  height: 100vh;
-  display: flex;
-  flex-direction: column;
-  background: linear-gradient(135deg, #f0f4ff 0%, #e0e7ff 50%, #f3f4f6 100%);
-  position: relative;
-  
-  &::before {
-    content: '';
-    position: absolute;
-    top: 0;
-    left: 0;
-    right: 0;
-    height: 300px;
-    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #06b6d4 100%);
-    opacity: 0.03;
-    z-index: 0;
-  }
-
-  .editor-body {
-    display: flex;
-    flex: 1;
-    overflow: hidden;
-    gap: 0;
-    padding: 0;
-    position: relative;
-    z-index: 5;
-
-    .left-panel,
-    .center-panel {
-      display: flex;
-      flex-direction: column;
-      background: rgba(255, 255, 255, 0.9);
-      backdrop-filter: blur(20px);
-      border: none;
-      border-right: 1px solid rgba(226, 232, 240, 0.4);
-      border-radius: 0;
-      box-shadow: none;
-      overflow: hidden;
-      position: relative;
-      
-      &::before {
-        content: '';
-        position: absolute;
-        top: 0;
-        left: 0;
-        right: 0;
-        height: 1px;
-        background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
-      }
-
-      .panel-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 16px 24px;
-        height: 64px;
-        box-sizing: border-box;
-        background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
-        border-bottom: 1px solid rgba(226, 232, 240, 0.3);
-        position: relative;
-        
-        &::after {
-          content: '';
-          position: absolute;
-          bottom: 0;
-          left: 24px;
-          right: 24px;
-          height: 1px;
-          background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.2), transparent);
-        }
-
-        .header-content {
-          display: flex;
-          flex-direction: row;
-          align-items: center;
-          gap: 10px;
-
-          .panel-icon {
-            color: #6366f1;
-            font-size: 20px;
-            filter: drop-shadow(0 2px 4px rgba(99, 102, 241, 0.15));
-            flex-shrink: 0;
-          }
-
-          .panel-title {
-            font-size: 16px;
-            font-weight: 700;
-            color: #1e293b;
-            letter-spacing: -0.025em;
-          }
-        }
-
-        .panel-actions {
-          display: flex;
-          gap: 10px;
-          align-items: center;
-
-          .cancel-btn {
-            border: 1px solid rgba(226, 232, 240, 0.8);
-            color: #64748b;
-            background: rgba(255, 255, 255, 0.9);
-            transition: all 0.3s ease;
-            border-radius: 10px;
-            font-weight: 500;
-            height: 34px;
-            padding: 0 16px;
-            font-size: 13px;
-
-            &:hover {
-              border-color: #6366f1;
-              color: #6366f1;
-            }
-          }
-
-          .save-btn {
-            background: linear-gradient(135deg, #38bdf8 0%, #0ea5e9 100%);
-            border: none;
-            font-weight: 600;
-            transition: all 0.3s ease;
-            border-radius: 10px;
-            height: 34px;
-            padding: 0 18px;
-            font-size: 13px;
-            box-shadow: 0 4px 12px rgba(14, 165, 233, 0.3);
-
-            &:hover {
-              transform: translateY(-1px);
-              box-shadow: 0 8px 20px rgba(14, 165, 233, 0.4);
-            }
-          }
-        }
-      }
-
-      .panel-content {
-        flex: 1;
-        overflow-y: auto;
-        padding: 28px;
-        background: rgba(255, 255, 255, 0.02);
-      }
-    }
-
-    .left-panel {
-      width: 50%;
-
-      .basic-info-section {
-        margin-bottom: 20px;
-        padding-bottom: 20px;
-        border-bottom: 1px solid rgba(226, 232, 240, 0.4);
-
-        .basic-info-layout {
-          display: flex;
-          gap: 16px;
-          align-items: flex-start;
-
-          .avatar-uploader {
-            flex-shrink: 0;
-
-            :deep(.el-upload) {
-              border: 2px dashed rgba(99, 102, 241, 0.25);
-              border-radius: 12px;
-              cursor: pointer;
-              overflow: hidden;
-              transition: all 0.3s ease;
-              width: 72px;
-              height: 72px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-              background: linear-gradient(135deg, rgba(248, 250, 252, 0.9) 0%, rgba(241, 245, 249, 0.9) 100%);
-
-              &:hover {
-                border-color: #6366f1;
-                background: rgba(239, 246, 255, 0.9);
-                transform: scale(1.03);
-              }
-            }
-
-            .avatar-wrapper {
-              width: 72px;
-              height: 72px;
-              display: flex;
-              align-items: center;
-              justify-content: center;
-
-              .avatar {
-                width: 72px;
-                height: 72px;
-                object-fit: cover;
-                border-radius: 10px;
-              }
-
-              .avatar-placeholder {
-                display: flex;
-                flex-direction: column;
-                align-items: center;
-                gap: 4px;
-
-                .avatar-icon {
-                  font-size: 20px;
-                  color: #6366f1;
-                }
-
-                .avatar-text {
-                  font-size: 11px;
-                  color: #94a3b8;
-                  font-weight: 500;
-                }
-              }
-            }
-          }
-
-          .basic-info-fields {
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-
-            .field-with-label {
-              display: flex;
-              align-items: center;
-              gap: 8px;
-
-              &--textarea {
-                align-items: flex-start;
-
-                .field-label {
-                  margin-top: 8px;
-                }
-              }
-
-              .field-label {
-                font-size: 13px;
-                font-weight: 600;
-                color: #475569;
-                white-space: nowrap;
-                width: 36px;
-                text-align: right;
-                flex-shrink: 0;
-                position: relative;
-
-                .required-mark {
-                  color: #ef4444;
-                  position: absolute;
-                  left: -10px;
-                  top: 0;
-                }
-              }
-
-              .form-input,
-              .form-textarea {
-                flex: 1;
-              }
-            }
-
-            .name-input {
-              :deep(.el-input__inner) {
-                font-size: 15px;
-                font-weight: 600;
-                color: #1e293b;
-              }
-            }
-          }
-        }
-      }
-
-      .prompt-editor-wrapper {
-        .prompt-label {
-          font-size: 13px;
-          font-weight: 600;
-          color: #475569;
-          margin-bottom: 8px;
-        }
-
-        .prompt-editor {
-          :deep(.el-textarea__inner) {
-            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', 'SF Mono', monospace;
-            line-height: 1.7;
-            font-size: 14px;
-            resize: none;
-            border: 1px solid rgba(226, 232, 240, 0.5);
-            border-radius: 16px;
-            padding: 20px;
-            background: rgba(248, 250, 252, 0.8);
-            backdrop-filter: blur(10px);
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 
-              0 2px 8px rgba(0, 0, 0, 0.02),
-              inset 0 1px 0 rgba(255, 255, 255, 0.5);
-            
-            &:focus {
-              border-color: #6366f1;
-              background: rgba(255, 255, 255, 0.95);
-              box-shadow: 
-                0 0 0 4px rgba(99, 102, 241, 0.1),
-                0 8px 24px rgba(99, 102, 241, 0.08),
-                inset 0 1px 0 rgba(255, 255, 255, 0.8);
-              transform: translateY(-1px);
-            }
-            
-            &:hover {
-              border-color: rgba(99, 102, 241, 0.3);
-              background: rgba(255, 255, 255, 0.8);
-            }
-          }
-        }
-
-        .prompt-info {
-          display: flex;
-          justify-content: space-between;
-          margin-top: 20px;
-          padding: 16px 20px;
-          background: linear-gradient(135deg, rgba(248, 250, 252, 0.8) 0%, rgba(241, 245, 249, 0.8) 100%);
-          border-radius: 12px;
-          border: 1px solid rgba(226, 232, 240, 0.4);
-          backdrop-filter: blur(10px);
-          box-shadow: 
-            0 2px 8px rgba(0, 0, 0, 0.02),
-            inset 0 1px 0 rgba(255, 255, 255, 0.6);
-
-          .info-item {
-            display: flex;
-            align-items: center;
-            gap: 8px;
-
-            .info-label {
-              font-size: 12px;
-              color: #64748b;
-              font-weight: 500;
-            }
-
-            .info-value {
-              font-size: 14px;
-              color: #1e293b;
-              font-weight: 600;
-            }
-          }
-        }
-      }
-    }
-
-    .center-panel {
-      width: 50%;
-
-      .config-form {
-        .config-section {
-          margin-bottom: 24px;
-          border: 1px solid rgba(226, 232, 240, 0.4);
-          border-radius: 16px;
-          overflow: hidden;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          background: rgba(255, 255, 255, 0.3);
-          backdrop-filter: blur(10px);
-          box-shadow: 
-            0 2px 8px rgba(0, 0, 0, 0.02),
-            inset 0 1px 0 rgba(255, 255, 255, 0.5);
-
-          &:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            box-shadow: 
-              0 8px 24px rgba(99, 102, 241, 0.08),
-              0 2px 8px rgba(0, 0, 0, 0.04),
-              inset 0 1px 0 rgba(255, 255, 255, 0.7);
-            transform: translateY(-1px);
-          }
-
-          .section-header {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            padding: 22px 24px;
-            background: linear-gradient(135deg, rgba(248, 250, 252, 0.6) 0%, rgba(241, 245, 249, 0.6) 100%);
-            cursor: pointer;
-            user-select: none;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            position: relative;
-            
-            &::after {
-              content: '';
-              position: absolute;
-              bottom: 0;
-              left: 20px;
-              right: 20px;
-              height: 1px;
-              background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.15), transparent);
-            }
-
-            &:hover {
-              background: linear-gradient(135deg, rgba(239, 246, 255, 0.8) 0%, rgba(219, 234, 254, 0.8) 100%);
-              
-              &::after {
-                background: linear-gradient(90deg, transparent, rgba(99, 102, 241, 0.3), transparent);
-              }
-            }
-
-            .section-title {
-              display: flex;
-              align-items: center;
-              gap: 12px;
-
-              .section-icon {
-                color: #6366f1;
-                font-size: 18px;
-                filter: drop-shadow(0 1px 2px rgba(99, 102, 241, 0.2));
-                transition: all 0.3s ease;
-              }
-
-              span {
-                font-weight: 700;
-                color: #1e293b;
-                font-size: 16px;
-                letter-spacing: -0.025em;
-              }
-            }
-
-            .section-badge {
-              .badge {
-                margin-left: auto;
-              }
-            }
-          }
-
-          .section-content {
-            padding: 28px;
-            background: rgba(255, 255, 255, 0.5);
-            backdrop-filter: blur(5px);
-
-            .el-form-item {
-              margin-bottom: 20px;
-
-              &:last-child {
-                margin-bottom: 0;
-              }
-            }
-          }
-        }
-      }
-
-      .memory-toggle-wrapper {
-        display: flex;
-        flex-direction: column;
-        gap: 12px;
-
-        .memory-toggle-btn {
-          position: relative;
-          width: 200px;
-          height: 48px;
-          border: none;
-          border-radius: 24px;
-          background: linear-gradient(135deg, #f1f5f9 0%, #e2e8f0 100%);
-          cursor: pointer;
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          display: flex;
-          align-items: center;
-          justify-content: space-between;
-          padding: 4px;
-          box-shadow: 
-            0 2px 8px rgba(0, 0, 0, 0.08),
-            inset 0 1px 0 rgba(255, 255, 255, 0.5);
-
-          &:hover {
-            transform: translateY(-1px);
-            box-shadow: 
-              0 4px 16px rgba(99, 102, 241, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.7);
-          }
-
-          &.active {
-            background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
-            box-shadow: 
-              0 4px 16px rgba(99, 102, 241, 0.3),
-              inset 0 1px 0 rgba(255, 255, 255, 0.2);
-
-            .toggle-slider {
-              transform: translateX(152px);
-              background: white;
-              box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            }
-
-            .toggle-text {
-              color: white;
-              font-weight: 600;
-            }
-          }
-
-          .toggle-slider {
-            position: absolute;
-            left: 4px;
-            width: 40px;
-            height: 40px;
-            background: linear-gradient(135deg, #ffffff 0%, #f8fafc 100%);
-            border-radius: 20px;
-            transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-            box-shadow: 
-              0 2px 8px rgba(0, 0, 0, 0.1),
-              inset 0 1px 0 rgba(255, 255, 255, 0.8);
-          }
-
-          .toggle-text {
-            font-size: 14px;
-            font-weight: 500;
-            color: #64748b;
-            transition: all 0.4s ease;
-            margin: 0 16px;
-            z-index: 1;
-            position: relative;
-          }
-        }
-
-        .memory-description {
-          font-size: 12px;
-          color: #64748b;
-          line-height: 1.4;
-          padding: 8px 12px;
-          background: rgba(248, 250, 252, 0.6);
-          border-radius: 8px;
-          border: 1px solid rgba(226, 232, 240, 0.4);
-          backdrop-filter: blur(5px);
-        }
-      }
-
-      .form-input,
-      .form-textarea,
-      .form-select {
-        :deep(.el-input__wrapper) {
-          border: 1px solid rgba(226, 232, 240, 0.5);
-          border-radius: 12px;
-          background: rgba(248, 250, 252, 0.8);
-          backdrop-filter: blur(10px);
-          transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
-          box-shadow: 
-            0 1px 3px rgba(0, 0, 0, 0.02),
-            inset 0 1px 0 rgba(255, 255, 255, 0.5);
-          min-height: 48px;
-
-          &:hover {
-            border-color: rgba(99, 102, 241, 0.4);
-            background: rgba(255, 255, 255, 0.9);
-            transform: translateY(-1px);
-            box-shadow: 
-              0 4px 12px rgba(99, 102, 241, 0.05),
-              inset 0 1px 0 rgba(255, 255, 255, 0.7);
-          }
-
-          &.is-focus {
-            border-color: #6366f1;
-            background: rgba(255, 255, 255, 0.95);
-            box-shadow: 
-              0 0 0 4px rgba(99, 102, 241, 0.1),
-              0 8px 24px rgba(99, 102, 241, 0.08),
-              inset 0 1px 0 rgba(255, 255, 255, 0.8);
-            transform: translateY(-2px);
-          }
-        }
-
-        :deep(.el-textarea__inner) {
-          border: none;
-          background: transparent;
-          font-size: 14px;
-          line-height: 1.7;
-          padding: 16px;
-        }
-        
-        :deep(.el-input__inner) {
-          font-size: 14px;
-          font-weight: 500;
-          color: #1e293b;
-          padding: 0 16px;
-        }
-        
-        // 优化选择器特有的样式
-        :deep(.el-input__suffix) {
-          right: 12px;
-          
-          .el-select__caret {
-            color: #6366f1;
-            font-size: 16px;
-            transition: all 0.3s ease;
-            
-            &.is-reverse {
-              transform: rotate(180deg);
-            }
-          }
-        }
-        
-        // 多选标签优化
-        :deep(.el-select__tags) {
-          flex-wrap: wrap;
-          gap: 4px;
-          padding: 6px 12px;
-          
-          .el-tag {
-            background: #eff6ff;
-            border: 1px solid #bfdbfe;
-            border-radius: 6px;
-            color: #1d4ed8;
-            font-size: 12px;
-            font-weight: 500;
-            padding: 2px 6px;
-            margin: 0;
-            height: auto;
-            line-height: 1.4;
-            
-            .el-tag__close {
-              color: #1d4ed8;
-              font-size: 12px;
-              margin-left: 4px;
-              
-              &:hover {
-                color: #dc2626;
-              }
-            }
-          }
-        }
-      }
-
-
-    }
-  }
-}
-
-
-
-// 响应式适配
-@media (max-width: 768px) {
-  .agent-editor {
-    .editor-body {
-      .left-panel,
-      .center-panel {
-        .panel-header {
-          padding: 12px 16px;
-          flex-wrap: wrap;
-          gap: 8px;
-        }
-        
-        .panel-content {
-          padding: 16px;
-        }
-      }
-    }
-  }
-}
-
-// 简化清晰的下拉菜单样式
-:global(.el-select-dropdown) {
-  background: white !important;
-  border: 1px solid #e2e8f0 !important;
-  border-radius: 12px !important;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
-  padding: 6px !important;
-  margin-top: 4px !important;
-  
-  .el-select-dropdown__item {
-    border-radius: 8px !important;
-    padding: 8px 12px !important;
-    margin: 2px 0 !important;
-    font-size: 14px !important;
-    color: #374151 !important;
-    transition: all 0.2s ease !important;
-    background: transparent !important;
-    
-    &:hover {
-      background: #f3f4f6 !important;
-      color: #111827 !important;
-    }
-    
-    &.selected {
-      background: #eff6ff !important;
-      color: #2563eb !important;
-      font-weight: 600 !important;
-    }
-  }
-  
-  .el-select-dropdown__empty {
-    color: #6b7280 !important;
-    font-size: 14px !important;
-    padding: 20px !important;
-    text-align: center !important;
-  }
-}
-
-// 简化的选项样式
-.custom-option {
-  display: flex !important;
-  align-items: center !important;
-  gap: 12px !important;
-  width: 100% !important;
-  padding: 4px 0 !important;
-  
-  .option-logo {
-    width: 20px !important;
-    height: 20px !important;
-    flex-shrink: 0 !important;
-    border-radius: 4px !important;
-    object-fit: cover !important;
-  }
-  
-  .option-name {
-    flex: 1 !important;
-    font-weight: 500 !important;
-    color: #111827 !important;
-    font-size: 14px !important;
-    white-space: nowrap !important;
-    overflow: hidden !important;
-    text-overflow: ellipsis !important;
-  }
-  
-  .option-badge {
-    flex-shrink: 0 !important;
-    padding: 2px 6px !important;
-    border-radius: 4px !important;
-    font-size: 10px !important;
-    font-weight: 600 !important;
-    text-transform: uppercase !important;
-    letter-spacing: 0.5px !important;
-    
-    &.ai-badge {
-      background: #dbeafe !important;
-      color: #1d4ed8 !important;
-    }
-    
-    &.kb-badge {
-      background: #dcfce7 !important;
-      color: #15803d !important;
-    }
-    
-    &.tool-badge {
-      background: #fed7aa !important;
-      color: #c2410c !important;
-    }
-    
-    &.mcp-badge {
-      background: #e9d5ff !important;
-      color: #7c2d12 !important;
-    }
-    
-    &.skill-badge {
-      background: #fef3c7 !important;
-      color: #92400e !important;
-    }
-  }
-}
-
-// 多选标签样式优化
-:global(.el-tag.el-tag--info) {
-  background: #eff6ff !important;
-  border: 1px solid #bfdbfe !important;
-  color: #1d4ed8 !important;
-  font-weight: 500 !important;
-  border-radius: 6px !important;
-}
-</style> 
+<style scoped src="./agent-editor.css"></style>

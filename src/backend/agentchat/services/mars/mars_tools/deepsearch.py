@@ -1,9 +1,11 @@
-import time
 from typing import Optional
+
 from langchain.tools import tool
-from langgraph.config import get_stream_writer
 from langchain_core.messages import HumanMessage
+
 from agentchat.services.deepsearch.stream_graph import StreamingGraph
+from agentchat.services.mars.events import get_mars_writer, stream_search_report
+
 
 @tool(parse_docstring=True)
 async def deep_search(user_input: str, user_id: Optional[str] = None):
@@ -17,28 +19,10 @@ async def deep_search(user_input: str, user_id: Optional[str] = None):
     Returns:
         返回深度搜索后的信息
     """
-    writer = get_stream_writer()
+    writer = get_mars_writer()
     messages = [HumanMessage(content=user_input)]
 
     stream_graph = StreamingGraph()
 
-    async for chunk in stream_graph.run_with_streaming(messages):
-        chunk_type = chunk.get('type', 'unknown')
-        node = chunk.get('node', 'unknown')
-        content = chunk.get('content', '')
-
-        event_data = {
-            "type": "response_chunk",
-            "time": time.time(),
-            "data": ""
-        }
-        if chunk_type == "streaming":
-            event_data["data"] = content
-        elif chunk_type in ["start", "complete", "error"]:
-            emoji = {"start": "🚀", "complete": "✅", "error": "❌"}[chunk_type]
-            event_data["data"] = f"\n #### {emoji} {content}"
-        elif chunk_type == "final_result":
-            event_data["data"] = f""
-        if event_data.get("data"):
-            writer(event_data)
+    return await stream_search_report(stream_graph, messages, writer)
 

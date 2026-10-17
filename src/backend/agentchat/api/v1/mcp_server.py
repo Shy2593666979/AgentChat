@@ -1,17 +1,12 @@
-import json
-from loguru import logger
 from fastapi import APIRouter, Body, Depends
+from loguru import logger
 
+from agentchat.api.responses.builder import resp_200, resp_500
 from agentchat.api.services.mcp_server import MCPService
 from agentchat.api.services.user import UserPayload, get_login_user
-from agentchat.prompts.mcp import McpAsToolPrompt
-from agentchat.schemas.mcp import MCPResponseFormat, MCPServerImportedReq, MCPServerUpdateReq
-from agentchat.api.responses.builder import resp_500, resp_200
-from agentchat.core.agents.structured_response_agent import StructuredResponseAgent
-from agentchat.services.mcp.manager import MCPManager
+from agentchat.schemas.mcp import MCPServerImportedReq, MCPServerUpdateReq
+from agentchat.services.mcp.metadata import queue_metadata
 from agentchat.settings import app_settings
-from agentchat.utils.convert import convert_mcp_config
-from agentchat.utils.helpers import parse_imported_config
 
 router = APIRouter(tags=["MCP-Server"])
 
@@ -25,43 +20,21 @@ async def create_mcp_server(
         MCPService.validate_imported_config(req.imported_config)
         name, info = next(iter(req.imported_config.get("mcpServers", {}).items()))
         server_info = {
-            "server_name": req.server_name or name, # 传入Mcp Server名称优先级更高
+            "server_name": req.server_name or name,  # 传入Mcp Server名称优先级更高
             "type": info.get("type", "sse"),
             "headers": info.get("headers"),
-            "url": info.get("url")
+            "url": info.get("url"),
         }
-        mcp_manager = MCPManager(
-            [convert_mcp_config(server_info)]
+        server_id = await MCPService.create_user_mcp_server(
+            server_info, login_user.user_id, login_user.user_name,
+            logo_url=req.logo_url, imported_config=req.imported_config)
+        return resp_200(
+            data={
+                "mcp_server_id": server_id,
+                "metadata_status": "pending",
+            },
+            message="服务已保存，工具信息与描述将在后台生成",
         )
-        tools_params = await mcp_manager.show_mcp_tools()
-        tools_name_str = []
-        for key, tools in tools_params.items():
-            for tool in tools:
-                tools_name_str.append(tool["name"])
-
-        # 每次更新配置需要修改Mcp As Tool的信息
-        structured_agent = StructuredResponseAgent(MCPResponseFormat)
-        structured_response = structured_agent.get_structured_response(
-            McpAsToolPrompt.format(
-                tools_info=json.dumps(tools_params, indent=4)
-            )
-        )
-
-        await MCPService.create_mcp_server(
-            tools=tools_name_str,
-            url=info.get("url"),
-            config={},
-            type=info.get("type", "sse"),
-            user_id=login_user.user_id,
-            server_name=req.server_name or name,
-            config_enabled=False,
-            logo_url=req.logo_url,
-            params=tools_params.get(req.server_name or name),
-            user_name=login_user.user_name,
-            description=structured_response.description,
-            mcp_as_tool_name=structured_response.mcp_as_tool_name,
-        )
-        return resp_200()
     except Exception as err:
         logger.error(err)
         return resp_500(message=str(err))
@@ -120,68 +93,62 @@ async def update_mcp_server(
         mcp_server = await MCPService.get_mcp_server_from_id(req.server_id)
 
         update_data = {}
+        if req.name is not None:
+            update_data["server_name"] = req.name
+        if req.logo_url is not None:
+            update_data["logo_url"] = req.logo_url
         if req.imported_config and req.imported_config != mcp_server["imported_config"]:
-
-            imported_config_info = parse_imported_config(req.imported_config)
-            imported_config_info.name = req.name or imported_config_info.name
-
-            # MCP server 基础信息
-            update_data.update({
-                "server_name": imported_config_info.name,
-                "url": imported_config_info.url,
-                "type": imported_config_info.type,
-                "imported_config": req.imported_config,
-                "logo_url": req.logo_url
-            })
-
-            # tools / params
-            mcp_manager = MCPManager([
-                convert_mcp_config({
-                    "server_name": imported_config_info.name,
-                    "type": imported_config_info.type,
-                    "url": imported_config_info.url,
-                    "headers": imported_config_info.headers
-                })
-            ])
-            tools_params = await mcp_manager.show_mcp_tools()
-
-            update_data["tools"] = [
-                tool["name"]
-                for tools in tools_params.values()
-                for tool in tools
-            ]
-            update_data["params"] = tools_params.get(imported_config_info.name)
-
-            # LLM 生成信息
-            structured_agent = StructuredResponseAgent(MCPResponseFormat)
-            structured_response = structured_agent.get_structured_response(
-                McpAsToolPrompt.format(
-                    tools_info=json.dumps(tools_params, indent=4)
-                )
+            MCPService.validate_imported_config(req.imported_config)
+            name, info = next(iter(req.imported_config["mcpServers"].items()))
+            update_data.update(
+                {
+                    "server_name": req.name or name,
+                    "url": info["url"],
+                    "type": info["type"],
+                    "imported_config": req.imported_config,
+                    "tools": [],
+                    "params": [],
+                }
             )
-            update_data["mcp_as_tool_name"] = structured_response.mcp_as_tool_name
-            update_data["description"] = structured_response.description
-
-        else:
-            if req.name is not None:
-                update_data["server_name"] = req.name
-            if req.logo_url is not None:
-                update_data["logo_url"] = req.logo_url
-
-        await MCPService.update_mcp_server(
-            server_id=req.server_id,
-            update_data=update_data
-        )
+            if mcp_server["user_id"] == "0":
+                await MCPService.update_mcp_server(req.server_id, update_data)
+                return resp_200()
+            queue_metadata(req.server_id, update_data)
+            return resp_200(
+                data={
+                    "metadata_status": "pending",
+                },
+                message="服务已保存，正在后台更新工具信息与描述",
+            )
+        await MCPService.update_mcp_server(req.server_id, update_data)
         return resp_200()
     except Exception as err:
         logger.error(err)
         return resp_500()
 
+@router.post("/mcp_server/{server_id}/metadata/retry")
+async def retry_mcp_metadata(server_id: str, login_user: UserPayload = Depends(get_login_user)):
+    try:
+        await MCPService.verify_user_permission(server_id, login_user.user_id)
+        server = await MCPService.get_mcp_server_from_id(server_id)
+        if server["user_id"] == "0":
+            raise ValueError("默认服务使用固定描述，无需生成")
+        queue_metadata(server_id)
+        return resp_200(
+            data={
+                "metadata_status": "pending",
+            }
+        )
+    except Exception as err:
+        return resp_500(message=str(err))
+
+
 @router.get("/mcp_server/logo", summary="获得MCP服务的默认头像")
 async def get_mcp_default_logo(
     login_user: UserPayload = Depends(get_login_user)
 ):
-    return resp_200({
-        "logo_url": app_settings.default_config.get("mcp_logo_url")
-    })
-
+    return resp_200(
+        {
+            "logo_url": app_settings.default_config.get("mcp_logo_url"),
+        }
+    )

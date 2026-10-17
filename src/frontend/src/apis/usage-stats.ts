@@ -4,6 +4,7 @@ import { request } from "../utils/request"
 export interface UsageStatsRequest {
   agent?: string
   model?: string
+  conversation_id?: string
   delta_days?: number
 }
 

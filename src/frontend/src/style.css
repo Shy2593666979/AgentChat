@@ -1,176 +1,30 @@
-*{
-    margin: 0;
-    padding: 0;
-    font-family: "Microsoft YaHei";
+:root {
+  --ac-font: "Microsoft YaHei UI", "PingFang SC", "Microsoft YaHei", "Noto Sans SC", Arial, sans-serif;
+  --ac-nav-font: "SimHei", "Heiti SC", "Microsoft YaHei", sans-serif;
+  --ac-brand: #1b7ce4;
+  --ac-text: #263445;
+  --ac-muted: #64748b;
+  --ac-border: #e2e8f0;
+  --ac-radius: 12px;
+  --ac-shadow: 0 3px 14px rgb(15 23 42 / 4%);
 }
-
-.md-editor {
-    background-color:transparent !important;
-}
-
-.md-editor-preview-wrapper {
-    padding: 0 !important;
-}
-
-/* 全局确保MessageBox居中显示 */
-.el-overlay {
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-    background-color: rgba(0, 0, 0, 0.5) !important;
-}
-
-.el-message-box {
-    position: relative !important;
-    top: auto !important;
-    left: auto !important;
-    transform: none !important;
-    margin: 0 !important;
-    max-width: 420px !important;
-    min-width: 350px !important;
-    background-color: #ffffff !important;
-}
-
-/* 删除确认对话框样式 */
-.delete-confirm-dialog .el-message-box {
-    border-radius: 12px !important;
-    box-shadow: 0 12px 32px 4px rgba(0, 0, 0, 0.1), 0 8px 20px rgba(0, 0, 0, 0.08) !important;
-    background-color: #ffffff !important;
-    border: 1px solid #e4e7ed !important;
-    position: relative !important;
-}
-
-.delete-confirm-dialog .el-message-box__header {
-    padding: 24px 24px 12px !important;
-    text-align: center !important;
-    border-bottom: none !important;
-    background-color: #ffffff !important;
-    position: relative !important;
-}
-
-/* 修复关闭按钮位置 */
-.delete-confirm-dialog .el-message-box__headerbtn {
-    position: absolute !important;
-    top: 16px !important;
-    right: 16px !important;
-    padding: 0 !important;
-    background: none !important;
-    border: none !important;
-    outline: none !important;
-    cursor: pointer !important;
-    font-size: 16px !important;
-    color: #909399 !important;
-    width: 24px !important;
-    height: 24px !important;
-    display: flex !important;
-    align-items: center !important;
-    justify-content: center !important;
-}
-
-.delete-confirm-dialog .el-message-box__headerbtn:hover {
-    color: #606266 !important;
-}
-
-.delete-confirm-dialog .el-message-box__close {
-    font-size: 16px !important;
-}
-
-.delete-confirm-dialog .el-message-box__title {
-    font-size: 18px !important;
-    font-weight: 600 !important;
-    color: #303133 !important;
-    line-height: 1.4 !important;
-}
-
-.delete-confirm-dialog .el-message-box__content {
-    padding: 12px 24px !important;
-    text-align: center !important;
-    background-color: #ffffff !important;
-}
-
-.delete-confirm-dialog .el-message-box__message {
-    font-size: 16px !important;
-    line-height: 1.5 !important;
-    color: #606266 !important;
-    margin: 0 !important;
-}
-
-.delete-confirm-dialog .el-message-box__btns {
-    padding: 16px 24px 24px !important;
-    text-align: center !important;
-    display: flex !important;
-    justify-content: center !important;
-    gap: 16px !important;
-    background-color: #ffffff !important;
-}
-
-.delete-confirm-dialog .el-message-box__btns .el-button {
-    min-width: 88px !important;
-    height: 40px !important;
-    font-size: 14px !important;
-    border-radius: 8px !important;
-    font-weight: 500 !important;
-}
-
-/* 删除按钮样式 - 红色危险按钮 */
-.delete-confirm-dialog .el-message-box__btns .el-button--primary {
-    background-color: #f56c6c !important;
-    border-color: #f56c6c !important;
-    color: #ffffff !important;
-}
-
-.delete-confirm-dialog .el-message-box__btns .el-button--primary:hover {
-    background-color: #f78989 !important;
-    border-color: #f78989 !important;
-}
-
-/* 取消按钮样式 */
-.delete-confirm-dialog .el-message-box__btns .el-button--default {
-    color: #606266 !important;
-    border-color: #dcdfe6 !important;
-    background-color: #ffffff !important;
-}
-
-.delete-confirm-dialog .el-message-box__btns .el-button--default:hover {
-    color: #409eff !important;
-    border-color: #c6e2ff !important;
-    background-color: #ecf5ff !important;
-}
-
-/* 确保没有意外的遮罩层 */
-.el-loading-mask {
-    z-index: 2000 !important;
-}
-
-/* 确保页面内容可以正常交互 */
-.mcp-server-page {
-    position: relative !important;
-    z-index: 1 !important;
-    pointer-events: auto !important;
-}
-
-/* 修复可能的遮罩问题 */
-body {
-    pointer-events: auto !important;
-}
-
-/* 确保侧边栏可以点击 */
-.ai-main .sidebar-content {
-    pointer-events: auto !important;
-    z-index: 100 !important;
-    position: relative !important;
-}
-
-/* 强制移除所有可能的遮罩层 */
-.el-overlay {
-    display: none !important;
-}
-
-.el-loading-mask.is-fullscreen {
-    display: none !important;
-}
-
-/* 确保主要容器可交互 */
-.ai-body, .ai-main, .ai-nav {
-    pointer-events: auto !important;
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body, #app { min-height: 100%; }
+body { font-family: var(--ac-font); font-size: 14px; line-height: 1.65; color: var(--ac-text); -webkit-font-smoothing: antialiased; }
+button, input, textarea, select { font-family: inherit; }
+button, a, input, textarea, select, [tabindex] { outline-offset: 3px; }
+:focus-visible { outline: 2px solid #93c5fd; }
+button:disabled { cursor: not-allowed; }
+.md-editor { background-color: transparent !important; }
+.md-editor-preview-wrapper { padding: 0 !important; }
+/* Keep Element Plus's overlay, loading and teleport layers operational. */
+.el-message-box { width: min(420px, calc(100vw - 32px)); max-width: calc(100vw - 32px); border-radius: var(--ac-radius); }
+.delete-confirm-dialog .el-message-box { box-shadow: 0 18px 48px rgb(15 23 42 / 14%); }
+.delete-confirm-dialog .el-message-box__header { padding: 22px 24px 10px; }
+.delete-confirm-dialog .el-message-box__content { padding: 12px 24px 20px; }
+.delete-confirm-dialog .el-message-box__btns { padding: 0 24px 22px; }
+.delete-confirm-dialog .el-message-box__btns .el-button { min-width: 84px; border-radius: 8px; }
+.delete-confirm-dialog .el-message-box__btns .el-button--primary { --el-button-bg-color: #f56c6c; --el-button-border-color: #f56c6c; --el-button-hover-bg-color: #f78989; --el-button-hover-border-color: #f78989; }
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; scroll-behavior: auto !important; }
 }

@@ -6,13 +6,18 @@ L2: Redis (分布式)
 import json
 import socket
 import uuid
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
+
 import redis.asyncio as aioredis
 from cachetools import TTLCache
 
-from agentchat.mcp_proxy.session.models import McpProxySession, ClientInfo, ClientCapabilities, SessionState
-
+from agentchat.mcp_proxy.session.models import (
+    ClientCapabilities,
+    ClientInfo,
+    McpProxySession,
+    SessionState,
+)
 
 SESSION_TTL_SECONDS = 1800
 SESSION_KEY_PREFIX = "mcp:session:"
@@ -22,7 +27,10 @@ def _session_to_dict(s: McpProxySession) -> dict:
         "session_id": s.session_id,
         "server_name": s.server_name,
         "environment": s.environment,
-        "client_info": {"name": s.client_info.name, "version": s.client_info.version},
+        "client_info": {
+            "name": s.client_info.name,
+            "version": s.client_info.version,
+        },
         "client_capabilities": {
             "supports_roots": s.client_capabilities.supports_roots,
             "supports_sampling": s.client_capabilities.supports_sampling,
@@ -62,9 +70,9 @@ def _dict_to_session(d: dict) -> McpProxySession:
 
 
 class SessionManager:
-    def __init__(self, redis_client: aioredis.Redis):
+    def __init__(self, redis_client: Optional[aioredis.Redis] = None):
         self._redis = redis_client
-        self._local: TTLCache = TTLCache(maxsize=1000, ttl=30)
+        self._local: TTLCache = TTLCache(maxsize=1000, ttl=30 if redis_client is not None else SESSION_TTL_SECONDS)
         self._node_id = socket.gethostname()
 
     def _key(self, session_id: str) -> str:
@@ -100,6 +108,8 @@ class SessionManager:
         cached = self._local.get(session_id)
         if cached:
             return cached
+        if self._redis is None:
+            return None
         # L2
         raw = await self._redis.get(self._key(session_id))
         if not raw:
@@ -116,15 +126,17 @@ class SessionManager:
         return session
 
     async def delete_session(self, session_id: str):
-        await self._redis.delete(self._key(session_id))
+        if self._redis is not None:
+            await self._redis.delete(self._key(session_id))
         self._local.pop(session_id, None)
 
     async def exists_session(self, session_id: str) -> bool:
         if session_id in self._local:
             return True
-        return bool(await self._redis.exists(self._key(session_id)))
+        return bool(await self._redis.exists(self._key(session_id))) if self._redis is not None else False
 
     async def _save(self, session: McpProxySession):
         data = json.dumps(_session_to_dict(session))
-        await self._redis.setex(self._key(session.session_id), SESSION_TTL_SECONDS, data)
+        if self._redis is not None:
+            await self._redis.setex(self._key(session.session_id), SESSION_TTL_SECONDS, data)
         self._local[session.session_id] = session

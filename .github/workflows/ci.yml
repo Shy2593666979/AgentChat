@@ -1,0 +1,88 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: 后端测试
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    defaults:
+      run:
+        working-directory: src/backend
+    env:
+      PYTHONUTF8: "1"
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - uses: astral-sh/setup-uv@1c37ad07a6a961277cf70c0d37d6f313000f5884 # v10.3.0
+        with:
+          enable-cache: true
+          cache-dependency-glob: src/backend/uv.lock
+      # 跨语言协议测试需要 Node.js 和前端依赖。
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      - name: 安装前端测试依赖
+        run: npm ci
+        working-directory: src/frontend
+      - name: 安装后端依赖
+        run: uv sync --locked --group dev
+      - name: 生成独立测试配置
+        run: |
+          echo "AGENTCHAT_CONFIG=$RUNNER_TEMP/agentchat-ci.yaml" >> "$GITHUB_ENV"
+          echo "AGENTCHAT_LOG_DIR=$RUNNER_TEMP/agentchat-logs" >> "$GITHUB_ENV"
+          cat > "$RUNNER_TEMP/agentchat-ci.yaml" <<'YAML'
+          model:
+            api_key: ci-placeholder-not-a-real-key
+            base_url: http://127.0.0.1:9/v1
+            model_name: ci-test-model
+          database:
+            url: sqlite:///${{ runner.temp }}/agentchat-ci.db
+          storage:
+            mode: local
+            local:
+              path: ${{ runner.temp }}/agentchat-uploads
+          YAML
+      - name: 运行后端测试
+        run: uv run --locked pytest tests -q
+
+  frontend:
+    name: 前端检查与构建
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    defaults:
+      run:
+        working-directory: src/frontend
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: src/frontend/package-lock.json
+      - name: 安装依赖
+        run: npm ci
+      - name: 类型检查
+        run: npm run lint
+      - name: 构建
+        run: npm run build
