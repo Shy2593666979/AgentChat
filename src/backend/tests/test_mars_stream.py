@@ -50,6 +50,42 @@ class MarsStreamTests(unittest.IsolatedAsyncioTestCase):
             self.assertEqual((await agent.mars_output_queue.get())["type"], "tool_start")
             self.assertEqual((await agent.mars_output_queue.get())["type"], "tool_end" if status == "success" else "tool_error")
 
+    async def test_duplicate_daily_news_calls_share_result_and_keep_call_ids(self):
+        agent = MarsAgent(MarsConfig(user_id="test-user"))
+        agent.mars_output_queue = asyncio.Queue()
+        agent.reasoning_interrupt = asyncio.Event()
+        middleware = (await agent.setup_middlewares())[-1]
+        calls = []
+
+        async def handler(request):
+            calls.append(request.tool_call["id"])
+            await asyncio.sleep(0)
+            return ToolMessage(content='{"status":"completed","url":"https://files.example/daily.png"}',
+                               tool_call_id=request.tool_call["id"])
+
+        def request(identity):
+            return SimpleNamespace(tool_call={"name": "crawl_ai_news", "id": identity, "args": {"user_input": "日报"}})
+
+        first, second = await asyncio.gather(*(middleware.awrap_tool_call(request(key), handler) for key in ("one", "two")))
+        third = await middleware.awrap_tool_call(request("three"), handler)
+        self.assertEqual(len(calls), 1)
+        self.assertEqual([item.tool_call_id for item in (first, second, third)], ["one", "two", "three"])
+        self.assertEqual(first.content, third.content)
+
+    async def test_failed_daily_news_can_be_retried(self):
+        agent = MarsAgent(MarsConfig(user_id="test-user"))
+        agent.mars_output_queue = asyncio.Queue()
+        agent.reasoning_interrupt = asyncio.Event()
+        middleware = (await agent.setup_middlewares())[-1]
+        calls = []
+        async def handler(request):
+            calls.append(True)
+            return ToolMessage(content="failed", tool_call_id=request.tool_call["id"], status="error")
+        request = SimpleNamespace(tool_call={"name": "crawl_ai_news", "id": "one", "args": {}})
+        await middleware.awrap_tool_call(request, handler)
+        await middleware.awrap_tool_call(request, handler)
+        self.assertEqual(len(calls), 2)
+
     async def test_drains_all_events_before_finishing(self):
         class FakeAgent:
             async def astream(self, **kwargs):

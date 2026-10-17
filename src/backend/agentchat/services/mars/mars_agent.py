@@ -37,6 +37,8 @@ class MarsAgent:
     def __init__(self, mars_config: MarsConfig):
         self.mars_tools = None
         self.mars_config = mars_config
+        # 每个 Mars 请求独立缓存成功的日报结果，覆盖串行和并行的重复调用。
+        self.news_tasks = {}
 
 
     async def init_mars_agent(self):
@@ -122,7 +124,23 @@ class MarsAgent:
             context_token = mars_tool_id.set(request.tool_call["id"])
             try:
                 with tool_operation("mars.tool", tool=name, tool_call_id=request.tool_call["id"]) as operation:
-                    tool_result = await handler(request)
+                    if name == "crawl_ai_news":
+                        key = request.tool_call["args"].get("output_format", "png")
+                        task = self.news_tasks.get(key)
+                        if task is None:
+                            task = asyncio.create_task(handler(request))
+                            self.news_tasks[key] = task
+                        try:
+                            tool_result = await task
+                        except BaseException:
+                            self.news_tasks.pop(key, None)
+                            raise
+                        if isinstance(tool_result, ToolMessage):
+                            if tool_result.status == "error":
+                                self.news_tasks.pop(key, None)
+                            tool_result = tool_result.model_copy(update={"tool_call_id": request.tool_call["id"]})
+                    else:
+                        tool_result = await handler(request)
                     operation["failed"] = getattr(tool_result, "status", None) == "error"
             except Exception:
                 await self.mars_output_queue.put(
