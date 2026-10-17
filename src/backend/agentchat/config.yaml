@@ -7,7 +7,7 @@ server:
   host: "127.0.0.1"
   port: 7860
   name: "AgentChat" # 项目名称
-  version: "2.5.0" # 服务版本号
+  version: "3.0.0" # 服务版本号
 
 # 数据库配置：默认 SQLite；改为 MySQL URL 后自动切换
 # MySQL 示例：mysql+pymysql://用户名:密码@localhost:3306/agentchat

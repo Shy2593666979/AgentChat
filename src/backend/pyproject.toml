@@ -1,6 +1,6 @@
 [project]
 name = "agentchat"
-version = "2.5.0"
+version = "3.0.0"
 description = "An intelligent agent communication platform based on LLM"
 authors = [{ name = "tianmingguang", email = "2593666979@qq.com" }]
 readme = "README.md"

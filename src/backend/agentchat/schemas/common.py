@@ -89,7 +89,7 @@ class StorageConfig(BaseModel):
 
 class ServerConfig(BaseModel):
     name: str = "AgentChat"
-    version: str = "2.5.0"
+    version: str = "3.0.0"
     host: str = "127.0.0.1"
     port: int = 7860
     env: str = "dev"
