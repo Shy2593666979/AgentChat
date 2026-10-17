@@ -3,6 +3,7 @@ from typing import List
 
 from fastapi import APIRouter, Body, Depends, FastAPI, Request
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from starlette.background import BackgroundTask
 
 from agentchat.api.responses.streaming import (
     WatchedStreamingResponse as StreamingResponse,
@@ -49,18 +50,23 @@ async def chat_mars(user_input: str = Body(..., description="用户输入", embe
         HumanMessage(content=user_input)
     ]
 
+    final_response = ""
+    failed = False
+    completed = False
+
     async def general_generate():
-        final_response = ""
-        failed = False
+        nonlocal final_response, failed, completed
         async for chunk in mars_agent.ainvoke_stream(messages):
             yield f"data: {json.dumps(chunk, ensure_ascii=False)}\n\n"
             if chunk.get("type") == "response_chunk":
                 final_response += chunk.get("data", "")
             elif chunk.get("type") == "error":
                 failed = True
+        completed = True
 
+    async def after_response():
         # 记忆不可用或本轮执行失败时不再写入，避免辅助能力影响主流程。
-        if memory_available and final_response and not failed:
+        if completed and memory_available and final_response and not failed:
             await store_optional_memory(
                 memory_client,
                 user_id=login_user.user_id,
@@ -76,7 +82,11 @@ async def chat_mars(user_input: str = Body(..., description="用户输入", embe
                 ],
             )
 
-    return StreamingResponse(protocol_stream(general_generate(), request, "mars"), media_type="text/event-stream")
+    return StreamingResponse(
+        protocol_stream(general_generate(), request, "mars"),
+        media_type="text/event-stream",
+        background=BackgroundTask(after_response),
+    )
 
 @router.post("/mars/example")
 async def chat_mars_example(

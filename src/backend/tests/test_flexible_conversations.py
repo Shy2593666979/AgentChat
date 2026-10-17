@@ -12,6 +12,7 @@ from unittest.mock import AsyncMock, patch
 
 from agentchat.settings import app_settings
 from fastapi import Depends, HTTPException
+from starlette.background import BackgroundTask
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, SystemMessage
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlmodel import Session, SQLModel, create_engine
@@ -236,6 +237,7 @@ class FlexibleConversationTests(unittest.IsolatedAsyncioTestCase):
         from fastapi import Request
         ns = dict(
             Request=Request,
+            BackgroundTask=BackgroundTask,
             protocol_stream=protocol_stream,
             CompletionReq=CompletionReq,
             UserPayload=SimpleNamespace,

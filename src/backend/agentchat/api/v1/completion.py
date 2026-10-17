@@ -3,6 +3,8 @@ from typing import Callable, List
 
 from fastapi import APIRouter, Depends, HTTPException, Request
 from langchain_core.messages import BaseMessage, HumanMessage, SystemMessage
+from loguru import logger
+from starlette.background import BackgroundTask
 
 from agentchat.api.responses.streaming import WatchedStreamingResponse
 from agentchat.api.services.conversation import ConversationService
@@ -112,10 +114,11 @@ async def completion(
         },
     }
     events: list = [agent_event]
+    response_content = ""
+    completed = False
 
     async def stream():
-        response_content = ""
-        completed = False
+        nonlocal response_content, completed
         agent_stream = chat_agent.astream(messages)
         try:
             yield f"data: {json.dumps(agent_event, ensure_ascii=False)}\n\n"
@@ -150,27 +153,29 @@ async def completion(
                     role="assistant", content=response_content, events=events, conversation_id=req.conversation_id,
                     token_usage=count_tokens_usage(response_content), memory_enable=memory_available
                 )
-            if completed:
-                if memory_available:
-                    await store_optional_memory(
-                        memory_client,
-                        messages=[
-                            {
-                                "role": "user",
-                                "content": raw_input,
-                            },
-                            {
-                                "role": "assistant",
-                                "content": response_content,
-                            },
-                        ],
-                        run_id=req.conversation_id,
-                    )
-                await ConversationService.update_conversation_summary(conversation_id=req.conversation_id, user_id=login_user.user_id)
+
+    async def after_response():
+        # 正文和历史保存完成即可结束发送，辅助模型调用不占用 SSE 连接。
+        if not completed:
+            return
+        try:
+            if memory_available:
+                await store_optional_memory(
+                    memory_client,
+                    messages=[
+                        {"role": "user", "content": raw_input},
+                        {"role": "assistant", "content": response_content},
+                    ],
+                    run_id=req.conversation_id,
+                )
+            await ConversationService.update_conversation_summary(conversation_id=req.conversation_id, user_id=login_user.user_id)
+        except Exception:
+            logger.exception("对话后续记忆或摘要处理失败")
 
     # 返回流式响应
     return WatchedStreamingResponse(
         content=protocol_stream(stream(), request, "conversation", req.conversation_id),
         callback=chat_agent.stop_streaming_callback,
-        media_type="text/event-stream"
+        media_type="text/event-stream",
+        background=BackgroundTask(after_response),
     )

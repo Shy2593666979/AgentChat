@@ -3,7 +3,7 @@ import unittest
 from types import SimpleNamespace
 
 from agentchat.settings import app_settings, init_app_settings
-from langchain_core.messages import ToolMessage
+from langchain_core.messages import AIMessageChunk, ToolMessage
 
 asyncio.run(init_app_settings())
 app_settings.database = {
@@ -74,6 +74,71 @@ class MarsStreamTests(unittest.IsolatedAsyncioTestCase):
                     yield "custom", event
         events = [event async for event in self.agent(FakeAgent()).ainvoke_stream([])]
         self.assertEqual([event["type"] for event in events], ["tool_start", "response_chunk", "tool_end"])
+
+    async def test_primary_reply_survives_reasoning_authentication_failure(self):
+        class FailedReasoning:
+            async def astream(self, messages):
+                raise RuntimeError("401 invalid API key")
+
+        class PrimaryAgent:
+            async def astream(self, **kwargs):
+                yield "messages", (AIMessageChunk(content="内部工具内容"), {"langgraph_node": "tools"})
+                for content in ("你好", "，已收到"):
+                    yield "messages", (AIMessageChunk(content=content), {"langgraph_node": "model"})
+
+        agent = self.agent(PrimaryAgent())
+        agent.reasoning_model = FailedReasoning()
+        events = [event async for event in agent.ainvoke_stream([])]
+        self.assertEqual(events, [{"type": "response_chunk", "source": "agent", "data": "你好，已收到"}])
+
+    async def test_primary_reply_does_not_wait_for_blocked_reasoning(self):
+        cancelled = asyncio.Event()
+
+        class BlockedReasoning:
+            async def astream(self, messages):
+                try:
+                    await asyncio.Event().wait()
+                finally:
+                    cancelled.set()
+
+        class PrimaryAgent:
+            async def astream(self, **kwargs):
+                await asyncio.sleep(0)
+                yield "messages", (AIMessageChunk(content="正常回复"), {"langgraph_node": "model"})
+
+        agent = self.agent(PrimaryAgent())
+        agent.reasoning_model = BlockedReasoning()
+        async def collect():
+            return [event async for event in agent.ainvoke_stream([])]
+        events = await asyncio.wait_for(collect(), timeout=2)
+        self.assertEqual(events[0]["data"], "正常回复")
+        self.assertTrue(cancelled.is_set())
+
+    async def test_tool_result_does_not_repeat_primary_summary(self):
+        class PrimaryAgent:
+            async def astream(self, **kwargs):
+                yield "messages", (AIMessageChunk(content="准备检索"), {"langgraph_node": "model"})
+                yield "custom", {"type": "tool_start", "data": {"id": "search"}}
+                yield "custom", {"type": "response_chunk", "tool_id": "search", "data": "完整报告"}
+                yield "messages", (AIMessageChunk(content="重复摘要"), {"langgraph_node": "model"})
+        events = [event async for event in self.agent(PrimaryAgent()).ainvoke_stream([])]
+        self.assertEqual([event["data"] for event in events if event["type"] == "response_chunk"], ["完整报告"])
+
+    async def test_queued_reasoning_does_not_duplicate_primary_reply(self):
+        class Reasoning:
+            async def astream(self, messages):
+                async def chunks():
+                    yield SimpleNamespace(choices=[SimpleNamespace(delta=SimpleNamespace(content="另一份回复"))])
+                return chunks()
+
+        class PrimaryAgent:
+            async def astream(self, **kwargs):
+                yield "messages", (AIMessageChunk(content="主模型回复"), {"langgraph_node": "model"})
+
+        agent = self.agent(PrimaryAgent())
+        agent.reasoning_model = Reasoning()
+        events = [event async for event in agent.ainvoke_stream([])]
+        self.assertEqual([event["data"] for event in events if event["type"] == "response_chunk"], ["主模型回复"])
 
     async def test_execution_error_is_sent_instead_of_hanging(self):
         class FailedAgent:

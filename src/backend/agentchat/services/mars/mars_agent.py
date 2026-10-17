@@ -163,6 +163,7 @@ class MarsAgent:
         self.mars_output_queue = asyncio.Queue()
 
         self.is_call_tool = False
+        primary_chunks = []
 
         callback = UsageMetadataCallbackHandler()
         async def run_mars_agent():
@@ -177,9 +178,17 @@ class MarsAgent:
                     config={
                         "callbacks": [callback],
                     },
-                    stream_mode=["custom"],
+                    stream_mode=["messages", "custom"],
                 ):
-                    await self.mars_output_queue.put(chunk)
+                    if token == "custom":
+                        if chunk.get("type") == "tool_start":
+                            primary_chunks.clear()
+                        await self.mars_output_queue.put(chunk)
+                    elif token == "messages":
+                        message, metadata = chunk
+                        # 工具内部模型的正文由各工具自行发送，不能混入主回复。
+                        if isinstance(message, AIMessageChunk) and metadata.get("langgraph_node") == "model" and message.text:
+                            primary_chunks.append(message.text)
             except Exception:
                 logger.exception("Mars 任务执行失败")
                 await self.mars_output_queue.put(
@@ -249,14 +258,30 @@ class MarsAgent:
 
         try:
             finished = set()
+            has_answer = False
+            using_primary = False
             while len(finished) < 2:
                 mars_chunk = await self.mars_output_queue.get()
                 if "_producer_done" in mars_chunk:
                     finished.add(mars_chunk["_producer_done"])
+                    if mars_chunk["_producer_done"] == "agent" and primary_chunks and not has_answer:
+                        # 推理服务失败或仍未给出正文时，使用已经完成的主模型回复。
+                        self.reasoning_interrupt.set()
+                        if not reasoning_task.done():
+                            reasoning_task.cancel()
+                        yield {"type": "response_chunk", "source": "agent", "data": "".join(primary_chunks)}
+                        has_answer = True
+                        using_primary = True
+                    continue
+                if using_primary and (mars_chunk.get("source") == "reasoning" or mars_chunk.get("type") == "reasoning_chunk"):
                     continue
                 if mars_chunk.get("type") in ("tool_start", "error") and not reasoning_task.done():
                     self.reasoning_interrupt.set()
                     reasoning_task.cancel()
+                if mars_chunk.get("type") == "tool_start":
+                    has_answer = False
+                elif mars_chunk.get("type") == "response_chunk" and mars_chunk.get("data"):
+                    has_answer = True
                 yield mars_chunk
             await mars_task
         finally:

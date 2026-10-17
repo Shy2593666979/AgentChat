@@ -109,7 +109,7 @@ async function send(text?: string, retryFile?: ChatAttachment) { const query = (
         for (const event of row.eventInfo || [])
             if (event.status === 'START')
                 event.status = 'UNKNOWN';
-        await refreshConversations();
+        void refreshConversations();
     }
 }
 catch (error: any) {
