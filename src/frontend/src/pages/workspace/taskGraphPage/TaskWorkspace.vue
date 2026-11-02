@@ -19,7 +19,7 @@ import { responseError } from '../../../utils/resource-visuals';
 const props = withDefaults(defineProps<{
     standalone?: boolean;
 }>(), { standalone: true });
-const supportedTools = new Set(['send_email', 'tavily_search', 'web_search', 'get_arxiv', 'get_weather', 'get_delivery_info', 'text_to_image', 'image_to_text', 'docx_to_pdf', 'pdf_to_docx', 'bocha_search', 'serply_search', 'youcom_search', 'youcom_research']);
+const supportedTools = new Set(['send_email', 'tavily_search', 'web_search', 'get_arxiv', 'get_weather', 'get_delivery_info', 'text_to_image', 'image_to_text', 'docx_to_pdf', 'pdf_to_docx', 'bocha_search', 'serply_search', 'outcrawl_search', 'youcom_search', 'youcom_research']);
 const toolsFetched = ref(false);
 interface Edge {
     start: string;

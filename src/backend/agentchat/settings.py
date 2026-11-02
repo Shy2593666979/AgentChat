@@ -61,6 +61,7 @@ def default_config() -> dict:
                 "delivery",
                 "bocha",
                 "serply",
+                "outcrawl",
                 "youcom",
             )
         },
