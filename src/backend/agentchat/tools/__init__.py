@@ -3,6 +3,7 @@ from agentchat.tools.web_search.google_search.action import google_search
 from agentchat.tools.web_search.tavily_search.action import tavily_search
 from agentchat.tools.web_search.bocha_search.action import bocha_search
 from agentchat.tools.web_search.serply_search.action import serply_search
+from agentchat.tools.web_search.outcrawl_search.action import outcrawl_search
 from agentchat.tools.arxiv.action import get_arxiv
 from agentchat.tools.get_weather.action import get_weather
 from agentchat.tools.delivery.action import get_delivery_info
@@ -19,6 +20,7 @@ AgentTools = [
     tavily_search,
     bocha_search,
     serply_search,
+    outcrawl_search,
     get_weather,
     get_arxiv,
     get_delivery_info,
@@ -44,6 +46,7 @@ AgentToolsWithName = {
     "pdf_to_docx": convert_to_docx,
     "bocha_search": bocha_search,
     "serply_search": serply_search,
+    "outcrawl_search": outcrawl_search,
     "youcom_search": youcom_search,
     "youcom_research": youcom_research,
 }
@@ -59,4 +62,5 @@ WeChatTools = {
     "text_to_image": text_to_image,
     "bocha_search": bocha_search,
     "serply_search": serply_search,
+    "outcrawl_search": outcrawl_search,
 }

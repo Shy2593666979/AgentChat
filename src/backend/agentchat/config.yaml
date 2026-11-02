@@ -82,6 +82,9 @@ tools:
   # Serply 联网搜索 API 配置（获取 API 密钥: https://serply.io，文档: https://serply.io/docs）
   serply:
     api_key: ""
+  # Outcrawl 联网搜索 API 配置（获取 API 密钥: https://outcrawl.ai，文档: https://outcrawl.ai/docs）
+  outcrawl:
+    api_key: ""
   # You.com Search & Research API 配置（获取 API 密钥: https://ydc-index.io/docs）
   youcom:
     api_key: ""
