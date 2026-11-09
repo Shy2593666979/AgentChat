@@ -30,3 +30,7 @@ docs/design-preview/
 *.tsbuildinfo
 src/frontend/dist/
 src/backend/*.log
+
+# unplugin 自动生成的类型声明，dev 会话按访问页面覆盖式重写
+src/frontend/auto-imports.d.ts
+src/frontend/components.d.ts
