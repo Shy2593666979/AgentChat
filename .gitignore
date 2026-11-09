@@ -25,3 +25,8 @@ src/backend/data/uploads/
 src/backend/logs/
 src/frontend/public/ui-detail-review/
 docs/design-preview/
+
+# 构建产物与增量缓存（每次构建都会变，不应进入版本库）
+*.tsbuildinfo
+src/frontend/dist/
+src/backend/*.log
