@@ -3,6 +3,8 @@ from typing import List
 from agentchat.database.dao.knowledge import KnowledgeDao
 from agentchat.database.dao.knowledge_file import KnowledgeFileDao
 from agentchat.database.models.user import AdminUser
+from agentchat.services.rag.es_client import client as es_client
+from agentchat.services.rag.vector_stores import milvus_client
 from agentchat.utils.file_utils import format_file_size
 
 
@@ -48,6 +50,12 @@ class KnowledgeService:
     @classmethod
     async def delete_knowledge(cls, knowledge_id):
         try:
+            # 删除知识库时一并清理文件和检索数据，避免 SQL、Chroma、ES 三处不一致
+            knowledge_files = await KnowledgeFileDao.select_knowledge_file(knowledge_id)
+            for knowledge_file in knowledge_files:
+                await KnowledgeFileDao.delete_knowledge_file(knowledge_file.id)
+            await milvus_client.delete_collection(knowledge_id)
+            await es_client.delete_index(knowledge_id)
             await KnowledgeDao.delete_knowledge_by_id(knowledge_id)
         except Exception as err:
             raise ValueError(f'Delete Knowledge By ID Error: {err}')
