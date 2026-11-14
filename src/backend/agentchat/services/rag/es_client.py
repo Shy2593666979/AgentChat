@@ -102,6 +102,14 @@ class ESClient:
         except Exception as e:
             logger.error(f'Delete documents Error: {e}')
 
+    async def delete_index(self, index_name):
+        try:
+            if self.client.indices.exists(index=index_name):
+                self.client.indices.delete(index=index_name)
+                logger.info(f'Success delete index: {index_name}')
+        except Exception as e:
+            logger.error(f'Delete index Error: {e}')
+
     async def close(self):
         pass
 
