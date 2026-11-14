@@ -66,7 +66,7 @@ async function saveKnowledge() {
   if (saving.value) return
   saving.value=true; saveError.value=''
   try {
-    if (!await formRef.value?.validate().catch(() => false)) return
+    if (!await formRef.value?.validate().catch(() => false)) { ElMessage.error('请检查知识库名称（2—10 字）和描述（10—200 字）'); return }
     const data={knowledge_name:form.name.trim(),knowledge_desc:form.description.trim() || null}
     const response=editingId.value ? await updateKnowledgeAPI({knowledge_id:editingId.value,...data}) : await createKnowledgeAPI(data)
     if(response.data.status_code !== 200) throw new Error(response.data.status_message || '保存失败')
