@@ -34,3 +34,18 @@ src/backend/*.log
 # unplugin 自动生成的类型声明，dev 会话按访问页面覆盖式重写
 src/frontend/auto-imports.d.ts
 src/frontend/components.d.ts
+
+# uv 本地缓存（目录内自带 .gitignore，但目录本身仍会出现在 status 和 IDE 里）
+.uv-cache/
+
+# 后端运行时临时目录：TEMP 不可用时 tempfile 会把上传/解析临时文件落到工作目录
+src/backend/tmp*/
+
+# Python 测试、覆盖率与打包产物
+.pytest_cache/
+.coverage
+htmlcov/
+*.egg-info/
+
+# tiktoken 词表缓存，运行后自动生成
+data-gym-cache/
