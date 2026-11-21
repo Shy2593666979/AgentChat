@@ -44,6 +44,10 @@ class Rag(BaseModel):
     enable_rerank: bool = Field(default=True)
     # 重排序总超时（秒）；超时或失败时降级为混合检索顺序，避免拖慢整条检索
     rerank_timeout: float = Field(default=1.5)
+    # 向量化单次调用预算（秒）；超时后熔断一段时间，检索直接降级为 ES 结果
+    embedding_timeout: float = Field(default=1.2)
+    # 熔断时长（秒）：持有期内 embedding 调用快速失败，不再等待超时
+    embedding_cooldown: float = Field(default=30.0)
     retrival: dict = Field(default_factory=dict)
     split: dict = Field(default_factory=dict)
     elasticsearch: dict = Field(default_factory=dict)
