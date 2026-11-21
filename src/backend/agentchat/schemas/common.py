@@ -42,6 +42,8 @@ class Rag(BaseModel):
     enable_ik_analyzer: bool = Field(default=False)
     # 是否调用外部重排序模型；为 False 时直接使用混合检索的召回顺序
     enable_rerank: bool = Field(default=True)
+    # 重排序总超时（秒）；超时或失败时降级为混合检索顺序，避免拖慢整条检索
+    rerank_timeout: float = Field(default=1.5)
     retrival: dict = Field(default_factory=dict)
     split: dict = Field(default_factory=dict)
     elasticsearch: dict = Field(default_factory=dict)
