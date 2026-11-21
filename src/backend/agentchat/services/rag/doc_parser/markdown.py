@@ -3,6 +3,7 @@ import re
 from datetime import datetime, timedelta
 from uuid import uuid4
 from agentchat.schemas.chunk import ChunkModel
+from agentchat.settings import app_settings
 
 
 class MarkdownParser:
@@ -249,5 +250,19 @@ class MarkdownParser:
         return chunks
 
 
-markdown_parser = MarkdownParser()
+def _split_config():
+    """从 rag.split 读取切块参数（chunk_size 作为最大块大小，overlap_size 作为重叠）。"""
+    rag = getattr(app_settings, "rag", None)
+    split = getattr(rag, "split", None) or {}
+    chunk_size = max(64, int(split.get("chunk_size") or 500))
+    overlap = max(0, min(int(split.get("overlap_size") or 100), chunk_size - 1))
+    return chunk_size, overlap
+
+
+_chunk_size, _chunk_overlap = _split_config()
+markdown_parser = MarkdownParser(
+    min_chunk_size=max(64, _chunk_size // 2),
+    max_chunk_size=_chunk_size,
+    overlap_size=_chunk_overlap,
+)
 
