@@ -4,7 +4,8 @@ from agentchat.settings import app_settings
 class ESIndex:
     """根据配置自动切换是否使用 IK 分词器"""
 
-    use_ik = app_settings.rag.enable_ik_analyzer
+    # 未配置 rag 段时（简易模式/CI）按不用 IK 处理，避免 import 期 AttributeError
+    use_ik = getattr(app_settings.rag, "enable_ik_analyzer", False)
 
     # delete
     index_delete = """
@@ -27,9 +28,8 @@ class ESIndex:
           "content": {
             "query": "%s",
             __ANALYZER__
-            "operator": "and",
-            "minimum_should_match": "75%%",
-            "fuzziness": "AUTO",
+            "operator": "or",
+            "minimum_should_match": "60%%",
             "boost": 2.0
           }
         }
@@ -47,9 +47,8 @@ class ESIndex:
           "summary": {
             "query": "%s",
             __ANALYZER__
-            "operator": "and",
-            "minimum_should_match": "75%%",
-            "fuzziness": "AUTO",
+            "operator": "or",
+            "minimum_should_match": "60%%",
             "boost": 2.0
           }
         }
