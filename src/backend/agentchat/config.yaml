@@ -86,6 +86,9 @@ tools:
   youcom:
     api_key: ""
     endpoint: "https://ydc-index.io/v1/search"
+  # SpecStream Search API 配置（获取 API 密钥: https://specstream.ai/workspace ，文档: https://specstream.ai/docs）
+  specstream:
+    api_key: ""
 
 # RAG (检索增强生成) 配置
 rag:
